@@ -4,6 +4,8 @@ A **collection** is a kind of content: pages, articles, products. Its entries ar
 
 ## Collections
 
+Manage them in the admin under **Content → Collections** (permissions `cms.collections.view`, `.create`, `.update`, `.delete`) or with the actions below. A collection has:
+
 | | |
 | --- | --- |
 | `handle` | Lowercase letters, digits and underscores, starting with a letter. Set when created; it can't change, and a deleted collection's handle stays taken. |
