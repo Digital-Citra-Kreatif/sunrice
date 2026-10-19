@@ -81,3 +81,10 @@ $panel->tools(ListOrders::class, RefundOrder::class)
 ## Settings
 
 `config/sunrice-admin.php` → `ai`: `enabled`, `path` (`mcp`) and `requests_per_minute`. `$panel->aiAccess(false)` removes the page, the permission and the endpoint.
+
+## From the command line
+
+`sunrice:ai-token {email}` creates a token for a user (to set up an agent
+on a server), shown once with the endpoint: `--name`, `--read-only`,
+`--days` (it expires). `--list` lists the user's tokens and `--revoke`
+revokes them all.

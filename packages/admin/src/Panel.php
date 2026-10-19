@@ -597,6 +597,7 @@ final class Panel
         $this->permissions = [];
         $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
         $this->permissions(Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'));
+        $this->permissions(Permission::make('sunrice.activity.prune', 'Delete old activity log lines', 'Panel'));
         // Settings → Security (two-factor login) and Branding, in every panel.
         $own = [];
         foreach ([SecuritySettings::class => 'Edit security settings', BrandingSettings::class => 'Edit branding'] as $class => $label) {

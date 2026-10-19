@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { Head, Link, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, History, Search, X } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { ChevronLeft, ChevronRight, History, Search, Trash2, X } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
@@ -43,13 +45,47 @@ interface Props {
     types: { value: string; label: string }[];
     sources: string[];
     rows: { data: Row[]; total: number; currentPage: number; lastPage: number; prevUrl: string | null; nextUrl: string | null };
+    can: { prune: boolean };
+}
+
+/** Deletes lines older than some days, after asking. */
+function PruneDialog() {
+    const [open, setOpen] = React.useState(false);
+    const form = useForm({ days: 180 });
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline"><Trash2 /> Delete old lines</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete old activity log lines</DialogTitle>
+                    <DialogDescription>Lines older than this are deleted for good. Super admins get an email saying so.</DialogDescription>
+                </DialogHeader>
+                <form id="prune" className="grid gap-2" onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post(adminUrl('activity/prune'), { preserveScroll: true, onSuccess: () => setOpen(false) });
+                }}>
+                    <Label htmlFor="days">Older than (days)</Label>
+                    <Input id="days" type="number" min={1} max={3650} required value={form.data.days}
+                        onChange={(event) => form.setData('days', Number(event.target.value))} aria-invalid={form.errors.days !== undefined} />
+                    {form.errors.days && <p className="text-sm text-destructive">{form.errors.days}</p>}
+                </form>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button type="submit" form="prune" variant="destructive" disabled={form.processing}>Delete</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 const ALL = '__all';
 const SOURCE_LABELS: Record<string, string> = { admin: 'Admin', ai: 'AI agent', system: 'System', security: 'Security' };
 
 /** Who changed what, newest first. */
-export default function ActivityIndex({ query, types, sources, rows }: Props) {
+export default function ActivityIndex({ query, types, sources, rows, can }: Props) {
     useBreadcrumbs([{ label: 'Activity log' }]);
     const [search, setSearch] = React.useState(query.search);
     const base = adminUrl('activity');
@@ -63,7 +99,10 @@ export default function ActivityIndex({ query, types, sources, rows }: Props) {
     return (
         <div className="flex flex-col gap-4">
             <Head title="Activity log" />
-            <h1 className="text-2xl font-medium tracking-tight">Activity log</h1>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <h1 className="text-2xl font-medium tracking-tight">Activity log</h1>
+                {can.prune && <PruneDialog />}
+            </div>
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-64" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>

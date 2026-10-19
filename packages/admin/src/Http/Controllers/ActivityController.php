@@ -6,6 +6,8 @@ namespace Sunrice\Admin\Http\Controllers;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -14,6 +16,7 @@ use Inertia\Response;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\SecurityLog;
 
 /**
  * The activity log page: who changed what, newest first, with filters.
@@ -27,7 +30,7 @@ final class ActivityController
 
     public function __construct(private Panel $panel) {}
 
-    public function __invoke(Request $request): Response
+    public function index(Request $request): Response
     {
         $user = $request->user();
         abort_unless($user instanceof Authorizable && $user->can('sunrice.activity.view'), 403);
@@ -87,7 +90,19 @@ final class ActivityController
                 'prevUrl' => $page->previousPageUrl(),
                 'nextUrl' => $page->nextPageUrl(),
             ],
+            'can' => ['prune' => $request->user() instanceof Authorizable && $request->user()->can('sunrice.activity.prune')],
         ]);
+    }
+
+    /** Deletes lines older than some days: a security event, which alerts (it could hide tracks). */
+    public function prune(Request $request, SecurityLog $security): RedirectResponse
+    {
+        $request->validate(['days' => ['required', 'integer', 'min:1', 'max:3650']]);
+        $days = $request->integer('days');
+        $deleted = Activity::prune($days);
+        $security->record('activity pruned', $request->user() instanceof Model ? $request->user() : null, null, ['note' => "{$deleted} lines older than {$days} days"]);
+
+        return back()->with('success', "Deleted {$deleted} ".($deleted === 1 ? 'line' : 'lines')." older than {$days} days.");
     }
 
     /** @return array<string, mixed> */

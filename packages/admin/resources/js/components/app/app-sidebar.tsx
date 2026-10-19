@@ -1,4 +1,3 @@
-import { BrandMark } from '@/components/app/brand';
 import * as React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { ChevronRight, ChevronsUpDown, LayoutGrid, LogOut } from 'lucide-react';
@@ -7,8 +6,12 @@ import {
     SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { BrandMark } from '@/components/app/brand';
 import { navIcon } from '@/components/app/nav-icon';
+import { useAppearance, type Appearance } from '@/hooks/use-appearance';
 import { adminUrl } from '@/lib/admin-url';
 import type { NavItem, SharedProps } from '@/types';
 
@@ -22,6 +25,7 @@ export function AppSidebar() {
     const { navigation, sunrice, auth } = usePage<SharedProps>().props;
     const path = usePage().url.split('?')[0] ?? '';
     const { isMobile, setOpenMobile } = useSidebar();
+    const { appearance, updateAppearance } = useAppearance();
 
     // On phones the sidebar is a flyout: close it when a visit starts.
     React.useEffect(() => {
@@ -122,6 +126,13 @@ export function AppSidebar() {
                                     </SidebarMenuButton>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent side="top" align="start" className="w-56">
+                                    <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Appearance</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup value={appearance} onValueChange={(value) => updateAppearance(value as Appearance)}>
+                                        <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="system">Same as the device</DropdownMenuRadioItem>
+                                    </DropdownMenuRadioGroup>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem onSelect={() => router.post(adminUrl('logout'))}>
                                         <LogOut />
                                         Log out
