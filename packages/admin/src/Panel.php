@@ -15,6 +15,8 @@ use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Resources\RegisteredResource;
 use Sunrice\Admin\Resources\Resource;
+use Sunrice\Admin\Settings\RegisteredSettings;
+use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Users\RoleResource;
 use Sunrice\Admin\Users\UserResource;
 
@@ -73,6 +75,9 @@ final class Panel
 
     /** @var array<string, RegisteredResource> keyed by the resource's key */
     private array $resources = [];
+
+    /** @var array<string, RegisteredSettings> keyed by the section's key */
+    private array $settings = [];
 
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
@@ -280,6 +285,36 @@ final class Panel
         return $this;
     }
 
+    /**
+     * Settings sections (see Settings), edited on the panel's Settings page.
+     * Each gets a permission to edit it, prefixed like resources:
+     * "shop.settings.payments" from a plugin, "settings.general" from the app.
+     *
+     * @param  class-string<Settings>  ...$classes
+     */
+    public function settings(string ...$classes): self
+    {
+        $this->assertRegistering();
+        foreach ($classes as $class) {
+            if (! is_subclass_of($class, Settings::class)) {
+                throw new PanelMisconfigured("{$class} isn't a settings section: extend ".Settings::class.'.');
+            }
+            $key = $class::key();
+            if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1) {
+                throw new PanelMisconfigured("The settings section {$class} has the key \"{$key}\": use lowercase letters, numbers and dashes.");
+            }
+            if (isset($this->settings[$key])) {
+                throw new PanelMisconfigured("Two settings sections have the key \"{$key}\": {$this->settings[$key]->class} and {$class}{$this->owner()}.");
+            }
+
+            $permission = ($this->registering === null ? '' : $this->registering->id().'.')."settings.{$key}";
+            $this->permissions(Permission::make($permission, "Edit {$class::label()} settings", 'Settings'));
+            $this->settings[$key] = new RegisteredSettings($class, $permission);
+        }
+
+        return $this;
+    }
+
     /** A plugin's admin JavaScript, loaded when one of its pages opens. */
     public function bundle(PluginBundle $bundle): self
     {
@@ -347,6 +382,20 @@ final class Panel
             } finally {
                 $this->registering = null;
             }
+        }
+        if ($this->settings !== []) {
+            $sections = $this->settings;
+            $this->navigation(NavigationItem::make('settings')->label('Settings')->url('settings')->icon('settings')
+                ->group('Administration')->sort(950)
+                ->visible(function (Authorizable $user) use ($sections): bool {
+                    foreach ($sections as $section) {
+                        if ($section->allows($user)) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }));
         }
         $this->validate();
 
@@ -438,6 +487,12 @@ final class Panel
     public function getResources(): array
     {
         return $this->resources;
+    }
+
+    /** @return array<string, RegisteredSettings> keyed by the section's key */
+    public function getSettings(): array
+    {
+        return $this->settings;
     }
 
     /** @return array<string, PluginBundle> keyed by id */

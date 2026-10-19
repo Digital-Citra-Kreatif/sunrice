@@ -28,6 +28,11 @@ final class Password extends Field
         return $this->required && $record === null;
     }
 
+    public function keepsValueWhenEmpty(): bool
+    {
+        return true;
+    }
+
     public function formValue(?Model $record): mixed
     {
         return null;

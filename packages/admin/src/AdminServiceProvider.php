@@ -24,6 +24,7 @@ use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Console\MakeAdminCommand;
 use Sunrice\Admin\Console\PublishAssetsCommand;
 use Sunrice\Admin\Console\SyncPermissionsCommand;
+use Sunrice\Admin\Settings\SettingsStore;
 
 /**
  * Boots the admin panel package. The panel itself and its plugins are
@@ -39,6 +40,8 @@ final class AdminServiceProvider extends ServiceProvider
         $this->app->register(InertiaServiceProvider::class);
         $this->app->register(PermissionServiceProvider::class);
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');
+        // Settings are read once per request (or job).
+        $this->app->scoped(SettingsStore::class);
     }
 
     public function boot(): void

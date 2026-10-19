@@ -8,6 +8,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Admin\PanelProvider;
 use Sunrice\Cms\CmsPlugin;
 use Workbench\App\Admin\ProductResource;
+use Workbench\App\Admin\StoreSettings;
 
 /** The workbench app's panel, set up the way an app would. */
 class AdminPanelProvider extends PanelProvider
@@ -18,6 +19,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->brand('Sunrice')
             ->plugin(CmsPlugin::make())
-            ->resources(ProductResource::class);
+            ->resources(ProductResource::class)
+            ->settings(StoreSettings::class);
     }
 }
