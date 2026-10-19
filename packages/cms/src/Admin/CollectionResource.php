@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\Cms\Admin;
 
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Resources\Forms\NumberInput;
 use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Forms\Toggle;
@@ -60,6 +61,13 @@ final class CollectionResource extends Resource
                     }
                 }])
                 ->help('Where entries are on the site. Empty: they have no page of their own.'),
+            TextInput::make('listing_route')->label('Listing page URL')->placeholder('/blog')->unique()->maxLength(255)
+                ->rules(['regex:#^(/[a-z0-9\-_]+)+$#'])
+                ->help('A page listing the entries, like /blog (template cms.{handle}-listing, else cms.listing). Empty: none.'),
+            Select::make('listing_blueprint')->label('Listing page fields')
+                ->options(Blueprint::query()->orderBy('title')->get()->mapWithKeys(fn (Blueprint $blueprint): array => [$blueprint->handle => $blueprint->title])->all())
+                ->help('Fields of the listing page itself, like an intro, edited from the entries list.'),
+            NumberInput::make('per_page')->label('Entries per listing page')->integer()->min(1)->max(100)->default(10),
             TextInput::make('template')->placeholder('cms.article')
                 ->rules(['regex:/^[a-z0-9_\-]+(?:[.:][a-z0-9_\-]+)*$/'])
                 ->help('The Blade view for its entries. Empty: cms.{handle}, else cms.entry.'),

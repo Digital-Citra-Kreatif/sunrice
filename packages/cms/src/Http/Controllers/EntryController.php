@@ -305,10 +305,11 @@ final class EntryController
         return $translation->isLive() ? 'Published.' : 'Scheduled for '.$translation->published_at?->toDayDateTimeString().'.';
     }
 
-    /** @return array{handle: string, title: string, dated: bool, hierarchical: bool, ordered: bool} */
+    /** @return array{handle: string, title: string, dated: bool, hierarchical: bool, ordered: bool, listing: bool} */
     private static function collection(Collection $collection): array
     {
-        return ['handle' => $collection->handle, 'title' => $collection->title, 'dated' => $collection->dated, 'hierarchical' => $collection->hierarchical, 'ordered' => $collection->ordered];
+        return ['handle' => $collection->handle, 'title' => $collection->title, 'dated' => $collection->dated, 'hierarchical' => $collection->hierarchical,
+            'ordered' => $collection->ordered, 'listing' => $collection->listing_route !== null];
     }
 
     /** @return array<string, bool> */

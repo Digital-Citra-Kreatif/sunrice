@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Listing pages: collections get `listing_route` (`/blog`), `listing_blueprint` and `per_page`; their live entries are listed there (templates `cms.{handle}-listing`, `cms.listing`, or a plain one), with fields per language (`CollectionListing`, `SaveListing`, Listing page from the entries list), and in the sitemap. `Collection::listingUrl()`.
+- The homepage: Settings → Site (`Sunrice\Cms\Settings\SiteSettings`, `cms.settings.site`) picks the entry shown at `/` and `/{locale}`; its own address redirects there.
 - Collection structure: **Manual order** (`ordered`; Move up and Move down in the list, `MoveEntry`, `EntryQuery::ordered()`) and **Hierarchical** collections (`Entry::parent`, `children`, `ancestors()`, `EntryQuery::childrenOf()`; URLs stay flat). Entries get **Page settings**: a parent and their own template (`SaveEntrySettings`), which the site tries first. Deleting an entry for good moves its children up.
 - Media usage: `MediaUsages` (`sync`, `forget`, `of`) records where files are used; the media details list **Used by**, trashing a file in use asks first, and deleting one for good needs `force` (bulk deletes keep files in use). The CMS reports entries (draft, live and SEO image) and global sets.
 - `sunrice:optimize-images` (`OptimizeImage`, `RestoreOriginalImage`): scales down and compresses images in place, keeping the first original (`media.optimize`), with `--dry-run` and `--restore`. Replacing or deleting a file deletes its kept original.

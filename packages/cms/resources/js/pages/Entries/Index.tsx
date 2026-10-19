@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, Plus, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, LayoutList, Plus, Search } from 'lucide-react';
 import { useConfirm } from '@/components/Confirm.tsx';
 import { adminUrl } from '@sunrice/admin-sdk';
 import {
@@ -22,7 +22,7 @@ interface Row {
 }
 
 interface Props {
-    collection: { handle: string; title: string; dated: boolean; ordered?: boolean } | null;
+    collection: { handle: string; title: string; dated: boolean; ordered?: boolean; listing?: boolean } | null;
     collections: { handle: string; title: string }[];
     entries: { data: Row[]; total: number; from: number | null; to: number | null; prev_page_url: string | null; next_page_url: string | null } | null;
     query: { search: string; trashed: boolean };
@@ -90,6 +90,9 @@ export default function EntriesIndex({ collection, collections, entries, query, 
                     )}
                 </div>
                 <div className="cms:flex cms:items-center cms:gap-2">
+                    {collection.listing && !query.trashed && (
+                        <Button variant="outline" asChild><Link href={adminUrl(`cms/collections/${collection.handle}/listing`)}><LayoutList /> Listing page</Link></Button>
+                    )}
                     {entries.total > 0 && !query.trashed && (
                         <Button variant="outline" asChild><a href={`${base}/export`}><Download /> Export CSV</a></Button>
                     )}

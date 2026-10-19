@@ -55,6 +55,23 @@ It prints the `<title>` (the SEO title, else the entry's), the description, `rob
 
 When a published entry's address changes (a new slug), publishing it adds a permanent redirect from the old address, so links and search results keep working. Chains are flattened: every old address points straight at the newest. Structure → Redirects (`cms.redirects.*`) lists them and takes your own, from a path on the site to a path or a web address, 301 or 302. A live page always wins over a redirect from its address.
 
+## Listing pages
+
+A collection with a **listing page URL** (`listing_route`, like `/blog`) gets a page listing its live entries, `per_page` at a time (`?page=2`), newest first for dated collections, in Manual order for ordered ones, else by title; other languages under their prefix (`/id/blog`). Its own fields come from the collection's listing blueprint and are edited from the entries list (**Listing page**, `cms.entries.update`; `SaveListing` in code), per language. It renders with the first view that exists: `cms.{handle}-listing`, `cms.listing`, or the CMS's plain one, with:
+
+| | |
+| --- | --- |
+| `$collection` | the `Collection` (`->listingUrl($locale)`) |
+| `$entries` | a paginator of `EntryTranslation`s (`{{ $entries->links() }}`) |
+| `$values`, `$richText` | the listing page's fields, as for entries |
+| `$title`, `$locale`, `$url` | the collection's title, the language and the page's URL |
+
+Listing URLs are fixed, so they're matched before any `{slug}` pattern; they're in the sitemap.
+
+## The homepage
+
+Pick the entry shown at `/` in **Settings → Site** (`cms.settings.site`). In other languages, `/{locale}` shows its translation there. The entry's own address redirects (301) to `/`, and `$translation->url()` gives `/`. Your app's own `/` route, if it has one, wins.
+
 ## Querying entries
 
 In any view, `Cms::entries()` finds live entries in the current language (`Sunrice\Cms\Content`, aliased as `Cms` unless your app uses that name):

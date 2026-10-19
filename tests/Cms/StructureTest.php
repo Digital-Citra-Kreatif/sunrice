@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Collections\SaveListing;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\ForceDeleteEntry;
 use Sunrice\Cms\Actions\Entries\MoveEntry;
@@ -94,4 +95,45 @@ it('moves children up when their parent is deleted for good', function () {
     app(ForceDeleteEntry::class)->handle($about);
 
     expect($team->fresh()?->parent_id)->toBeNull()->and(EntryTranslation::query()->count())->toBe(1);
+});
+
+it('serves listing pages with their fields, paginated, in each language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    Blueprint::query()->create(['handle' => 'listing', 'title' => 'Listing', 'fields' => [['handle' => 'intro', 'type' => 'text']]]);
+    $articles = Collection::query()->create(['handle' => 'articles', 'title' => 'Articles', 'blueprint' => 'page', 'route' => '/articles/{slug}',
+        'dated' => true, 'listing_route' => '/articles', 'listing_blueprint' => 'listing', 'per_page' => 2]);
+    foreach (['One', 'Two', 'Three'] as $i => $title) {
+        app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($articles, ['title' => $title]), new DateTimeImmutable('2026-01-0'.($i + 1)));
+    }
+    app(SaveListing::class)->handle($articles, ['intro' => 'All our <news>']);
+
+    get('/articles')->assertOk()->assertSee('<h1>Articles</h1>', false)->assertSee('All our &lt;news&gt;', false)
+        ->assertSeeInOrder(['Three', 'Two'])->assertDontSee('>One<', false)->assertSee('?page=2');
+    get('/articles?page=2')->assertOk()->assertSee('One');
+    get('/articles?page=9')->assertNotFound();
+    // Translated fields are per language.
+    get('/id/articles')->assertOk()->assertDontSee('All our');
+    get('/sitemap.xml')->assertSee(url('/articles'))->assertSee(url('/id/articles'));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
+    get('/admin/cms/collections/articles/listing')->assertInertia(fn (Assert $page) => $page
+        ->component('Cms/Entries/Listing', shouldExist: false)->where('values.intro', 'All our <news>'));
+    put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Semua berita']])->assertSessionHasNoErrors();
+    get('/id/articles')->assertSee('Semua berita');
+    get('/admin/cms/collections/pages/listing')->assertNotFound();
+});
+
+it('serves the homepage at /, in each language, and redirects its own address', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $home = structurePage('Welcome');
+    get('/')->assertNotFound();
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    get('/admin/settings/site')->assertOk();
+    put('/admin/settings/site', ['homepage' => (string) $home->id])->assertSessionHasNoErrors();
+
+    get('/')->assertOk()->assertSee('Welcome');
+    get('/welcome')->assertRedirect(url('/'))->assertStatus(301);
+    expect($home->mainTranslation()?->url())->toBe(url('/'));
+    get('/id')->assertNotFound(); // not translated
 });
