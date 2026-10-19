@@ -38,6 +38,11 @@ abstract class PanelProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->app->make(Panel::class)->boot();
+        $panel = $this->app->make(Panel::class);
+        $panel->boot();
+
+        if (! $this->app->routesAreCached()) {
+            PanelRoutes::register($panel);
+        }
     }
 }

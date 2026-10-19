@@ -1,0 +1,75 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Sunrice\Admin\Assets;
+
+use Illuminate\Foundation\Vite;
+use Illuminate\Support\HtmlString;
+
+/**
+ * The panel's own built assets. They are built into the package's dist/
+ * and published to public/vendor/sunrice-admin (`php artisan sunrice:assets`).
+ *
+ * @internal
+ */
+final class AdminAssets
+{
+    public const BUILD_DIRECTORY = 'vendor/sunrice-admin';
+
+    public const ENTRY = 'resources/js/app.tsx';
+
+    /** The package's dist/ folder. */
+    public static function distPath(): string
+    {
+        return dirname(__DIR__, 2).'/dist';
+    }
+
+    /** The published copy, or the package's own build when running in place. */
+    public static function manifestPath(): ?string
+    {
+        foreach ([public_path(self::BUILD_DIRECTORY.'/manifest.json'), self::distPath().'/manifest.json'] as $path) {
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    public static function published(): bool
+    {
+        return is_file(public_path(self::BUILD_DIRECTORY.'/manifest.json')) || is_file(public_path(self::BUILD_DIRECTORY.'/hot'));
+    }
+
+    /** Whether the published copy differs from the package's build (an update without re-publishing). */
+    public static function outdated(): bool
+    {
+        $published = public_path(self::BUILD_DIRECTORY.'/manifest.json');
+        $built = self::distPath().'/manifest.json';
+
+        return is_file($published) && is_file($built) && md5_file($published) !== md5_file($built);
+    }
+
+    /** The asset version Inertia sends with every page, so browsers reload after an update. */
+    public static function version(): ?string
+    {
+        $manifest = self::manifestPath();
+
+        return $manifest === null ? null : (md5_file($manifest) ?: null);
+    }
+
+    /** The script and style tags for the panel's entry point. */
+    public static function tags(): HtmlString
+    {
+        if (! self::published()) {
+            return new HtmlString('');
+        }
+
+        $vite = (new Vite)
+            ->useBuildDirectory(self::BUILD_DIRECTORY)
+            ->useHotFile(public_path(self::BUILD_DIRECTORY.'/hot'));
+
+        return $vite(self::ENTRY);
+    }
+}

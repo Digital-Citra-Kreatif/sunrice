@@ -1,12 +1,23 @@
 # The workbench app for `composer serve`: the panel and the CMS together.
+# Sign in at /_workbench/login/admin@example.com.
+laravel: '@testbench'
+
 providers:
   - Sunrice\Admin\AdminServiceProvider
   - Sunrice\Cms\CmsServiceProvider
   - Workbench\App\Providers\WorkbenchServiceProvider
 
+migrations:
+  - workbench/database/migrations
+
+env:
+  - AUTH_MODEL=Workbench\App\Models\User
+
 workbench:
-  start: /
+  start: /admin
+  user: admin@example.com
   install: true
+  auth: true
   discovers:
     web: false
     api: false
@@ -14,4 +25,8 @@ workbench:
     views: false
   build:
     - create-sqlite-db
-    - migrate:refresh
+    - db-wipe
+    - migrate-fresh
+    - db-seed:
+        --class: Workbench\Database\Seeders\DatabaseSeeder
+    - sunrice:assets

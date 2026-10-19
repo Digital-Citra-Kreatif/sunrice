@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
+use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Panel;
@@ -73,7 +74,7 @@ it('is locked once booted', function () {
 it('makes plugins prefix their permissions with their id', function () {
     $ok = Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(Permission::make('shop.orders.view', 'View orders', 'Shop'))));
     $ok->boot();
-    expect(array_keys($ok->getPermissions()))->toBe(['shop.orders.view']);
+    expect(array_keys($ok->getPermissions()))->toBe([Panel::ACCESS, 'shop.orders.view']);
 
     $panel = Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(Permission::make('cms.entries.edit', 'Edit entries'))));
     expect(fn () => $panel->boot())->toThrow(PanelMisconfigured::class, 'start with its id ("shop.…")');
@@ -133,4 +134,19 @@ it('collects shared page data without resolving it', function () {
     expect($resolved)->toBeFalse()
         ->and(($panel->getSharedData()['shop'])())->toBe(['currency' => 'IDR'])
         ->and(fn () => $panel->share('shop', fn () => null))->toThrow(PanelMisconfigured::class);
+});
+
+it('checks plugin bundles', function () {
+    $bundle = fn (string $id, string ...$pages) => PluginBundle::make($id)->module("/{$id}.js")->pages(...$pages);
+
+    expect(fn () => Panel::make()->bundle(PluginBundle::make('shop')->pages('Shop/')))
+        ->toThrow(PanelMisconfigured::class, 'has no module');
+    expect(fn () => Panel::make()->bundle($bundle('shop', 'Users/')))
+        ->toThrow(PanelMisconfigured::class, 'belong to the panel');
+    expect(fn () => Panel::make()->bundle($bundle('shop', 'Shop/'))->bundle($bundle('crm', 'Shop/Customers/')))
+        ->toThrow(PanelMisconfigured::class, 'both claim');
+    expect(fn () => Panel::make()->bundle($bundle('shop', 'Shop/'))->bundle($bundle('shop', 'Store/')))
+        ->toThrow(PanelMisconfigured::class, 'Two bundles');
+    expect(fn () => PluginBundle::make('shop')->pages('shop'))->toThrow(InvalidArgumentException::class);
+    expect(fn () => Panel::make()->share('auth', fn () => null))->toThrow(PanelMisconfigured::class, 'belongs to the panel');
 });

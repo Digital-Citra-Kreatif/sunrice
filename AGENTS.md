@@ -40,7 +40,8 @@ Multiple panels in one app, multi-tenancy, a headless/REST API, frontend search 
 - Write operations live in single-purpose action classes (`src/Actions/<Area>/`) with a public `handle()`. Controllers stay thin.
 - Config: `config/sunrice-admin.php` (key `sunrice-admin`) and `config/sunrice-cms.php` (key `sunrice-cms`). Views: `sunrice-admin::` and `sunrice-cms::`. Tables are prefixed `sunrice_`.
 - Permission names `sunrice.<area>.<action>` (panel) and `cms.<area>.<action>` (CMS); plugins use their own prefix. Admin route names `sunrice.admin.<area>.<action>`.
-- Tests live in `tests/Admin` (panel alone), `tests/Cms` (panel + CMS) and `tests/Arch`.
+- Tests live in `tests/Admin` (panel alone), `tests/Cms` (panel + CMS), `tests/Arch` and `tests/Frontend` (node:test).
+- `packages/admin-sdk` is the npm package `@sunrice/admin-sdk` for plugin bundles; keep `SHARED_MODULES` in step with the runtime (`tests/Frontend` checks).
 
 ## Commands
 
@@ -49,5 +50,7 @@ composer test      # Pest
 composer lint      # Pint (test mode)
 composer format    # Pint (fix)
 composer analyse   # Larastan
-composer serve     # the workbench app (vendor/bin/testbench serve)
+composer serve     # the workbench app; sign in at /_workbench/login/admin@example.com
+npm run build      # the SDK and the panel's frontend (packages/admin/dist)
+npm run test:frontend
 ```

@@ -3,11 +3,18 @@
     "description": "An admin panel framework for Laravel: auth, users and roles, resources, custom React pages, settings, media, activity and security, and AI access.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["laravel", "admin", "admin-panel", "inertia", "react"],
+    "keywords": [
+        "laravel",
+        "admin",
+        "admin-panel",
+        "inertia",
+        "react"
+    ],
     "require": {
         "php": "^8.3",
         "illuminate/contracts": "^13.0",
-        "illuminate/support": "^13.0"
+        "illuminate/support": "^13.0",
+        "inertiajs/inertia-laravel": "^3.0"
     },
     "autoload": {
         "psr-4": {

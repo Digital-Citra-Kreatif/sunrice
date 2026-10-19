@@ -1,0 +1,23 @@
+{
+  "resources/js/app.tsx": {
+    "file": "assets/app-Bs6zUUtO.js",
+    "name": "app",
+    "src": "resources/js/app.tsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/pages/Dashboard.tsx"
+    ],
+    "css": [
+      "assets/app-1e8ebL4E.css"
+    ]
+  },
+  "resources/js/pages/Dashboard.tsx": {
+    "file": "assets/Dashboard-Bz6kBQA6.js",
+    "name": "Dashboard",
+    "src": "resources/js/pages/Dashboard.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx"
+    ]
+  }
+}
