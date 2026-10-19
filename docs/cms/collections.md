@@ -33,13 +33,20 @@ Editors write entries under **Content → Entries**: a list per collection (sear
 | `cms.entries.publish` | Publish (now or on a date) and unpublish. |
 | `cms.entries.delete` | Move entries to the trash and restore them. |
 
-Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it). The editor edits the main language; other languages come with the multilingual editor.
+Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it).
 
 Rich text fields have a formatting toolbar: headings, bold, italic, underline, strikethrough, code, lists, quotes, dividers, links (web addresses, paths on the site, mailto: and tel:; others are refused) and images from the media library, which keep their library id. The server cleans the HTML again when saving.
 
 ## Languages
 
 The languages content is written in are set in `config/sunrice-cms.php` (or `SUNRICE_LOCALES=id,en`), the first being the main one. Without either, it's the app's locale. `Sunrice\Cms\Support\Locales::all()` and `::default()` read them.
+
+Each language of an entry is a translation of its own: its own title, slug, draft, status, publish date and revisions. With more than one language, the editor shows a bar of them:
+
+- **Adding a language** (`cms.entries.create`, or `CreateTranslation`) makes a draft copied from the main translation, to translate and publish on its own.
+- **Removing one** (`cms.entries.delete`, or `DeleteTranslation`) deletes that translation and its revisions. The main translation can't be removed: trash the entry instead.
+
+Fields are **translated** or **shared**. A field's *Per language* setting in the blueprint decides; left to the type, text fields (text, textarea, rich text, links, groups, repeaters, flexible) are translated and the others (numbers, toggles, selects, dates, media) shared. Shared fields belong to the main translation: other languages show its values, read-only, and templates get them from it (`$translation->values()`). A price changed in the main language is the price in every language.
 
 ## Drafts and publishing
 

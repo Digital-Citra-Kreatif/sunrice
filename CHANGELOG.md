@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Multilingual entries: a language bar in the editor to add (copied from the main language), edit, publish and remove each language on its own, and per-language badges in the lists. Shared (not translatable) fields belong to the main translation: read-only in the others, and `values()` takes them from it. `CreateTranslation` and `DeleteTranslation` actions, `Entry::mainTranslation()`, `EntryTranslation::isMain()` and `editableSchema()`, `Schema::shared()` and `except()`. The workbench has English and Indonesian.
 - Rich text fields get an editor (TipTap): headings, marks, lists, quotes, code, links checked like the server does, and images from the media library. It loads only on entries that have a rich text field.
 - `@sunrice/admin-sdk/vite` defines `process.env.NODE_ENV`, which libraries in plugin bundles read and browsers lack.
 - The entry editor (Content → Entries): lists per collection with search and the trash, and the editor with every field type (rich text as HTML for now), save draft, publish now or on a date, unpublish, trash and restore, and revisions. Permissions `cms.entries.view`, `.create`, `.update`, `.publish` and `.delete`. Validation messages name fields by their labels.

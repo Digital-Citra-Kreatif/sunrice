@@ -13,6 +13,7 @@ migrations:
 env:
   - AUTH_MODEL=Workbench\App\Models\User
   - APP_URL=http://127.0.0.1:8000
+  - SUNRICE_LOCALES=en,id
 
 workbench:
   start: /admin
