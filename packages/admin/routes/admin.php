@@ -20,7 +20,8 @@ Route::get('settings', [SettingsController::class, 'index'])->name('settings.ind
 Route::get('settings/{section}', [SettingsController::class, 'edit'])->name('settings.edit');
 Route::put('settings/{section}', [SettingsController::class, 'update'])->name('settings.update');
 
-Route::get('activity', ActivityController::class)->name('activity.index');
+Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+Route::post('activity/prune', [ActivityController::class, 'prune'])->middleware('can:sunrice.activity.prune')->name('activity.prune');
 
 Route::middleware('can:sunrice.email.test')->group(function (): void {
     Route::get('email', [EmailController::class, 'index'])->name('email.index');

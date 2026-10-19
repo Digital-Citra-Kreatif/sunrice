@@ -150,6 +150,11 @@ final class SecurityAlerts
                     "Your AI access token was used {$note}.",
                     'If you didn\'t connect from a new network or computer, revoke the token on the AI access page.');
                 break;
+            case 'activity pruned':
+                $this->alert('activity-pruned', (string) $e->label, 'Activity log lines were deleted',
+                    ($e->label ?? 'Someone').' deleted '.$note.' from the activity log.',
+                    'Clearing the log is how someone could hide what they did. If nobody on your team meant to, lock the account and check your backups of the log.', $details);
+                break;
             case 'pages refused':
                 $this->alert('forbidden', (string) $e->label, 'Someone keeps opening pages they may not see',
                     "{$e->label} was refused {$note}.",
