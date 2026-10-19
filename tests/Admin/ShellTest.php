@@ -11,6 +11,7 @@ use Sunrice\Admin\Http\Middleware\Authenticate;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\PanelRoutes;
 use Workbench\App\Models\User;
 
 use function Pest\Laravel\actingAs;
@@ -31,7 +32,7 @@ function signIn(bool $admin = true): User
 it('turns away guests and users who may not open the panel', function () {
     usePanel();
 
-    get('/admin')->assertUnauthorized();
+    get('/admin')->assertRedirect('/admin/login');
     getJson('/admin')->assertUnauthorized();
 
     signIn(admin: false);
@@ -61,7 +62,7 @@ it('puts plugin routes behind sign-in, under the panel path and names', function
     }));
 
     expect(route('sunrice.admin.shop.orders.index', absolute: false))->toBe('/admin/shop/orders');
-    get('/admin/shop/orders')->assertUnauthorized();
+    get('/admin/shop/orders')->assertRedirect('/admin/login');
 
     signIn();
     get('/admin/shop/orders')->assertOk()->assertSee('orders');
@@ -76,11 +77,12 @@ it('lists plugin bundles for the frontend to load on demand', function () {
     ]));
 });
 
-it('guards every panel route', function () {
+it('guards every panel route but the login pages', function () {
     usePanel(fn (Panel $panel) => $panel->routes(fn () => Route::get('anything', fn () => 'x')->name('anything')));
 
     $unguarded = collect(Route::getRoutes()->getRoutes())
         ->filter(fn ($route) => str_starts_with((string) $route->getName(), 'sunrice.admin.'))
+        ->reject(fn ($route) => in_array($route->getName(), PanelRoutes::PUBLIC_ROUTES, true))
         ->reject(fn ($route) => in_array(Authenticate::class, $route->gatherMiddleware(), true)
             && in_array(EnsureCanAccessPanel::class, $route->gatherMiddleware(), true))
         ->map(fn ($route) => $route->getName())

@@ -1,18 +1,58 @@
 {
+  "_input-error-B_a_Q46D.js": {
+    "file": "assets/input-error-B_a_Q46D.js",
+    "name": "input-error",
+    "imports": [
+      "resources/js/app.tsx"
+    ]
+  },
   "resources/js/app.tsx": {
-    "file": "assets/app-BuJw6nsX.js",
+    "file": "assets/app-BKbj0Ivz.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
     "dynamicImports": [
+      "resources/js/pages/Auth/ForgotPassword.tsx",
+      "resources/js/pages/Auth/Login.tsx",
+      "resources/js/pages/Auth/ResetPassword.tsx",
       "resources/js/pages/Dashboard.tsx"
     ],
     "css": [
-      "assets/app-1e8ebL4E.css"
+      "assets/app-C5KrbXIn.css"
+    ]
+  },
+  "resources/js/pages/Auth/ForgotPassword.tsx": {
+    "file": "assets/ForgotPassword-A-USWftI.js",
+    "name": "ForgotPassword",
+    "src": "resources/js/pages/Auth/ForgotPassword.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx",
+      "_input-error-B_a_Q46D.js"
+    ]
+  },
+  "resources/js/pages/Auth/Login.tsx": {
+    "file": "assets/Login-IAkql9u_.js",
+    "name": "Login",
+    "src": "resources/js/pages/Auth/Login.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx",
+      "_input-error-B_a_Q46D.js"
+    ]
+  },
+  "resources/js/pages/Auth/ResetPassword.tsx": {
+    "file": "assets/ResetPassword-D8yRLBnL.js",
+    "name": "ResetPassword",
+    "src": "resources/js/pages/Auth/ResetPassword.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx",
+      "_input-error-B_a_Q46D.js"
     ]
   },
   "resources/js/pages/Dashboard.tsx": {
-    "file": "assets/Dashboard-SmWVrSFM.js",
+    "file": "assets/Dashboard-Cw2xXw_1.js",
     "name": "Dashboard",
     "src": "resources/js/pages/Dashboard.tsx",
     "isDynamicEntry": true,
