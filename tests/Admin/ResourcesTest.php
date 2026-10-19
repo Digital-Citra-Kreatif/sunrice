@@ -87,8 +87,8 @@ it('lists records with search, filters, sorting and pages', function () {
         ->where('can.create', false)
         ->has('bulkActions', 1)); // "deactivate" only: no delete permission
 
-    get('/admin/products?search=hamm')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
-    get('/admin/products?search=tools')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1)); // a relation's column
+    get('/admin/products?search=HAMM')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
+    get('/admin/products?search=TOOLS')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1)); // a relation's column
     get('/admin/products?search=%25')->assertInertia(fn (Assert $page) => $page->where('rows.total', 0)); // % is literal
     get('/admin/products?filters[status]=live')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
     get('/admin/products?filters[active]=0')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.title', 'Anvil')->where('rows.total', 1));

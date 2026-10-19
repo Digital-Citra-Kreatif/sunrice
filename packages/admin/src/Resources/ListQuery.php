@@ -76,7 +76,8 @@ final class ListQuery
                         $relation = $column->relation();
                         $relation === null
                             ? $where->orWhereLike($where->qualifyColumn($column->name), $term)
-                            : $where->orWhereRelation($relation, $column->attribute(), 'like', $term);
+                            // whereLike: case-insensitive on every driver (ILIKE on PostgreSQL).
+                            : $where->orWhereHas($relation, fn (Builder $related) => $related->whereLike($related->qualifyColumn($column->attribute()), $term));
                     }
                 });
             }
