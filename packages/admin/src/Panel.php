@@ -13,6 +13,8 @@ use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
+use Sunrice\Admin\Resources\RegisteredResource;
+use Sunrice\Admin\Resources\Resource;
 
 /**
  * The admin panel: where it lives, who can sign in, and everything the
@@ -66,6 +68,12 @@ final class Panel
 
     /** @var array<string, PluginBundle> */
     private array $bundles = [];
+
+    /** @var array<string, RegisteredResource> keyed by the resource's key */
+    private array $resources = [];
+
+    /** URL segments the panel uses itself; resources can't take them. */
+    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai'];
 
     /** The plugin whose register() is running, if any: it owns what is declared meanwhile. */
     private ?Plugin $registering = null;
@@ -209,6 +217,49 @@ final class Panel
         return $this;
     }
 
+    /**
+     * Admin screens for models (see Resource). Each gets a sidebar item,
+     * routes under the panel ("/admin/products") and four permissions,
+     * prefixed with the registering plugin's id ("shop.products.view") or,
+     * when the app registers it, the resource's key ("products.view").
+     *
+     * @param  class-string<Resources\Resource>  ...$classes
+     */
+    public function resources(string ...$classes): self
+    {
+        $this->assertRegistering();
+        foreach ($classes as $class) {
+            if (! is_subclass_of($class, Resource::class)) {
+                throw new PanelMisconfigured("{$class} isn't a resource: extend ".Resource::class.'.');
+            }
+            $key = $class::key();
+            if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1 || in_array($key, self::RESERVED_KEYS, true)) {
+                throw new PanelMisconfigured("The resource {$class} has the key \"{$key}\": use lowercase letters, numbers and dashes, and not one of the panel's own paths.");
+            }
+            if (isset($this->resources[$key])) {
+                throw new PanelMisconfigured("Two resources have the key \"{$key}\": {$this->resources[$key]->class} and {$class}{$this->owner()}.");
+            }
+
+            $prefix = $this->registering === null ? $key : $this->registering->id().'.'.$key;
+            $resource = new RegisteredResource($class, $prefix);
+            $this->resources[$key] = $resource;
+
+            $label = $class::label();
+            $this->permissions(
+                Permission::make("{$prefix}.view", "View {$label}", $label),
+                Permission::make("{$prefix}.create", "Create {$label}", $label),
+                Permission::make("{$prefix}.update", "Edit {$label}", $label),
+                Permission::make("{$prefix}.delete", "Delete {$label}", $label),
+            );
+            $this->navigation(
+                NavigationItem::make("resources.{$key}")->label($label)->url($key)->icon($class::navigationIcon())
+                    ->group($class::navigationGroup())->sort($class::navigationSort())->visible($resource->visibleTo()),
+            );
+        }
+
+        return $this;
+    }
+
     /** A plugin's admin JavaScript, loaded when one of its pages opens. */
     public function bundle(PluginBundle $bundle): self
     {
@@ -348,6 +399,12 @@ final class Panel
         return $this->routes;
     }
 
+    /** @return array<string, RegisteredResource> keyed by the resource's key */
+    public function getResources(): array
+    {
+        return $this->resources;
+    }
+
     /** @return array<string, PluginBundle> keyed by id */
     public function getBundles(): array
     {
@@ -363,11 +420,7 @@ final class Panel
      */
     public function navigationFor(Authorizable $user): array
     {
-        $visible = array_filter($this->navigation, function (NavigationItem $item) use ($user): bool {
-            $permission = $item->getPermission();
-
-            return $permission === null || $user->can($permission);
-        });
+        $visible = array_filter($this->navigation, fn (NavigationItem $item): bool => $item->isVisibleTo($user));
         uasort($visible, fn (NavigationItem $a, NavigationItem $b) => [$a->getSort(), $a->getLabel()] <=> [$b->getSort(), $b->getLabel()]);
 
         $children = [];
