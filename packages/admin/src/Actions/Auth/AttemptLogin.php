@@ -50,13 +50,14 @@ final class AttemptLogin
 
         // Signed in, but some accounts (an app's customers) may not open the panel.
         $user = $guard->user();
+        $account = $user instanceof Model ? $user : null;
         if (! $user instanceof Authorizable || ! $user->can(Panel::ACCESS)) {
             $guard->logout();
-            $this->security->record('login refused', $user instanceof Model ? $user : null, $user instanceof Model ? null : $email, ['note' => 'no access to the panel']);
+            $this->security->record('login refused', $account, $account === null ? $email : null, ['note' => 'no access to the panel']);
 
             throw ValidationException::withMessages(['email' => __('This account can\'t use the admin panel.')]);
         }
 
-        $this->security->record('logged in', $user instanceof Model ? $user : null, $user instanceof Model ? null : $email);
+        $this->security->record('logged in', $account, $account === null ? $email : null);
     }
 }
