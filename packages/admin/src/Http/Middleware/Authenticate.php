@@ -21,6 +21,7 @@ final class Authenticate
 {
     public function __construct(private Panel $panel) {}
 
+    /** @param  Closure(Request): Response  $next */
     public function handle(Request $request, Closure $next): Response
     {
         $guard = $this->panel->getGuard();
