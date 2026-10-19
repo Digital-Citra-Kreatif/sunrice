@@ -31,8 +31,11 @@ export function sunrice(options: SunriceOptions): Plugin {
     return {
         name: 'sunrice-admin-sdk',
         enforce: 'pre',
-        config(): UserConfig {
+        config(_config, env): UserConfig {
             return {
+                // Library builds leave process.env.NODE_ENV in dependencies (React
+                // libraries, ProseMirror…), and browsers have no `process`.
+                define: { 'process.env.NODE_ENV': JSON.stringify(env.mode === 'development' ? 'development' : 'production') },
                 build: {
                     outDir: options.outDir ?? 'dist',
                     emptyOutDir: true,
