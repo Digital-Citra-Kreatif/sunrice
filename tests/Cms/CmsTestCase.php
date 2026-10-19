@@ -7,6 +7,7 @@ namespace Sunrice\Tests\Cms;
 use Orchestra\Testbench\Concerns\WithLaravelMigrations;
 use Orchestra\Testbench\TestCase;
 use Spatie\Honeypot\HoneypotServiceProvider;
+use Spatie\ResponseCache\ResponseCacheServiceProvider;
 use Sunrice\Admin\AdminServiceProvider;
 use Sunrice\Cms\CmsServiceProvider;
 use Workbench\App\Models\User;
@@ -19,11 +20,13 @@ abstract class CmsTestCase extends TestCase
 
     protected function getPackageProviders($app): array
     {
-        return [AdminServiceProvider::class, CmsServiceProvider::class, HoneypotServiceProvider::class];
+        return [AdminServiceProvider::class, CmsServiceProvider::class, HoneypotServiceProvider::class, ResponseCacheServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void
     {
         $app['config']->set('auth.providers.users.model', User::class);
+        // Kept pages live as long as the test.
+        $app['config']->set('responsecache.cache.store', 'array');
     }
 }

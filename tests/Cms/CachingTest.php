@@ -156,43 +156,46 @@ it('works without the cache', function () {
         ->and(app(SiteCache::class)->store()->get(app(SiteCache::class)->key('x')))->toBeNull();
 });
 
-it('keeps whole pages for visitors, each with their own CSRF token', function () {
-    config(['sunrice-cms.cache.pages' => true]);
+it('keeps whole pages for visitors, each with their own CSRF token and none of their cookies', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
     Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text']]]);
     Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
     View::addNamespace('cached', __DIR__.'/Fixtures/views');
     $this->blog->update(['template' => 'cached::cms.with-form']);
     cachedPost('Hello');
 
-    $first = get('/blog/hello')->assertOk()->assertHeader('X-Sunrice-Cache', 'miss');
+    $first = get('/blog/hello')->assertOk()->assertHeader('X-Cache-Status', 'MISS');
     $token = csrfIn($first);
     session()->flush();
     session()->regenerateToken();
-    $second = get('/blog/hello')->assertOk()->assertHeader('X-Sunrice-Cache', 'hit');
+    $second = get('/blog/hello')->assertOk()->assertHeader('X-Cache-Status', 'HIT');
+    expect($first->headers->getCookies())->not->toBe([]); // the first visitor's session
+    expect(collect($second->headers->getCookies())->map->getValue()->intersect(collect($first->headers->getCookies())->map->getValue())->all())->toBe([]);
     expect(csrfIn($second))->toBe(session()->token())->not->toBe($token)
         ->and($second->getContent())->not->toContain('__sunrice_csrf_token__');
 
     // Changed content: rendered again.
     app(SaveDraft::class)->handle($post = EntryTranslation::query()->firstOrFail(), ['title' => 'Hello again']);
     app(PublishEntry::class)->handle($post->fresh());
-    get('/blog/hello')->assertHeader('X-Sunrice-Cache', 'miss')->assertSee('Hello again');
+    get('/blog/hello')->assertHeader('X-Cache-Status', 'MISS')->assertSee('Hello again');
 
     // Not for people signed in, nor with errors flashed to them, nor what's skipped.
     actingAs(adminUser());
-    get('/blog/hello')->assertHeaderMissing('X-Sunrice-Cache');
+    get('/blog/hello')->assertHeaderMissing('X-Cache-Status');
     auth()->logout();
-    get('/blog/hello')->assertHeader('X-Sunrice-Cache', 'hit');
+    get('/blog/hello')->assertHeader('X-Cache-Status', 'HIT');
     session()->flash('errors', (new ViewErrorBag)->put('default', new MessageBag(['name' => 'Required.'])));
-    get('/blog/hello')->assertHeaderMissing('X-Sunrice-Cache');
+    get('/blog/hello')->assertHeaderMissing('X-Cache-Status');
     session()->flush();
     app(PageCache::class)->skipWhen(fn ($request, ?Page $page) => $request->cookies->has('cart'));
-    $this->withCookie('cart', '1')->get('/blog/hello')->assertHeaderMissing('X-Sunrice-Cache'); // not served the kept page
+    $this->withCookie('cart', '1')->get('/blog/hello')->assertHeaderMissing('X-Cache-Status'); // not served the kept page
     $this->defaultCookies = [];
     app(PageCache::class)->skipWhen(fn ($request, ?Page $page) => $page?->entry?->title === 'Hello again');
     app(SiteCache::class)->changed('test');
-    get('/blog/hello')->assertHeaderMissing('X-Sunrice-Cache'); // not kept
-    get('/blog/hello')->assertHeaderMissing('X-Sunrice-Cache');
-    get('/nowhere')->assertNotFound()->assertHeaderMissing('X-Sunrice-Cache');
+    get('/blog/hello')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog/hello')->assertHeader('X-Cache-Status', 'MISS'); // not kept
+    get('/nowhere')->assertNotFound();
+    get('/nowhere')->assertNotFound()->assertHeader('X-Cache-Status', 'MISS');
 });
 
 function csrfIn(TestResponse $response): ?string

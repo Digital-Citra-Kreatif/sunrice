@@ -40,9 +40,19 @@ app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:bestsellers', fn () =
 
 ## Whole pages
 
-With `cache.pages` on (`SUNRICE_PAGE_CACHE=true`), site pages are rendered once and kept until the content changes, for visitors who aren't signed in; the response says `X-Sunrice-Cache: hit` or `miss`. Forms keep working: each visitor gets their own CSRF token in the kept page.
+The whole-page cache uses [spatie/laravel-responsecache](https://github.com/spatie/laravel-responsecache) (PHP 8.4). Install it and turn it on:
 
-Left out: anyone signed in (to the app or the panel), a visitor with something flashed to them (form errors, old input, a thank-you message), pages that aren't a plain 200 or that set cookies of their own, and what you skip. Pages that show something per visitor (a cart, "Hi, Ana") must be skipped:
+```bash
+composer require spatie/laravel-responsecache
+```
+
+```dotenv
+SUNRICE_PAGE_CACHE=true
+```
+
+Site pages are then rendered once and kept for visitors who aren't signed in. Pages are kept under the content version, so a change shows at once (no clearing needed), and for `cache.ttl` at most. Forms keep working: each visitor gets their own CSRF token in a kept page, and kept pages carry none of the first visitor's cookies.
+
+Left out: anyone signed in (to the app or the panel), a visitor with something flashed to them (form errors, old input, a thank-you message), search results, pages that aren't a plain 200, and what you skip. Pages that show something per visitor (a cart, "Hi, Ana") must be skipped:
 
 ```php
 // A service provider's boot()
@@ -51,6 +61,8 @@ app(\Sunrice\Cms\Site\PageCache::class)->skipWhen(fn (Request $request, ?Page $p
 ```
 
 The callback is asked twice: before a kept page is served (`$page` is null then: only the request is known), and after a page renders, before it's kept.
+
+The CMS sets responsecache's `cache_profile` (`Sunrice\Cms\Site\PageCacheProfile`) and `serializer` (one that drops cookies) unless your `config/responsecache.php` names its own: then extend `PageCacheProfile`, and keep cookies out of what's stored. Where pages are kept is responsecache's `cache.store` (`RESPONSE_CACHE_DRIVER`, `file` by default). With `APP_DEBUG` on, responses say `X-Cache-Status: HIT` or `MISS`.
 
 ## Scheduled publishing
 
