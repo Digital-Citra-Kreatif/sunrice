@@ -136,3 +136,21 @@ Extend `FieldType` and override what differs:
 | `hasChildren()` | Whether the field holds other fields. |
 | `settings()` | The type's options in the builder, as fields, stored in `config`. |
 | `toAdmin($field, $schema)` | The definition sent to the editor. |
+
+## Showing a field only sometimes
+
+A field can show only when another field on its level is so: in the
+blueprint builder, **Show** → *When Layout* *is* `video`. In the
+definition:
+
+```php
+['handle' => 'video_url', 'type' => 'text', 'required' => true,
+    'condition' => ['field' => 'layout', 'operator' => 'equals', 'value' => 'video']],
+```
+
+Operators: `equals` and `not_equals` (with a value; a list field matches
+when one of its values does, a toggle with `true` or `false`), `filled`
+and `empty`. Inside groups, repeater rows and blocks, the other field is a
+sibling there. A hidden field isn't validated (so it isn't required) and
+keeps what it had; templates still get its value. `Field::isShownWith()`
+tells whether it shows.
