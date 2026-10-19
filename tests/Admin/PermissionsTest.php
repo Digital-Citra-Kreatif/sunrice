@@ -29,7 +29,7 @@ it('creates the roles and permissions tables', function () {
 });
 
 it('syncs the registered permissions and leaves the app\'s own alone', function () {
-    usePanel(fn (Panel $panel) => $panel->userResource(null)->roleResource(null)->mediaLibrary(false)->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(
+    usePanel(fn (Panel $panel) => $panel->userResource(null)->roleResource(null)->mediaLibrary(false)->aiAccess(false)->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(
         PanelPermission::make('shop.orders.view', 'View orders'),
     ))));
     Permission::findOrCreate('shop.old-feature', 'web');      // a plugin permission that's gone

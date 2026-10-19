@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
+use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
@@ -80,6 +81,14 @@ final class Panel
     private array $settings = [];
 
     private bool $mediaLibrary = true;
+
+    private bool $aiAccess = true;
+
+    /** @var list<class-string<Tool>> */
+    private array $tools = [];
+
+    /** @var list<string> */
+    private array $aiInstructions = [];
 
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
@@ -189,6 +198,19 @@ final class Panel
     {
         $this->assertConfigurable();
         $this->mediaLibrary = $enabled;
+
+        return $this;
+    }
+
+    /**
+     * AI access (on by default): the AI access page, where users with
+     * "sunrice.ai.connect" create tokens, and the MCP endpoint
+     * (`sunrice-admin.ai.path`) AI agents connect to.
+     */
+    public function aiAccess(bool $enabled = true): self
+    {
+        $this->assertConfigurable();
+        $this->aiAccess = $enabled;
 
         return $this;
     }
@@ -330,6 +352,42 @@ final class Panel
         return $this;
     }
 
+    /**
+     * Tools for AI agents (see Sunrice\Admin\Ai\Tool). A plugin's tool names
+     * start with its id and an underscore ("shop_list_orders").
+     *
+     * @param  class-string<Tool>  ...$tools
+     */
+    public function tools(string ...$tools): self
+    {
+        $this->assertRegistering();
+        foreach ($tools as $tool) {
+            if (! is_subclass_of($tool, Tool::class)) {
+                throw new PanelMisconfigured("{$tool} isn't a tool for AI agents: extend ".Tool::class.'.');
+            }
+            $name = (new \ReflectionClass($tool))->newInstanceWithoutConstructor()->name();
+            $owner = $this->registering?->id();
+            if ($owner !== null && ! str_starts_with($name, str_replace('-', '_', $owner).'_')) {
+                throw new PanelMisconfigured("The plugin \"{$owner}\" registered the tool \"{$name}\": a plugin's tool names start with its id (\"".str_replace('-', '_', $owner).'_…").');
+            }
+            if (in_array($tool, $this->tools, true)) {
+                throw new PanelMisconfigured("The tool {$tool} is registered twice{$this->owner()}.");
+            }
+            $this->tools[] = $tool;
+        }
+
+        return $this;
+    }
+
+    /** More instructions for AI agents: how to work with what you added. */
+    public function aiInstructions(string $markdown): self
+    {
+        $this->assertRegistering();
+        $this->aiInstructions[] = trim($markdown);
+
+        return $this;
+    }
+
     /** A plugin's admin JavaScript, loaded when one of its pages opens. */
     public function bundle(PluginBundle $bundle): self
     {
@@ -379,6 +437,11 @@ final class Panel
         $this->permissions(Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'));
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
             ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
+        if ($this->aiAccess) {
+            $this->permissions(Permission::make('sunrice.ai.connect', 'Connect AI agents', 'AI access'));
+            $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')
+                ->group('Administration')->sort(970)->permission('sunrice.ai.connect'));
+        }
         if ($this->mediaLibrary) {
             $this->permissions(
                 Permission::make('sunrice.media.view', 'View media', 'Media'),
@@ -469,6 +532,23 @@ final class Panel
     public function getMiddleware(): array
     {
         return $this->middleware;
+    }
+
+    public function hasAiAccess(): bool
+    {
+        return $this->aiAccess;
+    }
+
+    /** @return list<class-string<Tool>> */
+    public function getTools(): array
+    {
+        return $this->tools;
+    }
+
+    /** @return list<string> */
+    public function getAiInstructions(): array
+    {
+        return $this->aiInstructions;
     }
 
     public function hasMediaLibrary(): bool

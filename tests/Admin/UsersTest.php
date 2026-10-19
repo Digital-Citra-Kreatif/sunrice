@@ -69,13 +69,13 @@ it('adds the Users and Roles screens with their permissions', function () {
 });
 
 it('can leave the screens out or use subclasses', function () {
-    $panel = Panel::make()->userResource(null)->roleResource(null)->mediaLibrary(false);
+    $panel = Panel::make()->userResource(null)->roleResource(null)->mediaLibrary(false)->aiAccess(false);
     $panel->boot();
     expect($panel->getResources())->toBe([])
         ->and(array_keys($panel->getPermissions()))->toBe([Panel::ACCESS, 'sunrice.activity.view']);
 
     // The panel's own permissions come first, whoever registers theirs earlier.
-    $panel = Panel::make()->mediaLibrary(false)->permissions(PanelPermission::make('app.export', 'Export'));
+    $panel = Panel::make()->mediaLibrary(false)->aiAccess(false)->permissions(PanelPermission::make('app.export', 'Export'));
     $panel->boot();
     expect(array_keys($panel->getPermissions()))->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.users.view', 'sunrice.users.create', 'sunrice.users.update', 'sunrice.users.delete', 'sunrice.roles.view', 'sunrice.roles.create', 'sunrice.roles.update', 'sunrice.roles.delete', 'app.export'])
         ->and(fn () => Panel::make()->permissions(PanelPermission::make('sunrice.users.view', 'Mine'))->boot())->toThrow(PanelMisconfigured::class, 'registered twice');

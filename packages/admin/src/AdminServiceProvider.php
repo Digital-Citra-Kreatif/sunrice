@@ -18,10 +18,12 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\View as ViewInstance;
 use Inertia\ServiceProvider as InertiaServiceProvider;
+use Laravel\Mcp\Server\McpServiceProvider;
 use Spatie\Permission\PermissionServiceProvider;
 use Spatie\Permission\Traits\HasRoles;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Ai\TokenScope;
 use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Console\MakeAdminCommand;
 use Sunrice\Admin\Console\MediaSizesCommand;
@@ -50,12 +52,14 @@ final class AdminServiceProvider extends ServiceProvider
         // Registered here too, so the panel works in apps that turn off package discovery.
         $this->app->register(InertiaServiceProvider::class);
         $this->app->register(PermissionServiceProvider::class);
+        $this->app->register(McpServiceProvider::class);
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');
         // Settings are read once per request (or job).
         $this->app->scoped(SettingsStore::class);
         // Per request: its source and the lines it may merge.
         $this->app->scoped(ActivityLog::class);
         $this->app->scoped(AccountGuard::class);
+        $this->app->scoped(TokenScope::class);
     }
 
     public function boot(): void
@@ -67,6 +71,20 @@ final class AdminServiceProvider extends ServiceProvider
         });
 
         $this->loadMigrationsFrom(dirname(__DIR__).'/database/migrations');
+
+        // AI agents per token: 120 requests a minute by default.
+        RateLimiter::for('sunrice-ai', function (Request $request): Limit {
+            $perMinute = config('sunrice-admin.ai.requests_per_minute', 120);
+
+            return Limit::perMinute(is_numeric($perMinute) ? (int) $perMinute : 120)->by(sha1((string) $request->bearerToken()));
+        });
+
+        // A read-only AI token may only view, even for super admins: before their Gate::before.
+        Gate::before(function (mixed $user, string $ability): ?bool {
+            $scope = $this->app->make(TokenScope::class);
+
+            return $scope->readOnly() && $this->app->bound(Panel::class) && $scope->refuses($ability, array_keys($this->app->make(Panel::class)->getPermissions())) ? false : null;
+        });
 
         // Super admins may do everything.
         Gate::before(function (mixed $user): ?bool {

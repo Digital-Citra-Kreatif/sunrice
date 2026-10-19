@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- AI access: tokens (read-only, expiring) on the AI access page, the MCP endpoint (`/mcp`, laravel/mcp) where AI agents work as the token's user with that user's permissions, `get_panel_info`, and `$panel->tools()` / `aiInstructions()` for plugins' tools (`Sunrice\Admin\Ai\Tool`). Read-only tokens may only view. Changes are logged as the AI agent's; token events are security events and alerts; Users → Revoke AI tokens. See `docs/admin/ai.md`.
 - Security alerts by email: an account locked, password spraying, a powerful account signing in from a new address or after a long absence, someone gaining power over users or roles, a dangerous upload, bursts of exports or deletes. Sent to super admins and configured roles and addresses, once per cooldown (`security.alerts`). The `ActivityRecorded` event. See `docs/admin/security.md#email-alerts`.
 - Responding to an account in the wrong hands: Users → Sign out everywhere, Lock account and Unlock account (also `sunrice:unlock`), a Locked column, and `AccountGuard` in code. Locked accounts can't log in, and their open sessions end on the next page. Resources gain `Action::visible()` and `Column::state()`.
 - Security events in the activity log (source "security"): logins in, out, failed, refused and blocked, accounts locked, password resets, blocked uploads, exports, and changes of roles and permissions. `SecurityLog` for your own, the `SecurityEventRecorded` event, and `security.log_channel` to copy them to a log channel. See `docs/admin/security.md`.
