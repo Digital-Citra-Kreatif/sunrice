@@ -97,4 +97,13 @@ return [
         ],
     ],
 
+    'ai' => [
+        // The MCP endpoint AI agents (Claude, ChatGPT, Cursor …) connect to with
+        // an access token from the panel's AI access page.
+        'enabled' => true,
+        'path' => 'mcp',
+        // Requests per minute per token.
+        'requests_per_minute' => 120,
+    ],
+
 ];

@@ -45,7 +45,7 @@ it('adds the Media page and its permissions, and can leave them out', function (
         ->where('can', ['upload' => false, 'update' => false, 'delete' => false]));
     post('/admin/media', ['file' => UploadedFile::fake()->image('a.jpg')])->assertForbidden();
 
-    $panel = Panel::make()->mediaLibrary(false);
+    $panel = Panel::make()->mediaLibrary(false)->aiAccess(false);
     $panel->boot();
     expect(array_keys($panel->getPermissions()))->not->toContain('sunrice.media.view');
 });

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Traits\HasRoles;
+use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
@@ -120,6 +121,13 @@ class UserResource extends Resource
                         $deleted = app(AccountGuard::class)->signOutEverywhere($user);
 
                         return 'Signed out everywhere'.($deleted === null ? '.' : " ({$deleted} ".($deleted === 1 ? 'session' : 'sessions').' ended).');
+                    }),
+                Action::make('revoke-tokens')->label('Revoke AI tokens')
+                    ->confirm('Revoke all of this user\'s AI access tokens? AI agents using them stop working at once.')
+                    ->handle(function (Model $user): string {
+                        $count = app(RevokeAiTokens::class)->all($user);
+
+                        return $count === 0 ? 'This user had no AI access tokens.' : "{$count} AI access ".($count === 1 ? 'token' : 'tokens').' revoked.';
                     }),
                 Action::make('lock')->label('Lock account')->destructive()
                     ->confirm('Lock this account? They are signed out everywhere and can\'t log in until someone unlocks it. Nothing is deleted.')

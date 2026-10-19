@@ -17,6 +17,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `upload blocked` | A script, executable or web page, or an SVG that could run code, uploaded to the media library. |
 | `exported` | A resource's CSV export (exports can carry personal data out of the panel). |
 | `roles changed`, `permissions changed` | A user's roles or a role's permissions changed, with what was added and removed. |
+| `token created`, `token revoked`, `tokens revoked`, `token used from new IP` | [AI access](ai.md) tokens. |
 | `signed out everywhere`, `account locked by admin`, `account unlocked` | An administrator acted on an account (see below). |
 
 Each line keeps the IP and, in its properties, the browser's user agent.
@@ -58,6 +59,8 @@ When something may be a break-in, the panel emails super admins, users with the 
 | An account signed in after a long time | The first login in `dormant_days` (90). |
 | Someone was given power over users or roles | A user got the super admin role or permissions to manage users or roles, or such a role. |
 | A dangerous upload was blocked | `upload blocked` |
+| A new AI access token was created | `token created` |
+| An AI access token was used from a new address | `token used from new IP` |
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
 | Many things deleted in a short time | `mass_deletes` (20) deletes or trashes by one person or AI agent within 10 minutes. |
 

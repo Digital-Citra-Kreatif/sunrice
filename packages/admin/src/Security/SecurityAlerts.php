@@ -125,6 +125,16 @@ final class SecurityAlerts
                     "Someone tried to upload {$note}.",
                     'Uploading scripts is a common way to take over a website. If the person who tried doesn\'t know why, their account may be in someone else\'s hands.', $details);
                 break;
+            case 'token created':
+                $this->alert('token-created', (string) $e->label.'|'.$note, 'A new AI access token was created',
+                    "{$e->label} created an AI access token ({$note}). Whoever holds it can work in the panel as them.",
+                    'If they didn\'t mean to, revoke it on the Users screen (Revoke AI tokens) and change their password.', $details);
+                break;
+            case 'token used from new IP':
+                $this->alert('token-new-ip', (string) $e->label.'|'.$note, 'An AI access token was used from a new address',
+                    "{$e->label}'s AI access token was used {$note}.",
+                    'If nobody moved to a new network or computer, the token may have been copied: revoke it on the Users screen.', $details);
+                break;
             case 'exported':
                 $this->exports($e, $details);
                 break;

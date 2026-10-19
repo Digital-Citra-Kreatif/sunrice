@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Sunrice\Admin;
 
 use Illuminate\Support\Facades\Route;
+use Laravel\Mcp\Facades\Mcp;
+use Sunrice\Admin\Ai\PanelServer;
 use Sunrice\Admin\Http\Controllers\Auth\LoginController;
 use Sunrice\Admin\Http\Middleware\Authenticate;
+use Sunrice\Admin\Http\Middleware\AuthenticateAiToken;
 use Sunrice\Admin\Http\Middleware\EnsureAccountActive;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Http\Middleware\HandleInertiaRequests;
@@ -65,6 +68,14 @@ final class PanelRoutes
 
     public static function register(Panel $panel): void
     {
+        // The MCP endpoint: a bearer token, no session or CSRF, per-token limits.
+        if ($panel->hasAiAccess() && config('sunrice-admin.ai.enabled', true) !== false) {
+            $path = config('sunrice-admin.ai.path', 'mcp');
+            Mcp::web(is_string($path) ? $path : 'mcp', PanelServer::class)
+                ->middleware([AuthenticateAiToken::class, 'throttle:sunrice-ai'])
+                ->name('sunrice.ai.mcp');
+        }
+
         Route::middleware(self::middleware($panel))
             ->prefix($panel->getPath())
             ->name('sunrice.admin.')
@@ -78,6 +89,9 @@ final class PanelRoutes
                     require dirname(__DIR__).'/routes/admin.php';
                     if ($panel->hasMediaLibrary()) {
                         require dirname(__DIR__).'/routes/media.php';
+                    }
+                    if ($panel->hasAiAccess()) {
+                        require dirname(__DIR__).'/routes/ai.php';
                     }
                     foreach ($panel->getResources() as $resource) {
                         self::resource($resource);
