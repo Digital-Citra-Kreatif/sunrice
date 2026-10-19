@@ -22,6 +22,7 @@ use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Security\SecurityLog;
+use Sunrice\Admin\Support\Csv;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -208,28 +209,12 @@ final class ResourceController
             if ($out === false) {
                 return;
             }
-            fputcsv($out, array_map(fn (Column $column) => $column->toArray()['label'], $columns), escape: '');
+            Csv::write($out, array_map(fn (Column $column): string => $column->toArray()['label'], $columns));
             foreach ($query->lazy(500) as $record) {
-                fputcsv($out, array_map(fn (Column $column) => self::csvCell($column->value($record)), $columns), escape: '');
+                Csv::write($out, array_map(fn (Column $column) => $column->value($record), $columns));
             }
             fclose($out);
         }, $resource->key().'-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
-    }
-
-    /**
-     * A spreadsheet cell: values starting with = + - @ (or a tab or
-     * carriage return) are prefixed with ' so spreadsheet apps don't run
-     * them as formulas.
-     */
-    public static function csvCell(string|int|float|bool|null $value): string
-    {
-        $value = match (true) {
-            $value === null => '',
-            is_bool($value) => $value ? 'Yes' : 'No',
-            default => (string) $value,
-        };
-
-        return preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'".$value : $value;
     }
 
     private function form(RegisteredResource $resource, ?Model $record): Response

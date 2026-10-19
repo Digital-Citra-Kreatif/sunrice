@@ -5,6 +5,7 @@ laravel: '@testbench'
 providers:
   - Sunrice\Admin\AdminServiceProvider
   - Sunrice\Cms\CmsServiceProvider
+  - Spatie\Honeypot\HoneypotServiceProvider
   - Workbench\App\Providers\WorkbenchServiceProvider
 
 migrations:
