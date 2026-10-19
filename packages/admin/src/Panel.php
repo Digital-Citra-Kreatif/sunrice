@@ -8,9 +8,11 @@ use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
+use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Contracts\Plugin;
+use Sunrice\Admin\Dashboard\DashboardCard;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
@@ -62,6 +64,9 @@ final class Panel
 
     /** @var array<string, NavigationItem> */
     private array $navigation = [];
+
+    /** @var array<string, DashboardCard> */
+    private array $dashboardCards = [];
 
     /** @var array<string, Permission> */
     private array $permissions = [];
@@ -213,6 +218,41 @@ final class Panel
         $this->mediaLibrary = $enabled;
 
         return $this;
+    }
+
+    /**
+     * Cards on the dashboard. Each says who sees it (permission(),
+     * visible() or everyone()).
+     *
+     * @throws PanelMisconfigured for a key used twice or a card nobody guards
+     */
+    public function dashboardCards(DashboardCard ...$cards): self
+    {
+        $this->assertRegistering();
+        foreach ($cards as $card) {
+            if (isset($this->dashboardCards[$card->key])) {
+                throw new PanelMisconfigured("Two dashboard cards have the key \"{$card->key}\"{$this->owner()}.");
+            }
+            if (! $card->isGuarded()) {
+                throw new PanelMisconfigured("The dashboard card \"{$card->key}\"{$this->owner()} says nobody may see it: give it a permission(), visible() or everyone().");
+            }
+            $this->dashboardCards[$card->key] = $card;
+        }
+
+        return $this;
+    }
+
+    /**
+     * The dashboard cards the user may see, in order.
+     *
+     * @return list<DashboardCard>
+     */
+    public function dashboardCardsFor(Authorizable $user): array
+    {
+        $cards = array_values(array_filter($this->dashboardCards, fn (DashboardCard $card): bool => $card->isVisibleTo($user)));
+        usort($cards, fn (DashboardCard $a, DashboardCard $b): int => [$a->getSort(), $a->getTitle()] <=> [$b->getSort(), $b->getTitle()]);
+
+        return $cards;
     }
 
     /**
@@ -534,6 +574,12 @@ final class Panel
         $this->settings = [SecuritySettings::key() => new RegisteredSettings(SecuritySettings::class, 'sunrice.settings.security'), ...$this->settings];
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
             ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
+        $this->dashboardCards(DashboardCard::make('activity')->title('Recent activity')->sort(900)->permission('sunrice.activity.view')
+            ->list(fn (): array => Activity::query()->latest('id')->limit(6)->get()->map(fn (Activity $activity): array => [
+                'title' => trim(($activity->user_name ?? 'Someone').' '.$activity->action.' '.($activity->subject_label ?? $activity->subject_type)),
+                'meta' => $activity->created_at?->diffForHumans(),
+            ])->all())
+            ->empty('Nothing has happened yet.')->link('Activity log', 'activity'));
         if ($this->aiAccess) {
             $this->permissions(Permission::make('sunrice.ai.connect', 'Connect AI agents', 'AI access'));
             $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')

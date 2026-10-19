@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Dashboard cards: `$panel->dashboardCards()` and `Dashboard\DashboardCard` (`@api`; stats or a list, loaded after the page, each guarded by a permission, a check or `everyone()`). The panel shows recent activity; the CMS shows content per collection, recent edits, new submissions and comments. See `docs/admin/panel.md#dashboard-cards`.
 - `sunrice:import-structure` (`Actions\Structure\ImportStructure`, `Support\ImportReport`): fieldsets, blueprints, collections, taxonomies, globals, forms, entries and menus from a PHP or JSON file, safe to run again, `--dry-run`, `--force`. The panel's `Resource::saveRecord()` (`@api`) saves a record from form values as the form does. See `docs/cms/commands.md` and `docs/admin/resources.md`.
 - Commands: `sunrice:orphans` (list, `--restore` or `--purge` deleted collections and taxonomies with their content; `Actions\Structure\PurgeDeleted`), `sunrice:rename-field` (a blueprint's field and the data stored under it; `Actions\Blueprints\RenameField`) and `sunrice:demo-content` (fake articles to try the site with, `--remove`). Restoring a collection or taxonomy brings its permissions back. See `docs/cms/commands.md`.
 - `sunrice:switch-main-language` (`Actions\Languages\SwitchMainLanguage`, `@api`): moves the fields shared by all languages to another language and redirects the addresses that change, before it becomes the first in `sunrice-cms.locales`; `--copy-missing`, `--dry-run`. The site's cache keys now include the languages (`SiteCache::stamp()`). See `docs/cms/translation.md`.
