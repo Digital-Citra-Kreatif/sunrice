@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Menus: `Menu` and `MenuItem`, Structure → Menus (`cms.menus.*`) and Content → Menus to edit nested links to entries and addresses with labels per language (three levels, safe addresses only), `SaveMenu`, and `Cms::menu('main')` for templates, leaving out entries that aren't on the site. See `docs/cms/menus.md`.
 - The site: collections get a URL (`route`, like `/blog/{slug}`) and a `template`; live entries are served there (other languages under `/{locale}`, the more specific pattern first, the app's own routes always first, `sunrice-cms.site.*` config), rendered with `cms.{handle}`, `cms.entry` or a plain built-in view. `$translation->url()`, `Cms::entries('blog')->whereTerm($news)->latest()->paginate()` and `Cms::global()` for templates (`Sunrice\Cms\Content`), and signed 30-minute previews of drafts from the editor (`noindex`). See `docs/cms/site.md`.
 - Globals: `GlobalSet` and `GlobalValue`, Structure → Global sets (`cms.global-sets.*`), Content → Globals to edit their values in each language (`cms.globals.view`, `.update`), `SaveGlobals`, and `Globals::get('contact', 'id')` for templates, loaded once per request. Shared fields come from the main language. See `docs/cms/globals.md`.
 - The `entries` field type: links to entries of chosen collections (one or several, at most so many), only existing and untrashed ones accepted; templates get their published translations in the page's language, loaded once per request; the editor searches by title (`GET /admin/cms/entry-picker`, `cms.entries.view`).
