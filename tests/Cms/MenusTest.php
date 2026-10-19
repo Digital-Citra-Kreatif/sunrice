@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
@@ -10,12 +11,14 @@ use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
+use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Content;
 use Sunrice\Cms\Menus;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Menu;
+use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -46,10 +49,10 @@ it('resolves links to entries and addresses, nested', function () {
     ]);
 
     expect(app(Menus::class)->get('main'))->toBe([
-        ['label' => 'About', 'url' => url('/about'), 'new_tab' => false, 'children' => [
-            ['label' => 'Our team', 'url' => url('/team'), 'new_tab' => false, 'children' => []],
+        ['label' => 'About', 'url' => url('/about'), 'new_tab' => false, 'active' => false, 'active_trail' => false, 'children' => [
+            ['label' => 'Our team', 'url' => url('/team'), 'new_tab' => false, 'active' => false, 'active_trail' => false, 'children' => []],
         ]],
-        ['label' => 'Shop', 'url' => 'https://example.com/shop', 'new_tab' => true, 'children' => []],
+        ['label' => 'Shop', 'url' => 'https://example.com/shop', 'new_tab' => true, 'active' => false, 'active_trail' => false, 'children' => []],
     ])->and(Content::menu('nope'))->toBe([]);
 });
 
@@ -77,10 +80,10 @@ it('uses each language\'s label and address', function () {
         ['url' => '/faq', 'labels' => ['en' => 'FAQ']],
     ]);
 
-    expect(app(Menus::class)->get('main', 'id'))->toMatchArray([
-        ['label' => 'Tentang', 'url' => url('/id/tentang'), 'new_tab' => false, 'children' => []],
-        ['label' => 'Kontak', 'url' => '/contact', 'new_tab' => false, 'children' => []],
-        ['label' => 'FAQ', 'url' => '/faq', 'new_tab' => false, 'children' => []],
+    expect(array_map(fn (array $item) => [$item['label'], $item['url']], app(Menus::class)->get('main', 'id')))->toBe([
+        ['Tentang', url('/id/tentang')],
+        ['Kontak', '/contact'],
+        ['FAQ', '/faq'],
     ]);
 });
 
@@ -93,6 +96,8 @@ it('refuses unsafe addresses, unlabelled ones, unknown entries and a fourth leve
     [[['url' => '/x']], 'items.0.labels.en'],
     [[['entry_id' => 999]], 'items.0.entry_id'],
     [[[]], 'items.0.entry_id'],
+    [[['entry_id' => 1, 'url' => '/x', 'labels' => ['en' => 'X']]], 'items.0.entry_id'],
+    [[['term_id' => 999]], 'items.0.term_id'],
     [[['url' => '/a', 'labels' => ['en' => 'A'], 'children' => [['url' => '/b', 'labels' => ['en' => 'B'], 'children' => [
         ['url' => '/c', 'labels' => ['en' => 'C'], 'children' => [['url' => '/d', 'labels' => ['en' => 'D']]]],
     ]]]]], 'items.0.children.0.children.0.children'],
@@ -106,11 +111,43 @@ it('edits menus in the admin', function () {
 
     get('/admin/cms/menus/main')->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Menus/Edit', shouldExist: false)
-        ->where('items.0.entry', ['title' => 'About', 'collection' => 'Pages', 'live' => true])
+        ->where('items.0.target', ['title' => 'About', 'kind' => 'Pages', 'live' => true])
         ->where('can.update', false));
     put('/admin/cms/menus/main', ['items' => []])->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
     put('/admin/cms/menus/main', ['items' => [['url' => '/contact', 'labels' => ['en' => 'Contact']]]])->assertSessionHasNoErrors();
     expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Contact']);
+});
+
+it('links to term pages and listing pages, in each language', function () {
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    app(SaveTerm::class)->handle($tags, ['title' => 'Berita', 'locale' => 'id'], $news);
+    $this->pages->update(['listing_route' => '/pages']);
+    app(SaveMenu::class)->handle($this->main, [['term_id' => $news->id], ['collection_id' => $this->pages->id, 'labels' => ['en' => 'All pages']]]);
+
+    expect(array_map(fn (array $item) => [$item['label'], $item['url']], app(Menus::class)->get('main')))->toBe([['News', url('/tags/news')], ['All pages', url('/pages')]])
+        ->and(app(Menus::class)->get('main', 'id')[0]['url'])->toBe(url('/id/tags/berita'));
+
+    $news->delete();
+    $this->pages->update(['listing_route' => null]);
+    app(Menus::class)->flush();
+    expect(app(Menus::class)->get('main'))->toBe([]);
+});
+
+it('marks the page shown and the links leading to it', function () {
+    $about = page('About');
+    $team = page('Team');
+    app(SaveMenu::class)->handle($this->main, [
+        ['entry_id' => $about->entry_id, 'children' => [['entry_id' => $team->entry_id]]],
+        ['url' => '/contact', 'labels' => ['en' => 'Contact']],
+    ]);
+
+    $this->app->instance('request', Request::create('/team/?ref=x'));
+    $menu = app(Menus::class)->get('main');
+    expect([$menu[0]['active'], $menu[0]['active_trail'], $menu[0]['children'][0]['active'], $menu[1]['active_trail']])->toBe([false, true, true, false]);
+
+    $this->app->instance('request', Request::create('/contact'));
+    expect(app(Menus::class)->get('main')[1]['active'])->toBeTrue();
 });
