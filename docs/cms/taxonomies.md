@@ -6,9 +6,9 @@ A **taxonomy** groups entries: categories, tags, topics. Its **terms** ("News", 
 
 Under **Structure → Taxonomies** (permissions `cms.taxonomies.view`, `.create`, `.update`, `.delete`): a title, a handle that can't change later, whether terms nest, and the collections whose entries it groups. Deleting a taxonomy keeps its terms, out of sight.
 
-Under **Content → Terms** (`cms.terms.manage`): add, rename, nest, reorder and delete a taxonomy's terms, in each language. A term not yet translated shows the main language's title. Deleting a term moves the terms under it up a level.
+Under **Content → Terms** (`cms.terms.manage`): add, rename, nest, reorder and trash a taxonomy's terms, in each language (see [Trash](#trash)). A term not yet translated shows the main language's title.
 
-In code: `SaveTerm` (title, slug, locale, parent_id), `DeleteTerm`, `MoveTerm`. Slugs are unique per taxonomy and language; left empty, they're made from the title.
+In code: `SaveTerm` (title, slug, locale, parent_id), `TrashTerm`, `RestoreTerm`, `DeleteTerm`, `MoveTerm`. Slugs are unique per taxonomy and language; left empty, they're made from the title.
 
 ## Giving entries terms
 
@@ -22,3 +22,16 @@ When an entry is published, the terms of its top-level terms fields are kept in 
 $term->entries;                 // entries that have it
 $entry->terms;                  // the terms of an entry
 ```
+
+## Term pages and fields
+
+Give a taxonomy a **Term pages URL** (`route`, like `/topics/{slug}`) and each term gets a page listing its live entries, newest first, 10 a page; other languages under their prefix (`/id/topics/berita`), with each language's slug. A **Term fields** blueprint gives terms fields of their own (a description, an image). Both, and SEO (title, description, share image, hide from search engines), are edited on each term's page in the admin (the page icon in the terms list; `SaveTermContent` in code), per language; fields not translated come from the main language. A term may name its own template.
+
+Term pages render with the first view that exists: the term's template, the taxonomy's `template`, `cms.taxonomy-{handle}`, `cms.term`, or the CMS's plain one, with `$term` (the `TermTranslation`: `->title`, `->slug`, `->url()`, `->term`), `$taxonomy`, `$entries` (a paginator), `$values` and `$richText` (its fields), `$title` and `$locale`. In the head: `<x-sunrice-cms::seo :term="$term" />`. `$term->url($locale)` on a `Term` links to its page. Term pages are in the sitemap, but those hidden from search engines.
+
+Term pages and entries share URL patterns: the most specific matching pattern decides, and collections come before taxonomies when two are as specific.
+
+## Trash
+
+Deleting a term moves it, and the terms under it, to the trash (`TrashTerm`): off the site, out of pickers and entries. In the terms list's **Trash**, restore it (`RestoreTerm`; under a parent still in the trash it goes to the top level) or delete it for good (`DeleteTerm`; terms under it move up, entries lose it).
+

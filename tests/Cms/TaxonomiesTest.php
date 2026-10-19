@@ -152,6 +152,14 @@ it('edits taxonomies and their terms in the admin', function () {
         ->where('terms.1.title', 'Local')
         ->where('terms.1.depth', 1));
 
+    // To the trash with the term under it, back, and deleted for good (its child moves up).
     delete("/admin/cms/terms/{$news->id}")->assertSessionHasNoErrors();
-    expect(Term::query()->count())->toBe(1);
+    expect(Term::query()->count())->toBe(0)->and(Term::onlyTrashed()->count())->toBe(2);
+    post("/admin/cms/terms/{$news->id}/restore")->assertSessionHasNoErrors();
+    expect(Term::query()->count())->toBe(2);
+    delete("/admin/cms/terms/{$news->id}/force")->assertNotFound();
+    delete("/admin/cms/terms/{$news->id}");
+    post('/admin/cms/terms/'.Term::onlyTrashed()->where('id', '!=', $news->id)->value('id').'/restore');
+    delete("/admin/cms/terms/{$news->id}/force")->assertSessionHasNoErrors();
+    expect(Term::query()->count())->toBe(1)->and(Term::query()->value('parent_id'))->toBeNull();
 });

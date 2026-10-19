@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Term pages: taxonomies get `route` (`/topics/{slug}`), a `blueprint` for terms' own fields and a `template`; each term's page lists its live entries, with its fields and SEO per language (`SaveTermContent`, edited on the term's page in the admin), `<x-sunrice-cms::seo :term>`, and the sitemap. Terms and entries share URL patterns, most specific first.
+- Terms have a trash: deleting moves a term and the terms under it there (`TrashTerm`, `RestoreTerm`); `DeleteTerm` deletes for good.
 - Listing pages: collections get `listing_route` (`/blog`), `listing_blueprint` and `per_page`; their live entries are listed there (templates `cms.{handle}-listing`, `cms.listing`, or a plain one), with fields per language (`CollectionListing`, `SaveListing`, Listing page from the entries list), and in the sitemap. `Collection::listingUrl()`.
 - The homepage: Settings → Site (`Sunrice\Cms\Settings\SiteSettings`, `cms.settings.site`) picks the entry shown at `/` and `/{locale}`; its own address redirects there.
 - Collection structure: **Manual order** (`ordered`; Move up and Move down in the list, `MoveEntry`, `EntryQuery::ordered()`) and **Hierarchical** collections (`Entry::parent`, `children`, `ancestors()`, `EntryQuery::childrenOf()`; URLs stay flat). Entries get **Page settings**: a parent and their own template (`SaveEntrySettings`), which the site tries first. Deleting an entry for good moves its children up.
