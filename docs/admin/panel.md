@@ -106,6 +106,22 @@ $panel->dashboardCards(
 The panel has **Recent activity** (`sunrice.activity.view`); the CMS adds
 content per collection, recent edits, new submissions and comments.
 
+## Help
+
+**Help** (in the menu under your name) shows guide pages for the people who use the panel: the panel's
+own (*Using the panel*), the CMS's (*Content*), and any a plugin adds, as
+Markdown files in a folder:
+
+```php
+use Sunrice\Admin\Help\HelpSection;
+
+$panel->help(HelpSection::make('shop', 'Shop', __DIR__.'/../guide', sort: 50));
+```
+
+Files are shown in name order (`01-orders.md` is the page `orders`), each
+titled by its first `# ` line. HTML in them is left out, and links to
+`javascript:` addresses too.
+
 ## Routes and pages
 
 `$panel->routes(fn () => ...)` adds routes for signed-in users who may open the panel (the `sunrice.access` permission), under the panel's path and named `sunrice.admin.…`. Plugin pages in React are explained in [Admin pages in React](frontend.md).

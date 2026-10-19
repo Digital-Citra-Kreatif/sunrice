@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Help in the panel: guide pages for the people who use it, from the panel (*Using the panel*), the CMS (*Content*) and plugins (`$panel->help()`, `Help\HelpSection`, `@api`). The page key `help` and pages under `Help/` are the panel's.
 - The site's own words (search, forms, comments and their emails) are translated in the page's language, with Indonesian included (`lang/id.json`). Starter templates: `vendor:publish --tag=sunrice-cms-templates` copies the plain pages to `resources/views/cms/`. The form component's `submit` label defaults to the translated *Send*.
 - AI tools: `cms_get_site_info`, `cms_seo_audit`, `cms_entry_revisions`, `cms_move_entry`, `cms_get_blueprint`, `cms_save_blueprint`, `cms_get_menu`, `cms_save_menu`, `cms_get_listing`, `cms_save_listing` and `cms_delete_submissions`, each behind its permission. See `docs/cms/ai.md`.
 - `sunrice:ai-token` creates, lists and revokes a user's AI access tokens. The Activity log page deletes old lines (`sunrice.activity.prune`; a security event that alerts). The user menu chooses light, dark or the device's appearance.

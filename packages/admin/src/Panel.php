@@ -15,6 +15,7 @@ use Sunrice\Admin\Branding\BrandingSettings;
 use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Dashboard\DashboardCard;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Help\HelpSection;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
@@ -51,7 +52,7 @@ final class Panel
     private const RESERVED_SHARED = ['sunrice', 'auth', 'navigation', 'flash', 'errors'];
 
     /** Page folders of the panel's own React pages; plugin bundles use others. */
-    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Email/', 'Security/', 'Resources/'];
+    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Email/', 'Help/', 'Security/', 'Resources/'];
 
     private string $path = 'admin';
 
@@ -73,6 +74,9 @@ final class Panel
 
     /** @var array<string, OwnedContent> */
     private array $ownedContent = [];
+
+    /** @var array<string, HelpSection> */
+    private array $help = [];
 
     /** @var array<string, Permission> */
     private array $permissions = [];
@@ -121,7 +125,7 @@ final class Panel
     private ?string $roleResource = RoleResource::class;
 
     /** URL segments the panel uses itself; resources can't take them. */
-    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'email', 'security', 'profile', 'ai'];
+    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'email', 'help', 'security', 'profile', 'ai'];
 
     /** The plugin whose register() is running, if any: it owns what is declared meanwhile. */
     private ?Plugin $registering = null;
@@ -224,6 +228,33 @@ final class Panel
         $this->mediaLibrary = $enabled;
 
         return $this;
+    }
+
+    /**
+     * Pages of the panel's Help (Markdown files), under a heading.
+     *
+     * @throws PanelMisconfigured for a key used twice
+     */
+    public function help(HelpSection ...$sections): self
+    {
+        $this->assertRegistering();
+        foreach ($sections as $section) {
+            if (isset($this->help[$section->key])) {
+                throw new PanelMisconfigured("Two help sections have the key \"{$section->key}\"{$this->owner()}.");
+            }
+            $this->help[$section->key] = $section;
+        }
+
+        return $this;
+    }
+
+    /** @return list<HelpSection> in order */
+    public function getHelp(): array
+    {
+        $sections = array_values($this->help);
+        usort($sections, fn (HelpSection $a, HelpSection $b): int => [$a->sort, $a->title] <=> [$b->sort, $b->title]);
+
+        return $sections;
     }
 
     /**
@@ -618,6 +649,7 @@ final class Panel
             ->handOver(function (Model $from, Model $to): void {
                 Media::query()->withTrashed()->where('uploaded_by', self::key($from))->update(['uploaded_by' => self::key($to)]);
             }));
+        $this->help(HelpSection::make('panel', 'Using the panel', dirname(__DIR__).'/guide', 10));
         $this->dashboardCards(DashboardCard::make('activity')->title('Recent activity')->sort(900)->permission('sunrice.activity.view')
             ->list(fn (): array => Activity::query()->latest('id')->limit(6)->get()->map(fn (Activity $activity): array => [
                 'title' => trim(($activity->user_name ?? 'Someone').' '.$activity->action.' '.($activity->subject_label ?? $activity->subject_type)),

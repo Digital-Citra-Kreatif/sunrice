@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ChevronRight, ChevronsUpDown, LayoutGrid, LogOut } from 'lucide-react';
+import { ChevronRight, ChevronsUpDown, LayoutGrid, LifeBuoy, LogOut } from 'lucide-react';
 import {
     Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
     SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
@@ -133,6 +133,9 @@ export function AppSidebar() {
                                         <DropdownMenuRadioItem value="system">Same as the device</DropdownMenuRadioItem>
                                     </DropdownMenuRadioGroup>
                                     <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <Link href={adminUrl('help')}><LifeBuoy /> Help</Link>
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onSelect={() => router.post(adminUrl('logout'))}>
                                         <LogOut />
                                         Log out
