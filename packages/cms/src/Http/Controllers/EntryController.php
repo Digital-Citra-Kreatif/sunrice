@@ -53,7 +53,8 @@ final class EntryController
             ->where('collection_id', $collection->id)
             ->where('locale', $locale)
             ->whereHas('entry', fn ($query) => $trashed ? $query->onlyTrashed() : $query->withoutTrashed())
-            ->when($search !== '', fn ($query) => $query->where('draft_title', 'like', '%'.addcslashes($search, '%_\\').'%'))
+            // whereLike: case-insensitive on every database (ILIKE on PostgreSQL).
+            ->when($search !== '', fn ($query) => $query->whereLike('draft_title', '%'.addcslashes($search, '%_\\').'%'))
             ->orderBy($collection->dated ? 'published_at' : 'draft_title', $collection->dated ? 'desc' : 'asc')
             ->orderByDesc('id')
             ->paginate(self::PER_PAGE)

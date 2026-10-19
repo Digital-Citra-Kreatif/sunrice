@@ -84,6 +84,7 @@ it('lists entries, newest first in a dated collection, with search and the trash
         ->where('can.create', true)
         ->where('can.publish', false));
     get('/admin/cms/collections/articles/entries?search=old')->assertInertia(fn (Assert $page) => $page->where('entries.total', 1));
+    get('/admin/cms/collections/articles/entries?search=OLDER')->assertInertia(fn (Assert $page) => $page->where('entries.total', 1));
     get('/admin/cms/collections/articles/entries?search=%25')->assertInertia(fn (Assert $page) => $page->where('entries.total', 0));
     get('/admin/cms/collections/articles/entries?trashed=1')->assertInertia(fn (Assert $page) => $page
         ->where('entries.total', 1)->where('entries.data.0.title', 'Gone'));
