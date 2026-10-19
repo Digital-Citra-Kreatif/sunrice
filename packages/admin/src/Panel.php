@@ -79,6 +79,8 @@ final class Panel
     /** @var array<string, RegisteredSettings> keyed by the section's key */
     private array $settings = [];
 
+    private bool $mediaLibrary = true;
+
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
 
@@ -174,6 +176,19 @@ final class Panel
             throw new PanelMisconfigured("{$resource} isn't a role resource: extend ".RoleResource::class.'.');
         }
         $this->roleResource = $resource;
+
+        return $this;
+    }
+
+    /**
+     * The Media page (on by default), with its permissions
+     * "sunrice.media.view", ".upload", ".update" and ".delete". Without it,
+     * the media library still works from code.
+     */
+    public function mediaLibrary(bool $enabled = true): self
+    {
+        $this->assertConfigurable();
+        $this->mediaLibrary = $enabled;
 
         return $this;
     }
@@ -361,6 +376,15 @@ final class Panel
         $declared = $this->permissions;
         $this->permissions = [];
         $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
+        if ($this->mediaLibrary) {
+            $this->permissions(
+                Permission::make('sunrice.media.view', 'View media', 'Media'),
+                Permission::make('sunrice.media.upload', 'Upload media', 'Media'),
+                Permission::make('sunrice.media.update', 'Edit and organise media', 'Media'),
+                Permission::make('sunrice.media.delete', 'Delete media', 'Media'),
+            );
+            $this->navigation(NavigationItem::make('media')->label('Media')->url('media')->icon('image')->sort(50)->permission('sunrice.media.view'));
+        }
         if ($this->userResource !== null) {
             $this->registerResource($this->userResource, self::CORE.'.users');
         }
@@ -442,6 +466,11 @@ final class Panel
     public function getMiddleware(): array
     {
         return $this->middleware;
+    }
+
+    public function hasMediaLibrary(): bool
+    {
+        return $this->mediaLibrary;
     }
 
     public function isBooted(): bool

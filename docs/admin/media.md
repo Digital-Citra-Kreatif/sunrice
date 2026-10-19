@@ -2,10 +2,23 @@
 
 The panel has one media library, shared by your app and every plugin: files on a Laravel disk, a `Sunrice\Admin\Media\Media` record for each, in folders (`MediaFolder`), with smaller copies of images.
 
+## The Media page
+
+**Media** in the sidebar: folders, a grid of files (thumbnails for images), search across every folder, a filter by type, and the trash. Drop files anywhere on the page (or use Upload) to add them to the folder you're in; each file uploads on its own, with its progress and any error. Click a file for its preview and details: title, alternative text, caption, copy its link, or replace its file (the link stays the same). Select files to move them to another folder or to the trash; in the trash, restore them or delete them for good. Deleting a folder moves what's in it up a level, so nothing is lost.
+
+| Permission | Allows |
+| --- | --- |
+| `sunrice.media.view` | Seeing the library |
+| `sunrice.media.upload` | Uploading |
+| `sunrice.media.update` | Editing details, replacing files, folders and moving |
+| `sunrice.media.delete` | The trash: moving to it, restoring, deleting for good |
+
+Turn the page off with `$panel->mediaLibrary(false)`; the library still works from code.
+
 ## Uploading from code
 
 ```php
-use Sunrice\Admin\Actions\Media\{UploadMedia, ReplaceMedia, DeleteMedia};
+use Sunrice\Admin\Actions\Media\{UploadMedia, ReplaceMedia, DeleteMedia, MoveMedia, UpdateMedia, SaveMediaFolder, DeleteMediaFolder};
 
 $media = app(UploadMedia::class)->handle($request->file('photo'), ['folder_id' => $folder->id, 'alt' => 'The shop front']);
 
@@ -15,6 +28,11 @@ $media->url('thumbnail');    // a size (the original when it has none)
 app(ReplaceMedia::class)->handle($media, $newFile);   // same URL, new version
 $media->delete();                                      // to the trash (soft delete)
 app(DeleteMedia::class)->handle($media);               // gone, with its files
+
+app(UpdateMedia::class)->handle($media, ['alt' => 'The shop front', 'caption' => null]);
+$folder = app(SaveMediaFolder::class)->handle('Products');          // or (name, parent), or rename: (name, folder: $folder)
+app(MoveMedia::class)->handle([$media], $folder);                    // null: the top level
+app(DeleteMediaFolder::class)->handle($folder);                      // its contents move up
 ```
 
 URLs end in `?v=<version>`, so a replaced file is fetched again rather than served from a cache.
