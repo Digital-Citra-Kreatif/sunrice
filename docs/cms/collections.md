@@ -4,7 +4,7 @@ A **collection** is a kind of content: pages, articles, products. Its entries ar
 
 ## Collections
 
-Manage them in the admin under **Content → Collections** (permissions `cms.collections.view`, `.create`, `.update`, `.delete`) or with the actions below. A collection has:
+Manage them in the admin under **Structure → Collections** (permissions `cms.collections.view`, `.create`, `.update`, `.delete`) or with the actions below. A collection has:
 
 | | |
 | --- | --- |

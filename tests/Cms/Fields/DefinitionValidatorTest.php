@@ -30,6 +30,14 @@ it('returns the definitions as stored', function () {
         ->and($fields[1]->fields)->toBe([]);
 });
 
+it('stores a select\'s options without content row metadata', function () {
+    $fields = app(DefinitionValidator::class)->validate([
+        ['handle' => 'tone', 'type' => 'select', 'config' => ['options' => [['value' => 'calm', 'label' => ''], ['value' => 'loud', 'label' => 'Loud', '_hidden' => true]]]],
+    ]);
+
+    expect($fields[0]->config['options'])->toBe([['value' => 'calm'], ['value' => 'loud', 'label' => 'Loud']]);
+});
+
 it('checks handles and types', function () {
     expect(definitionErrors([['handle' => 'Bad Handle', 'type' => 'text']]))->toHaveKey('fields.0.handle')
         ->and(definitionErrors([['handle' => 'map', 'type' => 'map']]))->toHaveKey('fields.0.type')
