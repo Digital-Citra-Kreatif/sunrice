@@ -6,6 +6,7 @@ namespace Sunrice\Admin;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Database\Events\NoPendingMigrations;
@@ -49,6 +50,17 @@ final class AdminServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // A read-only AI token may only view. This must be the Gate's first
+        // "before" check, ahead of spatie/laravel-permission's (added when the
+        // Gate is resolved) and the super admin's, so nothing grants first.
+        $this->callAfterResolving(GateContract::class, function (GateContract $gate): void {
+            $gate->before(function (mixed $user, string $ability): ?bool {
+                $scope = $this->app->make(TokenScope::class);
+
+                return $scope->readOnly() && $this->app->bound(Panel::class) && $scope->refuses($ability, array_keys($this->app->make(Panel::class)->getPermissions())) ? false : null;
+            });
+        });
+
         // Registered here too, so the panel works in apps that turn off package discovery.
         $this->app->register(InertiaServiceProvider::class);
         $this->app->register(PermissionServiceProvider::class);
@@ -77,13 +89,6 @@ final class AdminServiceProvider extends ServiceProvider
             $perMinute = config('sunrice-admin.ai.requests_per_minute', 120);
 
             return Limit::perMinute(is_numeric($perMinute) ? (int) $perMinute : 120)->by(sha1((string) $request->bearerToken()));
-        });
-
-        // A read-only AI token may only view, even for super admins: before their Gate::before.
-        Gate::before(function (mixed $user, string $ability): ?bool {
-            $scope = $this->app->make(TokenScope::class);
-
-            return $scope->readOnly() && $this->app->bound(Panel::class) && $scope->refuses($ability, array_keys($this->app->make(Panel::class)->getPermissions())) ? false : null;
         });
 
         // Super admins may do everything.

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- AI tools for every resource and settings section: `list_records`, `get_record`, `save_record` (partial updates), `delete_record`, `run_action`, `get_settings`, `update_settings`, plus `list_media` and `get_activity`, with the screens' permissions and validation (now in the `SaveRecord` and `UpdateSettings` actions).
+- Fix: read-only AI tokens could still use permissions granted through roles (spatie/laravel-permission's gate check answered first); the read-only check now always runs first.
 - AI access: tokens (read-only, expiring) on the AI access page, the MCP endpoint (`/mcp`, laravel/mcp) where AI agents work as the token's user with that user's permissions, `get_panel_info`, and `$panel->tools()` / `aiInstructions()` for plugins' tools (`Sunrice\Admin\Ai\Tool`). Read-only tokens may only view. Changes are logged as the AI agent's; token events are security events and alerts; Users → Revoke AI tokens. See `docs/admin/ai.md`.
 - Security alerts by email: an account locked, password spraying, a powerful account signing in from a new address or after a long absence, someone gaining power over users or roles, a dangerous upload, bursts of exports or deletes. Sent to super admins and configured roles and addresses, once per cooldown (`security.alerts`). The `ActivityRecorded` event. See `docs/admin/security.md#email-alerts`.
 - Responding to an account in the wrong hands: Users → Sign out everywhere, Lock account and Unlock account (also `sunrice:unlock`), a Locked column, and `AccountGuard` in code. Locked accounts can't log in, and their open sessions end on the next page. Resources gain `Action::visible()` and `Column::state()`.
