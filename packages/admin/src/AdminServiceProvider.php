@@ -46,6 +46,7 @@ use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\SettingsStore;
+use Sunrice\Admin\Users\UserPreferences;
 
 /**
  * Boots the admin panel package. The panel itself and its plugins are
@@ -75,6 +76,7 @@ final class AdminServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');
         // Settings are read once per request (or job).
         $this->app->scoped(SettingsStore::class);
+        $this->app->scoped(UserPreferences::class);
         // Per request: its source and the lines it may merge.
         $this->app->scoped(ActivityLog::class);
         $this->app->scoped(AccountGuard::class);

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { Cell } from '@/components/resources/cell';
 import { useConfirm } from '@/components/resources/confirm';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -36,16 +36,26 @@ interface Props {
         nextUrl: string | null;
     };
     perPageOptions: number[];
+    /** The columns this person hid (kept for them). */
+    hidden: string[];
 }
 
 const ALL = '__all';
 
-export default function ResourceIndex({ resource, columns, filters, rowActions, bulkActions, can, query, rows, perPageOptions }: Props) {
+export default function ResourceIndex({ resource, columns: allColumns, filters, rowActions, bulkActions, can, query, rows, perPageOptions, hidden: savedHidden }: Props) {
     useBreadcrumbs([{ label: resource.label }]);
     const [confirm, confirmDialog] = useConfirm();
     const [search, setSearch] = React.useState(query.search);
     const [selected, setSelected] = React.useState<(string | number)[]>([]);
     const base = adminUrl(resource.key);
+    const [hidden, setHidden] = React.useState(savedHidden);
+    const columns = allColumns.filter((column) => !hidden.includes(column.name));
+
+    const toggleColumn = (name: string, show: boolean) => {
+        const next = show ? hidden.filter((other) => other !== name) : [...hidden, name];
+        setHidden(next);
+        router.put(`${base}/columns`, { hidden: next }, { preserveState: true, preserveScroll: true, only: ['hidden'] });
+    };
 
     React.useEffect(() => setSelected([]), [rows.data]);
 
@@ -134,6 +144,24 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
                         </SelectContent>
                     </Select>
                 ))}
+                {allColumns.length > 1 && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline"><Columns3 /> Columns</Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                            <DropdownMenuLabel>Show columns</DropdownMenuLabel>
+                            {allColumns.map((column) => (
+                                <DropdownMenuCheckboxItem key={column.name} checked={!hidden.includes(column.name)}
+                                    disabled={!hidden.includes(column.name) && columns.length === 1}
+                                    onSelect={(event) => event.preventDefault()}
+                                    onCheckedChange={(checked) => toggleColumn(column.name, checked === true)}>
+                                    {column.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
                 {selected.length > 0 && bulkActions.length > 0 && (
                     <div className="ml-auto flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">{selected.length} selected</span>

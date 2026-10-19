@@ -56,6 +56,7 @@ final class PanelRoutes
                 Route::post('/', [ResourceController::class, 'store'])->name('store'),
                 Route::get('export', [ResourceController::class, 'export'])->name('export'),
                 Route::post('bulk/{action}', [ResourceController::class, 'bulk'])->name('bulk'),
+                Route::put('columns', [ResourceController::class, 'columns'])->name('columns'),
                 Route::get('{record}/edit', [ResourceController::class, 'edit'])->name('edit'),
                 Route::put('{record}', [ResourceController::class, 'update'])->name('update'),
                 Route::delete('{record}', [ResourceController::class, 'destroy'])->name('destroy'),
