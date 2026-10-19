@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- AI tools for content: `cms_list_entries`, `cms_get_entry`, `cms_save_entry`, `cms_publish_entry`, `cms_unpublish_entry`, `cms_translate_entry`, `cms_trash_entry`, `cms_list_terms`, `cms_save_term`, `cms_get_globals`, `cms_save_globals` and `cms_list_submissions`, with the screens' permissions, validation and activity log, and instructions for agents. `EntryTranslation::status()`. See `docs/cms/ai.md`.
 - Forms: `Form` and `Submission`, Structure → Forms (`cms.forms.*`, fields from a blueprint, addresses to email, a thank-you message), `<x-sunrice-cms::form handle="contact" />` for templates, `POST /forms/{handle}` behind the honeypot (`spatie/laravel-honeypot`, now required by the CMS) and a per-visitor limit (`sunrice-cms.forms.per_minute`), `SubmitForm` and `DeleteSubmission`, email notifications, and Content → Submissions to read, delete (`cms.submissions.view`, `.delete`) and export them as CSV. See `docs/cms/forms.md`.
 - `Sunrice\Admin\Support\Csv`: CSV cells safe to open in spreadsheets, as the resource export writes them.
 - SEO: a Search and sharing card in the entry editor (SEO title, description, share image, hide from search engines; `Seo::validate()`, `Seo::for()`), the `<x-sunrice-cms::seo>` component with canonical, `hreflang` and Open Graph tags (used by the built-in view), `/sitemap.xml`, and redirects: publishing a new slug redirects the old address (chains flattened), Structure → Redirects (`cms.redirects.*`, `Redirect`). See `docs/cms/site.md`.
