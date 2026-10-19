@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Http\Controllers\Auth;
 
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Passwords\PasswordBroker;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -68,7 +69,7 @@ final class PasswordResetController
         $status = self::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (CanResetPassword $user, string $password): void {
-                if (! $user instanceof Model) {
+                if (! $user instanceof Model || ! $user instanceof Authenticatable) {
                     return;
                 }
                 $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
@@ -77,7 +78,7 @@ final class PasswordResetController
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            throw ValidationException::withMessages(['email' => __(is_string($status) ? $status : 'passwords.token')]);
+            throw ValidationException::withMessages(['email' => __($status)]);
         }
 
         return redirect()->route('sunrice.admin.login')->with('success', __('Your password has been reset. You can log in now.'));
