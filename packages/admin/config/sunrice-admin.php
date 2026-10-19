@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 return [
 
+    // The role whose users may do everything (Gate::before). Created by
+    // `php artisan sunrice:sync-permissions`; give it with `sunrice:make-admin`.
+    'super_admin_role' => 'super-admin',
+
     'auth' => [
         // The password broker for "Forgot password?" (config/auth.php
         // passwords.*); null for the app's default broker.

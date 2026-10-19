@@ -6,6 +6,7 @@ namespace Sunrice\Admin;
 
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Contracts\Plugin;
@@ -279,6 +280,22 @@ final class Panel
     public function getGuard(): string
     {
         return $this->guard;
+    }
+
+    /**
+     * The user model of the panel's guard (config/auth.php).
+     *
+     * @return class-string<Model>
+     */
+    public function getUserModel(): string
+    {
+        $provider = config("auth.guards.{$this->guard}.provider");
+        $model = is_string($provider) ? config("auth.providers.{$provider}.model") : null;
+        if (! is_string($model) || ! is_a($model, Model::class, true)) {
+            throw new PanelMisconfigured("The panel's guard \"{$this->guard}\" has no Eloquent user model in config/auth.php.");
+        }
+
+        return $model;
     }
 
     public function getBrand(): string

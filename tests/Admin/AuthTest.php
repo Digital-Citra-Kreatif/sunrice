@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Illuminate\Auth\Events\Failed;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
@@ -24,11 +23,7 @@ use function Pest\Laravel\assertGuest;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
 
-uses(RefreshDatabase::class);
-
 beforeEach(function () {
-    $this->loadLaravelMigrations();
-    config(['auth.providers.users.model' => User::class]);
     usePanel(fn (Panel $panel) => $panel->routes(fn () => Route::get('reports', fn () => 'reports')->name('reports')));
     // Only @example.com accounts may open the panel; customers may not.
     Gate::define(Panel::ACCESS, fn (User $user) => str_ends_with((string) $user->getAttribute('email'), '@example.com'));
