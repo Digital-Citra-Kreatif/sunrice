@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Site settings: Settings → Site also holds the site name, description, share image, title separator and whether titles get the site name ("About | Acme"), the X account, and *Hide the whole site from search engines* (also `SUNRICE_NOINDEX`, `sunrice-cms.seo.noindex`: noindex everywhere, an `X-Robots-Tag` header and an empty sitemap). `Cms::site()`. **Page titles now end with the site name** unless that's turned off.
+- SEO: `<x-sunrice-cms::seo />` reads the page shown (entries, terms, listing pages) or takes `title` on the app's own pages, and adds `og:type`, `og:site_name`, `og:locale`, an X card and `x-default`; an entry's or term's SEO may set a canonical address. `Seo::forListing()` and `Seo::forPage()`. Listing pages get SEO tags.
+- Site code: Settings → Site code (`Sunrice\Cms\Settings\CodeSettings`, `cms.settings.code`) for HTML on every page, printed with `<x-sunrice-cms::code place="head|body-start|body-end" />`; each change is a `site code changed` security event and sends an alert.
+- `SecurityAlerts::raise()` (now `@api`): plugins send security alerts of their own.
+- Templates: `Cms::bodyClass()`, `Cms::localeUrls()` and `Cms::page()` (`Sunrice\Cms\Site\Page`); `EntryQuery::where()`, `whereEntry()`, `except()` and `orderBy()`; the `<x-sunrice-cms::entries>` and `<x-sunrice-cms::terms>` components. The CMS's plain views use them all.
 - Term pages: taxonomies get `route` (`/topics/{slug}`), a `blueprint` for terms' own fields and a `template`; each term's page lists its live entries, with its fields and SEO per language (`SaveTermContent`, edited on the term's page in the admin), `<x-sunrice-cms::seo :term>`, and the sitemap. Terms and entries share URL patterns, most specific first.
 - Terms have a trash: deleting moves a term and the terms under it there (`TrashTerm`, `RestoreTerm`); `DeleteTerm` deletes for good.
 - Listing pages: collections get `listing_route` (`/blog`), `listing_blueprint` and `per_page`; their live entries are listed there (templates `cms.{handle}-listing`, `cms.listing`, or a plain one), with fields per language (`CollectionListing`, `SaveListing`, Listing page from the entries list), and in the sitemap. `Collection::listingUrl()`.

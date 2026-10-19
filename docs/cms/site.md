@@ -39,17 +39,52 @@ Rich text is cleaned when it's saved, so print it as is: `{!! $values['body'] !!
 
 ## SEO
 
-Each entry's **Search and sharing** card holds an SEO title, a description, a share image and *Hide from search engines*, per language, with the draft and its revisions (stored under the reserved `seo` key). Put the tags in your layout's `<head>`:
+Each entry's **Search and sharing** card holds an SEO title, a description, a share image, *Hide from search engines* and, for a page that copies one elsewhere, a canonical address, per language, with the draft and its revisions (stored under the reserved `seo` key). Put the tags in your layout's `<head>`:
 
 ```blade
 <head>
-    <x-sunrice-cms::seo :entry="$entry" :preview="$preview" />
+    <x-sunrice-cms::seo />
 </head>
 ```
 
-It prints the `<title>` (the SEO title, else the entry's), the description, `robots` noindex (always in previews), the canonical URL, `hreflang` links to the entry's other live languages, and Open Graph tags. `Sunrice\Cms\Support\Seo::for($entry)` gives the same as an array if you'd rather write the tags yourself.
+On the CMS's pages it reads the page shown (entry, term or listing page; or name it: `:entry="$entry" :preview="$preview"`, `:term="$term"`), and on your app's own pages it gives the site's tags with `title="Contact"`. It prints the `<title>` (the SEO title, else the page's, then the site name: "About | Acme"), the description, `robots` noindex (always in previews), the canonical URL, `hreflang` links to the page's other languages with `x-default` (the main language), Open Graph tags (`og:type` *article* for dated collections, else *website*; `og:site_name`, `og:locale`) and an X (Twitter) card. `Sunrice\Cms\Support\Seo::for($entry)` (and `forTerm()`, `forListing()`, `forPage()`) gives the same as an array if you'd rather write the tags yourself.
 
-`/sitemap.xml` lists every live entry of a collection with a URL, with its other languages, but those hidden from search engines (at most 50,000).
+**Settings → Site** (`cms.settings.site`) holds what pages don't set: the site name (else `app.name`), a description, a share image, the title separator and whether titles get the site name, and the site's X account (`twitter:site`). The homepage's title is the site name. `Cms::site()` gives these settings to templates (`->name()`, `->title('About')`).
+
+*Hide the whole site from search engines* (or `SUNRICE_NOINDEX=true`, config `sunrice-cms.seo.noindex`, for a staging copy) marks every page noindex, also in an `X-Robots-Tag` header, and empties the sitemap.
+
+`/sitemap.xml` lists every live entry of a collection with a URL, with its other languages, term and listing pages, but those hidden from search engines (at most 50,000).
+
+## Site code
+
+**Settings → Site code** (`cms.settings.code`) takes HTML for every page, as is: analytics, chat widgets, verification tags. Your layout says where:
+
+```blade
+<head>
+    …
+    <x-sunrice-cms::code place="head" />
+</head>
+<body>
+    <x-sunrice-cms::code place="body-start" />
+    …
+    <x-sunrice-cms::code place="body-end" />
+</body>
+```
+
+Code there runs in every visitor's browser, so give the permission only to people you trust with the whole site. Each change is a `site code changed` security event and emails the [security alerts](../admin/security.md#email-alerts).
+
+## Layout helpers
+
+```blade
+<body class="{{ Cms::bodyClass('dark') }}">
+@foreach (Cms::localeUrls() as $locale => $url)
+    <a href="{{ $url }}" hreflang="{{ $locale }}">{{ strtoupper($locale) }}</a>
+@endforeach
+```
+
+- `Cms::bodyClass($extra)`: what the page is, for CSS and scripts. Entries: `page-entry collection-{handle} entry-{id} entry-{slug}`, with `home`, `has-parent parent-{id}` and `is-preview` when they apply; listing pages: `page-listing collection-{handle}`; term pages: `page-term taxonomy-{handle} term-{id} term-{slug}`; pages past the first: `paged paged-{n}`; always `template-{view} lang-{locale}`, and `logged-in` for people signed in to the panel. On your app's own pages: `lang-{locale}` and your extras.
+- `Cms::localeUrls()`: the page shown in each language it's live in, in the order of `sunrice-cms.locales`, for a language switcher (none on your app's own pages).
+- `Cms::page()`: the page shown (`Sunrice\Cms\Site\Page`: `type`, `locale`, `view`, `entry`, `collection`, `term`, `preview`, `home`, `pageNumber`), or null.
 
 ## Redirects
 
@@ -85,7 +120,43 @@ In any view, `Cms::entries()` finds live entries in the current language (`Sunri
 {{ Cms::global('contact')['phone'] ?? '' }}
 ```
 
-`entries(...$collections)` (none: every collection), then `whereTerm(...$terms)`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `limit()`, and `get()`, `first()`, `count()` or `paginate()`.
+`entries(...$collections)` (none: every collection), then `whereTerm(...$terms)`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereEntry()`, `except()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, and `get()`, `first()`, `count()` or `paginate()`.
+
+```php
+Cms::entries('events')->where('featured', true)->where('date', '>=', today()->toDateString())->orderBy('date')->get();
+Cms::entries('blog')->where('city', '!=', 'Jakarta')->except($entry)->limit(3)->get();   // "more like this"
+Cms::entries('blog')->whereEntry('related', $entry)->get();                             // pointing at $entry
+```
+
+- `where($field, [$operator,] $value)`: a field, or `title`, `slug`, `published_at`, `parent_id`; operators `=`, `!=`, `<`, `>`, `<=`, `>=`; `null` for "no value". Fields are compared as text by `<` and `>`: right for dates and times, not numbers.
+- `whereEntry($field, $entries)`: entries whose entries field links to an entry (or any of a list).
+- `orderBy($field, 'asc'|'desc')`: a column or a field.
+- `except(...$entries)`: leave these out.
+
+Field filters read the main language's published values (shared fields, like entries and terms, live there).
+
+### Components
+
+For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice-cms::terms>` run the query and leave the markup to you, as `$component->entries` and `$component->terms`:
+
+```blade
+<x-sunrice-cms::entries collection="blog" :limit="3" :term="$news" :except="$entry" order="-date">
+    @foreach ($component->entries as $post)
+        <a href="{{ $post->url() }}">{{ $post->title }}</a>
+    @endforeach
+</x-sunrice-cms::entries>
+
+<x-sunrice-cms::terms taxonomy="categories" collection="blog" hide-empty tree>
+    @foreach ($component->terms as $term)
+        <a href="{{ $term->url() }}">{{ $term->title() }}</a> ({{ $term->entries_count }})
+        {{-- $term->children: the terms under it --}}
+    @endforeach
+</x-sunrice-cms::terms>
+```
+
+`entries`: `collection` (handles, comma-separated; none for all), `limit`, `paginate` (per page: a paginator, `$component->entries->links()`), `order` (`latest`, `oldest`, `alphabetical`, `ordered`, or a field, `-field` for descending), `term` (one or a list), `parent` (an entry, or `top`), `where` (`['featured' => true]`) and `except`.
+
+`terms`: `taxonomy`, in the editors' order, each with `entries_count` (its live entries in the current language, of `collection` when given); `hide-empty`; `tree` (the top-level terms, each with `children`); `:entry` (only that entry's terms).
 
 In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancestors()` (top-down) give breadcrumbs and sub-menus:
 

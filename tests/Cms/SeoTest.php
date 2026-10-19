@@ -23,7 +23,7 @@ use function Pest\Laravel\put;
 
 beforeEach(function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
-    config(['sunrice-cms.locales' => ['en', 'id']]);
+    config(['sunrice-cms.locales' => ['en', 'id'], 'app.name' => 'Acme']);
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
     Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [['handle' => 'intro', 'type' => 'text']]]);
     $this->blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'route' => '/blog/{slug}']);
@@ -46,6 +46,7 @@ it('validates SEO and stores nothing when it\'s empty', function () {
 
     expect(Seo::validate(['title' => '  A   title ', 'description' => 'Words', 'image' => $image->id, 'noindex' => '1']))
         ->toBe(['title' => 'A title', 'description' => 'Words', 'image' => $image->id, 'noindex' => true])
+        ->and(Seo::validate(['canonical' => 'https://example.com/elsewhere']))->toBe(['title' => null, 'description' => null, 'image' => null, 'noindex' => false, 'canonical' => 'https://example.com/elsewhere'])
         ->and(Seo::validate(['title' => ' ', 'noindex' => false]))->toBeNull()
         ->and(Seo::validate(null))->toBeNull()
         // An untouched card sends {}: the validator leaves empty arrays out of what it returns.
@@ -54,6 +55,7 @@ it('validates SEO and stores nothing when it\'s empty', function () {
     expect(fn () => Seo::validate(['title' => str_repeat('a', 256)]))->toThrow(ValidationException::class);
     expect(fn () => Seo::validate(['image' => seoImage('application/pdf')->id]))->toThrow(ValidationException::class);
     expect(fn () => Seo::validate('nope'))->toThrow(ValidationException::class);
+    expect(fn () => Seo::validate(['canonical' => 'javascript:alert(1)']))->toThrow(ValidationException::class);
 });
 
 it('puts SEO tags in the page head', function () {
@@ -61,7 +63,7 @@ it('puts SEO tags in the page head', function () {
     seoPost($this->blog, 'Hello', ['seo' => ['title' => 'Hello, search', 'description' => 'About <hello>', 'image' => $image->id]]);
 
     get('/blog/hello')->assertOk()
-        ->assertSee('<title>Hello, search</title>', false)
+        ->assertSee('<title>Hello, search | Acme</title>', false)
         ->assertSee('<meta name="description" content="About &lt;hello&gt;">', false)
         ->assertSee('<link rel="canonical" href="'.url('/blog/hello').'">', false)
         ->assertSee('<meta property="og:image" content="'.$image->url().'">', false)
@@ -75,9 +77,11 @@ it('falls back to the title, and links the other languages', function () {
     app(PublishEntry::class)->handle($id);
 
     get('/id/blog/halo')->assertOk()
-        ->assertSee('<title>Halo</title>', false)
+        ->assertSee('<title>Halo | Acme</title>', false)
         ->assertSee('<link rel="alternate" hreflang="en" href="'.url('/blog/hello').'">', false)
-        ->assertSee('<link rel="alternate" hreflang="id" href="'.url('/id/blog/halo').'">', false);
+        ->assertSee('<link rel="alternate" hreflang="id" href="'.url('/id/blog/halo').'">', false)
+        ->assertSee('<link rel="alternate" hreflang="x-default" href="'.url('/blog/hello').'">', false)
+        ->assertSee('<meta property="og:locale" content="id">', false);
 });
 
 it('asks search engines to skip noindex pages', function () {
