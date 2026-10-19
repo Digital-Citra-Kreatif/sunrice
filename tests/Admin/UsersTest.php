@@ -89,7 +89,7 @@ it('creates users with a hashed password and roles, and keeps the password unles
     get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'password'))->toMatchArray(['type' => 'password', 'required' => true])
         ->and(collect(formField($page, 'roles')['options'])->pluck('value')->all())->toBe(['boss', 'editor', 'manager', 'super-admin']));
 
-    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'roles' => ['editor']])->assertRedirect();
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password', 'roles' => ['editor']])->assertRedirect();
     $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
     expect(Hash::check('a-long-password', $dewi->password))->toBeTrue()
         ->and($dewi->getRoleNames()->all())->toBe(['editor']);
@@ -105,7 +105,7 @@ it('creates users with a hashed password and roles, and keeps the password unles
         ->and(Hash::check('a-long-password', $dewi->password))->toBeTrue()
         ->and($dewi->getRoleNames()->sort()->values()->all())->toBe(['editor', 'manager']);
 
-    put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => 'another-password', 'roles' => []]);
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => 'another-password', 'password_confirmation' => 'another-password', 'roles' => []]);
     expect(Hash::check('another-password', $dewi->fresh()->password))->toBeTrue()
         ->and($dewi->fresh()->getRoleNames()->all())->toBe([]);
 
@@ -157,7 +157,7 @@ it('lets users manage only users whose permissions they have', function () {
     get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'roles')['options'])->pluck('value')->all())->toBe(['editor', 'manager']));
     put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => ['boss']])->assertSessionHasErrors('roles.0');
     put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => ['super-admin']])->assertSessionHasErrors('roles.0');
-    post('/admin/users', ['name' => 'New', 'email' => 'new@example.com', 'password' => 'a-long-password', 'roles' => ['super-admin']])->assertSessionHasErrors('roles.0');
+    post('/admin/users', ['name' => 'New', 'email' => 'new@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password', 'roles' => ['super-admin']])->assertSessionHasErrors('roles.0');
     put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => ['manager']])->assertSessionHasNoErrors();
     expect($this->editor->fresh()->getRoleNames()->all())->toBe(['manager']);
 

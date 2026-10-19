@@ -52,3 +52,21 @@ $panel->userResource(AdminUserResource::class)->roleResource(null);
 ```
 
 The permission names stay `sunrice.users.*` and `sunrice.roles.*` whichever class you use. Your user model needs Spatie's `HasRoles` trait (see [Roles and permissions](permissions.md)), and the users table the `name`, `email` and `password` columns the default form writes.
+
+## What a user owns
+
+A user's page shows their last login, whether the account is locked, their
+AI access tokens and what they own: files they uploaded, and what plugins
+count (the CMS: entries they wrote). Deleting a user hands what they own
+to whoever deletes them, so nothing is left without an owner; the activity
+log says what was handed over.
+
+Plugins say what people own with `$panel->ownedContent()` (`Users\OwnedContent`, `@api`):
+
+```php
+$panel->ownedContent(OwnedContent::make('shop.orders')->label('orders', 'order')
+    ->count(fn (Model $user) => Order::where('owner_id', $user->getKey())->count())
+    ->handOver(fn (Model $from, Model $to) => Order::where('owner_id', $from->getKey())->update(['owner_id' => $to->getKey()])));
+```
+
+New users' passwords are typed twice (`Password::make()->confirmed()`).

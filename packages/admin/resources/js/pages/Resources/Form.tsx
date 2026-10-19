@@ -7,6 +7,7 @@ import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
 import type { ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { adminUrl } from '@/lib/admin-url';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
@@ -15,10 +16,12 @@ interface Props {
     record: { id: string | number; title: string } | null;
     sections: SectionInfo[];
     values: Record<string, FieldValue>;
+    /** Facts beside the form, when editing. */
+    aside: { label: string; value: string }[];
     can: { delete: boolean };
 }
 
-export default function ResourceForm({ resource, record, sections, values, can }: Props) {
+export default function ResourceForm({ resource, record, sections, values, aside, can }: Props) {
     const base = adminUrl(resource.key);
     const title = record ? record.title : `New ${resource.singularLabel.toLowerCase()}`;
     useBreadcrumbs([{ label: resource.label, href: base }, { label: title }]);
@@ -66,6 +69,21 @@ export default function ResourceForm({ resource, record, sections, values, can }
                     </Button>
                 </div>
             </div>
+
+            {aside.length > 0 && (
+                <Card className="py-4">
+                    <CardContent>
+                        <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                            {aside.map((fact) => (
+                                <div key={fact.label} className="min-w-0">
+                                    <dt className="text-xs text-muted-foreground">{fact.label}</dt>
+                                    <dd className="mt-0.5 text-sm break-words">{fact.value}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                    </CardContent>
+                </Card>
+            )}
 
             <FormSections sections={sections} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
         </form>

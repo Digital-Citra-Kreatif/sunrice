@@ -170,9 +170,9 @@ final class ResourceController
     {
         $resource = $this->resource($request);
         $model = $this->find($resource, $record);
-        $this->authorize($request, $resource, 'delete', $model);
+        $user = $this->authorize($request, $resource, 'delete', $model);
 
-        $model->delete();
+        DB::transaction(fn () => $resource->class::deleteRecord($model, $user));
         $this->activity->record('deleted', $resource->key(), $model, $resource->class::title($model));
 
         return redirect()->route("sunrice.admin.resources.{$resource->key()}.index")
@@ -211,7 +211,8 @@ final class ResourceController
         }
 
         if ($definition === null) {
-            DB::transaction(fn () => $records->each(fn (Model $record) => $record->delete()));
+            $user = $this->user();
+            DB::transaction(fn () => $records->each(fn (Model $record) => $resource->class::deleteRecord($record, $user)));
             $records->each(fn (Model $record) => $this->activity->record('deleted', $resource->key(), $record, $resource->class::title($record)));
 
             return back()->with('success', $records->count().' deleted.');
@@ -265,6 +266,7 @@ final class ResourceController
             'record' => $record === null ? null : ['id' => $record->getKey(), 'title' => $resource->class::title($record)],
             'sections' => $sections,
             'values' => $values,
+            'aside' => $record === null ? [] : $resource->class::aside($record),
             'can' => ['delete' => $record !== null && $resource->allows($this->user(), 'delete', $record)],
         ]);
     }

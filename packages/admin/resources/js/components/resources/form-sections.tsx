@@ -1,5 +1,6 @@
 import { InputError } from '@/components/app/input-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { FieldInput, type FieldValue } from './fields';
@@ -48,6 +49,14 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
                             )}
                             {field.help && <p className="text-sm text-muted-foreground">{field.help}</p>}
                             <InputError message={error} />
+                            {field.type === 'password' && field.confirmed === true && (
+                                <>
+                                    <Label htmlFor={`field-${field.name}_confirmation`} className="mt-2">Type it again</Label>
+                                    <Input id={`field-${field.name}_confirmation`} type="password" autoComplete="new-password" disabled={field.disabled === true}
+                                        value={typeof data[`${field.name}_confirmation`] === 'string' ? String(data[`${field.name}_confirmation`]) : ''}
+                                        onChange={(event) => onChange(`${field.name}_confirmation`, event.target.value)} />
+                                </>
+                            )}
                         </div>
                     );
                 })}

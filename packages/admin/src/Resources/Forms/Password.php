@@ -18,6 +18,16 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
  */
 final class Password extends Field
 {
+    private bool $confirmed = false;
+
+    /** Typed twice: the form asks for it again, and the two must match. */
+    public function confirmed(bool $confirmed = true): self
+    {
+        $this->confirmed = $confirmed;
+
+        return $this;
+    }
+
     public function type(): string
     {
         return 'password';
@@ -47,6 +57,11 @@ final class Password extends Field
 
     protected function typeRules(): array
     {
-        return ['string', 'max:255', PasswordRule::default()];
+        return ['string', 'max:255', PasswordRule::default(), ...($this->confirmed ? ['confirmed'] : [])];
+    }
+
+    protected function props(): array
+    {
+        return ['confirmed' => $this->confirmed];
     }
 }
