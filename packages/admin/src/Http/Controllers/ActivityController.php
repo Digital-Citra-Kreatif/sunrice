@@ -60,8 +60,12 @@ final class ActivityController
             ->paginate(self::PER_PAGE)
             ->withQueryString();
 
-        $types = Activity::query()->distinct()->orderBy('subject_type')->pluck('subject_type')
-            ->map(fn (string $type) => ['value' => $type, 'label' => $this->typeLabel($type)])->values();
+        $types = [];
+        foreach (Activity::query()->distinct()->orderBy('subject_type')->pluck('subject_type') as $type) {
+            if (is_string($type)) {
+                $types[] = ['value' => $type, 'label' => $this->typeLabel($type)];
+            }
+        }
 
         return Inertia::render('Activity/Index', [
             'query' => [

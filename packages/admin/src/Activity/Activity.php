@@ -46,7 +46,7 @@ class Activity extends Model
         $before = now()->subDays(max(0, $days));
         do {
             $ids = static::query()->where('created_at', '<', $before)->orderBy('id')->limit(1000)->pluck('id');
-            $deleted += $ids->isEmpty() ? 0 : static::query()->whereKey($ids)->delete();
+            $deleted += $ids->isEmpty() ? 0 : (int) static::query()->whereKey($ids)->delete();
         } while ($ids->count() === 1000);
 
         return $deleted;

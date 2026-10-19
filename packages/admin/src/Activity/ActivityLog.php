@@ -177,7 +177,7 @@ final class ActivityLog
             return null;
         }
         $id = $user->getAuthIdentifier();
-        $name = $user instanceof Model ? ($user->getAttribute('name') ?? $user->getAttribute('email')) : null;
+        $name = data_get($user, 'name') ?? data_get($user, 'email');
 
         return [is_scalar($id) ? (string) $id : '', is_string($name) && $name !== '' ? Str::limit($name, 250, '') : 'User #'.(is_scalar($id) ? $id : '?')];
     }
@@ -189,7 +189,7 @@ final class ActivityLog
      */
     private static function merge(array $old, array $new): array
     {
-        $changed = [...(is_array($old['changed'] ?? null) ? $old['changed'] : []), ...(is_array($new['changed'] ?? null) ? $new['changed'] : [])];
+        $changed = array_filter([...(is_array($old['changed'] ?? null) ? $old['changed'] : []), ...(is_array($new['changed'] ?? null) ? $new['changed'] : [])], 'is_string');
 
         return [...$old, ...$new, ...($changed === [] ? [] : ['changed' => array_values(array_unique($changed))])];
     }
