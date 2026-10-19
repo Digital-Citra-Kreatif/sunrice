@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Http\Controllers;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -33,8 +34,6 @@ final class MediaController
 {
     public const PER_PAGE = 48;
 
-    public const TYPES = ['image', 'video', 'audio', 'document'];
-
     public function index(Request $request): Response
     {
         $user = $this->authorize($request, 'view');
@@ -42,7 +41,7 @@ final class MediaController
         $query = $request->validate([
             'folder' => ['nullable', 'integer'],
             'search' => ['nullable', 'string', 'max:200'],
-            'type' => ['nullable', Rule::in(self::TYPES)],
+            'type' => ['nullable', Rule::in(Media::TYPES)],
             'trash' => ['nullable', 'boolean'],
         ]);
         $search = is_string($query['search'] ?? null) ? trim($query['search']) : '';
@@ -60,7 +59,7 @@ final class MediaController
             ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
                 ->whereLike('title', '%'.self::escapeLike($search).'%')
                 ->orWhereLike('filename', '%'.self::escapeLike($search).'%')))
-            ->when($type !== null, fn (Builder $q) => self::whereType($q, (string) $type))
+            ->when($type !== null, fn (Builder $q) => Media::whereTypes($q, [(string) $type]))
             ->orderByDesc('id')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
@@ -91,7 +90,60 @@ final class MediaController
         ]);
     }
 
-    public function store(Request $request, UploadMedia $upload): RedirectResponse
+    /**
+     * For the media picker (JSON): the media with these `ids`, in that order;
+     * or a page of a folder (or of a search everywhere), limited to `types`.
+     */
+    public function picker(Request $request): JsonResponse
+    {
+        $user = $this->authorize($request, 'view');
+        /** @var array{ids?: list<int>, folder?: int|null, search?: string|null, types?: list<string>, page?: int} $input */
+        $input = $request->validate([
+            'ids' => ['nullable', 'array', 'max:100'],
+            'ids.*' => ['integer'],
+            'folder' => ['nullable', 'integer'],
+            'search' => ['nullable', 'string', 'max:200'],
+            'types' => ['nullable', 'array'],
+            'types.*' => [Rule::in(Media::TYPES)],
+        ]);
+
+        if (isset($input['ids'])) {
+            $found = Media::query()->whereKey($input['ids'])->get()->keyBy('id');
+            $items = [];
+            foreach ($input['ids'] as $id) {
+                $media = $found->get($id);
+                if ($media instanceof Media) {
+                    $items[] = self::describe($media);
+                }
+            }
+
+            return response()->json(['items' => $items]);
+        }
+
+        $folders = MediaFolder::query()->orderBy('name')->get(['id', 'parent_id', 'name']);
+        $current = isset($input['folder']) ? $folders->firstWhere('id', (int) $input['folder']) : null;
+        $search = trim($input['search'] ?? '');
+        $page = Media::query()
+            ->when($search === '', fn (Builder $q) => $q->where('folder_id', $current?->id))
+            ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
+                ->whereLike('title', '%'.self::escapeLike($search).'%')
+                ->orWhereLike('filename', '%'.self::escapeLike($search).'%')))
+            ->tap(fn (Builder $q) => Media::whereTypes($q, $input['types'] ?? []))
+            ->orderByDesc('id')
+            ->paginate(30);
+
+        return response()->json([
+            'folder' => $current === null ? null : ['id' => $current->id, 'name' => $current->name],
+            'path' => self::path($folders, $current),
+            'folders' => $search !== '' ? [] : $folders->where('parent_id', $current?->id)->map(fn (MediaFolder $f) => ['id' => $f->id, 'name' => $f->name])->values(),
+            'items' => array_map(fn (Media $media) => self::describe($media), $page->items()),
+            'nextPage' => $page->hasMorePages() ? $page->currentPage() + 1 : null,
+            'canUpload' => $user->can('sunrice.media.upload'),
+            'upload' => ['maxKb' => MediaConfig::maxKilobytes(), 'accept' => implode(',', array_map(fn (string $ext) => ".{$ext}", MediaConfig::allowedExtensions()))],
+        ]);
+    }
+
+    public function store(Request $request, UploadMedia $upload): RedirectResponse|JsonResponse
     {
         $user = $this->authorize($request, 'upload');
         $request->validate(['file' => ['required', 'file'], 'folder_id' => ['nullable', 'integer', Rule::exists(MediaFolder::class, 'id')]]);
@@ -99,7 +151,12 @@ final class MediaController
         abort_unless($file instanceof UploadedFile, 422);
         $folder = $request->integer('folder_id') ?: null;
 
-        $upload->handle($file, ['folder_id' => $folder, 'uploaded_by' => self::userId($request)]);
+        $media = $upload->handle($file, ['folder_id' => $folder, 'uploaded_by' => self::userId($request)]);
+
+        // The media picker uploads with fetch() and wants the new media back.
+        if ($request->expectsJson() && ! $request->hasHeader('X-Inertia')) {
+            return response()->json(self::describe($media), 201);
+        }
 
         // No message: the page shows each upload's progress and result.
         return back();
@@ -198,17 +255,6 @@ final class MediaController
             'createdAt' => $media->created_at?->toIso8601String(),
             'trashed' => $media->deleted_at !== null,
         ];
-    }
-
-    /** @param Builder<Media> $query */
-    private static function whereType(Builder $query, string $type): void
-    {
-        if ($type === 'document') {
-            $query->whereNot(fn (Builder $q) => $q->whereLike('mime_type', 'image/%')->orWhereLike('mime_type', 'video/%')->orWhereLike('mime_type', 'audio/%'));
-
-            return;
-        }
-        $query->whereLike('mime_type', "{$type}/%");
     }
 
     private static function escapeLike(string $value): string

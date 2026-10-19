@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Media;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -73,6 +75,33 @@ class Media extends Model
     public function isImage(): bool
     {
         return str_starts_with($this->mime_type, 'image/');
+    }
+
+    /** The kinds of file a query can be limited to. */
+    public const TYPES = ['image', 'video', 'audio', 'document'];
+
+    /**
+     * Limit a query to some kinds of file: image, video, audio, document
+     * (anything else). No types: no limit.
+     *
+     * @param  Builder<Media>|QueryBuilder  $query
+     * @param  list<string>  $types
+     */
+    public static function whereTypes(Builder|QueryBuilder $query, array $types): void
+    {
+        if ($types === []) {
+            return;
+        }
+        $query->where(function (Builder|QueryBuilder $any) use ($types): void {
+            foreach ($types as $type) {
+                if ($type === 'document') {
+                    $any->orWhere(fn (Builder|QueryBuilder $q) => $q->whereNot(fn (Builder|QueryBuilder $n) => $n
+                        ->whereLike('mime_type', 'image/%')->orWhereLike('mime_type', 'video/%')->orWhereLike('mime_type', 'audio/%')));
+                } elseif (in_array($type, self::TYPES, true)) {
+                    $any->orWhereLike('mime_type', "{$type}/%");
+                }
+            }
+        });
     }
 
     /** Whether smaller copies can be made: images other than SVGs and icons. */
