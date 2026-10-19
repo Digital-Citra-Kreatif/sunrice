@@ -66,6 +66,9 @@ final class Panel
     /** @var array<string, Permission> */
     private array $permissions = [];
 
+    /** @var array<string, list<string>> role name => permission names or patterns */
+    private array $defaultRoles = ['administrator' => ['*']];
+
     /** @var array<string, Closure(): mixed> */
     private array $shared = [];
 
@@ -266,6 +269,29 @@ final class Panel
             }
             $this->permissions[$permission->name] = $permission;
         }
+
+        return $this;
+    }
+
+    /**
+     * A role `sunrice:roles` creates (or adds permissions to) with these
+     * permissions: names, or patterns with `*` ("cms.entries.*"; "*" for
+     * every one). Plugins add to the same role by naming it again:
+     *
+     *     $panel->defaultRole('editor', ['sunrice.access', 'shop.orders.*']);
+     *
+     * The panel has "administrator" (every permission, without the super
+     * admin's bypass).
+     *
+     * @param  list<string>  $permissions
+     */
+    public function defaultRole(string $name, array $permissions): self
+    {
+        $this->assertRegistering();
+        if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $name) !== 1) {
+            throw new PanelMisconfigured("Role \"{$name}\": use a lowercase name like \"editor\".");
+        }
+        $this->defaultRoles[$name] = array_values(array_unique([...($this->defaultRoles[$name] ?? []), ...$permissions]));
 
         return $this;
     }
@@ -625,6 +651,12 @@ final class Panel
     public function getPermissions(): array
     {
         return $this->permissions;
+    }
+
+    /** @return array<string, list<string>> role name => permission names or patterns */
+    public function getDefaultRoles(): array
+    {
+        return $this->defaultRoles;
     }
 
     /** @return array<string, Closure(): mixed> */
