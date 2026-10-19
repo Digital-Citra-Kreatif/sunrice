@@ -38,6 +38,7 @@ final class MediaController
     public function index(Request $request): Response
     {
         $user = $this->authorize($request, 'view');
+        /** @var array<string, mixed> $query */
         $query = $request->validate([
             'folder' => ['nullable', 'integer'],
             'search' => ['nullable', 'string', 'max:200'],
@@ -156,6 +157,7 @@ final class MediaController
     /** Move, trash, restore or delete several at once. */
     public function bulk(Request $request, MoveMedia $move, DeleteMedia $delete): RedirectResponse
     {
+        /** @var array{ids: list<int>} $input */
         $input = $request->validate([
             'action' => ['required', Rule::in(['move', 'trash', 'restore', 'delete'])],
             'ids' => ['required', 'array', 'min:1', 'max:500'],
@@ -164,7 +166,6 @@ final class MediaController
         ]);
         $action = $request->string('action')->toString();
         $this->authorize($request, $action === 'move' ? 'update' : 'delete');
-        /** @var list<int> $ids */
         $ids = $input['ids'];
 
         $count = match ($action) {
