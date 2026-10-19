@@ -29,6 +29,11 @@ Start with get_panel_info: who you are, what you may do, and the panel's screens
 Everything you change is recorded in the activity log under your user, with the source "AI agent" and your access token's name. Ask the user before deleting anything or making large changes.
 MD;
 
+    /** Added when the developer tools are on. */
+    public const DEVELOPER_INSTRUCTIONS = <<<'MD'
+Developer tools, if your permissions allow them: list_views, read_view, save_view and delete_view for the app's Blade views (templates; each change keeps the earlier version, to undo it), run_command for the console commands the app allows, and read_log for the error log. A view you save is live at once: read it first, keep to how the app's views are written, and ask the user before big changes. When a page fails, read_log says why.
+MD;
+
     /** The panel's own tools. */
     public const TOOLS = [
         Tools\GetPanelInfo::class,
@@ -41,6 +46,12 @@ MD;
         Tools\UpdateSettings::class,
         Tools\ListMedia::class,
         Tools\GetActivity::class,
+        Tools\Developer\ListViews::class,
+        Tools\Developer\ReadView::class,
+        Tools\Developer\SaveView::class,
+        Tools\Developer\DeleteView::class,
+        Tools\Developer\RunCommand::class,
+        Tools\Developer\ReadLog::class,
     ];
 
     /** All tools in one list: clients see everything on the first page. */
@@ -57,7 +68,7 @@ MD;
     {
         $context = parent::createContext();
         $panel = app(Panel::class);
-        $context->instructions = implode("\n\n", [self::INSTRUCTIONS, ...$panel->getAiInstructions()]);
+        $context->instructions = implode("\n\n", [self::INSTRUCTIONS, ...(DeveloperTools::enabled() ? [self::DEVELOPER_INSTRUCTIONS] : []), ...$panel->getAiInstructions()]);
         $context->implementation->name = $panel->getBrand();
 
         return $context;

@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Ai\DeveloperTools;
 use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Branding\BrandingSettings;
@@ -660,6 +661,14 @@ final class Panel
             $this->permissions(Permission::make('sunrice.ai.connect', 'Connect AI agents', 'AI access'));
             $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')
                 ->group('Administration')->sort(970)->permission('sunrice.ai.connect'));
+            if (DeveloperTools::enabled()) {
+                $this->permissions(
+                    Permission::make('sunrice.views.view', 'Read the app\'s views (AI agents)', 'Developer tools'),
+                    Permission::make('sunrice.views.update', 'Change the app\'s views (AI agents)', 'Developer tools'),
+                    Permission::make('sunrice.commands.run', 'Run allowed console commands (AI agents)', 'Developer tools'),
+                    Permission::make('sunrice.logs.view', 'Read the error log (AI agents)', 'Developer tools'),
+                );
+            }
         }
         if ($this->mediaLibrary) {
             $this->permissions(

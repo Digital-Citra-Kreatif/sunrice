@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Developer tools for AI agents, off unless `SUNRICE_AI_DEVELOPER_TOOLS=true`. They read and change Blade views (`list_views`, `read_view`, `save_view`, `delete_view`; a view must compile, and earlier versions are kept), run allowed console commands (`run_command`, config `ai.developer_tools.commands`) and read the error log with secrets hidden (`read_log`). Each one needs its permission (`sunrice.views.view`, `sunrice.views.update`, `sunrice.commands.run`, `sunrice.logs.view`), which a default role's `*` never gives. The CMS tells agents which views its pages use. See `docs/admin/ai.md#developer-tools`.
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`); hidden fields aren't validated. See `docs/cms/fields.md`.
 - Help in the panel: guide pages for the people who use it, from the panel (*Using the panel*), the CMS (*Content*) and plugins (`$panel->help()`, `Help\HelpSection`, `@api`). The page key `help` and pages under `Help/` are the panel's.
 - The site's own words (search, forms, comments and their emails) are translated in the page's language, with Indonesian included (`lang/id.json`). Starter templates: `vendor:publish --tag=sunrice-cms-templates` copies the plain pages to `resources/views/cms/`. The form component's `submit` label defaults to the translated *Send*.

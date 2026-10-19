@@ -17,3 +17,12 @@ deleting; check what they did in the **Activity log**, where their changes
 are marked.
 
 Revoke a token you no longer use, or if it may have been copied.
+
+## Templates, commands and the error log
+
+If your site has the developer tools turned on and you have their
+permissions, an agent can also change the site's templates, run a few
+maintenance commands (like clearing caches) and read the error log, for
+example: "the article page shows an error, find out why and fix it". A
+change to a template shows on the site at once. The agent can bring back
+the earlier version of a template if you ask.
