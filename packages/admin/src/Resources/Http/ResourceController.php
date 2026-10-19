@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Field;
 use Sunrice\Admin\Resources\Forms\Toggle;
@@ -32,7 +33,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class ResourceController
 {
-    public function __construct(private Panel $panel) {}
+    public function __construct(private Panel $panel, private ActivityLog $activity) {}
 
     public function index(Request $request): Response
     {
@@ -104,6 +105,7 @@ final class ResourceController
 
         $record = $resource->class::newRecord();
         $this->save($request, $resource, $record, 'create');
+        $this->activity->record('created', $resource->key(), $record, $resource->class::title($record));
 
         return redirect()->route("sunrice.admin.resources.{$resource->key()}.edit", $record->getKey())
             ->with('success', $resource->class::singularLabel().' created.');
@@ -124,7 +126,8 @@ final class ResourceController
         $model = $this->find($resource, $record);
         $this->authorize($request, $resource, 'update', $model);
 
-        $this->save($request, $resource, $model, 'edit');
+        $changed = $this->save($request, $resource, $model, 'edit');
+        $this->activity->updated($resource->key(), $model, $resource->class::title($model), $changed);
 
         return back()->with('success', $resource->class::singularLabel().' saved.');
     }
@@ -136,6 +139,7 @@ final class ResourceController
         $this->authorize($request, $resource, 'delete', $model);
 
         $model->delete();
+        $this->activity->record('deleted', $resource->key(), $model, $resource->class::title($model));
 
         return redirect()->route("sunrice.admin.resources.{$resource->key()}.index")
             ->with('success', $resource->class::title($model).' deleted.');
@@ -148,7 +152,12 @@ final class ResourceController
         $definition = $this->findAction($resource, $action, bulk: false);
         $this->authorize($request, $resource, $definition->getAbility(), $model);
 
-        return $this->run(fn () => $definition->run($model));
+        return $this->run(function () use ($definition, $model, $resource): ?string {
+            $message = $definition->run($model);
+            $this->activity->record($definition->key, $resource->key(), $model, $resource->class::title($model));
+
+            return $message;
+        });
     }
 
     public function bulk(Request $request, string $action): RedirectResponse
@@ -168,11 +177,17 @@ final class ResourceController
 
         if ($definition === null) {
             DB::transaction(fn () => $records->each(fn (Model $record) => $record->delete()));
+            $records->each(fn (Model $record) => $this->activity->record('deleted', $resource->key(), $record, $resource->class::title($record)));
 
             return back()->with('success', $records->count().' deleted.');
         }
 
-        return $this->run(fn () => $definition->run($records));
+        return $this->run(function () use ($definition, $records, $resource): ?string {
+            $message = $definition->run($records);
+            $records->each(fn (Model $record) => $this->activity->record($definition->key, $resource->key(), $record, $resource->class::title($record)));
+
+            return $message;
+        });
     }
 
     public function export(Request $request): StreamedResponse
@@ -232,7 +247,12 @@ final class ResourceController
         ]);
     }
 
-    private function save(Request $request, RegisteredResource $resource, Model $record, string $operation): void
+    /**
+     * Validate and write the form; the names of the fields that changed.
+     *
+     * @return list<string>
+     */
+    private function save(Request $request, RegisteredResource $resource, Model $record, string $operation): array
     {
         // Disabled fields are shown, never validated or written.
         $fields = array_values(array_filter(
@@ -254,6 +274,7 @@ final class ResourceController
 
         // Only declared fields are written, whatever else the request sends.
         $present = array_values(array_filter($fields, fn (Field $field) => array_key_exists($field->name, $validated) || $field instanceof Toggle));
+        $before = $record->exists ? array_map(fn (Field $field) => json_encode($field->formValue($record)), $present) : [];
         DB::transaction(function () use ($record, $present, $validated): void {
             foreach ($present as $field) {
                 if (! $field->isSavedAfterRecord()) {
@@ -267,6 +288,18 @@ final class ResourceController
                 }
             }
         });
+
+        // Values aren't logged, only which fields changed; a new password or
+        // secret counts as a change.
+        $changed = [];
+        foreach ($present as $index => $field) {
+            $value = $validated[$field->name] ?? null;
+            if ($field->keepsValueWhenEmpty() ? ($value !== null && $value !== '') : ($before[$index] ?? null) !== json_encode($field->formValue($record))) {
+                $changed[] = $field->name;
+            }
+        }
+
+        return $changed;
     }
 
     /** @param Closure(): ?string $run */

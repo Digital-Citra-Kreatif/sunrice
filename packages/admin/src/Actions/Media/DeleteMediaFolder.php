@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Actions\Media;
 
 use Illuminate\Support\Facades\DB;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaFolder;
 
@@ -16,6 +17,8 @@ use Sunrice\Admin\Media\MediaFolder;
  */
 final class DeleteMediaFolder
 {
+    public function __construct(private ActivityLog $activity) {}
+
     public function handle(MediaFolder $folder): void
     {
         DB::transaction(function () use ($folder): void {
@@ -23,5 +26,6 @@ final class DeleteMediaFolder
             MediaFolder::query()->where('parent_id', $folder->id)->update(['parent_id' => $folder->parent_id]);
             $folder->delete();
         });
+        $this->activity->record('deleted', 'media folder', $folder, $folder->name);
     }
 }

@@ -18,6 +18,7 @@ use Inertia\Response;
 use Sunrice\Admin\Actions\Media\DeleteMedia;
 use Sunrice\Admin\Actions\Media\MoveMedia;
 use Sunrice\Admin\Actions\Media\ReplaceMedia;
+use Sunrice\Admin\Actions\Media\TrashMedia;
 use Sunrice\Admin\Actions\Media\UpdateMedia;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Media\Media;
@@ -190,7 +191,7 @@ final class MediaController
     public function destroy(Request $request, int $media): RedirectResponse
     {
         $this->authorize($request, 'delete');
-        Media::query()->findOrFail($media)->delete();
+        app(TrashMedia::class)->handle(Media::query()->findOrFail($media));
 
         return back()->with('success', 'Moved to the trash.');
     }
@@ -198,7 +199,7 @@ final class MediaController
     public function restore(Request $request, int $media): RedirectResponse
     {
         $this->authorize($request, 'delete');
-        Media::onlyTrashed()->findOrFail($media)->restore();
+        app(TrashMedia::class)->restore(Media::onlyTrashed()->findOrFail($media));
 
         return back()->with('success', 'Restored.');
     }
@@ -227,8 +228,8 @@ final class MediaController
 
         $count = match ($action) {
             'move' => $move->handle(Media::withTrashed()->whereKey($ids)->get(), MediaFolder::query()->find($request->integer('folder_id') ?: null)),
-            'trash' => Media::query()->whereKey($ids)->get()->each(fn (Media $m) => $m->delete())->count(),
-            'restore' => Media::onlyTrashed()->whereKey($ids)->get()->each(fn (Media $m) => $m->restore())->count(),
+            'trash' => Media::query()->whereKey($ids)->get()->each(fn (Media $m) => app(TrashMedia::class)->handle($m))->count(),
+            'restore' => Media::onlyTrashed()->whereKey($ids)->get()->each(fn (Media $m) => app(TrashMedia::class)->restore($m))->count(),
             default => DB::transaction(fn () => Media::onlyTrashed()->whereKey($ids)->get()->each(fn (Media $m) => $delete->handle($m))->count()),
         };
         $done = ['move' => 'moved', 'trash' => 'moved to the trash', 'restore' => 'restored', 'delete' => 'deleted for good'][$action];

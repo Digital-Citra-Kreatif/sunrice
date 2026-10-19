@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Actions\Media;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Media\MediaFolder;
 
 /**
@@ -16,6 +17,8 @@ use Sunrice\Admin\Media\MediaFolder;
  */
 final class SaveMediaFolder
 {
+    public function __construct(private ActivityLog $activity) {}
+
     /** @throws ValidationException */
     public function handle(string $name, ?MediaFolder $parent = null, ?MediaFolder $folder = null): MediaFolder
     {
@@ -31,8 +34,10 @@ final class SaveMediaFolder
         }
 
         $folder ??= new MediaFolder(['parent_id' => $parentId]);
+        $action = $folder->exists ? 'renamed' : 'created';
         $folder->name = $name;
         $folder->save();
+        $this->activity->record($action, 'media folder', $folder, $name);
 
         return $folder;
     }
