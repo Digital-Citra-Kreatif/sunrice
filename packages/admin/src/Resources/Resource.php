@@ -141,6 +141,26 @@ abstract class Resource
         return $record;
     }
 
+    /**
+     * Facts shown beside the edit form (when, who, how much):
+     * [['label' => 'Last login', 'value' => '2 hours ago'], …]. Keep it cheap.
+     *
+     * @return list<array{label: string, value: string}>
+     */
+    public static function aside(Model $record): array
+    {
+        return [];
+    }
+
+    /**
+     * Deletes a record, from the list, its form or a bulk delete, inside a
+     * transaction. Override it to do more (hand something over, clean up).
+     */
+    public static function deleteRecord(Model $record, Authorizable $by): void
+    {
+        $record->delete();
+    }
+
     /** The new record the create form fills. */
     public static function newRecord(): Model
     {

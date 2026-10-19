@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Traits\HasRoles;
 use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
+use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
@@ -91,7 +94,7 @@ class UserResource extends Resource
             Section::make('Account')->columns(2)->schema([
                 TextInput::make('name')->required(),
                 TextInput::make('email')->email()->required()->unique(),
-                Password::make('password')->required()->span(2)
+                Password::make('password')->required()->confirmed()->span(2)
                     ->help('When editing, leave it empty to keep the current password.'),
             ]),
             Section::make('Roles')->description('What the user may do in the panel. You can give out roles whose permissions you have yourself.')->schema([
@@ -149,6 +152,61 @@ class UserResource extends Resource
                     }),
             ])
             ->defaultSort('name');
+    }
+
+    /** The account's security, and what it owns in the panel and its plugins. */
+    public static function aside(Model $record): array
+    {
+        $id = $record->getKey();
+        $id = is_scalar($id) ? (string) $id : '';
+        $facts = [];
+        $login = Activity::query()->where('source', 'security')->where('action', 'logged in')
+            ->where('subject_type', 'account')->where('subject_id', $id)->latest('id')->first(['created_at', 'ip_address']);
+        $facts[] = ['label' => 'Last login', 'value' => $login?->created_at === null ? 'Never' : $login->created_at->diffForHumans().($login->ip_address !== null ? " from {$login->ip_address}" : '')];
+        $state = app(AccountGuard::class)->state($record);
+        if ($state?->locked_at !== null) {
+            $facts[] = ['label' => 'Locked', 'value' => $state->locked_at->diffForHumans().($state->locked_by !== null ? " by {$state->locked_by}" : '').($state->locked_reason !== null ? ": {$state->locked_reason}" : '')];
+        }
+        if ($state?->signed_out_at !== null) {
+            $facts[] = ['label' => 'Signed out everywhere', 'value' => $state->signed_out_at->diffForHumans()];
+        }
+        $tokens = AiToken::query()->where('user_id', $id)->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))->count();
+        if ($tokens > 0) {
+            $facts[] = ['label' => 'AI access tokens', 'value' => (string) $tokens];
+        }
+        $owns = [];
+        foreach (app(Panel::class)->getOwnedContent() as $content) {
+            $count = $content->countFor($record);
+            if ($count > 0) {
+                $owns[] = $content->describe($count);
+            }
+        }
+        $facts[] = ['label' => 'Owns', 'value' => $owns === [] ? 'Nothing yet' : implode(', ', $owns)];
+
+        return $facts;
+    }
+
+    /**
+     * Deleted, after handing what they own to whoever deletes them, so
+     * nothing is left without an owner.
+     */
+    public static function deleteRecord(Model $record, Authorizable $by): void
+    {
+        if ($by instanceof Model && ! $by->is($record)) {
+            $handed = [];
+            foreach (app(Panel::class)->getOwnedContent() as $content) {
+                $count = $content->countFor($record);
+                if ($count > 0) {
+                    $content->handOverFrom($record, $by);
+                    $handed[] = $content->describe($count);
+                }
+            }
+            if ($handed !== []) {
+                $name = $by->getAttribute('name');
+                app(ActivityLog::class)->record('handed over', 'users', $record, static::title($record), ['note' => implode(', ', $handed).' to '.(is_string($name) ? $name : 'the one who deleted them')]);
+            }
+        }
+        $record->delete();
     }
 
     protected static function isCurrentUser(Model $user): bool

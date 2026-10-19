@@ -114,6 +114,8 @@ ProductResource::saveRecord(['name' => 'Big mug'] + $values, $product);         
 
 It throws a `ValidationException` like the form's, and `PanelMisconfigured` when the resource isn't registered.
 
+Override `aside(Model $record)` to show facts beside the edit form (`[['label' => 'Orders', 'value' => '12']]`), and `deleteRecord(Model $record, Authorizable $by)` to do more when a record is deleted from the list, its form or a bulk delete (it runs in a transaction). `Password::make('password')->confirmed()` asks for a password twice.
+
 Override `newRecord()` to prepare the record the create form fills (`$record->team_id = …`).
 
 **Only fields in the form are written.** Anything else a request sends (an `id`, a timestamp, an attribute that isn't on the form) is ignored, so the model doesn't need `$fillable` for the panel.

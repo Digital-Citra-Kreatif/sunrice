@@ -66,7 +66,7 @@ it('records users\' roles and passwords as changed, and settings', function () {
     Role::findOrCreate('editor', 'web');
     actingAs($this->admin);
 
-    put("/admin/users/{$user->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-new-password', 'roles' => ['editor']])->assertSessionHasNoErrors();
+    put("/admin/users/{$user->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-new-password', 'password_confirmation' => 'a-new-password', 'roles' => ['editor']])->assertSessionHasNoErrors();
     put('/admin/settings/mail', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
 
     expect(activityLines())->toBe([

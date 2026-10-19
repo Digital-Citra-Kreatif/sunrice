@@ -15,6 +15,7 @@ use Sunrice\Admin\Branding\BrandingSettings;
 use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Dashboard\DashboardCard;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Resources\RegisteredResource;
@@ -22,6 +23,7 @@ use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
+use Sunrice\Admin\Users\OwnedContent;
 use Sunrice\Admin\Users\RoleResource;
 use Sunrice\Admin\Users\UserResource;
 
@@ -68,6 +70,9 @@ final class Panel
 
     /** @var array<string, DashboardCard> */
     private array $dashboardCards = [];
+
+    /** @var array<string, OwnedContent> */
+    private array $ownedContent = [];
 
     /** @var array<string, Permission> */
     private array $permissions = [];
@@ -219,6 +224,31 @@ final class Panel
         $this->mediaLibrary = $enabled;
 
         return $this;
+    }
+
+    /**
+     * What people own in a plugin: the user page counts it, and deleting a
+     * user hands it to whoever deletes them.
+     *
+     * @throws PanelMisconfigured for a key used twice
+     */
+    public function ownedContent(OwnedContent ...$items): self
+    {
+        $this->assertRegistering();
+        foreach ($items as $item) {
+            if (isset($this->ownedContent[$item->key])) {
+                throw new PanelMisconfigured("Two owned content kinds have the key \"{$item->key}\"{$this->owner()}.");
+            }
+            $this->ownedContent[$item->key] = $item;
+        }
+
+        return $this;
+    }
+
+    /** @return array<string, OwnedContent> */
+    public function getOwnedContent(): array
+    {
+        return $this->ownedContent;
     }
 
     /**
@@ -582,6 +612,11 @@ final class Panel
         $this->permissions(Permission::make('sunrice.email.test', 'See how email is sent and send a test', 'Panel'));
         $this->navigation(NavigationItem::make('email')->label('Email')->url('email')->icon('mail')
             ->group('Administration')->sort(965)->permission('sunrice.email.test'));
+        $this->ownedContent(OwnedContent::make('media')->label('files', 'file')
+            ->count(fn (Model $user): int => Media::query()->withTrashed()->where('uploaded_by', self::key($user))->count())
+            ->handOver(function (Model $from, Model $to): void {
+                Media::query()->withTrashed()->where('uploaded_by', self::key($from))->update(['uploaded_by' => self::key($to)]);
+            }));
         $this->dashboardCards(DashboardCard::make('activity')->title('Recent activity')->sort(900)->permission('sunrice.activity.view')
             ->list(fn (): array => Activity::query()->latest('id')->limit(6)->get()->map(fn (Activity $activity): array => [
                 'title' => trim(($activity->user_name ?? 'Someone').' '.$activity->action.' '.($activity->subject_label ?? $activity->subject_type)),
@@ -948,5 +983,13 @@ final class Panel
     private function owner(): string
     {
         return $this->registering === null ? '' : " (by the plugin \"{$this->registering->id()}\")";
+    }
+
+    /** A record's key as a string. */
+    private static function key(Model $model): string
+    {
+        $key = $model->getKey();
+
+        return is_scalar($key) ? (string) $key : '';
     }
 }
