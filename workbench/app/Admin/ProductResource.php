@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Sunrice\Admin\Resources\Forms\DatePicker;
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Resources\Forms\MediaPicker;
 use Sunrice\Admin\Resources\Forms\NumberInput;
 use Sunrice\Admin\Resources\Forms\Section;
 use Sunrice\Admin\Resources\Forms\Select;
@@ -46,6 +47,10 @@ class ProductResource extends Resource
                 Select::make('status')->options(['draft' => 'Draft', 'live' => 'Live'])->default('draft')->required(),
                 DatePicker::make('released_on'),
                 Toggle::make('active')->help('Shown in the shop.'),
+            ]),
+            Section::make('Images')->schema([
+                MediaPicker::make('image_id')->label('Main image')->images(),
+                MediaPicker::make('gallery')->images()->multiple(8),
             ]),
             Section::make('Description')->schema([
                 Textarea::make('description')->rows(6),

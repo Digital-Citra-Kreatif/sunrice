@@ -11,5 +11,5 @@ class Product extends Model
 {
     protected $guarded = [];
 
-    protected $casts = ['active' => 'boolean', 'released_on' => 'date', 'price' => 'decimal:2'];
+    protected $casts = ['active' => 'boolean', 'released_on' => 'date', 'price' => 'decimal:2', 'gallery' => 'array'];
 }

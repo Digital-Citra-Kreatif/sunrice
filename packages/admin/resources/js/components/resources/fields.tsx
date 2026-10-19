@@ -1,3 +1,4 @@
+import { MediaPickerInput } from '@/components/media/media-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import type { FieldInfo } from './types';
 
-export type FieldValue = string | number | boolean | string[] | null;
+export type FieldValue = string | number | boolean | string[] | number[] | null;
 
 export interface CheckboxOption {
     value: string;
@@ -33,9 +34,14 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
         case 'password':
             return <Input {...common} type="password" autoComplete="new-password"
                 value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} />;
+        case 'media':
+            return <MediaPickerInput id={id} disabled={disabled} invalid={invalid} multiple={field.multiple === true}
+                max={typeof field.max === 'number' ? field.max : null} types={(field.types as string[] | undefined) ?? []}
+                value={typeof value === 'number' || (Array.isArray(value) && value.every((v) => typeof v === 'number')) ? value as number | number[] : null}
+                onChange={onChange} />;
         case 'checkboxes':
             return <CheckboxList id={id} options={(field.options as CheckboxOption[] | undefined) ?? []} disabled={disabled}
-                value={Array.isArray(value) ? value : []} onChange={onChange} />;
+                value={Array.isArray(value) ? value.map(String) : []} onChange={onChange} />;
         case 'textarea':
             return <Textarea {...common} rows={Number(field.rows ?? 4)} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;

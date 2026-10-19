@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('status')->default('draft');
             $table->boolean('active')->default(false);
             $table->date('released_on')->nullable();
+            $table->unsignedBigInteger('image_id')->nullable();
+            $table->json('gallery')->nullable();
             $table->text('description')->nullable();
             $table->timestamps();
         });

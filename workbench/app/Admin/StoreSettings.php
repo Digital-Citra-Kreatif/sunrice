@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workbench\App\Admin;
 
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Resources\Forms\MediaPicker;
 use Sunrice\Admin\Resources\Forms\NumberInput;
 use Sunrice\Admin\Resources\Forms\Secret;
 use Sunrice\Admin\Resources\Forms\Section;
@@ -18,6 +19,8 @@ use Sunrice\Admin\Settings\Settings;
 final class StoreSettings extends Settings
 {
     public string $name = 'Sunrice Store';
+
+    public ?int $logo = null;
 
     public string $currency = 'IDR';
 
@@ -42,6 +45,7 @@ final class StoreSettings extends Settings
     {
         return $form->schema([
             TextInput::make('name')->required(),
+            MediaPicker::make('logo')->images(),
             Section::make('Checkout')->columns(2)->schema([
                 Select::make('currency')->options(['IDR' => 'Rupiah', 'USD' => 'US dollar'])->required(),
                 NumberInput::make('freeShippingFrom')->label('Free shipping from')->integer()->min(0),

@@ -15,6 +15,24 @@ The panel has one media library, shared by your app and every plugin: files on a
 
 Turn the page off with `$panel->mediaLibrary(false)`; the library still works from code.
 
+## Picking media in forms
+
+`MediaPicker` lets people choose files from the library, or upload new ones, in [resource](resources.md) and [settings](settings.md) forms:
+
+```php
+use Sunrice\Admin\Resources\Forms\MediaPicker;
+
+MediaPicker::make('image_id')->images();                   // stores a media id (or null)
+MediaPicker::make('gallery')->images()->multiple(8);       // stores a list of ids, in order
+MediaPicker::make('brochure')->types(['document']);
+```
+
+- One file stores its id; `->multiple()` stores a list (cast the attribute to `array`, or use an `array` settings property). `->multiple(8)` allows at most 8.
+- `->images()` or `->types([...])` (image, video, audio, document) limit what can be chosen. The server accepts only existing media of those types, never something in the trash.
+- Choosing needs `sunrice.media.view`; uploading from the picker needs `sunrice.media.upload`.
+
+Read it back with the model: `Media::find($product->image_id)?->url('medium')`.
+
 ## Uploading from code
 
 ```php

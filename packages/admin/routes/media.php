@@ -15,6 +15,7 @@ Route::prefix('media')->name('media.')->group(function (): void {
     Route::get('/', [MediaController::class, 'index'])->name('index');
     Route::post('/', [MediaController::class, 'store'])->name('store');
     Route::post('bulk', [MediaController::class, 'bulk'])->name('bulk');
+    Route::get('picker', [MediaController::class, 'picker'])->name('picker');
 
     Route::post('folders', [MediaFolderController::class, 'store'])->name('folders.store');
     Route::put('folders/{folder}', [MediaFolderController::class, 'update'])->name('folders.update')->whereNumber('folder');
