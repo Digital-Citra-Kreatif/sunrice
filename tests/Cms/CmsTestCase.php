@@ -6,6 +6,7 @@ namespace Sunrice\Tests\Cms;
 
 use Orchestra\Testbench\Concerns\WithLaravelMigrations;
 use Orchestra\Testbench\TestCase;
+use Spatie\Honeypot\HoneypotServiceProvider;
 use Sunrice\Admin\AdminServiceProvider;
 use Sunrice\Cms\CmsServiceProvider;
 use Workbench\App\Models\User;
@@ -18,7 +19,7 @@ abstract class CmsTestCase extends TestCase
 
     protected function getPackageProviders($app): array
     {
-        return [AdminServiceProvider::class, CmsServiceProvider::class];
+        return [AdminServiceProvider::class, CmsServiceProvider::class, HoneypotServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void
