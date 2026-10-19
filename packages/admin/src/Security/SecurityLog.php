@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Security;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -30,12 +31,18 @@ final class SecurityLog
     public function __construct(private ActivityLog $activity) {}
 
     /**
-     * @param  Model|null  $account  the account it's about, if known
+     * @param  Model|Authenticatable|null  $account  the account it's about, if known
      * @param  string|null  $label  how to name it otherwise (the email typed at login)
      * @param  array<string, mixed>  $properties  e.g. ['note' => 'wrong password']
      */
-    public function record(string $action, ?Model $account = null, ?string $label = null, array $properties = []): ?Activity
+    public function record(string $action, Model|Authenticatable|null $account = null, ?string $label = null, array $properties = []): ?Activity
     {
+        if ($account !== null && ! $account instanceof Model) {
+            $id = $account->getAuthIdentifier();
+
+            return $this->write($action, 'account', is_scalar($id) ? (string) $id : null, $label, $properties, null);
+        }
+
         return $this->write($action, 'account', $account, $label ?? ($account === null ? null : self::accountName($account)), $properties, $account);
     }
 
@@ -51,7 +58,7 @@ final class SecurityLog
     }
 
     /** @param array<string, mixed> $properties */
-    private function write(string $action, string $subjectType, ?Model $subject, ?string $label, array $properties, ?Model $account): ?Activity
+    private function write(string $action, string $subjectType, Model|string|null $subject, ?string $label, array $properties, ?Model $account): ?Activity
     {
         $agent = request()->userAgent();
         $properties = [...$properties, ...($agent === null ? [] : ['user_agent' => Str::limit($agent, 250, '')])];

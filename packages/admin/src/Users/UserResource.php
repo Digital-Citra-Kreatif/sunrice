@@ -17,9 +17,12 @@ use Sunrice\Admin\Resources\Forms\Password;
 use Sunrice\Admin\Resources\Forms\Section;
 use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Resource;
+use Sunrice\Admin\Resources\Tables\Action;
+use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Resources\Tables\Table;
+use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 
 /**
@@ -103,13 +106,48 @@ class UserResource extends Resource
                 Column::make('name')->searchable()->sortable(),
                 Column::make('email')->searchable()->sortable(),
                 Column::make('roles.name')->label('Roles')->badge(),
+                Column::make('locked')->state(fn (Model $user) => app(AccountGuard::class)->isLocked($user))->boolean(),
                 Column::make('created_at')->label('Created')->date()->sortable(),
             ])
             ->filters([
                 Filter::make('role')->options(fn () => static::roles()->mapWithKeys(fn (Model $role) => [static::name($role) => static::name($role)])->all())
                     ->query(fn (Builder $query, string $role) => $query->whereRelation('roles', 'name', $role)),
             ])
+            ->actions([
+                Action::make('sign-out')->label('Sign out everywhere')
+                    ->confirm('End all of this user\'s sessions? They can log in again with their password.')
+                    ->handle(function (Model $user): string {
+                        $deleted = app(AccountGuard::class)->signOutEverywhere($user);
+
+                        return 'Signed out everywhere'.($deleted === null ? '.' : " ({$deleted} ".($deleted === 1 ? 'session' : 'sessions').' ended).');
+                    }),
+                Action::make('lock')->label('Lock account')->destructive()
+                    ->confirm('Lock this account? They are signed out everywhere and can\'t log in until someone unlocks it. Nothing is deleted.')
+                    ->visible(fn (Model $user) => ! app(AccountGuard::class)->isLocked($user) && ! static::isCurrentUser($user))
+                    ->handle(function (Model $user): string {
+                        if (static::isCurrentUser($user)) {
+                            throw new ActionFailed('You can\'t lock your own account.');
+                        }
+                        app(AccountGuard::class)->lock($user);
+
+                        return 'Account locked.';
+                    }),
+                Action::make('unlock')->label('Unlock account')
+                    ->visible(fn (Model $user) => app(AccountGuard::class)->isLocked($user))
+                    ->handle(function (Model $user): string {
+                        app(AccountGuard::class)->unlock($user);
+
+                        return 'Account unlocked.';
+                    }),
+            ])
             ->defaultSort('name');
+    }
+
+    protected static function isCurrentUser(Model $user): bool
+    {
+        $current = auth(app(Panel::class)->getGuard())->user();
+
+        return $current instanceof Model && $user->is($current);
     }
 
     public static function can(Authorizable $user, string $ability, ?Model $record = null): bool

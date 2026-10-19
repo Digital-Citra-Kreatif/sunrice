@@ -28,7 +28,9 @@ use Sunrice\Admin\Console\MediaSizesCommand;
 use Sunrice\Admin\Console\PruneActivityCommand;
 use Sunrice\Admin\Console\PublishAssetsCommand;
 use Sunrice\Admin\Console\SyncPermissionsCommand;
+use Sunrice\Admin\Console\UnlockCommand;
 use Sunrice\Admin\Events\LoginThrottled;
+use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Settings\SettingsStore;
 
@@ -50,6 +52,7 @@ final class AdminServiceProvider extends ServiceProvider
         $this->app->scoped(SettingsStore::class);
         // Per request: its source and the lines it may merge.
         $this->app->scoped(ActivityLog::class);
+        $this->app->scoped(AccountGuard::class);
     }
 
     public function boot(): void
@@ -107,7 +110,7 @@ final class AdminServiceProvider extends ServiceProvider
         });
 
         if ($this->app->runningInConsole()) {
-            $this->commands([PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class, PruneActivityCommand::class]);
+            $this->commands([PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class, PruneActivityCommand::class, UnlockCommand::class]);
             $this->publishes([dirname(__DIR__).'/config/sunrice-admin.php' => config_path('sunrice-admin.php')], 'sunrice-admin-config');
             $this->publishes([AdminAssets::distPath() => public_path(AdminAssets::BUILD_DIRECTORY)], 'sunrice-admin-assets');
         }

@@ -60,7 +60,7 @@ final class ResourceController
                 'can' => ['update' => $resource->allows($user, 'update', $record), 'delete' => $resource->allows($user, 'delete', $record)],
                 'actions' => array_values(array_map(
                     fn (Action $action) => $action->key,
-                    array_filter($rowActions, fn (Action $action) => $resource->allows($user, $action->getAbility(), $record)),
+                    array_filter($rowActions, fn (Action $action) => $action->isVisibleFor($record) && $resource->allows($user, $action->getAbility(), $record)),
                 )),
             ];
         }
@@ -152,6 +152,7 @@ final class ResourceController
         $model = $this->find($resource, $record);
         $definition = $this->findAction($resource, $action, bulk: false);
         $this->authorize($request, $resource, $definition->getAbility(), $model);
+        abort_unless($definition->isVisibleFor($model), 403);
 
         return $this->run(function () use ($definition, $model, $resource): ?string {
             $message = $definition->run($model);

@@ -7,6 +7,7 @@ namespace Sunrice\Admin;
 use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Http\Controllers\Auth\LoginController;
 use Sunrice\Admin\Http\Middleware\Authenticate;
+use Sunrice\Admin\Http\Middleware\EnsureAccountActive;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Http\Middleware\HandleInertiaRequests;
 use Sunrice\Admin\Http\Middleware\RedirectIfAuthenticated;
@@ -37,7 +38,7 @@ final class PanelRoutes
     /** @return list<class-string> */
     public static function authenticated(): array
     {
-        return [Authenticate::class, EnsureCanAccessPanel::class];
+        return [Authenticate::class, EnsureAccountActive::class, EnsureCanAccessPanel::class];
     }
 
     /** The routes of one resource: "/admin/products", named "sunrice.admin.resources.products.*". */
