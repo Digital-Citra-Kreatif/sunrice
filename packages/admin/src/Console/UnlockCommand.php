@@ -23,7 +23,7 @@ final class UnlockCommand extends Command
     public function handle(Panel $panel, AccountGuard $accounts): int
     {
         $email = $this->argument('email');
-        $user = is_string($email) ? $panel->getUserModel()::query()->where('email', $email)->first() : null;
+        $user = $panel->getUserModel()::query()->where('email', $email)->first();
         if ($user === null) {
             $this->components->error('No account has that email.');
 

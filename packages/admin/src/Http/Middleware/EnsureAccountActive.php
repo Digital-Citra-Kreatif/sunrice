@@ -6,7 +6,6 @@ namespace Sunrice\Admin\Http\Middleware;
 
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Sunrice\Admin\Panel;
@@ -33,7 +32,7 @@ final class EnsureAccountActive
         }
 
         $locked = $this->accounts->isLocked($user);
-        if ($locked && $user instanceof Model) {
+        if ($locked) {
             $this->security->record('login blocked', $user, null, ['note' => 'the account is locked']);
         }
         Auth::guard($this->panel->getGuard())->logout();
