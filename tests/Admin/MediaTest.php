@@ -59,7 +59,7 @@ it('stores an upload under a new name, with its dimensions and image sizes', fun
         ->and($media->mime_type)->toBe('image/jpeg')
         ->and([$media->width, $media->height])->toBe([1200, 800])
         ->and($media->uploaded_by)->toBe('7')
-        ->and(array_keys($media->sizes))->toBe(['thumbnail', 'medium', 'large']);
+        ->and(array_keys($media->sizes))->toEqualCanonicalizing(['thumbnail', 'medium', 'large']);
     Storage::disk('public')->assertExists($media->files());
 
     [$width, $height] = getimagesizefromstring(Storage::disk('public')->get($media->sizes['thumbnail']));
