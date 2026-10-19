@@ -47,7 +47,9 @@ it('validates SEO and stores nothing when it\'s empty', function () {
     expect(Seo::validate(['title' => '  A   title ', 'description' => 'Words', 'image' => $image->id, 'noindex' => '1']))
         ->toBe(['title' => 'A title', 'description' => 'Words', 'image' => $image->id, 'noindex' => true])
         ->and(Seo::validate(['title' => ' ', 'noindex' => false]))->toBeNull()
-        ->and(Seo::validate(null))->toBeNull();
+        ->and(Seo::validate(null))->toBeNull()
+        // An untouched card sends {}: the validator leaves empty arrays out of what it returns.
+        ->and(Seo::validate([]))->toBeNull();
 
     expect(fn () => Seo::validate(['title' => str_repeat('a', 256)]))->toThrow(ValidationException::class);
     expect(fn () => Seo::validate(['image' => seoImage('application/pdf')->id]))->toThrow(ValidationException::class);
@@ -90,6 +92,10 @@ it('saves SEO from the editor with the draft', function () {
     put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Hello', 'seo' => ['description' => 'New words'], 'version' => $translation->version])
         ->assertSessionHasNoErrors();
     expect($translation->fresh()?->draft_data['seo'])->toEqual(['title' => null, 'description' => 'New words', 'image' => null, 'noindex' => false]);
+
+    // The editor sends an empty card as {}.
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Hello again', 'seo' => [], 'version' => $translation->fresh()?->version])->assertSessionHasNoErrors();
+    expect($translation->fresh()?->draft_data['seo'])->toBeNull();
 
     put("/admin/cms/entries/{$translation->entry_id}", ['seo' => ['title' => str_repeat('a', 300)], 'version' => $translation->fresh()?->version])
         ->assertSessionHasErrors('seo.title');
