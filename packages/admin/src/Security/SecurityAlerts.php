@@ -138,6 +138,11 @@ final class SecurityAlerts
             case 'exported':
                 $this->exports($e, $details);
                 break;
+            case 'two-factor turned off':
+                $this->alert('two-factor-off', 'two-factor', 'Two-factor login was turned off',
+                    'Two-factor login was turned off'.($e->label !== null ? " by {$e->label}" : '').': a password alone opens the panel again.',
+                    'If nobody meant to, turn it back on in Settings → Security, and check who changed it in the activity log.', $details);
+                break;
         }
     }
 

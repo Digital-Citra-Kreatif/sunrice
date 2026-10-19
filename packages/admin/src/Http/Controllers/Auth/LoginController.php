@@ -31,12 +31,16 @@ final class LoginController
             'remember' => ['boolean'],
         ]);
 
-        $login->handle(
+        $codeSent = $login->handle(
             $request->string('email')->toString(),
             $request->string('password')->toString(),
             $request->boolean('remember'),
             (string) $request->ip(),
+            $request,
         );
+        if ($codeSent) {
+            return redirect()->route('sunrice.admin.login.code');
+        }
         $request->session()->regenerate();
         // Sessions that signed in before "sign out everywhere" end (AccountGuard).
         $request->session()->put(AccountGuard::LOGIN_AT, now()->getTimestamp());

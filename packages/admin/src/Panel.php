@@ -16,6 +16,7 @@ use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Resources\RegisteredResource;
 use Sunrice\Admin\Resources\Resource;
+use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Users\RoleResource;
@@ -435,6 +436,12 @@ final class Panel
         $this->permissions = [];
         $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
         $this->permissions(Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'));
+        // Settings → Security (two-factor login), in every panel.
+        if (isset($this->settings[SecuritySettings::key()])) {
+            throw new PanelMisconfigured('The settings key "security" belongs to the panel: give '.$this->settings[SecuritySettings::key()]->class.' another key.');
+        }
+        $this->permissions(Permission::make('sunrice.settings.security', 'Edit security settings', 'Settings'));
+        $this->settings = [SecuritySettings::key() => new RegisteredSettings(SecuritySettings::class, 'sunrice.settings.security'), ...$this->settings];
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
             ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
         if ($this->aiAccess) {

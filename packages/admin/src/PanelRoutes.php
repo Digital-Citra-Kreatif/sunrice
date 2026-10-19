@@ -34,7 +34,8 @@ final class PanelRoutes
 
     /** Route names reachable without Panel::ACCESS: the guest pages and logout. */
     public const PUBLIC_ROUTES = [
-        'sunrice.admin.login', 'sunrice.admin.login.store', 'sunrice.admin.password.request', 'sunrice.admin.password.email',
+        'sunrice.admin.login', 'sunrice.admin.login.store', 'sunrice.admin.login.code', 'sunrice.admin.login.code.verify', 'sunrice.admin.login.code.resend',
+        'sunrice.admin.password.request', 'sunrice.admin.password.email',
         'sunrice.admin.password.reset', 'sunrice.admin.password.update', 'sunrice.admin.logout',
     ];
 
