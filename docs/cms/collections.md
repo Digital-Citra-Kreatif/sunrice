@@ -12,6 +12,8 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `title` | The name editors see. |
 | `blueprint` | A blueprint's handle, or none. Changing it keeps entries' data: values of fields the new blueprint lacks stay stored, out of sight, and come back with the field. A blueprint can't be deleted while a collection uses it. |
 | `dated` | Entries show a date and list newest first. |
+| `route` | The entries' URL, like `/blog/{slug}`; none: no pages. See [the site](site.md). |
+| `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
 
 ```php
 use Sunrice\Cms\Actions\Collections\SaveCollection;
