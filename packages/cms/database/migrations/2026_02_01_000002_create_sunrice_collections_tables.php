@@ -50,10 +50,11 @@ return new class extends Migration
             $table->unsignedInteger('version')->default(1);
             $table->timestamps();
 
-            $table->unique(['entry_id', 'locale']);
-            $table->unique(['collection_id', 'locale', 'slug']);
-            $table->index(['collection_id', 'locale', 'draft_slug']);
-            $table->index(['collection_id', 'locale', 'status', 'published_at']);
+            // Named, as generated names pass MySQL's 64 characters.
+            $table->unique(['entry_id', 'locale'], 'sunrice_entry_tr_entry_locale_unique');
+            $table->unique(['collection_id', 'locale', 'slug'], 'sunrice_entry_tr_slug_unique');
+            $table->index(['collection_id', 'locale', 'draft_slug'], 'sunrice_entry_tr_draft_slug_index');
+            $table->index(['collection_id', 'locale', 'status', 'published_at'], 'sunrice_entry_tr_live_index');
         });
 
         // The published versions of an entry translation.
