@@ -69,6 +69,20 @@ return [
         // Images larger than this (width x height) get no sizes: decoding
         // them could run out of memory.
         'max_pixels' => 40_000_000,
+
+        // Defaults of `php artisan sunrice:optimize-images` (each one has an
+        // option too): images larger than max_width x max_height are scaled
+        // down to fit, and JPEG, WebP and AVIF are compressed at quality.
+        // The first original of each is kept on backup_disk (null: the
+        // file's own disk) under backup_directory; `--restore` puts it back.
+        'optimize' => [
+            'max_width' => 2560,
+            'max_height' => 2560,
+            'quality' => 82,
+            'backup' => true,
+            'backup_disk' => 'local',
+            'backup_directory' => 'sunrice-originals',
+        ],
     ],
 
     'locks' => [

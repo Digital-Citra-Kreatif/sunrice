@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Media;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
@@ -64,6 +65,12 @@ class Media extends Model
             'height' => 'integer',
             'version' => 'integer',
         ];
+    }
+
+    /** @return HasMany<MediaUsage, $this> */
+    public function usages(): HasMany
+    {
+        return $this->hasMany(MediaUsage::class);
     }
 
     /** @return BelongsTo<MediaFolder, $this> */

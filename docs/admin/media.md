@@ -15,6 +15,33 @@ The panel has one media library, shared by your app and every plugin: files on a
 
 Turn the page off with `$panel->mediaLibrary(false)`; the library still works from code.
 
+## Where files are used
+
+A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets. Moving a file in use to the trash asks first; deleting it for good asks too, and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
+
+Report your own items' files when they're saved, and forget them when they're deleted (a type starting with your plugin's id, its id, the files, a label and a link):
+
+```php
+use Sunrice\Admin\Media\MediaUsages;
+
+app(MediaUsages::class)->sync('shop.product', (string) $product->id, [$product->image_id, ...$product->gallery], "Product: {$product->name}", route('sunrice.admin.resources.products.edit', $product));
+app(MediaUsages::class)->forget('shop.product', (string) $product->id);
+app(MediaUsages::class)->of($media); // [['type' => …, 'label' => …, 'url' => …], …]
+```
+
+## Optimizing images
+
+`php artisan sunrice:optimize-images` scales down images larger than `optimize.max_width` × `max_height` (2560) and compresses JPEG, WebP and AVIF at `quality` (82), in place: files keep their paths, so links don't change; the version goes up (browsers fetch them again) and their sizes are made again. GIFs (animations) and SVGs are left alone, and an image that already fits is only written when it gets smaller.
+
+```bash
+php artisan sunrice:optimize-images                      # the config's defaults
+php artisan sunrice:optimize-images --max-width=1920 --quality=75 --id=12
+php artisan sunrice:optimize-images --dry-run            # report only
+php artisan sunrice:optimize-images --restore            # put the originals back
+```
+
+The first original of each image is kept on `optimize.backup_disk` (the private `local` disk, so it's not reachable by URL) under `backup_directory`; later runs never overwrite it, `--restore` puts it back, and replacing or deleting the file deletes it. `--no-backup` (or `backup => false`) keeps no originals. In code: `OptimizeImage` and `RestoreOriginalImage`.
+
 ## Picking media in forms
 
 `MediaPicker` lets people choose files from the library, or upload new ones, in [resource](resources.md) and [settings](settings.md) forms:
@@ -67,6 +94,7 @@ In `config/sunrice-admin.php` under `media`:
 | `image_sizes` | `thumbnail` 300×300 crop, `medium` 800 wide, `large` 1600 wide | `name => [width, height, 'crop' or 'fit']`. `fit` scales down only; `null` leaves a side free. |
 | `queue` | `false` | Make sizes on the queue instead of during the upload. |
 | `max_pixels` | 40 million | Larger images keep only their original (decoding them could run out of memory). |
+| `optimize` | 2560 × 2560, quality 82, backups on `local` | Defaults of `sunrice:optimize-images` (see above). |
 
 After changing `image_sizes`, run `php artisan sunrice:media-sizes` (or `--id=12 --id=15` for some): it makes the new sizes and deletes ones that are gone. Sizes need PHP's GD or Imagick extension (Imagick is used when present); without one, or for a file it can't read, media keeps only its original.
 

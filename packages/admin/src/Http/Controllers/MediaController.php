@@ -24,6 +24,7 @@ use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\MediaFolder;
+use Sunrice\Admin\Media\MediaUsages;
 
 /**
  * The Media page: browse, upload, edit, move, trash and restore. Each
@@ -61,6 +62,7 @@ final class MediaController
                 ->whereLike('title', '%'.self::escapeLike($search).'%')
                 ->orWhereLike('filename', '%'.self::escapeLike($search).'%')))
             ->when($type !== null, fn (Builder $q) => Media::whereTypes($q, [(string) $type]))
+            ->withCount('usages')
             ->orderByDesc('id')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
@@ -207,9 +209,17 @@ final class MediaController
     public function forceDelete(Request $request, int $media, DeleteMedia $delete): RedirectResponse
     {
         $this->authorize($request, 'delete');
-        $delete->handle(Media::onlyTrashed()->findOrFail($media));
+        $delete->handle(Media::onlyTrashed()->findOrFail($media), $request->boolean('force'));
 
         return back()->with('success', 'Deleted for good.');
+    }
+
+    /** Where a file is used (MediaUsages), for its details. */
+    public function usages(Request $request, int $media, MediaUsages $usages): JsonResponse
+    {
+        $this->authorize($request, 'view');
+
+        return response()->json(['usages' => $usages->of(Media::withTrashed()->findOrFail($media))]);
     }
 
     /** Move, trash, restore or delete several at once. */
@@ -230,11 +240,16 @@ final class MediaController
             'move' => $move->handle(Media::withTrashed()->whereKey($ids)->get(), MediaFolder::query()->find($request->integer('folder_id') ?: null)),
             'trash' => Media::query()->whereKey($ids)->get()->each(fn (Media $m) => app(TrashMedia::class)->handle($m))->count(),
             'restore' => Media::onlyTrashed()->whereKey($ids)->get()->each(fn (Media $m) => app(TrashMedia::class)->restore($m))->count(),
-            default => DB::transaction(fn () => Media::onlyTrashed()->whereKey($ids)->get()->each(fn (Media $m) => $delete->handle($m))->count()),
+            // Files in use stay, unless the person confirmed ("force").
+            default => DB::transaction(fn () => Media::onlyTrashed()->whereKey($ids)
+                ->when(! $request->boolean('force'), fn ($query) => $query->whereDoesntHave('usages'))
+                ->get()->each(fn (Media $m) => $delete->handle($m, true))->count()),
         };
         $done = ['move' => 'moved', 'trash' => 'moved to the trash', 'restore' => 'restored', 'delete' => 'deleted for good'][$action];
+        $kept = $action === 'delete' ? Media::onlyTrashed()->whereKey($ids)->count() : 0;
 
-        return back()->with('success', "{$count} ".($count === 1 ? 'file' : 'files')." {$done}.");
+        return back()->with('success', "{$count} ".($count === 1 ? 'file' : 'files')." {$done}."
+            .($kept > 0 ? " {$kept} in use ".($kept === 1 ? 'was' : 'were').' kept: open '.($kept === 1 ? 'it' : 'each').' to see where, and delete it from there.' : ''));
     }
 
     /** @return array<string, mixed> */
@@ -255,6 +270,8 @@ final class MediaController
             'thumbnail' => $media->isImage() ? $media->url('thumbnail') : null,
             'createdAt' => $media->created_at?->toIso8601String(),
             'trashed' => $media->deleted_at !== null,
+            // With withCount('usages'): how many places use it.
+            'usages' => $media->getAttribute('usages_count'),
         ];
     }
 
