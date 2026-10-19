@@ -1,0 +1,17 @@
+# The workbench app for `composer serve`: the panel and the CMS together.
+providers:
+  - Sunrice\Admin\AdminServiceProvider
+  - Sunrice\Cms\CmsServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
+
+workbench:
+  start: /
+  install: true
+  discovers:
+    web: false
+    api: false
+    commands: false
+    views: false
+  build:
+    - create-sqlite-db
+    - migrate:refresh
