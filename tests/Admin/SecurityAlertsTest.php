@@ -42,8 +42,8 @@ it('emails super admins and the listed addresses when an account is locked, once
         post('/admin/login', ['email' => 'rina@example.com', 'password' => 'wrong']);
     }
 
-    expect(alertsSent())->toBe(['An account was locked after wrong passwords']);
-    Mail::assertSent(SecurityAlert::class, 2);
+    expect(alertsSent())->toBe(['An account was locked after wrong passwords', 'Your account was locked']);
+    Mail::assertSent(SecurityAlert::class, 3); // two alerts, and the owner's notice
     Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->hasTo('admin@example.com'));
     Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->hasTo('security@example.com'));
     expect(Activity::query()->where('action', 'alert sent')->sole()->properties['note'])->toBe('account-locked to 2 people');

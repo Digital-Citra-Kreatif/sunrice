@@ -14,6 +14,7 @@ use Sunrice\Admin\Http\Middleware\EnsureAccountActive;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Http\Middleware\HandleInertiaRequests;
 use Sunrice\Admin\Http\Middleware\RedirectIfAuthenticated;
+use Sunrice\Admin\Http\Middleware\WatchRefusedPages;
 use Sunrice\Admin\Resources\Http\ResourceController;
 use Sunrice\Admin\Resources\RegisteredResource;
 
@@ -42,7 +43,7 @@ final class PanelRoutes
     /** @return list<class-string> */
     public static function authenticated(): array
     {
-        return [Authenticate::class, EnsureAccountActive::class, EnsureCanAccessPanel::class];
+        return [Authenticate::class, EnsureAccountActive::class, WatchRefusedPages::class, EnsureCanAccessPanel::class];
     }
 
     /** The routes of one resource: "/admin/products", named "sunrice.admin.resources.products.*". */

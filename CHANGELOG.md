@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Security alerts: Settings → Security chooses more roles and addresses for them; a new alert when someone is refused many pages (`security.alerts.forbidden`, the `pages refused` event); unpublishing and purging count towards *Many things deleted*; the account's owner is told when their account is locked or their AI token is used from a new address.
 - Lists keep each person's page size and hidden columns (**Columns** menu), in `Users\UserPreferences` (`@api`, migration `000009` `sunrice_user_preferences`).
 - Administration → Email (`sunrice.email.test`): how the app sends email, and a test send. The page key `email` and pages under `Email/` are the panel's.
 - Settings → Branding (`Branding\BrandingSettings`, `sunrice.settings.branding`): the panel's name, logo, colour and sign-in text, shared as `sunrice.logo`, `sunrice.color`, `sunrice.colorText` and `sunrice.login`. The settings key `branding` is the panel's. See `docs/admin/settings.md`.
