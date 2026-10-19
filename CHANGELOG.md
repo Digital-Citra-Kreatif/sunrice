@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **PHP 8.4 or newer** is required.
+- The whole-page cache (`sunrice-cms.cache.pages`) now uses `spatie/laravel-responsecache` (install it to use the cache; the CMS sets its cache profile, `Site\PageCacheProfile`, and a serializer that keeps no cookies). `PageCache::skipWhen()` stays; the `X-Sunrice-Cache` header is gone (responsecache's `X-Cache-Status` with `APP_DEBUG`). See `docs/cms/caching.md`.
 - Site search: `/search?q=…` and `/{locale}/search` (templates `cms.search` or a plain one; config `sunrice-cms.search`; never indexed; limited per visitor), `Site\Search::entries()`, and `<x-sunrice-cms::search>` for search boxes and results. Published entries keep their field text in `search_text` (migration `000012` fills it for what's already published). See `docs/cms/site.md#search`.
 - Content events (`Sunrice\Cms\Events`): `EntryPublished` (with `scheduled`), `EntryUnpublished`, `EntryTrashed`, `EntryRestored`, `EntryDeleted`, and `ContentChanged` for anything the site shows, after the transaction commits.
 - The site's cache (`SiteCache`, config `sunrice-cms.cache`): which page is at an address, URL patterns, listing pages, menus and the sitemap are kept under a content version that every change replaces. Optional whole-page cache for visitors (`cache.pages`, `PageCache::skipWhen()`), with each visitor's own CSRF token.

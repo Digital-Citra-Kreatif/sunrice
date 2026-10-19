@@ -6,6 +6,7 @@ providers:
   - Sunrice\Admin\AdminServiceProvider
   - Sunrice\Cms\CmsServiceProvider
   - Spatie\Honeypot\HoneypotServiceProvider
+  - Spatie\ResponseCache\ResponseCacheServiceProvider
   - Workbench\App\Providers\WorkbenchServiceProvider
 
 migrations:
