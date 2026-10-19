@@ -127,7 +127,7 @@ final class Column
         $related = $relation === null ? null : $record->getRelationValue($relation);
         $value = match (true) {
             $relation === null => $record->getAttribute($this->name),
-            $related instanceof Collection => $related->map(fn (mixed $item) => $item instanceof Model ? $item->getAttribute($this->attribute()) : null)
+            $related instanceof Collection => $related->map(fn (Model $item) => $item->getAttribute($this->attribute()))
                 ->filter(fn (mixed $v) => is_scalar($v) && $v !== '')->implode(', '),
             $related instanceof Model => $related->getAttribute($this->attribute()),
             default => null,

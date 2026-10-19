@@ -73,7 +73,7 @@ final class PermissionRank
         $viaRoles = [];
         if ($roles instanceof Collection) {
             foreach ($roles as $role) {
-                $viaRoles = [...$viaRoles, ...$this->names($role instanceof Model ? $role->getRelationValue('permissions') : null)];
+                $viaRoles = [...$viaRoles, ...$this->names($role->getRelationValue('permissions'))];
             }
         }
 
@@ -100,7 +100,7 @@ final class PermissionRank
         }
         $names = [];
         foreach ($models as $model) {
-            $name = $model instanceof Model ? $model->getAttribute('name') : null;
+            $name = $model->getAttribute('name');
             if (is_string($name)) {
                 $names[] = $name;
             }

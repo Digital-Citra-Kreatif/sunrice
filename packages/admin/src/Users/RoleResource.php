@@ -131,7 +131,7 @@ class RoleResource extends Resource
                 // Permissions that aren't offered (the app's own, or ones out of
                 // the editor's reach) stay as they are.
                 $offered = static::permissionsField()->values();
-                $chosen = is_array($chosen) ? $chosen : [];
+                $chosen = is_array($chosen) ? array_filter($chosen, 'is_string') : [];
                 $keep = array_diff(static::namesOf($role->getRelationValue('permissions')), $offered);
                 $names = [...array_intersect($offered, $chosen), ...$keep];
 
@@ -166,6 +166,6 @@ class RoleResource extends Resource
             return [];
         }
 
-        return array_values(array_filter($models->map(fn (mixed $m) => $m instanceof Model ? $m->getAttribute('name') : null)->all(), 'is_string'));
+        return array_values(array_filter($models->map(fn (Model $m) => $m->getAttribute('name'))->all(), 'is_string'));
     }
 }
