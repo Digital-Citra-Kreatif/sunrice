@@ -1,0 +1,116 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Entries\CreateEntry;
+use Sunrice\Cms\Actions\Entries\CreateTranslation;
+use Sunrice\Cms\Actions\Entries\PublishEntry;
+use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Menus\SaveMenu;
+use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Content;
+use Sunrice\Cms\Menus;
+use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Menu;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
+use function Pest\Laravel\put;
+
+beforeEach(function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    actingAs(adminUser());
+    $this->pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'route' => '/{slug}']);
+    $this->main = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+});
+
+function page(string $title, bool $publish = true): EntryTranslation
+{
+    $translation = app(CreateEntry::class)->handle(test()->pages, ['title' => $title]);
+
+    return $publish ? app(PublishEntry::class)->handle($translation) : $translation;
+}
+
+it('resolves links to entries and addresses, nested', function () {
+    $about = page('About');
+    $team = page('Team');
+    app(SaveMenu::class)->handle($this->main, [
+        ['entry_id' => $about->entry_id, 'children' => [
+            ['entry_id' => $team->entry_id, 'labels' => ['en' => 'Our team']],
+        ]],
+        ['url' => 'https://example.com/shop', 'labels' => ['en' => 'Shop'], 'new_tab' => true],
+    ]);
+
+    expect(app(Menus::class)->get('main'))->toBe([
+        ['label' => 'About', 'url' => url('/about'), 'new_tab' => false, 'children' => [
+            ['label' => 'Our team', 'url' => url('/team'), 'new_tab' => false, 'children' => []],
+        ]],
+        ['label' => 'Shop', 'url' => 'https://example.com/shop', 'new_tab' => true, 'children' => []],
+    ])->and(Content::menu('nope'))->toBe([]);
+});
+
+it('leaves out entries that aren\'t on the site, with what\'s under them', function () {
+    $draft = page('Draft', publish: false);
+    $gone = page('Gone');
+    app(SaveMenu::class)->handle($this->main, [
+        ['entry_id' => $draft->entry_id, 'children' => [['url' => '/x', 'labels' => ['en' => 'Under a draft']]]],
+        ['entry_id' => $gone->entry_id],
+        ['url' => '/contact', 'labels' => ['en' => 'Contact']],
+    ]);
+    $gone->entry->delete();
+
+    expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Contact']);
+});
+
+it('uses each language\'s label and address', function () {
+    $about = page('About');
+    $tentang = app(CreateTranslation::class)->handle($about->entry, 'id');
+    app(SaveDraft::class)->handle($tentang, ['title' => 'Tentang', 'slug' => 'tentang']);
+    app(PublishEntry::class)->handle($tentang);
+    app(SaveMenu::class)->handle($this->main, [
+        ['entry_id' => $about->entry_id],
+        ['url' => '/contact', 'labels' => ['en' => 'Contact', 'id' => 'Kontak']],
+        ['url' => '/faq', 'labels' => ['en' => 'FAQ']],
+    ]);
+
+    expect(app(Menus::class)->get('main', 'id'))->toMatchArray([
+        ['label' => 'Tentang', 'url' => url('/id/tentang'), 'new_tab' => false, 'children' => []],
+        ['label' => 'Kontak', 'url' => '/contact', 'new_tab' => false, 'children' => []],
+        ['label' => 'FAQ', 'url' => '/faq', 'new_tab' => false, 'children' => []],
+    ]);
+});
+
+it('refuses unsafe addresses, unlabelled ones, unknown entries and a fourth level', function (array $items, string $error) {
+    expect(fn () => app(SaveMenu::class)->handle($this->main, $items))->toThrow(function (ValidationException $e) use ($error) {
+        expect($e->errors())->toHaveKey($error);
+    });
+})->with([
+    [[['url' => 'javascript:alert(1)', 'labels' => ['en' => 'X']]], 'items.0.url'],
+    [[['url' => '/x']], 'items.0.labels.en'],
+    [[['entry_id' => 999]], 'items.0.entry_id'],
+    [[[]], 'items.0.entry_id'],
+    [[['url' => '/a', 'labels' => ['en' => 'A'], 'children' => [['url' => '/b', 'labels' => ['en' => 'B'], 'children' => [
+        ['url' => '/c', 'labels' => ['en' => 'C'], 'children' => [['url' => '/d', 'labels' => ['en' => 'D']]]],
+    ]]]]], 'items.0.children.0.children.0.children'],
+]);
+
+it('edits menus in the admin', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $about = page('About');
+    app(SaveMenu::class)->handle($this->main, [['entry_id' => $about->entry_id]]);
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
+
+    get('/admin/cms/menus/main')->assertInertia(fn (Assert $page) => $page
+        ->component('Cms/Menus/Edit', shouldExist: false)
+        ->where('items.0.entry', ['title' => 'About', 'collection' => 'Pages', 'live' => true])
+        ->where('can.update', false));
+    put('/admin/cms/menus/main', ['items' => []])->assertForbidden();
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
+    put('/admin/cms/menus/main', ['items' => [['url' => '/contact', 'labels' => ['en' => 'Contact']]]])->assertSessionHasNoErrors();
+    expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Contact']);
+});
