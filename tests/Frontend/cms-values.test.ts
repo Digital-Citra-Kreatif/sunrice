@@ -45,3 +45,10 @@ test('names languages', async () => {
     assert.equal(localeName('pt_BR', 'en'), 'Brazilian Portuguese');
     assert.equal(localeName('not a code!', 'en'), 'not a code!');
 });
+
+test('builds the entry picker\'s query', async () => {
+    const { pickerQuery } = await import('../../packages/cms/resources/js/lib/values.ts');
+
+    assert.equal(pickerQuery({ ids: [3, 1], collections: ['pages'] }), 'ids%5B%5D=3&ids%5B%5D=1&collections%5B%5D=pages');
+    assert.equal(pickerQuery({ search: 'a&b', collections: [] }), 'search=a%26b');
+});

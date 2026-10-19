@@ -43,8 +43,12 @@ Each field is stored as JSON and read as a `Sunrice\Cms\Fields\Field`:
 | `repeater` | a list of rows of its fields | `Items` of arrays | `min`, `max` (its `fields`) |
 | `flexible` | a list of blocks | `Items` of `Block` | `blocks` (fieldset handles), `max` |
 | `fieldset` | — | — | `fieldset`: includes that fieldset's fields in its place |
+| `terms` | a term id, or a list with `multiple` | a `Term`, or a collection | `taxonomy`, `multiple`, `max` (see [taxonomies](taxonomies.md)) |
+| `entries` | an entry id, or a list with `multiple` | the linked entries' `EntryTranslation`s | `collections`, `multiple`, `max` |
 
 Rich text keeps only the formatting the editor produces: no scripts, styles or event handlers, and links only to web, mail and phone addresses or paths on the site. Links are checked the same way when saved and again when shown, so a link can never run script.
+
+Linked entries must exist in the chosen collections and not be in the trash. Templates get each one in the page's language (else its main one), published ones only (drafts too in a preview), in the order chosen, loaded once per request. In the editor, editors search entries by title.
 
 Media must exist, not be in the trash and be of the allowed kinds. Templates get the files in one query, however many fields and rows refer to them.
 
