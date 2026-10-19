@@ -16,7 +16,7 @@ use Workbench\App\Models\User;
  * load both. Architecture tests need no app.
  */
 uses(AdminTestCase::class, RefreshDatabase::class)->in('Admin');
-uses(CmsTestCase::class)->in('Cms');
+uses(CmsTestCase::class, RefreshDatabase::class)->in('Cms');
 
 /**
  * Give the test app a panel (registered like an app's panel provider),

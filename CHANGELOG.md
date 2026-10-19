@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- CMS fields: blueprints and fieldsets (`sunrice_blueprints`, `sunrice_fieldsets`, `SaveBlueprint`, `DeleteBlueprint`, `SaveFieldset`, `DeleteFieldset`), the field types `text`, `textarea`, `rich_text` (sanitised), `number`, `toggle`, `select`, `date`, `link` (safe URLs only), `media`, `group`, `repeater`, `flexible` and `fieldset` includes, `Schema` (validate, normalise, hydrate, references), `DefinitionValidator`, and your own types with `CmsPlugin::make()->fieldTypes()` (`FieldType`, `CustomField`). The CMS requires `symfony/html-sanitizer`. See `docs/cms/fields.md`.
 - AI tools for every resource and settings section: `list_records`, `get_record`, `save_record` (partial updates), `delete_record`, `run_action`, `get_settings`, `update_settings`, plus `list_media` and `get_activity`, with the screens' permissions and validation (now in the `SaveRecord` and `UpdateSettings` actions).
 - Fix: read-only AI tokens could still use permissions granted through roles (spatie/laravel-permission's gate check answered first); the read-only check now always runs first.
 - AI access: tokens (read-only, expiring) on the AI access page, the MCP endpoint (`/mcp`, laravel/mcp) where AI agents work as the token's user with that user's permissions, `get_panel_info`, and `$panel->tools()` / `aiInstructions()` for plugins' tools (`Sunrice\Admin\Ai\Tool`). Read-only tokens may only view. Changes are logged as the AI agent's; token events are security events and alerts; Users → Revoke AI tokens. See `docs/admin/ai.md`.
