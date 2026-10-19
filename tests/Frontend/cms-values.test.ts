@@ -37,3 +37,11 @@ test('checks link addresses like the server', async () => {
         assert.equal(isSafeUrl(url), false, url);
     }
 });
+
+test('names languages', async () => {
+    const { localeName } = await import('../../packages/cms/resources/js/lib/entries.ts');
+
+    assert.equal(localeName('id', 'en'), 'Indonesian');
+    assert.equal(localeName('pt_BR', 'en'), 'Brazilian Portuguese');
+    assert.equal(localeName('not a code!', 'en'), 'not a code!');
+});
