@@ -81,6 +81,7 @@ app(UnpublishEntry::class)->handle($translation);
 - Both validate the title, the slug and the blueprint's fields, and ignore handles the blueprint doesn't have.
 - `PublishEntry` checks the draft again (the blueprint may have changed), copies it to the live version and keeps a revision. The entry is live from its date: now when first published, the original date when published again, or the date you pass, which may be in the future.
 - `UnpublishEntry` takes it off the site; publishing again keeps its date.
+- Each fires an event (`EntryPublished`, `EntryUnpublished`, `EntryTrashed`, `EntryRestored`, `EntryDeleted`); one published for a later date is announced again when its time comes. See [Caching, events and scheduled publishing](caching.md).
 
 | On the translation | |
 | --- | --- |
