@@ -67,7 +67,7 @@ final class SafeSvg
         }
         // <style> elements may hide script URLs too.
         foreach ($xpath->query('//*[local-name()="style"]') ?: [] as $style) {
-            if (preg_match('/javascript:|expression\s*\(|@import/i', $style->textContent) === 1) {
+            if ($style instanceof DOMElement && preg_match('/javascript:|expression\s*\(|@import/i', $style->textContent) === 1) {
                 return false;
             }
         }
