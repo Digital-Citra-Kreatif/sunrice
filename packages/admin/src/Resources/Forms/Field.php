@@ -222,13 +222,25 @@ abstract class Field implements Component
 
     /**
      * The validation rules for this field's input. `$record` is the record
-     * being edited, or a new instance when creating.
+     * being edited, a new instance when creating, or null outside a
+     * resource (settings).
      *
      * @return list<string|object>
      */
-    public function validationRules(Model $record): array
+    public function validationRules(?Model $record): array
     {
-        return [$this->isRequired($record->exists ? $record : null) ? 'required' : 'nullable', ...$this->typeRules(), ...$this->uniqueRule($record), ...$this->rules];
+        $existing = $record !== null && $record->exists ? $record : null;
+
+        return [$this->isRequired($existing) ? 'required' : 'nullable', ...$this->typeRules(), ...$this->uniqueRule($record), ...$this->rules];
+    }
+
+    /**
+     * Whether an empty input keeps the current value (passwords and
+     * secrets) instead of clearing it.
+     */
+    public function keepsValueWhenEmpty(): bool
+    {
+        return false;
     }
 
     /**
@@ -243,9 +255,9 @@ abstract class Field implements Component
     }
 
     /** @return list<object> */
-    protected function uniqueRule(Model $record): array
+    protected function uniqueRule(?Model $record): array
     {
-        if ($this->unique === null) {
+        if ($this->unique === null || $record === null) {
             return [];
         }
         $rule = Rule::unique($this->unique['table'] ?? $record->getTable(), $this->unique['column'] ?? $this->name);

@@ -2,15 +2,12 @@ import * as React from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, LoaderCircle, Trash2 } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
-import { InputError } from '@/components/app/input-error';
 import { useConfirm } from '@/components/resources/confirm';
-import { FieldInput, type FieldValue } from '@/components/resources/fields';
+import type { FieldValue } from '@/components/resources/fields';
+import { FormSections } from '@/components/resources/form-sections';
 import type { ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { adminUrl } from '@/lib/admin-url';
-import { cn } from '@/lib/utils';
 
 interface Props {
     resource: ResourceInfo;
@@ -19,9 +16,6 @@ interface Props {
     values: Record<string, FieldValue>;
     can: { delete: boolean };
 }
-
-const gridColumns: Record<number, string> = { 1: '', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' };
-const spans: Record<number, string> = { 1: '', 2: 'sm:col-span-2', 3: 'sm:col-span-3', 4: 'sm:col-span-4' };
 
 export default function ResourceForm({ resource, record, sections, values, can }: Props) {
     const base = adminUrl(resource.key);
@@ -66,46 +60,7 @@ export default function ResourceForm({ resource, record, sections, values, can }
                 </div>
             </div>
 
-            {sections.map((section, index) => (
-                <Card key={index}>
-                    {section.title && (
-                        <CardHeader>
-                            <CardTitle>{section.title}</CardTitle>
-                            {section.description && <CardDescription>{section.description}</CardDescription>}
-                        </CardHeader>
-                    )}
-                    <CardContent className={cn('grid gap-5', gridColumns[section.columns])}>
-                        {section.fields.map((field) => {
-                            const error = form.errors[field.name];
-                            const input = (
-                                <FieldInput field={field} value={form.data[field.name] ?? null} invalid={!!error}
-                                    onChange={(value) => form.setData(field.name, value)} />
-                            );
-
-                            return (
-                                <div key={field.name} className={cn('grid content-start gap-2', spans[Math.min(field.span, section.columns)])}>
-                                    {field.type === 'toggle' ? (
-                                        <div className="flex items-center gap-3">
-                                            {input}
-                                            <Label htmlFor={`field-${field.name}`}>{field.label}</Label>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <Label htmlFor={`field-${field.name}`}>
-                                                {field.label}
-                                                {field.required && <span className="text-destructive" aria-hidden>*</span>}
-                                            </Label>
-                                            {input}
-                                        </>
-                                    )}
-                                    {field.help && <p className="text-sm text-muted-foreground">{field.help}</p>}
-                                    <InputError message={error} />
-                                </div>
-                            );
-                        })}
-                    </CardContent>
-                </Card>
-            ))}
+            <FormSections sections={sections} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
         </form>
     );
 }

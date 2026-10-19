@@ -21,7 +21,7 @@ final class Toggle extends Field
     }
 
     /** A switch always has a value: off is false, not missing. */
-    public function validationRules(Model $record): array
+    public function validationRules(?Model $record): array
     {
         return ['boolean', ...$this->rules];
     }

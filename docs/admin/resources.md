@@ -88,6 +88,7 @@ public static function query(): Builder
 | `Select` | one of the options | `->options([value => label])`: other values are refused |
 | `DatePicker` | date | `->withTime()` |
 | `Password` | a hash | never sent to the browser; empty keeps the current one when editing, so `->required()` applies when creating; Laravel's `Password::defaults()` rules |
+| `Secret` | a string | never sent to the browser; empty keeps the current value; store it encrypted (`encrypted` cast) |
 | `CheckboxList` | an array of values | `->options([value => label])`, or groups `[group => [value => label]]`, or a closure returning them |
 
 Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `->default()` (the create form's value), `->rules([...])` (more Laravel rules), `->unique()` (except the record being edited), `->onlyOnCreate()` / `->onlyOnEdit()` and `->span(2)` (columns in a section's grid). `Section::make('Title')->columns(2)->schema([...])` groups fields in a card.

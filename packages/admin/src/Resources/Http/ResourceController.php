@@ -14,7 +14,6 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Field;
-use Sunrice\Admin\Resources\Forms\Section;
 use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Resources\ListQuery;
 use Sunrice\Admin\Resources\RegisteredResource;
@@ -217,22 +216,7 @@ final class ResourceController
     private function form(RegisteredResource $resource, ?Model $record): Response
     {
         $operation = $record === null ? 'create' : 'edit';
-        $sections = [];
-        $loose = [];
-        foreach ($resource->form()->getSchema() as $component) {
-            if (! $component->shownOn($operation)) {
-                continue;
-            }
-            $fields = array_values(array_filter($component->fields(), fn (Field $field) => $field->shownOn($operation)));
-            if ($component instanceof Section) {
-                $sections[] = [...$component->toArray(), 'fields' => array_map(fn (Field $field) => $field->toArray($record), $fields)];
-            } else {
-                $loose = [...$loose, ...$fields];
-            }
-        }
-        if ($loose !== []) {
-            array_unshift($sections, ['kind' => 'section', 'title' => null, 'description' => null, 'columns' => 1, 'fields' => array_map(fn (Field $field) => $field->toArray($record), $loose)]);
-        }
+        $sections = $resource->form()->toSections($operation, $record);
 
         $values = [];
         foreach ($resource->form()->fields($operation) as $field) {
