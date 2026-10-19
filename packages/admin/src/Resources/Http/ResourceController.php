@@ -103,8 +103,7 @@ final class ResourceController
         $resource = $this->resource($request);
         $this->authorize($request, $resource, 'create');
 
-        $model = $resource->class::model();
-        $record = new $model;
+        $record = $resource->class::newRecord();
         $this->save($request, $resource, $record, 'create');
 
         return redirect()->route("sunrice.admin.resources.{$resource->key()}.edit", $record->getKey())
@@ -226,13 +225,13 @@ final class ResourceController
             }
             $fields = array_values(array_filter($component->fields(), fn (Field $field) => $field->shownOn($operation)));
             if ($component instanceof Section) {
-                $sections[] = [...$component->toArray(), 'fields' => array_map(fn (Field $field) => $field->toArray(), $fields)];
+                $sections[] = [...$component->toArray(), 'fields' => array_map(fn (Field $field) => $field->toArray($record), $fields)];
             } else {
                 $loose = [...$loose, ...$fields];
             }
         }
         if ($loose !== []) {
-            array_unshift($sections, ['kind' => 'section', 'title' => null, 'description' => null, 'columns' => 1, 'fields' => array_map(fn (Field $field) => $field->toArray(), $loose)]);
+            array_unshift($sections, ['kind' => 'section', 'title' => null, 'description' => null, 'columns' => 1, 'fields' => array_map(fn (Field $field) => $field->toArray($record), $loose)]);
         }
 
         $values = [];
@@ -251,23 +250,39 @@ final class ResourceController
 
     private function save(Request $request, RegisteredResource $resource, Model $record, string $operation): void
     {
-        $fields = $resource->form()->fields($operation);
+        // Disabled fields are shown, never validated or written.
+        $fields = array_values(array_filter(
+            $resource->form()->fields($operation),
+            fn (Field $field) => ! $field->isDisabled($record->exists ? $record : null),
+        ));
         $rules = [];
         $attributes = [];
         foreach ($fields as $field) {
             $rules[$field->name] = $field->validationRules($record);
-            $attributes[$field->name] = $field->toArray()['label'];
+            $attributes[$field->name] = $field->getLabel();
+            foreach ($field->nestedRules() as $path => $nested) {
+                $rules[$path] = $nested;
+                $attributes[$path] = $field->getLabel();
+            }
         }
         /** @var array<string, mixed> $validated */
         $validated = $request->validate($rules, [], $attributes);
 
         // Only declared fields are written, whatever else the request sends.
-        foreach ($fields as $field) {
-            if (array_key_exists($field->name, $validated) || $field instanceof Toggle) {
-                $field->fill($record, $validated[$field->name] ?? null);
+        $present = array_values(array_filter($fields, fn (Field $field) => array_key_exists($field->name, $validated) || $field instanceof Toggle));
+        DB::transaction(function () use ($record, $present, $validated): void {
+            foreach ($present as $field) {
+                if (! $field->isSavedAfterRecord()) {
+                    $field->fill($record, $validated[$field->name] ?? null);
+                }
             }
-        }
-        $record->save();
+            $record->save();
+            foreach ($present as $field) {
+                if ($field->isSavedAfterRecord()) {
+                    $field->saveAfterRecord($record, $validated[$field->name] ?? null);
+                }
+            }
+        });
     }
 
     /** @param Closure(): ?string $run */

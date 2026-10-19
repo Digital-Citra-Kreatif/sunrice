@@ -29,7 +29,7 @@ it('creates the roles and permissions tables', function () {
 });
 
 it('syncs the registered permissions and leaves the app\'s own alone', function () {
-    usePanel(fn (Panel $panel) => $panel->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(
+    usePanel(fn (Panel $panel) => $panel->userResource(null)->roleResource(null)->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(
         PanelPermission::make('shop.orders.view', 'View orders'),
     ))));
     Permission::findOrCreate('shop.old-feature', 'web');      // a plugin permission that's gone
@@ -53,7 +53,8 @@ it('syncs after every migrate', function () {
 
     artisan('migrate')->assertSuccessful();
 
-    expect(storedPermissions())->toBe([Panel::ACCESS]);
+    expect(storedPermissions())->toEqualCanonicalizing(array_keys(app(Panel::class)->getPermissions()))
+        ->and(storedPermissions())->toContain(Panel::ACCESS, 'sunrice.users.view', 'sunrice.roles.update');
 });
 
 it('lets super admins do everything, and others only what their roles allow', function () {

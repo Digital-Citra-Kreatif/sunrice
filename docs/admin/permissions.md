@@ -35,3 +35,7 @@ The panel and its plugins register their permissions in PHP (`$panel->permission
 It also runs after every `php artisan migrate`, so a deploy keeps them in step.
 
 Every admin route needs `sunrice.access` ("Open the admin panel"); give it to the roles that may sign in to the panel. Unknown permissions are denied.
+
+## Managing roles in the panel
+
+The Users and Roles screens give out roles and permissions, and nobody can give out more than they have: see [Users and roles](users.md).

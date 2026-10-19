@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources\Forms;
 
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -42,6 +43,15 @@ abstract class Field implements Component
     /** @var array{table: string|null, column: string|null}|null */
     protected ?array $unique = null;
 
+    /** @var bool|Closure(?Model): bool */
+    protected bool|Closure $disabled = false;
+
+    /** @var (Closure(Model): mixed)|null */
+    protected ?Closure $loadUsing = null;
+
+    /** @var (Closure(Model, mixed): void)|null */
+    protected ?Closure $saveUsing = null;
+
     final public function __construct(public readonly string $name)
     {
         if (preg_match('/^[a-z_][a-z0-9_]*$/i', $name) !== 1) {
@@ -70,6 +80,11 @@ abstract class Field implements Component
         $this->label = $label;
 
         return $this;
+    }
+
+    public function getLabel(): string
+    {
+        return $this->label;
     }
 
     public function required(bool $required = true): static
@@ -154,6 +169,58 @@ abstract class Field implements Component
     }
 
     /**
+     * Shown but not editable: never validated or written. A closure gets
+     * the record being edited, or null when creating:
+     * ->disabled(fn (?User $user) => $user?->is(auth()->user())).
+     *
+     * @param  bool|Closure(?Model): bool  $disabled
+     */
+    public function disabled(bool|Closure $disabled = true): static
+    {
+        $this->disabled = $disabled;
+
+        return $this;
+    }
+
+    public function isDisabled(?Model $record): bool
+    {
+        return $this->disabled instanceof Closure ? (bool) ($this->disabled)($record) : $this->disabled;
+    }
+
+    /** Whether the form requires a value (when creating, or editing `$record`). */
+    public function isRequired(?Model $record): bool
+    {
+        return $this->required;
+    }
+
+    /**
+     * Read the form's value from the record some other way than its
+     * attribute: ->loadUsing(fn (User $user) => $user->roles->pluck('name')->all()).
+     *
+     * @param  Closure(Model): mixed  $load
+     */
+    public function loadUsing(Closure $load): static
+    {
+        $this->loadUsing = $load;
+
+        return $this;
+    }
+
+    /**
+     * Write the validated value some other way than to its attribute, after
+     * the record is saved (in the same transaction):
+     * ->saveUsing(fn (User $user, array $roles) => $user->syncRoles($roles)).
+     *
+     * @param  Closure(Model, mixed): void  $save
+     */
+    public function saveUsing(Closure $save): static
+    {
+        $this->saveUsing = $save;
+
+        return $this;
+    }
+
+    /**
      * The validation rules for this field's input. `$record` is the record
      * being edited, or a new instance when creating.
      *
@@ -161,7 +228,18 @@ abstract class Field implements Component
      */
     public function validationRules(Model $record): array
     {
-        return [$this->required ? 'required' : 'nullable', ...$this->typeRules(), ...$this->uniqueRule($record), ...$this->rules];
+        return [$this->isRequired($record->exists ? $record : null) ? 'required' : 'nullable', ...$this->typeRules(), ...$this->uniqueRule($record), ...$this->rules];
+    }
+
+    /**
+     * Rules for the parts of an array value, keyed by their path under the
+     * field ("roles.*").
+     *
+     * @return array<string, list<string|object>>
+     */
+    public function nestedRules(): array
+    {
+        return [];
     }
 
     /** @return list<object> */
@@ -178,24 +256,46 @@ abstract class Field implements Component
     /** The value shown in the form for a record (null when creating). */
     public function formValue(?Model $record): mixed
     {
-        return $record === null ? $this->default : $record->getAttribute($this->name);
+        return match (true) {
+            $record === null => $this->default,
+            $this->loadUsing !== null => ($this->loadUsing)($record),
+            default => $record->getAttribute($this->name),
+        };
     }
 
-    /** Write the validated input to the record. */
+    /** Write the validated input to the record, before it is saved. */
     public function fill(Model $record, mixed $value): void
     {
         $record->setAttribute($this->name, $value);
     }
 
-    /** @return array<string, mixed> */
-    public function toArray(): array
+    /** Whether saveUsing() writes it, after the record is saved. */
+    public function isSavedAfterRecord(): bool
+    {
+        return $this->saveUsing !== null;
+    }
+
+    public function saveAfterRecord(Model $record, mixed $value): void
+    {
+        if ($this->saveUsing !== null) {
+            ($this->saveUsing)($record, $value);
+        }
+    }
+
+    /**
+     * The field for the form: creating, or editing `$record`.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(?Model $record = null): array
     {
         return [
             'kind' => 'field',
             'type' => $this->type(),
             'name' => $this->name,
             'label' => $this->label,
-            'required' => $this->required,
+            'required' => $this->isRequired($record),
+            'disabled' => $this->isDisabled($record),
             'help' => $this->help,
             'placeholder' => $this->placeholder,
             'span' => $this->span,

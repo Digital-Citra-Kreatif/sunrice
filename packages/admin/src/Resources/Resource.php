@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources;
 
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -39,6 +40,7 @@ use Sunrice\Admin\Resources\Tables\Table;
  * Who may do what: the model's policy (viewAny, view, create, update,
  * delete) when it has one, otherwise the permissions the panel registers
  * for the resource ("shop.products.view", ".create", ".update", ".delete").
+ * `can()` may refuse more.
  *
  * @api
  */
@@ -98,6 +100,25 @@ abstract class Resource
     public static function query(): Builder
     {
         return static::model()::query();
+    }
+
+    /** The new record the create form fills. */
+    public static function newRecord(): Model
+    {
+        $model = static::model();
+
+        return new $model;
+    }
+
+    /**
+     * A further check after the policy or permissions allowed `$ability`
+     * ("view", "create", "update", "delete" or an action's ability): it can
+     * only refuse. `$record` is null for the list, the create form and
+     * whether to offer bulk actions (each selected record is checked too).
+     */
+    public static function can(Authorizable $user, string $ability, ?Model $record = null): bool
+    {
+        return true;
     }
 
     /** A record's name in headings and messages. */
