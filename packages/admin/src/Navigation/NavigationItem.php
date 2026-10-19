@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Navigation;
 
+use Closure;
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use InvalidArgumentException;
 
 /**
@@ -33,6 +35,9 @@ final class NavigationItem
     private int $sort = 100;
 
     private ?string $permission = null;
+
+    /** @var (Closure(Authorizable): bool)|null */
+    private ?Closure $visible = null;
 
     private function __construct(public readonly string $key)
     {
@@ -97,6 +102,26 @@ final class NavigationItem
         $this->permission = $permission;
 
         return $this;
+    }
+
+    /**
+     * Show the item only when this returns true for the user (instead of,
+     * or as well as, a permission).
+     *
+     * @param  Closure(Authorizable): bool  $check
+     */
+    public function visible(Closure $check): self
+    {
+        $this->visible = $check;
+
+        return $this;
+    }
+
+    /** Whether the user may see it: the permission, if any, and the visibility check, if any. */
+    public function isVisibleTo(Authorizable $user): bool
+    {
+        return ($this->permission === null || $user->can($this->permission))
+            && ($this->visible === null || ($this->visible)($user));
     }
 
     public function getLabel(): string

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Workbench\App\Providers;
 
-use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\PanelProvider;
 use Sunrice\Cms\CmsPlugin;
+use Workbench\App\Admin\ProductResource;
 
 /** The workbench app's panel, set up the way an app would. */
 class AdminPanelProvider extends PanelProvider
@@ -18,8 +18,6 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->brand('Sunrice')
             ->plugin(CmsPlugin::make())
-            ->navigation(
-                NavigationItem::make('workbench.reports')->label('Reports')->url('reports')->icon('chart-column')->group('Tools'),
-            );
+            ->resources(ProductResource::class);
     }
 }
