@@ -75,7 +75,7 @@ it('lets an agent in with a valid token only, as its owner', function () {
 
     postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'])->assertUnauthorized();
     mcp('sra_wrong', 'tools/list')->assertUnauthorized();
-    expect(toolNames(mcp($plain, 'tools/list')->assertOk()))->toBe(['get_panel_info', 'shop_read', 'shop_write']);
+    expect(toolNames(mcp($plain, 'tools/list')->assertOk()))->toBe(['delete_record', 'get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'run_action', 'save_record', 'shop_read', 'shop_write', 'update_settings']);
 
     $info = json_decode(mcp($plain, 'tools/call', ['name' => 'get_panel_info', 'arguments' => []])->json('result.content.0.text'), true);
     expect($info)->panel->toBe('Admin')->you->toBe(['name' => 'Rina', 'email' => 'rina@example.com'])->read_only_token->toBeFalse()
@@ -109,7 +109,7 @@ it('keeps read-only tokens to reading, even for super admins', function () {
     $this->rina->assignRole('super-admin');
     [, $plain] = AiToken::issue((string) $this->rina->id, 'Reader', readOnly: true);
 
-    expect(toolNames(mcp($plain, 'tools/list')))->toBe(['get_panel_info', 'shop_read']);
+    expect(toolNames(mcp($plain, 'tools/list')))->toBe(['get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'shop_read']);
     mcp($plain, 'tools/call', ['name' => 'shop_write', 'arguments' => []])->assertJsonPath('error.code', -32602);
 
     $info = json_decode(mcp($plain, 'tools/call', ['name' => 'get_panel_info', 'arguments' => []])->json('result.content.0.text'), true);

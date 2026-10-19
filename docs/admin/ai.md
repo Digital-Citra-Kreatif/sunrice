@@ -23,7 +23,21 @@ Exactly what its user can, and no more: every tool checks the user's permissions
 - Each token may make `ai.requests_per_minute` (120) requests a minute.
 - Security events: `token created`, `token revoked`, `tokens revoked`, and `token used from new IP` (a copied token?); the first and last also send [alerts](security.md#email-alerts).
 
-`get_panel_info` is the starting point: who the agent is, whether its token is read-only, its permissions, and the resources and settings sections it can reach.
+## The panel's tools
+
+| Tool | |
+| --- | --- |
+| `get_panel_info` | Start here: who the agent is, whether its token is read-only, its permissions, and the resources and settings sections it can reach. |
+| `list_records` | A resource's list, as its screen shows it: search, filters, sort, pages. |
+| `get_record` | A record's fields (type, label, required, options) and values, and the actions it may run; without an id, the create form. Passwords and secrets are never shown. |
+| `save_record` | Create a record, or change one: only the fields sent change. Validated exactly like the screen. |
+| `delete_record` | Delete a record (agents are told to ask first). |
+| `run_action` | Run a resource's row or bulk action on records. |
+| `get_settings`, `update_settings` | Read a settings section (secrets show only whether they're set) and change some of its settings. |
+| `list_media` | Files and folders of the media library, with ids for media fields. |
+| `get_activity` | The activity log, including what the agent itself did. |
+
+They check the same permissions, policies and [who may manage whom](users.md#who-may-manage-whom) as the screens, validate with the same rules (`SaveRecord`, `UpdateSettings`), and write the same activity log lines.
 
 ## Tools from plugins and apps
 
