@@ -67,3 +67,13 @@ When something may be a break-in, the panel emails super admins, users with the 
 | Many things deleted in a short time | `mass_deletes` (20) deletes or trashes by one person or AI agent within 10 minutes. |
 
 The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. They need your app's mail settings; with a queue for mail they're sent like any other email.
+
+Plugins raise their own (the CMS does when site code snippets change) with `SecurityAlerts::raise()`: a rule name, a key (the same rule and key alert once per cooldown), a headline, what happened, what to do and optional details:
+
+```php
+app(\Sunrice\Admin\Security\SecurityAlerts::class)->raise('shop-payout-changed', (string) $shop->id,
+    'The payout account was changed', "{$who} changed where payouts go.",
+    'If nobody meant to, change it back and check who did it in the activity log.', ['Who' => $who]);
+```
+
+It goes to the same people, does nothing when alerts are off, and never throws.

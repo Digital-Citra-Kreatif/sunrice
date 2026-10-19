@@ -11,6 +11,7 @@ use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
 use Workbench\App\Models\User;
 
@@ -120,4 +121,16 @@ it('sends nothing when alerts are off, and includes users with the listed roles'
     config(['sunrice-admin.security.alerts.enabled' => false]);
     app(SecurityLog::class)->record('account locked', $this->admin);
     expect(alertsSent())->toBe(['A dangerous upload was blocked']);
+});
+
+it('raises a plugin\'s own alert, once per rule and key in the cooldown, and none when alerts are off', function () {
+    $alerts = app(SecurityAlerts::class);
+    $alerts->raise('shop-payout', '1', 'The payout account was changed', 'Ana changed where payouts go.', 'Change it back if nobody meant to.', ['Who' => 'Ana']);
+    $alerts->raise('shop-payout', '1', 'The payout account was changed', 'Again.', 'Same.');
+    $alerts->raise('shop-payout', '2', 'Another shop\'s payout account was changed', 'Budi did.', 'Same.');
+    config(['sunrice-admin.security.alerts.enabled' => false]);
+    $alerts->raise('shop-other', '1', 'Not sent', 'Off.', 'Off.');
+
+    expect(alertsSent())->toBe(['The payout account was changed', 'Another shop\'s payout account was changed']);
+    expect(Mail::sent(SecurityAlert::class)->first()->render())->toContain('Ana changed where payouts go.')->toContain('Change it back');
 });

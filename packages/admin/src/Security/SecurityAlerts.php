@@ -31,7 +31,15 @@ use Throwable;
  * account) is sent once per `cooldown_minutes`, and each one sent is an
  * "alert sent" security event.
  *
- * @internal
+ * Plugins raise alerts of their own with raise():
+ *
+ *     app(SecurityAlerts::class)->raise('shop-payout-changed', (string) $shop->id,
+ *         'The payout account was changed', "{$who} changed where payouts go.",
+ *         'If nobody meant to, change it back and check who did it in the activity log.');
+ *
+ * The rest of its public methods are the panel's event listeners.
+ *
+ * @api
  */
 final class SecurityAlerts
 {
@@ -218,6 +226,26 @@ final class SecurityAlerts
     private function isPrivileged(Model $account): bool
     {
         return $this->rank->isSuperAdmin($account) || array_intersect($this->rank->permissionsOf($account), self::PRIVILEGED_PERMISSIONS) !== [];
+    }
+
+    /**
+     * Emails an alert, when alerts are on: what happened (`$headline`, then
+     * `$what`), what to do (`$advice`) and details ("Who" => "Ana").
+     * The same `$rule` and `$key` alert at most once per cooldown. Never
+     * throws: an alert must not break the request.
+     *
+     * @param  array<string, string>  $details
+     */
+    public function raise(string $rule, string $key, string $headline, string $what, string $advice, array $details = []): void
+    {
+        if (! self::enabled()) {
+            return;
+        }
+        try {
+            $this->alert($rule, $key, $headline, $what, $advice, $details);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     /** @param array<string, string> $details */
