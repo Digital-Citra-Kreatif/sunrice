@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppHeader } from '@/components/app/app-header';
 import { BreadcrumbProvider } from '@/components/app/breadcrumbs';
+import { useBrandColor } from '@/components/app/brand';
 import type { SharedProps } from '@/types';
 
 /** The sidebar's open/collapsed state, kept in a cookie by the sidebar. */
@@ -18,6 +19,7 @@ function sidebarDefaultOpen(): boolean {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const page = usePage<SharedProps>();
     const { flash } = page.props;
+    useBrandColor();
 
     React.useEffect(() => {
         if (flash.success) toast.success(flash.success);

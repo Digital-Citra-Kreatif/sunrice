@@ -24,7 +24,16 @@ export interface BundleInfo {
 }
 
 export interface SharedProps {
-    sunrice: { brand: string; path: string; bundles: BundleInfo[] };
+    sunrice: {
+        brand: string;
+        /** Settings → Branding: the logo's address, the colour and the text on it, the sign-in page's words. */
+        logo: string | null;
+        color: string | null;
+        colorText: string | null;
+        login: { headline: string | null; text: string | null };
+        path: string;
+        bundles: BundleInfo[];
+    };
     auth: { user: { id: string | number; name: string | null; email: string | null } | null };
     navigation: NavGroup[];
     flash: { success: string | null; error: string | null };

@@ -1,20 +1,20 @@
 import * as React from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import { Toaster } from '@/components/ui/sonner';
+import { BrandMark, useBrandColor } from '@/components/app/brand';
 import type { SharedProps } from '@/types';
 
 /** The sign-in pages: the brand, a title, and the form. */
 export default function AuthLayout({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
     const { sunrice, flash } = usePage<SharedProps>().props;
+    useBrandColor();
 
     return (
         <div className="flex min-h-svh flex-col items-center justify-center bg-background px-4 py-12">
             <Head title={title} />
             <div className="w-full max-w-sm">
                 <div className="mb-10 flex items-center gap-2 text-lg font-semibold tracking-tight">
-                    <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm text-primary-foreground">
-                        {sunrice.brand.slice(0, 1).toUpperCase()}
-                    </span>
+                    <BrandMark />
                     {sunrice.brand}
                 </div>
                 <div className="flex flex-col gap-8">

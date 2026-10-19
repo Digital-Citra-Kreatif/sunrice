@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Assets\PluginBundle;
+use Sunrice\Admin\Branding\Branding;
 use Sunrice\Admin\Panel;
 
 /**
@@ -36,7 +37,7 @@ final class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'sunrice' => fn (): array => [
-                'brand' => $this->panel->getBrand(),
+                ...Branding::shared($this->panel),
                 'path' => '/'.$this->panel->getPath(),
                 'bundles' => array_values(array_map(fn (PluginBundle $bundle) => $bundle->toArray(), $this->panel->getBundles())),
             ],
