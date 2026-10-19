@@ -20,6 +20,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Admin\Notifications\ResetPanelPassword;
+use Sunrice\Admin\Security\SecurityLog;
 
 /**
  * "Forgot password?" and the reset form, through Laravel's password broker.
@@ -33,9 +34,12 @@ final class PasswordResetController
         return Inertia::render('Auth/ForgotPassword');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SecurityLog $security): RedirectResponse
     {
         $request->validate(['email' => ['required', 'string', 'email', 'max:255']]);
+        $email = $request->string('email')->toString();
+        $account = $security->findAccount($email);
+        $security->record('password reset requested', $account, $account === null ? $email : null, $account === null ? ['note' => 'no account with this email'] : []);
 
         self::broker()->sendResetLink(
             ['email' => $request->string('email')->toString()],
@@ -58,7 +62,7 @@ final class PasswordResetController
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, SecurityLog $security): RedirectResponse
     {
         $request->validate([
             'token' => ['required', 'string'],
@@ -68,12 +72,13 @@ final class PasswordResetController
 
         $status = self::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (CanResetPassword $user, string $password): void {
+            function (CanResetPassword $user, string $password) use ($security): void {
                 if (! $user instanceof Model || ! $user instanceof Authenticatable) {
                     return;
                 }
                 $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
                 event(new PasswordReset($user));
+                $security->record('password reset', $user);
             },
         );
 

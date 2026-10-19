@@ -20,6 +20,7 @@ use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Resources\Tables\Table;
+use Sunrice\Admin\Security\SecurityLog;
 
 /**
  * The panel's Users screen: the users of the panel's guard, their
@@ -145,7 +146,10 @@ class UserResource extends Resource
                 $keep = static::rolesOf($user)->filter(fn (Model $role) => ! in_array(static::name($role), $offered, true));
                 $roles = static::roles()->filter(fn (Model $role) => in_array(static::name($role), $chosen, true))->merge($keep);
 
+                $before = array_map(static::name(...), [...static::rolesOf($user)]);
                 $user->syncRoles($roles->all()); // @phpstan-ignore method.notFound (model() checks the user model uses HasRoles)
+                $after = array_map(static::name(...), [...$roles]);
+                static::recordChange('roles changed', $user, $before, $after);
             })
             ->disabled(function (?Model $user): bool {
                 $current = auth(app(Panel::class)->getGuard())->user();
@@ -153,6 +157,26 @@ class UserResource extends Resource
                 return $user !== null && $current instanceof Model && $user->is($current);
             })
             ->help('Nobody can change their own roles.');
+    }
+
+    /**
+     * A security event when what someone may do changed: "added: editor; removed: author".
+     *
+     * @param  list<string>  $before
+     * @param  list<string>  $after
+     */
+    protected static function recordChange(string $action, Model $subject, array $before, array $after): void
+    {
+        $added = array_values(array_diff($after, $before));
+        $removed = array_values(array_diff($before, $after));
+        if ($added === [] && $removed === []) {
+            return;
+        }
+        $note = implode('; ', array_filter([
+            $added === [] ? null : 'added: '.implode(', ', $added),
+            $removed === [] ? null : 'removed: '.implode(', ', $removed),
+        ]));
+        app(SecurityLog::class)->record($action, $subject, null, ['note' => $note]);
     }
 
     /**

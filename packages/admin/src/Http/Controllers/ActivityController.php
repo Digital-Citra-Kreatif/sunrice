@@ -133,6 +133,10 @@ final class ActivityController
         if (isset($this->panel->getResources()[$activity->subject_type])) {
             return route("sunrice.admin.resources.{$activity->subject_type}.edit", $id, false);
         }
+        // Security events are about accounts: the user's page.
+        if ($activity->subject_type === 'account' && isset($this->panel->getResources()['users'])) {
+            return route('sunrice.admin.resources.users.edit', $id, false);
+        }
         if ($activity->subject_type === 'settings' && isset($this->panel->getSettings()[$id])) {
             return route('sunrice.admin.settings.edit', $id, false);
         }

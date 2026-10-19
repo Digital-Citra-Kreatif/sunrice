@@ -28,6 +28,8 @@ use Sunrice\Admin\Console\MediaSizesCommand;
 use Sunrice\Admin\Console\PruneActivityCommand;
 use Sunrice\Admin\Console\PublishAssetsCommand;
 use Sunrice\Admin\Console\SyncPermissionsCommand;
+use Sunrice\Admin\Events\LoginThrottled;
+use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Settings\SettingsStore;
 
 /**
@@ -70,6 +72,23 @@ final class AdminServiceProvider extends ServiceProvider
         });
 
         // Keep the permissions in step with the code after every migrate.
+        // Login limits reached are security events.
+        Event::listen(LoginThrottled::class, function (LoginThrottled $event): void {
+            $security = $this->app->make(SecurityLog::class);
+            $minutes = (int) ceil($event->seconds / 60);
+            $account = $security->findAccount($event->email);
+            $security->record(
+                $event->scope === 'account' ? 'account locked' : 'login blocked',
+                $account,
+                $account === null ? $event->email : null,
+                ['note' => match ($event->scope) {
+                    'account' => "too many wrong passwords from any IP; locked for {$minutes} min",
+                    'ip' => "too many wrong passwords from this IP; blocked for {$minutes} min",
+                    default => "too many wrong passwords; blocked for {$minutes} min",
+                }],
+            );
+        });
+
         Event::listen([MigrationsEnded::class, NoPendingMigrations::class], function (): void {
             $table = config('permission.table_names.permissions');
             if ($this->app->bound(Panel::class) && is_string($table) && Schema::hasTable($table)) {

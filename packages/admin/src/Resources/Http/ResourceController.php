@@ -22,6 +22,7 @@ use Sunrice\Admin\Resources\Tables\Action;
 use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Filter;
+use Sunrice\Admin\Security\SecurityLog;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -198,6 +199,9 @@ final class ResourceController
 
         $columns = $resource->table()->getColumns();
         $query = (new ListQuery($resource, $request))->builder();
+        // Exports can carry personal data out of the panel.
+        $user = $request->user();
+        app(SecurityLog::class)->record('exported', $user instanceof Model ? $user : null, null, ['note' => $resource->class::label().' (CSV)']);
 
         return response()->streamDownload(function () use ($columns, $query): void {
             $out = fopen('php://output', 'w');

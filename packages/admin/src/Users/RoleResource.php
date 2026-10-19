@@ -18,6 +18,7 @@ use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Table;
+use Sunrice\Admin\Security\SecurityLog;
 
 /**
  * The panel's Roles screen: roles of the panel's guard and the permissions
@@ -135,7 +136,19 @@ class RoleResource extends Resource
                 $keep = array_diff(static::namesOf($role->getRelationValue('permissions')), $offered);
                 $names = [...array_intersect($offered, $chosen), ...$keep];
 
+                $before = static::namesOf($role->getRelationValue('permissions'));
                 $role->syncPermissions(static::permissions()->filter(fn (Model $p) => in_array($p->getAttribute('name'), $names, true))->all()); // @phpstan-ignore method.notFound (the role model uses HasPermissions)
+                $after = array_values(array_unique($names));
+                $added = array_values(array_diff($after, $before));
+                $removed = array_values(array_diff($before, $after));
+                if ($added !== [] || $removed !== []) {
+                    $note = implode('; ', array_filter([
+                        $added === [] ? null : 'added: '.implode(', ', $added),
+                        $removed === [] ? null : 'removed: '.implode(', ', $removed),
+                    ]));
+                    $name = $role->getAttribute('name');
+                    app(SecurityLog::class)->about('permissions changed', 'roles', $role, is_string($name) ? $name : null, ['note' => $note]);
+                }
             });
     }
 
