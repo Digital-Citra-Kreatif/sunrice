@@ -2,7 +2,7 @@
 
 A **blueprint** lists the fields editors fill in for one kind of content: the entries of a collection, a taxonomy's terms, a global set or a form. A **fieldset** is a group of fields used in several places: blueprints include it, and flexible fields use fieldsets as their kinds of block.
 
-Both are stored in the database (`sunrice_blueprints`, `sunrice_fieldsets`) and built in the admin. Changing a blueprint never deletes data: content keeps values under handles the blueprint no longer has, and they come back when the field does.
+Both are stored in the database (`sunrice_blueprints`, `sunrice_fieldsets`) and built in the admin under **Structure → Blueprints** and **Structure → Fieldsets**, for people with the `cms.blueprints.manage` permission. The builder adds, edits, reorders and removes fields, nests groups and repeaters, and shows each type's settings. Changing a blueprint never deletes data: content keeps values under handles the blueprint no longer has, and they come back when the field does.
 
 ## Field definitions
 

@@ -75,6 +75,27 @@ $panel->bundle(
 );
 ```
 
+### Styles
+
+The panel's stylesheet already holds Tailwind's base styles and theme. Build only the utilities your pages use, with the theme's values written in and the panel's colours read from its CSS variables, so your pages follow the panel's colours, dark mode and branding without a second copy of Tailwind:
+
+```css
+/* resources/css/admin.css, imported by the bundle's entry */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme) theme(reference inline);
+@import 'tailwindcss/utilities.css' layer(utilities) source('../js');
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline reference {
+    --color-primary: var(--primary);
+    --color-muted-foreground: var(--muted-foreground);
+    /* … the panel's other colours: see packages/cms/resources/css/admin.css */
+}
+```
+
+The CMS's own bundle (`packages/cms`) is a complete example.
+
 The panel loads the bundle the first time a page under `Shop/` opens, not on every admin page. Page prefixes are folders ending in `/`; two bundles can't claim the same pages, and the panel's own folders (`Auth/`, `Users/`, `Settings/`…) are reserved.
 
 ## Compatibility

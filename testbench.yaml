@@ -31,4 +31,7 @@ workbench:
     - db-seed:
         --class: Workbench\Database\Seeders\DatabaseSeeder
     - sunrice:assets
+    - vendor:publish:
+        --tag: sunrice-cms-assets
+        --force: true
     - storage:link
