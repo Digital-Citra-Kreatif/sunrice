@@ -26,11 +26,13 @@ use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Ai\TokenScope;
 use Sunrice\Admin\Assets\AdminAssets;
+use Sunrice\Admin\Console\InstallCommand;
 use Sunrice\Admin\Console\MakeAdminCommand;
 use Sunrice\Admin\Console\MediaSizesCommand;
 use Sunrice\Admin\Console\OptimizeImagesCommand;
 use Sunrice\Admin\Console\PruneActivityCommand;
 use Sunrice\Admin\Console\PublishAssetsCommand;
+use Sunrice\Admin\Console\SeedRolesCommand;
 use Sunrice\Admin\Console\SyncPermissionsCommand;
 use Sunrice\Admin\Console\TwoFactorCommand;
 use Sunrice\Admin\Console\UnlockCommand;
@@ -159,7 +161,7 @@ final class AdminServiceProvider extends ServiceProvider
         });
 
         if ($this->app->runningInConsole()) {
-            $this->commands([PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class, PruneActivityCommand::class, UnlockCommand::class, TwoFactorCommand::class, OptimizeImagesCommand::class]);
+            $this->commands([InstallCommand::class, SeedRolesCommand::class, PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class, PruneActivityCommand::class, UnlockCommand::class, TwoFactorCommand::class, OptimizeImagesCommand::class]);
             $this->publishes([dirname(__DIR__).'/config/sunrice-admin.php' => config_path('sunrice-admin.php')], 'sunrice-admin-config');
             $this->publishes([AdminAssets::distPath() => public_path(AdminAssets::BUILD_DIRECTORY)], 'sunrice-admin-assets');
         }

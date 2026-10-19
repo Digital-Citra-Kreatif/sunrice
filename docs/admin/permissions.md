@@ -11,6 +11,14 @@ class User extends Authenticatable
 }
 ```
 
+## Installing
+
+```bash
+php artisan sunrice:install --roles
+```
+
+It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the migrations, publishes the admin's assets (and the plugins', tagged `laravel-assets`), links `public/storage` for the media library, syncs the permissions, creates the [default roles](#default-roles) with `--roles`, and offers to create a super admin (`--no-user` skips it). It's safe to run again. Your user model needs the `HasRoles` trait first; the command says so when it's missing.
+
 ## The first admin
 
 ```bash
@@ -35,6 +43,21 @@ The panel and its plugins register their permissions in PHP (`$panel->permission
 It also runs after every `php artisan migrate`, so a deploy keeps them in step.
 
 Every admin route needs `sunrice.access` ("Open the admin panel"); give it to the roles that may sign in to the panel. Unknown permissions are denied.
+
+## Default roles
+
+`php artisan sunrice:roles` (or `sunrice:install --roles`) creates roles to start from:
+
+| Role | Permissions |
+| --- | --- |
+| `administrator` | Every permission, without the super admin's bypass of your app's own checks. |
+| `editor` (the CMS) | The panel, media, and all content: entries, terms, globals, menus, comments, reading form submissions. Not structure, settings, users or roles. |
+
+Run it again after adding plugins or collections: it gives these roles the permissions they're missing. It only adds, so permissions you give these roles in the panel stay, but one you take away comes back the next time. Plugins and your app add roles, or add to them, while the panel registers:
+
+```php
+$panel->defaultRole('cashier', ['sunrice.access', 'shop.orders.*']);   // names or patterns; "*" for every one
+```
 
 ## Managing roles in the panel
 
