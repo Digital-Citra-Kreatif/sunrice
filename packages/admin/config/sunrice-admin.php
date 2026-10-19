@@ -99,6 +99,15 @@ return [
         'keep_days' => 365,
     ],
 
+    // A captcha for public forms (Cloudflare Turnstile, Google reCAPTCHA v2
+    // or hCaptcha), which plugins ask for with Security\Captcha. Off until
+    // both keys are set.
+    'captcha' => [
+        'provider' => env('SUNRICE_CAPTCHA_PROVIDER', 'turnstile'),
+        'site_key' => env('SUNRICE_CAPTCHA_SITE_KEY'),
+        'secret_key' => env('SUNRICE_CAPTCHA_SECRET_KEY'),
+    ],
+
     'security' => [
         // Also write security events (logins, failed and blocked logins, blocked
         // uploads …) to this log channel, e.g. 'daily', for fail2ban or a log

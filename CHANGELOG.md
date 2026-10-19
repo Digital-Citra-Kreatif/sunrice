@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Forms: a **File (forms)** field (accepted types, largest size; scripts always refused; kept on the private `sunrice-cms.forms.upload_disk`, downloaded from the submission by `cms.submissions.view`, deleted with it), a page to go to once sent (`redirect_url`, also in JSON answers), a limit per form (`per_minute`), a captcha per form, and pruning old submissions with their files (`sunrice-cms.forms.prune_after_days`, daily `model:prune`). The rate limit now counts per form. Migration `000014`.
+- `Sunrice\Admin\Security\Captcha` (`@api`, config `sunrice-admin.captcha`): Turnstile, reCAPTCHA v2 or hCaptcha for public forms.
 - Structured data (schema.org JSON-LD) in `<x-sunrice-cms::seo />`: the website with its search box and publisher (Settings → Site: on or off, organization or person, logo), entries as articles or web pages (collections' new `schema_type`, migration `000013`), breadcrumbs, collection pages and search results; templates add nodes with `:schema`. `Support\StructuredData`.
 - **PHP 8.4 or newer** is required.
 - The whole-page cache (`sunrice-cms.cache.pages`) now uses `spatie/laravel-responsecache` (install it to use the cache; the CMS sets its cache profile, `Site\PageCacheProfile`, and a serializer that keeps no cookies). `PageCache::skipWhen()` stays; the `X-Sunrice-Cache` header is gone (responsecache's `X-Cache-Status` with `APP_DEBUG`). See `docs/cms/caching.md`.

@@ -77,3 +77,16 @@ app(\Sunrice\Admin\Security\SecurityAlerts::class)->raise('shop-payout-changed',
 ```
 
 It goes to the same people, does nothing when alerts are off, and never throws.
+
+## Captcha
+
+`Sunrice\Admin\Security\Captcha` gives plugins a captcha for public forms: Cloudflare Turnstile (the default), Google reCAPTCHA v2 or hCaptcha, set with `SUNRICE_CAPTCHA_PROVIDER`, `SUNRICE_CAPTCHA_SITE_KEY` and `SUNRICE_CAPTCHA_SECRET_KEY` (`sunrice-admin.captcha`). It's off until both keys are set.
+
+```php
+$captcha = app(\Sunrice\Admin\Security\Captcha::class);
+$captcha->enabled();          // both keys set
+$captcha->widget();           // the widget, with the provider's script once per page
+$captcha->passes($request);   // the visitor's answer is right (always true when it's off)
+```
+
+When the provider can't be reached or refuses the secret key, the answer counts as wrong and a warning is logged. The CMS uses it for forms.

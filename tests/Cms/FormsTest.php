@@ -130,7 +130,7 @@ it('lists, shows and deletes submissions for those allowed', function () {
     get('/admin/cms/forms/contact/submissions')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Submissions/Index', shouldExist: false)
         ->where('forms.0.count', 1)
-        ->where('submissions.data.0.rows.0', ['handle' => 'name', 'label' => 'Your name', 'value' => 'Ana'])
+        ->where('submissions.data.0.rows.0', ['handle' => 'name', 'label' => 'Your name', 'value' => 'Ana', 'file' => null])
         ->where('submissions.data.0.rows.2.value', 'Help')
         ->where('can.delete', false));
     delete("/admin/cms/submissions/{$submission->id}")->assertForbidden();
