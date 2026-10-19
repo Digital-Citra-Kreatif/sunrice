@@ -13,6 +13,11 @@ return [
         // passwords.*); null for the app's default broker.
         'passwords' => null,
 
+        // Two-factor login (a code emailed after the password) is switched on
+        // in Settings → Security. true or false here forces it, whatever the
+        // setting says; null follows the setting.
+        'two_factor' => null,
+
         // Brute-force protection for the panel's login. Wrong passwords are
         // counted three ways; the first limit reached makes the person wait.
         'throttle' => [

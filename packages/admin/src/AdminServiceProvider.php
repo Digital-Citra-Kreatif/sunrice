@@ -31,13 +31,16 @@ use Sunrice\Admin\Console\MediaSizesCommand;
 use Sunrice\Admin\Console\PruneActivityCommand;
 use Sunrice\Admin\Console\PublishAssetsCommand;
 use Sunrice\Admin\Console\SyncPermissionsCommand;
+use Sunrice\Admin\Console\TwoFactorCommand;
 use Sunrice\Admin\Console\UnlockCommand;
 use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Events\LoginThrottled;
 use Sunrice\Admin\Events\SecurityEventRecorded;
+use Sunrice\Admin\Events\SettingsSaved;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
+use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\SettingsStore;
 
 /**
@@ -82,6 +85,9 @@ final class AdminServiceProvider extends ServiceProvider
             return Limit::perMinute(is_numeric($perMinute) ? (int) $perMinute : 5)->by((string) $request->ip());
         });
 
+        // Typing and resending login codes, per IP; each code also allows only a few guesses.
+        RateLimiter::for('sunrice-login-code', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
+
         $this->loadMigrationsFrom(dirname(__DIR__).'/database/migrations');
 
         // AI agents per token: 120 requests a minute by default.
@@ -104,6 +110,15 @@ final class AdminServiceProvider extends ServiceProvider
         // Security alerts by email.
         Event::listen(SecurityEventRecorded::class, [SecurityAlerts::class, 'handleSecurityEvent']);
         Event::listen(ActivityRecorded::class, [SecurityAlerts::class, 'handleActivity']);
+        // Switching two-factor login is a security event (turning it off alerts).
+        Event::listen(SettingsSaved::class, function (SettingsSaved $event): void {
+            if ($event->section === SecuritySettings::key() && in_array('twoFactor', $event->changed, true)) {
+                $on = app(SecuritySettings::class)->twoFactor;
+                $user = auth(app(Panel::class)->getGuard())->user();
+                app(SecurityLog::class)->record('two-factor turned '.($on ? 'on' : 'off'), $user instanceof Model ? $user : null, null,
+                    ['note' => app()->runningInConsole() ? 'from the console' : 'in Settings → Security']);
+            }
+        });
 
         // Login limits reached are security events.
         Event::listen(LoginThrottled::class, function (LoginThrottled $event): void {
@@ -140,7 +155,7 @@ final class AdminServiceProvider extends ServiceProvider
         });
 
         if ($this->app->runningInConsole()) {
-            $this->commands([PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class, PruneActivityCommand::class, UnlockCommand::class]);
+            $this->commands([PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class, PruneActivityCommand::class, UnlockCommand::class, TwoFactorCommand::class]);
             $this->publishes([dirname(__DIR__).'/config/sunrice-admin.php' => config_path('sunrice-admin.php')], 'sunrice-admin-config');
             $this->publishes([AdminAssets::distPath() => public_path(AdminAssets::BUILD_DIRECTORY)], 'sunrice-admin-assets');
         }

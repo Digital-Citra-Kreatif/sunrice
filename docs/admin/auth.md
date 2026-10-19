@@ -6,6 +6,15 @@ The panel has its own login, logout and password reset pages under its path (`/a
 
 Signing in needs the right password **and** the `sunrice.access` permission ("Open the admin panel"): an app's customers can share the users table without getting into the admin. An account without it gets "This account can't use the admin panel." and stays signed out. Every panel route checks the same permission. Give it through a role, or make someone a super admin with `php artisan sunrice:make-admin` (see [Roles and permissions](permissions.md)).
 
+## Two-factor login
+
+Turn on **Two-factor login** in Settings → Security (permission `sunrice.settings.security`): after the right password, the panel emails a 6-digit code, and the person is signed in only once they type it.
+
+- A code works for 10 minutes and allows 5 guesses; a new one can be sent once a minute. Wrong codes also count per account (10 within 15 minutes lock the codes out), so logging in again for fresh codes doesn't give endless guesses. Only a keyed hash of the code is kept, in the session.
+- The code goes to the account's `email`, right away (not queued). When the email can't be sent, nobody is signed in and the login form says so: make sure your app can send email before you turn it on.
+- Locked out because email stopped working? `php artisan sunrice:two-factor off` (and `on`, or no argument to see it). `sunrice-admin.auth.two_factor` (`true` or `false`) forces it whatever the setting says; `null`, the default, follows the setting.
+- Codes are typed at `/admin/login/code` (`sunrice.admin.login.code`), limited to 10 tries and resends a minute per IP.
+
 ## Brute-force protection
 
 Wrong passwords are counted three ways (`config/sunrice-admin.php`, `auth.throttle`); the first limit reached makes the person wait:

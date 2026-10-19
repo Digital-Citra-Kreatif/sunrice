@@ -9,7 +9,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | Action | When |
 | --- | --- |
 | `logged in`, `logged out` | Someone signed in to or out of the panel. |
-| `login failed` | A wrong password, or an email with no account (then the email typed is shown). |
+| `login failed` | A wrong password, or an email with no account (then the email typed is shown), or a wrong [login code](auth.md#two-factor-login). |
 | `login refused` | The right password for an account that may not open the panel (`sunrice.access`). |
 | `login blocked` | Too many wrong passwords from one IP, or for one email from one IP (once, when the limit is reached), or a locked account trying to log in or open a page. |
 | `account locked` | Too many wrong passwords for one account from any IPs: it's locked for `account_lock_seconds`. |
@@ -17,6 +17,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `upload blocked` | A script, executable or web page, or an SVG that could run code, uploaded to the media library. |
 | `exported` | A resource's CSV export (exports can carry personal data out of the panel). |
 | `roles changed`, `permissions changed` | A user's roles or a role's permissions changed, with what was added and removed. |
+| `two-factor turned on`, `two-factor turned off` | [Two-factor login](auth.md#two-factor-login) was switched, in Settings → Security or from the console. |
 | `token created`, `token revoked`, `tokens revoked`, `token used from new IP` | [AI access](ai.md) tokens. |
 | `signed out everywhere`, `account locked by admin`, `account unlocked` | An administrator acted on an account (see below). |
 
@@ -61,6 +62,7 @@ When something may be a break-in, the panel emails super admins, users with the 
 | A dangerous upload was blocked | `upload blocked` |
 | A new AI access token was created | `token created` |
 | An AI access token was used from a new address | `token used from new IP` |
+| Two-factor login was turned off | `two-factor turned off` |
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
 | Many things deleted in a short time | `mass_deletes` (20) deletes or trashes by one person or AI agent within 10 minutes. |
 
