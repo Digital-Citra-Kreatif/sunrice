@@ -68,3 +68,35 @@ $this->app->bind(Translator::class, DeepLTranslator::class);
 
 It gets strings by key and returns the translations by the same keys; a
 key left out counts as failed.
+
+# Switching the main language
+
+The main language is the first in `sunrice-cms.locales`: its pages have
+no prefix (`/about`, the others `/id/about`) and it holds the fields
+shared by all languages (images, toggles, numbers…). To make another one
+the main language once content exists, convert the content first, then
+change the config:
+
+```bash
+php artisan sunrice:switch-main-language id --dry-run   # what blocks it, what changes
+php artisan sunrice:switch-main-language id
+# then: SUNRICE_LOCALES=id,en
+```
+
+The command:
+
+- copies the shared fields of every entry (live and draft), term, global
+  set and listing page to that language, which holds them from then on;
+- adds redirects (301) for the addresses that change: `/about` →
+  `/en/about` and `/id/tentang` → `/tentang`; redirects that led to the old
+  addresses follow;
+- lists entries live in the main language but not published in the new
+  one: they won't be on the site at their main address until they are.
+
+Entries and terms with no version in the new language stop it. Translate
+them first (`sunrice:translate --to=id`), or pass `--copy-missing` to give
+them a copy of the main language's content, published as it is.
+
+Nothing on the site changes until the config does, and the site's caches
+start over when the languages change. Back up the database first; `--force`
+skips the question.
