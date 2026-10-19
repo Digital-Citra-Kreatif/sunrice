@@ -644,12 +644,14 @@ dashboard and login.
 
 ## 11. Verification baseline
 
-Checked on this branch with PHP 8.3 (the packages require 8.4; the
-platform check was ignored for the install):
+Checked on this branch in a container with PHP 8.3 (the packages require
+8.4, and no 8.4 build was obtainable there):
 
 | Check | Result |
 | --- | --- |
 | `npm run typecheck` | passes (admin app and CMS app) |
 | `npm run test:frontend` | 29 tests pass |
-| `composer test`, `composer lint`, `composer analyse` | see the pull request description; the cloud container's GitHub zip downloads were blocked, so dependencies were installed from git sources |
+| `composer lint` | passes |
+| `composer test` | could not run: Laravel 13 and Symfony 8.1 use PHP 8.4 property hooks, which PHP 8.3 cannot parse (every test errors in `symfony/http-foundation` `Request.php:117`); run on PHP 8.4 or in CI |
+| `composer analyse` | could not run for the same reason (Larastan boots the application) |
 | `dist/` sizes | admin 812 KB (646 KB app chunk + 85 KB CSS + 15 page chunks), CMS 804 KB (151 KB + 648 KB lazy rich-text chunk); OLD 1.6 MB in one chunk |
