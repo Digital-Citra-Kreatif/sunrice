@@ -22,13 +22,18 @@ final class LoginController
 
     public function store(Request $request, AttemptLogin $login): RedirectResponse
     {
-        $credentials = $request->validate([
+        $request->validate([
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'max:1000'],
             'remember' => ['boolean'],
         ]);
 
-        $login->handle($credentials['email'], $credentials['password'], $request->boolean('remember'), (string) $request->ip());
+        $login->handle(
+            $request->string('email')->toString(),
+            $request->string('password')->toString(),
+            $request->boolean('remember'),
+            (string) $request->ip(),
+        );
         $request->session()->regenerate();
 
         return redirect()->intended(route('sunrice.admin.dashboard'));

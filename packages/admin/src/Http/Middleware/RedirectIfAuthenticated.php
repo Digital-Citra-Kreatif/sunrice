@@ -20,6 +20,7 @@ final class RedirectIfAuthenticated
 {
     public function __construct(private Panel $panel) {}
 
+    /** @param  Closure(Request): Response  $next */
     public function handle(Request $request, Closure $next): Response
     {
         if (Auth::guard($this->panel->getGuard())->check()) {
