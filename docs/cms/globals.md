@@ -8,7 +8,7 @@ Under **Structure → Global sets** (permissions `cms.global-sets.view`, `.creat
 
 ## Editing
 
-Under **Content → Globals** (`cms.globals.view` to see, `cms.globals.update` to save): each set's fields, in each language. Fields the blueprint shares across languages are edited in the main language and shown read-only in the others, as for entries. Until a set is saved, its fields have their defaults.
+Under **Content → Globals** (`cms.globals.view` to see, `cms.globals.update` to save): each set's fields, in each language. Fields the blueprint shares across languages are edited in the main language and shown read-only in the others, as for entries. Until a set is saved, its fields have their defaults. One person edits a set in a language at a time ([edit locks](../admin/locks.md)).
 
 In code, `SaveGlobals` saves a set's values in a language: `app(SaveGlobals::class)->handle($set, ['phone' => '…'], 'id')`. Fields left out keep their values.
 

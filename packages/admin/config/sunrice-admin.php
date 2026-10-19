@@ -71,6 +71,12 @@ return [
         'max_pixels' => 40_000_000,
     ],
 
+    'locks' => [
+        // The cache store edit locks live in (config/cache.php); null for the
+        // default. Every server must share it.
+        'store' => null,
+    ],
+
     'activity' => [
         // Record who changed what in the panel (and security events).
         'enabled' => true,

@@ -39,6 +39,7 @@ In the list, tick entries to publish, unpublish or trash them together (in the t
 
 - **Ctrl/Cmd+S** saves the draft, and leaving the page with unsaved changes asks first.
 - **Duplicate** copies every language's draft as a new draft entry ("Hello (copy)", slug `hello-copy`).
+- Only one person edits an entry in a language at a time: others are told who's editing and can view it or take over (see [edit locks](../admin/locks.md)).
 - When someone else saved since you opened the page, saving says so: **Load theirs**, or **Save mine anyway** over their version.
 
 Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it).

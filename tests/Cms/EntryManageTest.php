@@ -18,6 +18,7 @@ use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
+use function Pest\Laravel\postJson;
 use function Pest\Laravel\put;
 
 beforeEach(function () {
@@ -135,4 +136,14 @@ it('saves over a newer version when asked to', function () {
     put("/admin/cms/entries/{$hello->entry_id}", ['title' => 'Mine', 'version' => 1])->assertSessionHasErrors('version');
     put("/admin/cms/entries/{$hello->entry_id}", ['title' => 'Mine', 'version' => null])->assertSessionHasNoErrors();
     expect($hello->fresh()?->draft_title)->toBe('Mine');
+});
+
+it('locks entries and global sets for those who may edit them', function () {
+    $hello = managed('Hello');
+    manager('view');
+    postJson("/admin/locks/cms.entry/{$hello->entry_id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertForbidden();
+
+    manager('view', 'update');
+    postJson("/admin/locks/cms.entry/{$hello->entry_id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertJson(['status' => 'ok']);
+    postJson('/admin/locks/cms.entry/999', ['editor' => 'tab-a'])->assertForbidden();
 });

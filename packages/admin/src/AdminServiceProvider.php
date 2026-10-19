@@ -37,6 +37,7 @@ use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Events\LoginThrottled;
 use Sunrice\Admin\Events\SecurityEventRecorded;
 use Sunrice\Admin\Events\SettingsSaved;
+use Sunrice\Admin\Locks\KeptEdit;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
@@ -152,6 +153,8 @@ final class AdminServiceProvider extends ServiceProvider
         // Old activity log lines go daily (when the app runs the scheduler).
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
             $schedule->command('sunrice:activity-prune')->daily();
+            // Unsaved changes kept from edit locks taken over, after a month.
+            $schedule->command('model:prune', ['--model' => [KeptEdit::class]])->daily();
         });
 
         if ($this->app->runningInConsole()) {

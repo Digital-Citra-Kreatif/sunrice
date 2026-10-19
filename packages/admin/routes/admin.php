@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Http\Controllers\ActivityController;
 use Sunrice\Admin\Http\Controllers\DashboardController;
+use Sunrice\Admin\Http\Controllers\EditLocksController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
 
 /*
@@ -19,3 +20,13 @@ Route::get('settings/{section}', [SettingsController::class, 'edit'])->name('set
 Route::put('settings/{section}', [SettingsController::class, 'update'])->name('settings.update');
 
 Route::get('activity', ActivityController::class)->name('activity.index');
+
+// Edit locks of the types plugins register with $panel->lockable(); each item is checked there.
+Route::prefix('locks/{type}/{id}')->name('locks.')->controller(EditLocksController::class)->group(function (): void {
+    Route::post('/', 'renew')->name('renew');
+    Route::post('take', 'take')->name('take');
+    Route::post('release', 'release')->name('release');
+    Route::post('keep', 'keep')->name('keep');
+});
+Route::get('kept-edits/{kept}', [EditLocksController::class, 'show'])->name('kept-edits.show');
+Route::delete('kept-edits/{kept}', [EditLocksController::class, 'destroy'])->name('kept-edits.destroy');
