@@ -1,0 +1,15 @@
+{
+    "private": true,
+    "name": "sunrice-monorepo",
+    "type": "module",
+    "workspaces": [
+        "packages/admin-sdk",
+        "packages/admin"
+    ],
+    "scripts": {
+        "build": "npm run build -w @sunrice/admin-sdk && npm run build -w @sunrice/admin-app",
+        "typecheck": "npm run build -w @sunrice/admin-sdk && npm run typecheck -w @sunrice/admin-app",
+        "test:frontend": "npm run build -w @sunrice/admin-sdk && node --experimental-strip-types --no-warnings --test tests/Frontend/*.test.ts",
+        "dev": "npm run dev -w @sunrice/admin-app"
+    }
+}

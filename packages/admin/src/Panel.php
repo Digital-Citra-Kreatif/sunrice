@@ -7,6 +7,7 @@ namespace Sunrice\Admin;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use InvalidArgumentException;
+use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Navigation\NavigationItem;
@@ -29,6 +30,15 @@ final class Panel
     /** The permission prefix of the panel itself; no plugin may use it. */
     public const CORE = 'sunrice';
 
+    /** The permission to open the panel at all. */
+    public const ACCESS = 'sunrice.access';
+
+    /** Page data keys the panel itself shares with every page. */
+    private const RESERVED_SHARED = ['sunrice', 'auth', 'navigation', 'flash', 'errors'];
+
+    /** Page folders of the panel's own React pages; plugin bundles use others. */
+    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/'];
+
     private string $path = 'admin';
 
     private string $guard = 'web';
@@ -49,6 +59,12 @@ final class Panel
 
     /** @var array<string, Closure(): mixed> */
     private array $shared = [];
+
+    /** @var list<Closure(): void> */
+    private array $routes = [];
+
+    /** @var array<string, PluginBundle> */
+    private array $bundles = [];
 
     /** The plugin whose register() is running, if any: it owns what is declared meanwhile. */
     private ?Plugin $registering = null;
@@ -166,10 +182,57 @@ final class Panel
     public function share(string $key, Closure $value): self
     {
         $this->assertRegistering();
+        if (in_array($key, self::RESERVED_SHARED, true)) {
+            throw new PanelMisconfigured("The shared page data key \"{$key}\" belongs to the panel{$this->owner()}.");
+        }
         if (isset($this->shared[$key])) {
             throw new PanelMisconfigured("The shared page data \"{$key}\" is registered twice{$this->owner()}.");
         }
         $this->shared[$key] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Routes for signed-in users who can open the panel, under the panel's
+     * path, named "sunrice.admin.…": `$panel->routes(fn () => Route::get('shop/orders', ...)->name('shop.orders.index'))`.
+     * Protect each route further with the permission or policy it needs.
+     *
+     * @param  Closure(): void  $routes
+     */
+    public function routes(Closure $routes): self
+    {
+        $this->assertRegistering();
+        $this->routes[] = $routes;
+
+        return $this;
+    }
+
+    /** A plugin's admin JavaScript, loaded when one of its pages opens. */
+    public function bundle(PluginBundle $bundle): self
+    {
+        $this->assertRegistering();
+        if (isset($this->bundles[$bundle->id])) {
+            throw new PanelMisconfigured("Two bundles have the id \"{$bundle->id}\"{$this->owner()}.");
+        }
+        if ($bundle->getModule() === null) {
+            throw new PanelMisconfigured("The bundle \"{$bundle->id}\" has no module: set one with ->module(url).");
+        }
+        foreach ($bundle->getPages() as $prefix) {
+            foreach (self::RESERVED_PAGES as $reserved) {
+                if (str_starts_with($prefix, $reserved) || str_starts_with($reserved, $prefix)) {
+                    throw new PanelMisconfigured("The bundle \"{$bundle->id}\" claims the pages \"{$prefix}\", which belong to the panel.");
+                }
+            }
+            foreach ($this->bundles as $other) {
+                foreach ($other->getPages() as $taken) {
+                    if (str_starts_with($prefix, $taken) || str_starts_with($taken, $prefix)) {
+                        throw new PanelMisconfigured("The bundles \"{$other->id}\" and \"{$bundle->id}\" both claim the pages \"{$prefix}\".");
+                    }
+                }
+            }
+        }
+        $this->bundles[$bundle->id] = $bundle;
 
         return $this;
     }
@@ -186,6 +249,8 @@ final class Panel
         if ($this->booted) {
             throw new PanelMisconfigured('The panel has already booted.');
         }
+
+        $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
 
         $ordered = $this->pluginsInDependencyOrder();
         foreach ($ordered as $plugin) {
@@ -258,6 +323,18 @@ final class Panel
     public function getSharedData(): array
     {
         return $this->shared;
+    }
+
+    /** @return list<Closure(): void> */
+    public function getRoutes(): array
+    {
+        return $this->routes;
+    }
+
+    /** @return array<string, PluginBundle> keyed by id */
+    public function getBundles(): array
+    {
+        return $this->bundles;
     }
 
     /**

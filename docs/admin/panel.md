@@ -66,12 +66,16 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 | Plugin ids are unique, lowercase, and not `sunrice` (the panel's own prefix). | `PanelMisconfigured` when the plugin is added. |
 | Every plugin in `requires()` is on the panel, with no circular requirements. | `PanelMisconfigured` at boot, naming the missing plugin or the circle. |
 | A plugin's permissions start with its id (`shop.…`); the app may not use a plugin's prefix. | `PanelMisconfigured` at boot. |
-| Navigation keys, permission names and shared data keys are unique. | `PanelMisconfigured`, naming the plugin that registered the duplicate. |
+| Navigation keys, permission names, shared data keys and bundle ids are unique; the panel's own shared data keys (`sunrice`, `auth`, `navigation`, `flash`, `errors`) are reserved. | `PanelMisconfigured`, naming the plugin that registered the duplicate. |
 | Submenu items point to an existing parent, one level deep. | `PanelMisconfigured` at boot. |
 
 ## Navigation
 
 `NavigationItem::make($key)` takes a label, a `url` relative to the panel path, an `icon` (a lucide name), a `group`, a `parent` (another item's key, for a submenu), a `sort` (lower first, 100 by default) and a `permission`. An item without a permission is shown to everyone who can open the panel. Hiding a parent hides its submenu.
+
+## Routes and pages
+
+`$panel->routes(fn () => ...)` adds routes for signed-in users who may open the panel (the `sunrice.access` permission), under the panel's path and named `sunrice.admin.…`. Plugin pages in React are explained in [Admin pages in React](frontend.md).
 
 ## Shared page data
 
