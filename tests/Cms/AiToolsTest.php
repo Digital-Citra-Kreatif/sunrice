@@ -107,7 +107,7 @@ it('translates, schedules, unpublishes and trashes', function () {
 it('checks permissions, and gives read-only tokens only the reading tools', function () {
     $viewer = cmsAgent(['cms.entries.view']);
     expect(cmsTool($viewer, 'cms_save_entry', ['collection' => 'blog', 'title' => 'X']))->toContain('permission to create entries')
-        ->and(cmsTool($viewer, 'cms_save_entry', ['id' => $this->hello->entry_id, 'title' => 'X']))->toContain('permission to edit entries')
+        ->and(cmsTool($viewer, 'cms_save_entry', ['id' => $this->hello->entry_id, 'title' => 'X']))->toContain('permission to edit this entry')
         ->and(cmsTool($viewer, 'cms_publish_entry', ['id' => $this->hello->entry_id]))->toContain('permission to publish')
         ->and(cmsTool($viewer, 'cms_trash_entry', ['id' => $this->hello->entry_id]))->toContain('permission to trash')
         ->and(cmsTool($viewer, 'cms_get_globals'))->toContain('permission')
