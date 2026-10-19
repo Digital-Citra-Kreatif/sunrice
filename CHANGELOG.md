@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The site's own words (search, forms, comments and their emails) are translated in the page's language, with Indonesian included (`lang/id.json`). Starter templates: `vendor:publish --tag=sunrice-cms-templates` copies the plain pages to `resources/views/cms/`. The form component's `submit` label defaults to the translated *Send*.
 - AI tools: `cms_get_site_info`, `cms_seo_audit`, `cms_entry_revisions`, `cms_move_entry`, `cms_get_blueprint`, `cms_save_blueprint`, `cms_get_menu`, `cms_save_menu`, `cms_get_listing`, `cms_save_listing` and `cms_delete_submissions`, each behind its permission. See `docs/cms/ai.md`.
 - `sunrice:ai-token` creates, lists and revokes a user's AI access tokens. The Activity log page deletes old lines (`sunrice.activity.prune`; a security event that alerts). The user menu chooses light, dark or the device's appearance.
 - Users: the edit page shows the last login, lock, sign-outs, AI tokens and what the user owns; deleting a user hands what they own to whoever deletes them (`$panel->ownedContent()`, `Users\OwnedContent`, `@api`; the panel counts files, the CMS entries); new passwords are typed twice. Resources get `aside()`, `deleteRecord()` and `Password::confirmed()` (`@api`). **Creating a user needs `password_confirmation`.**

@@ -227,3 +227,24 @@ In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perP
 ## Previews
 
 The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex`. Save first to see changes.
+
+## Starter templates
+
+The CMS shows plain pages until the app has its own templates. To start
+from them:
+
+```bash
+php artisan vendor:publish --tag=sunrice-cms-templates
+```
+
+That copies `entry`, `listing`, `term` and `search` to `resources/views/cms/`,
+which the site uses from then on (and `cms.{collection}` and the like
+before them, as above).
+
+## Words on the site
+
+What the CMS's own pages, forms and comments say (buttons, messages,
+emails to commenters) goes through Laravel's translations, in the page's
+language. The CMS comes with Indonesian (`lang/id.json` in the package);
+for another language, or other words, put the same English keys in the
+app's `lang/{locale}.json`, which wins.
