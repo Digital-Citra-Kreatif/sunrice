@@ -49,7 +49,7 @@ final class Panel
     private const RESERVED_SHARED = ['sunrice', 'auth', 'navigation', 'flash', 'errors'];
 
     /** Page folders of the panel's own React pages; plugin bundles use others. */
-    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/'];
+    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Email/', 'Security/', 'Resources/'];
 
     private string $path = 'admin';
 
@@ -116,7 +116,7 @@ final class Panel
     private ?string $roleResource = RoleResource::class;
 
     /** URL segments the panel uses itself; resources can't take them. */
-    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai'];
+    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'email', 'security', 'profile', 'ai'];
 
     /** The plugin whose register() is running, if any: it owns what is declared meanwhile. */
     private ?Plugin $registering = null;
@@ -579,6 +579,9 @@ final class Panel
         $this->settings = [...$own, ...$this->settings];
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
             ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
+        $this->permissions(Permission::make('sunrice.email.test', 'See how email is sent and send a test', 'Panel'));
+        $this->navigation(NavigationItem::make('email')->label('Email')->url('email')->icon('mail')
+            ->group('Administration')->sort(965)->permission('sunrice.email.test'));
         $this->dashboardCards(DashboardCard::make('activity')->title('Recent activity')->sort(900)->permission('sunrice.activity.view')
             ->list(fn (): array => Activity::query()->latest('id')->limit(6)->get()->map(fn (Activity $activity): array => [
                 'title' => trim(($activity->user_name ?? 'Someone').' '.$activity->action.' '.($activity->subject_label ?? $activity->subject_type)),

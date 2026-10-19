@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Http\Controllers\ActivityController;
 use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Http\Controllers\EditLocksController;
+use Sunrice\Admin\Http\Controllers\EmailController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
 
 /*
@@ -20,6 +21,11 @@ Route::get('settings/{section}', [SettingsController::class, 'edit'])->name('set
 Route::put('settings/{section}', [SettingsController::class, 'update'])->name('settings.update');
 
 Route::get('activity', ActivityController::class)->name('activity.index');
+
+Route::middleware('can:sunrice.email.test')->group(function (): void {
+    Route::get('email', [EmailController::class, 'index'])->name('email.index');
+    Route::post('email', [EmailController::class, 'store'])->middleware('throttle:5,1')->name('email.store');
+});
 
 // Edit locks of the types plugins register with $panel->lockable(); each item is checked there.
 Route::prefix('locks/{type}/{id}')->name('locks.')->controller(EditLocksController::class)->group(function (): void {

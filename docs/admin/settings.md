@@ -65,3 +65,11 @@ $shop->fill(['guestCheckout' => '0'])->save();   // converted to the property's 
 Settings forms use the [resource form fields](resources.md#forms), with field names matching the properties. Only the fields on the form are written. `Secret` is for API keys and the like: its value is never sent to the browser, and leaving it empty keeps the saved one. `Password` (which hashes) and fields with `saveUsing()` can't be settings.
 
 Saving a section fires `Sunrice\Admin\Events\SettingsSaved` with the section's key and the names of the settings that changed (no values: they may be secrets). The `Sunrice\Admin\Actions\Settings\SaveSettings` action does the same for your own screens.
+
+## Email
+
+Administration → Email (`sunrice.email.test`) shows how the app sends
+email (the mailer, its server and the sender, from `config/mail.php`),
+warns when the mailer only logs messages, and sends a test email to an
+address (five a minute). Password resets, sign-in codes and security
+alerts depend on email, so check it after setting up the app.
