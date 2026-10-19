@@ -50,7 +50,7 @@ app(SecurityLog::class)->about('api key rotated', 'integration', $integration, '
 
 ## Email alerts
 
-When something may be a break-in, the panel emails super admins, users with the roles in `security.alerts.roles`, and the addresses in `security.alerts.emails` (`config/sunrice-admin.php`). Each alert says what happened and what to do, and links to the security events:
+When something may be a break-in, the panel emails super admins, users with the roles in `security.alerts.roles`, the addresses in `security.alerts.emails` (`config/sunrice-admin.php`), and the roles and addresses chosen in Settings → Security. Each alert says what happened and what to do, and links to the security events:
 
 | Alert | When |
 | --- | --- |
@@ -64,7 +64,10 @@ When something may be a break-in, the panel emails super admins, users with the 
 | An AI access token was used from a new address | `token used from new IP` |
 | Two-factor login was turned off | `two-factor turned off` |
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
-| Many things deleted in a short time | `mass_deletes` (20) deletes or trashes by one person or AI agent within 10 minutes. |
+| Many things deleted in a short time | `mass_deletes` (20) deletes, trashes, unpublishes or purges by one person or AI agent within 10 minutes. |
+| Someone keeps opening pages they may not see | `forbidden` (15) pages refused (403) to one person within 10 minutes: a `pages refused` security event. |
+
+The account's owner gets a notice of their own when their account is locked or their AI access token is used from a new address: they know best whether it was them.
 
 The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. They need your app's mail settings; with a queue for mail they're sent like any other email.
 

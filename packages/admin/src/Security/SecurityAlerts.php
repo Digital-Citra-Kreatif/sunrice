@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Branding\Branding;
 use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Events\SecurityEventRecorded;
 use Sunrice\Admin\Mail\SecurityAlert;
@@ -49,8 +50,8 @@ final class SecurityAlerts
         'sunrice.roles.create', 'sunrice.roles.update', 'sunrice.roles.delete',
     ];
 
-    /** Activity log actions that take things away. */
-    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed'];
+    /** Activity log actions that take things away (from the site, too). */
+    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed', 'unpublished', 'purged'];
 
     public function __construct(private SecurityLog $log, private PermissionRank $rank, private Panel $panel) {}
 
@@ -92,7 +93,7 @@ final class SecurityAlerts
             if ($count >= $limit) {
                 $who = $line->user_name ?? $line->via ?? 'Someone';
                 $this->alert('mass-deletes', $actor, 'Many things deleted in a short time',
-                    "{$who} deleted or trashed {$count} things within 10 minutes (the last: {$line->subject_label}).",
+                    "{$who} deleted, trashed or unpublished {$count} things within 10 minutes (the last: {$line->subject_label}).",
                     'If this wasn\'t planned clean-up, the account may be in someone else\'s hands: lock it on the Users screen, then restore what you need from the trash or a backup.',
                     ['Who' => $who.($line->via !== null ? " (AI agent {$line->via})" : '')]);
             }
@@ -112,6 +113,9 @@ final class SecurityAlerts
                 $this->alert('account-locked', $account, 'An account was locked after wrong passwords',
                     "Someone kept typing wrong passwords for {$account}, from different addresses ({$note}).",
                     'If the account\'s owner didn\'t do this, someone is guessing the password. Make sure the account has a strong, unique password.', $details);
+                $this->tellOwner($e->account, 'account-locked', 'Your account was locked',
+                    'Someone typed wrong passwords for your account many times, so it was locked for a while.',
+                    'If it wasn\'t you, change your password once you can sign in, and tell whoever runs the panel.');
                 break;
             case 'login blocked':
                 if (($e->properties['scope'] ?? null) === 'ip') {
@@ -142,6 +146,14 @@ final class SecurityAlerts
                 $this->alert('token-new-ip', (string) $e->label.'|'.$note, 'An AI access token was used from a new address',
                     "{$e->label}'s AI access token was used {$note}.",
                     'If nobody moved to a new network or computer, the token may have been copied: revoke it on the Users screen.', $details);
+                $this->tellOwner($e->account, 'token-new-ip|'.$note, 'Your AI access token was used from a new address',
+                    "Your AI access token was used {$note}.",
+                    'If you didn\'t connect from a new network or computer, revoke the token on the AI access page.');
+                break;
+            case 'pages refused':
+                $this->alert('forbidden', (string) $e->label, 'Someone keeps opening pages they may not see',
+                    "{$e->label} was refused {$note}.",
+                    'People rarely do this by accident: it looks like someone exploring what the account can reach. If it isn\'t a broken link or a missing permission, lock the account on the Users screen.', $details);
                 break;
             case 'exported':
                 $this->exports($e, $details);
@@ -223,6 +235,26 @@ final class SecurityAlerts
         }
     }
 
+    /**
+     * Tells the account's owner too, by email, when they have an address:
+     * they know best whether it was them.
+     */
+    private function tellOwner(?Model $account, string $rule, string $headline, string $what, string $advice): void
+    {
+        $email = $account?->getAttribute('email');
+        $key = $account?->getKey();
+        if (! is_string($email) || filter_var($email, FILTER_VALIDATE_EMAIL) === false || ! is_scalar($key)
+            || ! Cache::add('sunrice-admin.notice:'.$rule.':'.$key, true, now()->addMinutes(self::number('cooldown_minutes', 60)))) {
+            return;
+        }
+        try {
+            Mail::to($email)->send(new SecurityAlert($headline, $what, $advice, ['When' => now()->toDayDateTimeString()],
+                Branding::shared($this->panel)['brand'], route('sunrice.admin.dashboard')));
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
     private function isPrivileged(Model $account): bool
     {
         return $this->rank->isSuperAdmin($account) || array_intersect($this->rank->permissionsOf($account), self::PRIVILEGED_PERMISSIONS) !== [];
@@ -261,7 +293,7 @@ final class SecurityAlerts
         }
 
         $mail = new SecurityAlert($headline, $what, $advice, [...$details, 'When' => now()->toDayDateTimeString()],
-            $this->panel->getBrand(), route('sunrice.admin.activity.index', ['source' => 'security']));
+            Branding::shared($this->panel)['brand'], route('sunrice.admin.activity.index', ['source' => 'security']));
         foreach ($recipients as $email) {
             try {
                 Mail::to($email)->send(clone $mail);
@@ -275,10 +307,11 @@ final class SecurityAlerts
     /** @return list<string> super admins, users with the configured roles, and the configured emails */
     private function recipients(): array
     {
+        $settings = app(SecuritySettings::class);
         $roles = config('sunrice-admin.security.alerts.roles');
-        $roles = [SyncPermissions::superAdminRole(), ...(is_array($roles) ? array_filter($roles, 'is_string') : [])];
+        $roles = [SyncPermissions::superAdminRole(), ...(is_array($roles) ? array_filter($roles, 'is_string') : []), ...$settings->alertRoles];
         $emails = config('sunrice-admin.security.alerts.emails');
-        $emails = is_array($emails) ? array_filter($emails, 'is_string') : [];
+        $emails = [...(is_array($emails) ? array_filter($emails, 'is_string') : []), ...SecuritySettings::emails($settings->alertEmails)];
 
         try {
             // Through spatie/laravel-permission's tables, for any user model.

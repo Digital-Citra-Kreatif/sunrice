@@ -118,6 +118,7 @@ return [
         // Sent to super admins, users with these roles, and these addresses.
         'alerts' => [
             'enabled' => env('SUNRICE_SECURITY_ALERTS', true),
+            // Besides super admins, and those chosen in Settings → Security.
             'roles' => [],
             'emails' => [],
             // The same alert (rule and account) at most this often.
@@ -126,8 +127,10 @@ return [
             'dormant_days' => 90,
             // CSV exports by one person in an hour.
             'exports' => 5,
-            // Deletes and trashes by one person (or AI agent) in 10 minutes.
+            // Deletes, trashes and unpublishes by one person (or AI agent) in 10 minutes.
             'mass_deletes' => 20,
+            // Pages one person is refused (403) in 10 minutes.
+            'forbidden' => 15,
         ],
     ],
 
