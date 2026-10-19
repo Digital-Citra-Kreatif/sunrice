@@ -1,0 +1,96 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Sunrice\Admin\Media;
+
+use Illuminate\Http\UploadedFile;
+
+/**
+ * The media settings from config/sunrice-admin.php, typed and with safe
+ * fallbacks.
+ *
+ * @internal
+ */
+final class MediaConfig
+{
+    /** Never stored, whatever the config allows: they could run on the server or in the browser. */
+    public const BLOCKED_EXTENSIONS = [
+        'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phar', 'pht', 'phps', 'shtml',
+        'html', 'htm', 'xhtml', 'xht', 'js', 'mjs', 'cgi', 'pl', 'py', 'sh', 'bash', 'exe', 'bat', 'cmd', 'com',
+        'jsp', 'asp', 'aspx', 'htaccess', 'htpasswd', 'svgz', 'xml', 'xsl', 'swf',
+    ];
+
+    /** File contents that browsers would run as a page or script, whatever the extension. */
+    public const BLOCKED_MIME_TYPES = [
+        'text/html', 'application/xhtml+xml', 'text/javascript', 'application/javascript', 'application/x-javascript',
+        'application/x-httpd-php', 'text/x-php', 'application/x-php', 'application/x-sh', 'text/x-shellscript',
+        'application/x-msdownload', 'application/x-executable', 'application/x-dosexec',
+    ];
+
+    public static function disk(): string
+    {
+        $disk = config('sunrice-admin.media.disk');
+
+        return is_string($disk) && $disk !== '' ? $disk : 'public';
+    }
+
+    public static function directory(): string
+    {
+        $directory = config('sunrice-admin.media.directory');
+
+        return trim(is_string($directory) ? $directory : 'media', '/');
+    }
+
+    /** The real limit: the config's, capped by PHP's upload limits. */
+    public static function maxKilobytes(): int
+    {
+        $configured = config('sunrice-admin.media.max_upload_kb');
+        $configured = is_numeric($configured) ? (int) $configured : 20480;
+        $php = (int) floor(UploadedFile::getMaxFilesize() / 1024);
+
+        return $php > 0 ? min($configured, $php) : $configured;
+    }
+
+    /** @return list<string> */
+    public static function allowedExtensions(): array
+    {
+        $allowed = config('sunrice-admin.media.allowed_extensions');
+        $allowed = is_array($allowed) ? array_map(fn (mixed $ext) => is_string($ext) ? strtolower(ltrim($ext, '.')) : '', $allowed) : [];
+
+        return array_values(array_diff(array_filter($allowed), self::BLOCKED_EXTENSIONS));
+    }
+
+    /** @return array<string, array{width: int|null, height: int|null, crop: bool}> */
+    public static function imageSizes(): array
+    {
+        $sizes = config('sunrice-admin.media.image_sizes');
+        $result = [];
+        foreach (is_array($sizes) ? $sizes : [] as $name => $size) {
+            if (! is_string($name) || preg_match('/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/', $name) !== 1 || ! is_array($size)) {
+                continue;
+            }
+            $width = isset($size[0]) && is_numeric($size[0]) ? max(1, (int) $size[0]) : null;
+            $height = isset($size[1]) && is_numeric($size[1]) ? max(1, (int) $size[1]) : null;
+            $crop = ($size[2] ?? 'fit') === 'crop';
+            if ($width === null && $height === null) {
+                continue;
+            }
+            $result[$name] = ['width' => $width, 'height' => $height, 'crop' => $crop && $width !== null && $height !== null];
+        }
+
+        return $result;
+    }
+
+    public static function queue(): bool
+    {
+        return config('sunrice-admin.media.queue') === true;
+    }
+
+    public static function maxPixels(): int
+    {
+        $max = config('sunrice-admin.media.max_pixels');
+
+        return is_numeric($max) ? (int) $max : 40_000_000;
+    }
+}
