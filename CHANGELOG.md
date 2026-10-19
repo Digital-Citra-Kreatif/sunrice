@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Media library storage: `Media` and `MediaFolder` models, `UploadMedia`, `ReplaceMedia` and `DeleteMedia` actions, image sizes (Intervention Image, on the queue if you like) and `sunrice:media-sizes`. Uploads are checked for allowed types, scripts and web pages (by content too) and unsafe SVGs. Config under `sunrice-admin.media`. See `docs/admin/media.md`.
 - Settings: sections of typed settings (`Settings` classes with typed properties and defaults, `#[Encrypted]` for secrets), read with one cached query, edited on the panel's Settings page with a permission per section (`$panel->settings()`), and the `SettingsSaved` event. A `Secret` form field. `Field::validationRules()` takes a null record outside resources. See `docs/admin/settings.md`.
 - Users and Roles screens (resources under Administration, permissions `sunrice.users.*` and `sunrice.roles.*`), with `PermissionRank`: nobody can manage users or roles with permissions they don't have, delete themselves or change their own roles. Swap or remove them with `$panel->userResource()` and `$panel->roleResource()`. See `docs/admin/users.md`.
 - Resources: `Resource::can()` (refuse more than the policy or permissions), `Resource::newRecord()`, `Password` and `CheckboxList` fields, `->disabled()`, `->loadUsing()` and `->saveUsing()` on fields, to-many relationship columns, and filter options from a closure. The panel's own permissions are listed before the app's and the plugins'.

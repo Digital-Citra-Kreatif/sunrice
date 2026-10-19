@@ -30,4 +30,40 @@ return [
         ],
     ],
 
+    'media' => [
+        // Where uploads are stored: a Laravel disk (config/filesystems.php)
+        // and a folder in it. Files are stored as {directory}/{Y}/{m}/{random}-{name}.{ext}.
+        'disk' => 'public',
+        'directory' => 'media',
+
+        // The largest upload in kilobytes (PHP's upload_max_filesize and
+        // post_max_size cap it too).
+        'max_upload_kb' => 20480,
+
+        // File types that may be uploaded. Scripts, executables and HTML are
+        // always refused, whatever this list says.
+        'allowed_extensions' => [
+            'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'ico',
+            'pdf', 'txt', 'csv', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'rtf',
+            'zip', 'mp4', 'webm', 'mov', 'm4v', 'mp3', 'wav', 'ogg', 'm4a', 'woff', 'woff2', 'json',
+        ],
+
+        // Smaller copies made of every image: name => [width, height, mode].
+        // 'crop' fills the box (cropping the middle), 'fit' scales down to fit
+        // (null leaves that side free). Run `php artisan sunrice:media-sizes`
+        // after changing them.
+        'image_sizes' => [
+            'thumbnail' => [300, 300, 'crop'],
+            'medium' => [800, null, 'fit'],
+            'large' => [1600, null, 'fit'],
+        ],
+
+        // Make the sizes on the queue instead of during the upload.
+        'queue' => false,
+
+        // Images larger than this (width x height) get no sizes: decoding
+        // them could run out of memory.
+        'max_pixels' => 40_000_000,
+    ],
+
 ];
