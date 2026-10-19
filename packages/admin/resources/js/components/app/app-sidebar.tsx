@@ -1,3 +1,4 @@
+import { BrandMark } from '@/components/app/brand';
 import * as React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { ChevronRight, ChevronsUpDown, LayoutGrid, LogOut } from 'lucide-react';
@@ -74,9 +75,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={adminUrl()} prefetch>
-                                <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
-                                    {sunrice.brand.slice(0, 1).toUpperCase()}
-                                </span>
+                                <BrandMark />
                                 <span className="truncate font-semibold">{sunrice.brand}</span>
                             </Link>
                         </SidebarMenuButton>

@@ -11,6 +11,7 @@ use InvalidArgumentException;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Assets\PluginBundle;
+use Sunrice\Admin\Branding\BrandingSettings;
 use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Dashboard\DashboardCard;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
@@ -566,12 +567,16 @@ final class Panel
         $this->permissions = [];
         $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
         $this->permissions(Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'));
-        // Settings → Security (two-factor login), in every panel.
-        if (isset($this->settings[SecuritySettings::key()])) {
-            throw new PanelMisconfigured('The settings key "security" belongs to the panel: give '.$this->settings[SecuritySettings::key()]->class.' another key.');
+        // Settings → Security (two-factor login) and Branding, in every panel.
+        $own = [];
+        foreach ([SecuritySettings::class => 'Edit security settings', BrandingSettings::class => 'Edit branding'] as $class => $label) {
+            if (isset($this->settings[$class::key()])) {
+                throw new PanelMisconfigured("The settings key \"{$class::key()}\" belongs to the panel: give {$this->settings[$class::key()]->class} another key.");
+            }
+            $this->permissions(Permission::make("sunrice.settings.{$class::key()}", $label, 'Settings'));
+            $own[$class::key()] = new RegisteredSettings($class, "sunrice.settings.{$class::key()}");
         }
-        $this->permissions(Permission::make('sunrice.settings.security', 'Edit security settings', 'Settings'));
-        $this->settings = [SecuritySettings::key() => new RegisteredSettings(SecuritySettings::class, 'sunrice.settings.security'), ...$this->settings];
+        $this->settings = [...$own, ...$this->settings];
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
             ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
         $this->dashboardCards(DashboardCard::make('activity')->title('Recent activity')->sort(900)->permission('sunrice.activity.view')

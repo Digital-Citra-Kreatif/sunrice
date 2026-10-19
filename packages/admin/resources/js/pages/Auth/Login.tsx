@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import AuthLayout from '@/layouts/AuthLayout';
 import { InputError } from '@/components/app/input-error';
@@ -8,8 +8,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { adminUrl } from '@/lib/admin-url';
+import type { SharedProps } from '@/types';
 
 export default function Login() {
+    const { login } = usePage<SharedProps>().props.sunrice;
     const form = useForm({ email: '', password: '', remember: false });
 
     const submit = (event: React.FormEvent) => {
@@ -18,7 +20,7 @@ export default function Login() {
     };
 
     return (
-        <AuthLayout title="Log in" description="Sign in to the admin panel.">
+        <AuthLayout title={login.headline ?? 'Log in'} description={login.text ?? 'Sign in to the admin panel.'}>
             <form onSubmit={submit} className="grid gap-6">
                 <div className="grid gap-2">
                     <Label htmlFor="email">Email address</Label>

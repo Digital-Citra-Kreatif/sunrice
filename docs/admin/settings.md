@@ -37,7 +37,10 @@ Register it in a plugin's `register()` or in your panel provider:
 $panel->settings(ShopSettings::class);
 ```
 
-That adds the section to `/admin/settings/shop` and a permission to edit it: `shop.settings.shop` when the plugin `shop` registers it, `settings.shop` when your app does. The Settings sidebar item shows for users who may edit at least one section. The key `security` belongs to the panel's own section (two-factor login, `sunrice.settings.security`).
+That adds the section to `/admin/settings/shop` and a permission to edit it: `shop.settings.shop` when the plugin `shop` registers it, `settings.shop` when your app does. The Settings sidebar item shows for users who may edit at least one section. The keys `security` and `branding` belong to the panel's own sections:
+
+- **Security** (`sunrice.settings.security`): two-factor login.
+- **Branding** (`sunrice.settings.branding`, `Branding\BrandingSettings`): the panel's name, logo and colour, and the sign-in page's headline and text. Empty values keep `$panel->brand()` and the default look; the colour (a hex colour) goes on buttons, highlights and focus rings, with dark or light text on it, whichever reads better. Pages get them as `sunrice.brand`, `sunrice.logo`, `sunrice.color`, `sunrice.colorText` and `sunrice.login`.
 
 ## Reading and writing
 
