@@ -376,6 +376,9 @@ final class Panel
         $declared = $this->permissions;
         $this->permissions = [];
         $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
+        $this->permissions(Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'));
+        $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
+            ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
         if ($this->mediaLibrary) {
             $this->permissions(
                 Permission::make('sunrice.media.view', 'View media', 'Media'),

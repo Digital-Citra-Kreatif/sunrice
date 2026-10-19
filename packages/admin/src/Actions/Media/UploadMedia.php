@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Media\Jobs\GenerateImageSizes;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaConfig;
@@ -23,6 +24,8 @@ use Sunrice\Admin\Media\SafeSvg;
  */
 final class UploadMedia
 {
+    public function __construct(private ActivityLog $activity) {}
+
     /**
      * @param  array{folder_id?: int|null, title?: string|null, alt?: string|null, uploaded_by?: string|null}  $attributes
      *
@@ -54,6 +57,7 @@ final class UploadMedia
             'uploaded_by' => $attributes['uploaded_by'] ?? null,
         ]);
         GenerateImageSizes::for($media);
+        $this->activity->record('uploaded', 'media', $media, $media->title ?? $media->filename);
 
         return $media->refresh();
     }

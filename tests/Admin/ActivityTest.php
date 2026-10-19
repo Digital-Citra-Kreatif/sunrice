@@ -1,0 +1,149 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
+use Sunrice\Admin\Actions\Media\UploadMedia;
+use Sunrice\Admin\Actions\Permissions\SyncPermissions;
+use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Panel;
+use Sunrice\Tests\Admin\Fixtures\MailSettings;
+use Sunrice\Tests\Admin\Fixtures\Product;
+use Sunrice\Tests\Admin\Fixtures\ProductResource;
+use Sunrice\Tests\Admin\Fixtures\TestPlugin;
+use Workbench\App\Models\User;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\artisan;
+use function Pest\Laravel\delete;
+use function Pest\Laravel\get;
+use function Pest\Laravel\post;
+use function Pest\Laravel\put;
+
+beforeEach(function () {
+    Product::createTables();
+    Storage::fake('public');
+    usePanel(fn (Panel $panel) => $panel->settings(MailSettings::class)
+        ->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->resources(ProductResource::class))));
+    app(SyncPermissions::class)->handle();
+    $this->admin = User::query()->create(['name' => 'Rina', 'email' => 'rina@example.com', 'password' => 'secret-password'])->assignRole('super-admin');
+});
+
+/** The log as [source, user, action, type, label, changed], oldest first. */
+function activityLines(): array
+{
+    return Activity::query()->orderBy('id')->get()->map(fn (Activity $a) => [
+        $a->source, $a->user_name, $a->action, $a->subject_type, $a->subject_label, $a->properties['changed'] ?? null,
+    ])->all();
+}
+
+it('records resource changes with the fields that changed, not their values', function () {
+    actingAs($this->admin);
+    post('/admin/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft'])->assertRedirect();
+    $product = Product::query()->sole();
+
+    put("/admin/products/{$product->id}", ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live'])->assertSessionHasNoErrors();
+    put("/admin/products/{$product->id}", ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live']); // nothing changed
+    post('/admin/products/bulk/deactivate', ['ids' => [$product->id]]);
+    delete("/admin/products/{$product->id}");
+
+    expect(activityLines())->toBe([
+        ['admin', 'Rina', 'created', 'products', 'Kettle', null],
+        ['admin', 'Rina', 'updated', 'products', 'Kettle', ['price', 'status']],
+        ['admin', 'Rina', 'deactivate', 'products', 'Kettle', null],
+        ['admin', 'Rina', 'deleted', 'products', 'Kettle', null],
+    ])->and(Activity::query()->first()->ip_address)->toBe('127.0.0.1')
+        ->and(json_encode(Activity::query()->pluck('properties')))->not->toContain('12');
+});
+
+it('records users\' roles and passwords as changed, and settings', function () {
+    $user = User::query()->create(['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'secret-password']);
+    Role::findOrCreate('editor', 'web');
+    actingAs($this->admin);
+
+    put("/admin/users/{$user->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-new-password', 'roles' => ['editor']])->assertSessionHasNoErrors();
+    put('/admin/settings/mail', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
+
+    expect(activityLines())->toBe([
+        ['admin', 'Rina', 'updated', 'users', 'Dewi', ['password', 'roles']],
+        ['admin', 'Rina', 'updated', 'settings', 'Mail settings', ['from']],
+    ]);
+});
+
+it('records media from the page and from code, as the system without a user', function () {
+    $media = app(UploadMedia::class)->handle(UploadedFile::fake()->image('logo.png'));
+    actingAs($this->admin);
+    delete("/admin/media/{$media->id}");
+    post("/admin/media/{$media->id}/restore");
+    put("/admin/media/{$media->id}", ['title' => 'Logo', 'alt' => 'Sun']);
+
+    expect(activityLines())->toBe([
+        ['system', null, 'uploaded', 'media', 'logo', null],
+        ['admin', 'Rina', 'trashed', 'media', 'logo', null],
+        ['admin', 'Rina', 'restored', 'media', 'logo', null],
+        ['admin', 'Rina', 'updated', 'media', 'Logo', ['title', 'alt']],
+    ]);
+});
+
+it('merges updates to the same thing in one request, and records sources', function () {
+    actingAs($this->admin);
+    $log = app(ActivityLog::class);
+    $product = Product::query()->create(['name' => 'Pan', 'sku' => 'P-1', 'price' => 5]);
+
+    $log->updated('products', $product, 'Pan', ['name']);
+    $log->updated('products', $product, 'Pan', ['price', 'name']);
+    $log->withSource('ai', 'Claude Desktop', fn () => $log->record('refunded', 'order', 7, 'Order #7', ['note' => 'Damaged']));
+    $log->withoutLogging(fn () => $log->record('ignored', 'order'));
+    config(['sunrice-admin.activity.enabled' => false]);
+    $log->record('ignored', 'order');
+
+    expect(Activity::query()->count())->toBe(2)
+        ->and(Activity::query()->first()->properties)->toBe(['changed' => ['name', 'price']])
+        ->and(Activity::query()->latest('id')->first())->source->toBe('ai')->via->toBe('Claude Desktop')->user_name->toBe('Rina')->subject_id->toBe('7');
+});
+
+it('shows the log to those allowed, with filters and links', function () {
+    actingAs($this->admin);
+    post('/admin/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft']);
+    put('/admin/settings/mail', ['from' => 'hello@example.com']);
+    $product = Product::query()->sole();
+    app(ActivityLog::class)->withSource('ai', 'Claude', fn () => app(ActivityLog::class)->record('noted', 'products', $product, 'Kettle'));
+
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page
+        ->component('Activity/Index', shouldExist: false)
+        ->where('rows.total', 3)
+        ->where('rows.data.0.via', 'Claude')
+        ->where('rows.data.1.url', '/admin/settings/mail')
+        ->where('rows.data.2.url', "/admin/products/{$product->id}/edit")
+        ->where('rows.data.2.typeLabel', 'Product')
+        ->where('types', [['value' => 'products', 'label' => 'Product'], ['value' => 'settings', 'label' => 'Settings']]));
+
+    get('/admin/activity?source=ai')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
+    get("/admin/activity?type=products&subject={$product->id}")->assertInertia(fn (Assert $page) => $page->where('rows.total', 2));
+    get('/admin/activity?search=mail')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
+    get("/admin/activity?user={$this->admin->id}&from=".now()->toDateString())->assertInertia(fn (Assert $page) => $page->where('rows.total', 3));
+    get('/admin/activity?to='.now()->subDay()->toDateString())->assertInertia(fn (Assert $page) => $page->where('rows.total', 0));
+    get('/admin/activity?source=nope')->assertSessionHasErrors('source');
+
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin/activity')->assertForbidden();
+});
+
+it('prunes old lines, daily with the scheduler', function () {
+    Activity::query()->insert([
+        ['source' => 'system', 'action' => 'old', 'subject_type' => 'x', 'created_at' => now()->subDays(400)],
+        ['source' => 'system', 'action' => 'new', 'subject_type' => 'x', 'created_at' => now()->subDays(10)],
+    ]);
+
+    artisan('sunrice:activity-prune')->expectsOutputToContain('Deleted 1 activity log line older than 365 days.')->assertSuccessful();
+    artisan('sunrice:activity-prune', ['--days' => 5])->assertSuccessful();
+    expect(Activity::query()->count())->toBe(0);
+
+    $events = collect(app(Schedule::class)->events())->map(fn ($e) => $e->command)->implode(' ');
+    expect($events)->toContain('sunrice:activity-prune');
+});

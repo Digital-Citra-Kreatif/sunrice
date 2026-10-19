@@ -66,4 +66,12 @@ return [
         'max_pixels' => 40_000_000,
     ],
 
+    'activity' => [
+        // Record who changed what in the panel (and security events).
+        'enabled' => true,
+        // Delete lines older than this many days (daily, with the scheduler);
+        // null keeps them forever.
+        'keep_days' => 365,
+    ],
+
 ];

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The activity log: who changed what (resources, users and roles, settings, media), with the fields that changed but never their values, the source (admin, AI agent, system, security) and IP. `ActivityLog::record()` / `updated()` / `withSource()` / `withoutLogging()` for plugins, the Activity log page (`sunrice.activity.view`) with filters and item histories, and `sunrice:activity-prune` (daily, `activity.keep_days`). New `TrashMedia` action. See `docs/admin/activity.md`.
 - The `MediaPicker` form field: choose media from the library (folders, search, upload) in resource and settings forms; one id or an ordered list, limited to types. `Media::whereTypes()`. The picker's JSON endpoint `GET /admin/media/picker`, and JSON answers to uploads that ask for them.
 - The Media page: folders, upload by drop or picker with progress, search, type filter, details (title, alt text, caption), replace, move, trash and restore. Permissions `sunrice.media.view`, `.upload`, `.update` and `.delete`; `$panel->mediaLibrary(false)` turns it off. `UpdateMedia`, `MoveMedia`, `SaveMediaFolder` and `DeleteMediaFolder` actions. The workbench links its storage and serves at 127.0.0.1:8000.
 - Media library storage: `Media` and `MediaFolder` models, `UploadMedia`, `ReplaceMedia` and `DeleteMedia` actions, image sizes (Intervention Image, on the queue if you like) and `sunrice:media-sizes`. Uploads are checked for allowed types, scripts and web pages (by content too) and unsafe SVGs. Config under `sunrice-admin.media`. See `docs/admin/media.md`.

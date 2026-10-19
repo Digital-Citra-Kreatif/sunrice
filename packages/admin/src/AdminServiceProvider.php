@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\Admin;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Database\Events\NoPendingMigrations;
@@ -20,9 +21,11 @@ use Inertia\ServiceProvider as InertiaServiceProvider;
 use Spatie\Permission\PermissionServiceProvider;
 use Spatie\Permission\Traits\HasRoles;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Console\MakeAdminCommand;
 use Sunrice\Admin\Console\MediaSizesCommand;
+use Sunrice\Admin\Console\PruneActivityCommand;
 use Sunrice\Admin\Console\PublishAssetsCommand;
 use Sunrice\Admin\Console\SyncPermissionsCommand;
 use Sunrice\Admin\Settings\SettingsStore;
@@ -43,6 +46,8 @@ final class AdminServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');
         // Settings are read once per request (or job).
         $this->app->scoped(SettingsStore::class);
+        // Per request: its source and the lines it may merge.
+        $this->app->scoped(ActivityLog::class);
     }
 
     public function boot(): void
@@ -77,8 +82,13 @@ final class AdminServiceProvider extends ServiceProvider
             $view->with('sunricePanel', $this->app->make(Panel::class));
         });
 
+        // Old activity log lines go daily (when the app runs the scheduler).
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            $schedule->command('sunrice:activity-prune')->daily();
+        });
+
         if ($this->app->runningInConsole()) {
-            $this->commands([PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class]);
+            $this->commands([PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class, PruneActivityCommand::class]);
             $this->publishes([dirname(__DIR__).'/config/sunrice-admin.php' => config_path('sunrice-admin.php')], 'sunrice-admin-config');
             $this->publishes([AdminAssets::distPath() => public_path(AdminAssets::BUILD_DIRECTORY)], 'sunrice-admin-assets');
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Actions\Settings;
 
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Events\SettingsSaved;
 use Sunrice\Admin\Settings\Settings;
 
@@ -14,6 +15,8 @@ use Sunrice\Admin\Settings\Settings;
  */
 final class SaveSettings
 {
+    public function __construct(private ActivityLog $activity) {}
+
     /**
      * @param  array<string, mixed>  $values  property => new value; others stay
      * @return list<string> the settings that changed
@@ -27,6 +30,7 @@ final class SaveSettings
         if ($changed !== []) {
             $settings->save();
             SettingsSaved::dispatch($settings::key(), $changed);
+            $this->activity->record('updated', 'settings', $settings::key(), $settings::label().' settings', ['changed' => $changed]);
         }
 
         return $changed;

@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Actions\Media;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Media\Jobs\GenerateImageSizes;
 use Sunrice\Admin\Media\Media;
 
@@ -19,6 +20,8 @@ use Sunrice\Admin\Media\Media;
  */
 final class ReplaceMedia
 {
+    public function __construct(private ActivityLog $activity) {}
+
     /** @throws ValidationException */
     public function handle(Media $media, UploadedFile $file): Media
     {
@@ -49,6 +52,7 @@ final class ReplaceMedia
             'version' => $media->version + 1,
         ])->save();
         GenerateImageSizes::for($media);
+        $this->activity->record('replaced', 'media', $media, $media->title ?? $media->filename);
 
         return $media->refresh();
     }

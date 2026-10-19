@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Sunrice\Admin\Http\Controllers\ActivityController;
 use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
 
@@ -16,3 +17,5 @@ Route::get('/', DashboardController::class)->name('dashboard');
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
 Route::get('settings/{section}', [SettingsController::class, 'edit'])->name('settings.edit');
 Route::put('settings/{section}', [SettingsController::class, 'update'])->name('settings.update');
+
+Route::get('activity', ActivityController::class)->name('activity.index');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Actions\Media;
 
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaFolder;
 
@@ -15,6 +16,8 @@ use Sunrice\Admin\Media\MediaFolder;
  */
 final class MoveMedia
 {
+    public function __construct(private ActivityLog $activity) {}
+
     /** @param iterable<Media> $media */
     public function handle(iterable $media, ?MediaFolder $folder): int
     {
@@ -25,7 +28,9 @@ final class MoveMedia
         if ($ids === []) {
             return 0;
         }
+        $moved = Media::withTrashed()->whereKey($ids)->update(['folder_id' => $folder?->id, 'updated_at' => now()]);
+        $this->activity->record('moved', 'media', null, $moved.' '.($moved === 1 ? 'file' : 'files').' to '.($folder === null ? 'the top level' : "\"{$folder->name}\""), ['ids' => $ids]);
 
-        return Media::withTrashed()->whereKey($ids)->update(['folder_id' => $folder?->id, 'updated_at' => now()]);
+        return $moved;
     }
 }

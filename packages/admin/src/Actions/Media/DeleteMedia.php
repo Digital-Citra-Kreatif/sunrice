@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Actions\Media;
 
 use Illuminate\Support\Facades\Storage;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Media\Media;
 
 /**
@@ -15,11 +16,14 @@ use Sunrice\Admin\Media\Media;
  */
 final class DeleteMedia
 {
+    public function __construct(private ActivityLog $activity) {}
+
     public function handle(Media $media): void
     {
         $files = $media->files();
         $disk = $media->disk;
         $media->forceDelete();
         Storage::disk($disk)->delete($files);
+        $this->activity->record('deleted', 'media', $media, $media->title ?? $media->filename);
     }
 }
