@@ -18,6 +18,7 @@ Set a collection's URL under Structure → Collections: a path with `{slug}` onc
 
 An entry renders with the first view that exists:
 
+1. the entry's own **template** (its Page settings), like `cms.landing`;
 1. the collection's **template** (Structure → Collections), like `cms.article`;
 2. `cms.{handle}`: `resources/views/cms/blog.blade.php`;
 3. `cms.entry`: `resources/views/cms/entry.blade.php`;
@@ -67,7 +68,18 @@ In any view, `Cms::entries()` finds live entries in the current language (`Sunri
 {{ Cms::global('contact')['phone'] ?? '' }}
 ```
 
-`entries(...$collections)` (none: every collection), then `whereTerm(...$terms)`, `whereSlug()`, `latest()`, `oldest()`, `alphabetical()`, `limit()`, and `get()`, `first()`, `count()` or `paginate()`.
+`entries(...$collections)` (none: every collection), then `whereTerm(...$terms)`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `limit()`, and `get()`, `first()`, `count()` or `paginate()`.
+
+In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancestors()` (top-down) give breadcrumbs and sub-menus:
+
+```blade
+@foreach ($entry->entry->ancestors() as $ancestor)
+    <a href="{{ $ancestor->mainTranslation()?->url() }}">{{ $ancestor->mainTranslation()?->title }}</a> ›
+@endforeach
+@foreach (Cms::entries('pages')->childrenOf($entry->entry)->ordered()->get() as $child)
+    <a href="{{ $child->url() }}">{{ $child->title }}</a>
+@endforeach
+```
 
 ## Previews
 

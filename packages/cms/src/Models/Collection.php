@@ -23,6 +23,8 @@ use Sunrice\Cms\Fields\Schema;
  * @property bool $dated entries show a date, and list newest first
  * @property string|null $route the entries' public URL pattern ("/blog/{slug}"); none: no pages
  * @property string|null $template the Blade view entries render with
+ * @property bool $hierarchical entries may have a parent entry
+ * @property bool $ordered entries are in the order editors put them in
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -37,14 +39,14 @@ class Collection extends Model
 
     protected $guarded = [];
 
-    protected $attributes = ['dated' => false];
+    protected $attributes = ['dated' => false, 'hierarchical' => false, 'ordered' => false];
 
     private ?Schema $schema = null;
 
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['dated' => 'boolean'];
+        return ['dated' => 'boolean', 'hierarchical' => 'boolean', 'ordered' => 'boolean'];
     }
 
     /** @return HasMany<Entry, $this> */

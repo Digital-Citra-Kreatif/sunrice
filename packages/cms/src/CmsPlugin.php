@@ -146,6 +146,8 @@ final class CmsPlugin extends BasePlugin
                 Route::post('collections/{collection:handle}/entries/bulk', 'bulk')->name('bulk')->middleware('can:cms.entries.view');
                 Route::get('collections/{collection:handle}/entries/export', 'export')->name('export')->middleware('can:cms.entries.view');
                 Route::post('entries/{entry}/duplicate', 'duplicate')->name('duplicate')->middleware('can:cms.entries.create');
+                Route::put('entries/{entry}/settings', 'settings')->name('settings')->middleware('can:cms.entries.update');
+                Route::post('entries/{entry}/move', 'move')->name('move')->middleware('can:cms.entries.update');
                 Route::delete('entries/{entry}/force', 'forceDelete')->name('force-delete')->middleware('can:cms.entries.delete')->withTrashed();
                 Route::post('entry-translations/{translation}/undo-restore', 'undoRestore')->name('undo-restore')->middleware('can:cms.entries.update');
             });

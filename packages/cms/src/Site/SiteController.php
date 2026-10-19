@@ -46,7 +46,7 @@ final class SiteController
         app()->setLocale($translation->locale);
         $collection = $translation->entry->collection;
 
-        return response()->view(self::view($collection->handle, $collection->template), [
+        return response()->view(self::view($collection->handle, $collection->template, $translation->entry->template), [
             'entry' => $translation,
             'title' => $preview ? $translation->draft_title : $translation->title,
             'values' => $translation->values(new HydrationContext($translation->locale, $preview)),
@@ -59,9 +59,9 @@ final class SiteController
     }
 
     /** The collection's template, else cms.{handle}, else cms.entry, else the CMS's plain one. */
-    public static function view(string $handle, ?string $template): string
+    public static function view(string $handle, ?string $template, ?string $entryTemplate = null): string
     {
-        foreach (array_filter([$template, "cms.{$handle}", 'cms.entry']) as $view) {
+        foreach (array_filter([$entryTemplate, $template, "cms.{$handle}", 'cms.entry']) as $view) {
             if (View::exists($view)) {
                 return $view;
             }

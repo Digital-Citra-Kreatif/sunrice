@@ -14,6 +14,8 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `dated` | Entries show a date and list newest first. |
 | `route` | The entries' URL, like `/blog/{slug}`; none: no pages. See [the site](site.md). |
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
+| `ordered` | **Manual order**: editors put entries in order with Move up and Move down in the list, instead of by date or title. |
+| `hierarchical` | Entries may have a **parent** entry, like pages under pages, for breadcrumbs and sub-menus. URLs stay flat: *Team* under *About* is still `/team`. |
 
 ```php
 use Sunrice\Cms\Actions\Collections\SaveCollection;
@@ -38,6 +40,7 @@ Editors write entries under **Content → Entries**: a list per collection (sear
 In the list, tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** downloads the collection's entries in the main language, a column per field (an `exported` security event). In the editor:
 
 - **Ctrl/Cmd+S** saves the draft, and leaving the page with unsaved changes asks first.
+- **Page settings**: the parent (in hierarchical collections; never the entry itself or one below it, at most 10 deep) and a Blade view for this entry alone, for every language (`SaveEntrySettings`). Deleting an entry for good moves its children up to its parent.
 - **Duplicate** copies every language's draft as a new draft entry ("Hello (copy)", slug `hello-copy`).
 - Only one person edits an entry in a language at a time: others are told who's editing and can view it or take over (see [edit locks](../admin/locks.md)).
 - When someone else saved since you opened the page, saving says so: **Load theirs**, or **Save mine anyway** over their version.
