@@ -43,7 +43,7 @@ final class SaveRecord extends ResourceTool
         try {
             $changed = app(SaveRecordAction::class)->handle($resource, $record, $input, $operation);
         } catch (ValidationException $e) {
-            return Response::error('Not saved: '.implode(' ', array_merge(...array_values($e->errors()))));
+            return Response::error('Not saved: '.implode(' ', array_filter($e->validator->errors()->all(), 'is_string')));
         }
         $title = $resource->class::title($record);
         if ($operation === 'create') {

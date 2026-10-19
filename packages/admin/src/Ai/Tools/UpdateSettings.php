@@ -41,7 +41,7 @@ final class UpdateSettings extends ResourceTool
         try {
             $changed = app(UpdateSettingsAction::class)->handle($section, [...$current, ...$values]);
         } catch (ValidationException $e) {
-            return Response::error('Not saved: '.implode(' ', array_merge(...array_values($e->errors()))));
+            return Response::error('Not saved: '.implode(' ', array_filter($e->validator->errors()->all(), 'is_string')));
         }
 
         return $this->json(['saved' => true, 'changed' => $changed]);

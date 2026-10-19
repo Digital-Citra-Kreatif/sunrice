@@ -22,7 +22,7 @@ final class UpdateSettings
     public function __construct(private SaveSettings $save) {}
 
     /**
-     * @param  array<string, mixed>  $input
+     * @param  array<mixed>  $input
      * @return list<string> the settings that changed
      *
      * @throws ValidationException

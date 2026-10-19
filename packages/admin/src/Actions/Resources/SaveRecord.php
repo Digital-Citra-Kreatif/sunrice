@@ -22,7 +22,7 @@ use Sunrice\Admin\Resources\RegisteredResource;
 final class SaveRecord
 {
     /**
-     * @param  array<string, mixed>  $input  the form's values (anything else is ignored)
+     * @param  array<mixed>  $input  the form's values (anything else is ignored)
      * @param  'create'|'edit'  $operation
      * @return list<string> the fields that changed
      *
