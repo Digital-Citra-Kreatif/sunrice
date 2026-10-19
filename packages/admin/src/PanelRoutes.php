@@ -75,6 +75,9 @@ final class PanelRoutes
 
                 Route::middleware(self::authenticated())->group(function () use ($panel): void {
                     require dirname(__DIR__).'/routes/admin.php';
+                    if ($panel->hasMediaLibrary()) {
+                        require dirname(__DIR__).'/routes/media.php';
+                    }
                     foreach ($panel->getResources() as $resource) {
                         self::resource($resource);
                     }

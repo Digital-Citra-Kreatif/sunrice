@@ -12,6 +12,7 @@ migrations:
 
 env:
   - AUTH_MODEL=Workbench\App\Models\User
+  - APP_URL=http://127.0.0.1:8000
 
 workbench:
   start: /admin
@@ -30,3 +31,4 @@ workbench:
     - db-seed:
         --class: Workbench\Database\Seeders\DatabaseSeeder
     - sunrice:assets
+    - storage:link

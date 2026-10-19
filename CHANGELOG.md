@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The Media page: folders, upload by drop or picker with progress, search, type filter, details (title, alt text, caption), replace, move, trash and restore. Permissions `sunrice.media.view`, `.upload`, `.update` and `.delete`; `$panel->mediaLibrary(false)` turns it off. `UpdateMedia`, `MoveMedia`, `SaveMediaFolder` and `DeleteMediaFolder` actions. The workbench links its storage and serves at 127.0.0.1:8000.
 - Media library storage: `Media` and `MediaFolder` models, `UploadMedia`, `ReplaceMedia` and `DeleteMedia` actions, image sizes (Intervention Image, on the queue if you like) and `sunrice:media-sizes`. Uploads are checked for allowed types, scripts and web pages (by content too) and unsafe SVGs. Config under `sunrice-admin.media`. See `docs/admin/media.md`.
 - Settings: sections of typed settings (`Settings` classes with typed properties and defaults, `#[Encrypted]` for secrets), read with one cached query, edited on the panel's Settings page with a permission per section (`$panel->settings()`), and the `SettingsSaved` event. A `Secret` form field. `Field::validationRules()` takes a null record outside resources. See `docs/admin/settings.md`.
 - Users and Roles screens (resources under Administration, permissions `sunrice.users.*` and `sunrice.roles.*`), with `PermissionRank`: nobody can manage users or roles with permissions they don't have, delete themselves or change their own roles. Swap or remove them with `$panel->userResource()` and `$panel->roleResource()`. See `docs/admin/users.md`.
