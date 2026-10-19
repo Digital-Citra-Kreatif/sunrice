@@ -137,8 +137,12 @@ final class SecurityAlerts
         if ($e->account === null || $e->ip === null) {
             return;
         }
+        $accountId = $e->account->getKey();
+        if (! is_scalar($accountId)) {
+            return;
+        }
         $earlier = Activity::query()->where('source', 'security')->where('action', 'logged in')
-            ->where('subject_type', 'account')->where('subject_id', (string) $e->account->getKey())
+            ->where('subject_type', 'account')->where('subject_id', (string) $accountId)
             ->when($e->activity !== null, fn (Builder $q) => $q->where('id', '<', $e->activity?->id))
             ->latest('id')->limit(50)->get(['ip_address', 'created_at']);
         $last = $earlier->first();
