@@ -169,6 +169,6 @@ it('translates inside flexible blocks', function () {
 
     artisan('sunrice:translate', ['--only' => ['entries'], '--collection' => ['pages']])->assertSuccessful();
 
-    expect($page->entry->fresh()?->translation('id')?->draft_data['blocks'][0]['values'])->toBe(['text' => '[id] Be kind', 'cite' => 'Ann'])
+    expect($page->entry->fresh()?->translation('id')?->draft_data['blocks'][0]['values'])->toEqual(['text' => '[id] Be kind', 'cite' => 'Ann'])
         ->and(Entry::query()->where('collection_id', $this->blog->id)->count())->toBe(0);
 });
