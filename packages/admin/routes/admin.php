@@ -7,6 +7,7 @@ use Sunrice\Admin\Http\Controllers\ActivityController;
 use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Http\Controllers\EditLocksController;
 use Sunrice\Admin\Http\Controllers\EmailController;
+use Sunrice\Admin\Http\Controllers\HelpController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
 
 /*
@@ -22,6 +23,9 @@ Route::put('settings/{section}', [SettingsController::class, 'update'])->name('s
 
 Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
 Route::post('activity/prune', [ActivityController::class, 'prune'])->middleware('can:sunrice.activity.prune')->name('activity.prune');
+
+Route::get('help', [HelpController::class, 'index'])->name('help.index');
+Route::get('help/{section}/{page}', [HelpController::class, 'show'])->name('help.show')->where(['section' => '[a-z0-9-]+', 'page' => '[a-z0-9-]+']);
 
 Route::middleware('can:sunrice.email.test')->group(function (): void {
     Route::get('email', [EmailController::class, 'index'])->name('email.index');
