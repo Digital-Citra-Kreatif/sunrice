@@ -29,8 +29,11 @@ use Sunrice\Admin\Console\PruneActivityCommand;
 use Sunrice\Admin\Console\PublishAssetsCommand;
 use Sunrice\Admin\Console\SyncPermissionsCommand;
 use Sunrice\Admin\Console\UnlockCommand;
+use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Events\LoginThrottled;
+use Sunrice\Admin\Events\SecurityEventRecorded;
 use Sunrice\Admin\Security\AccountGuard;
+use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Settings\SettingsStore;
 
@@ -75,6 +78,10 @@ final class AdminServiceProvider extends ServiceProvider
         });
 
         // Keep the permissions in step with the code after every migrate.
+        // Security alerts by email.
+        Event::listen(SecurityEventRecorded::class, [SecurityAlerts::class, 'handleSecurityEvent']);
+        Event::listen(ActivityRecorded::class, [SecurityAlerts::class, 'handleActivity']);
+
         // Login limits reached are security events.
         Event::listen(LoginThrottled::class, function (LoginThrottled $event): void {
             $security = $this->app->make(SecurityLog::class);
@@ -84,7 +91,7 @@ final class AdminServiceProvider extends ServiceProvider
                 $event->scope === 'account' ? 'account locked' : 'login blocked',
                 $account,
                 $account === null ? $event->email : null,
-                ['note' => match ($event->scope) {
+                ['scope' => $event->scope, 'note' => match ($event->scope) {
                     'account' => "too many wrong passwords from any IP; locked for {$minutes} min",
                     'ip' => "too many wrong passwords from this IP; blocked for {$minutes} min",
                     default => "too many wrong passwords; blocked for {$minutes} min",
