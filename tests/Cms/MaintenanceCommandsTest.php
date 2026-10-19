@@ -71,7 +71,7 @@ it('renames a field in the blueprint and in what is stored with it', function ()
 
     $post->refresh();
     expect(Blueprint::query()->where('handle', 'post')->first()?->fields[0]['handle'])->toBe('summary')
-        ->and($post->data)->toBe(['summary' => 'Hi', 'rating' => 4])->and($post->draft_data['summary'])->toBe('Hey')
+        ->and($post->data)->toEqual(['summary' => 'Hi', 'rating' => 4])->and($post->draft_data['summary'])->toBe('Hey')
         ->and($post->revisions()->first()?->data)->toHaveKey('summary')->not->toHaveKey('intro')
         ->and($contact->fresh()?->data('en')['summary'])->toBe('Global');
     get('/blog/hello')->assertOk()->assertSee('Hi');
