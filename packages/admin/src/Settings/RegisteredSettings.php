@@ -21,6 +21,12 @@ final readonly class RegisteredSettings
         return $this->class::key();
     }
 
+    /** The section with its stored values. */
+    public function load(): Settings
+    {
+        return new ($this->class)();
+    }
+
     public function allows(Authorizable $user): bool
     {
         return $user->can($this->permission);

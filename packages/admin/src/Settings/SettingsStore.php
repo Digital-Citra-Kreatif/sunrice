@@ -184,7 +184,9 @@ final class SettingsStore
         $decoded = [];
         foreach ($rows as $key => $json) {
             $values = is_string($json) ? json_decode($json, true) : null;
-            $decoded[(string) $key] = is_array($values) ? $values : [];
+            /** @var array<string, mixed> $section */
+            $section = is_array($values) ? $values : [];
+            $decoded[(string) $key] = $section;
         }
         Cache::forever(self::CACHE_KEY, $decoded);
 

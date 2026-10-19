@@ -46,7 +46,7 @@ final class SettingsController
     {
         $user = $this->user($request);
         $registered = $this->section($user, $section);
-        $settings = app($registered->class);
+        $settings = $registered->load();
         $form = $registered->class::form(new Form);
 
         $current = $settings->toArray();
@@ -76,7 +76,7 @@ final class SettingsController
     public function update(Request $request, string $section, SaveSettings $save): RedirectResponse
     {
         $registered = $this->section($this->user($request), $section);
-        $settings = app($registered->class);
+        $settings = $registered->load();
         $current = $settings->toArray();
         $fields = array_values(array_filter($this->fields($registered, $registered->class::form(new Form)), fn (Field $field) => ! $field->isDisabled(null)));
 
