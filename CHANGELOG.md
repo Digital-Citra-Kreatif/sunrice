@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Content events (`Sunrice\Cms\Events`): `EntryPublished` (with `scheduled`), `EntryUnpublished`, `EntryTrashed`, `EntryRestored`, `EntryDeleted`, and `ContentChanged` for anything the site shows, after the transaction commits.
+- The site's cache (`SiteCache`, config `sunrice-cms.cache`): which page is at an address, URL patterns, listing pages, menus and the sitemap are kept under a content version that every change replaces. Optional whole-page cache for visitors (`cache.pages`, `PageCache::skipWhen()`), with each visitor's own CSRF token.
+- `sunrice:publish-scheduled`, every minute: announces entries whose scheduled time came and clears the caches.
+- Query budgets for site pages in the tests. See `docs/cms/caching.md`.
 - Site settings: Settings → Site also holds the site name, description, share image, title separator and whether titles get the site name ("About | Acme"), the X account, and *Hide the whole site from search engines* (also `SUNRICE_NOINDEX`, `sunrice-cms.seo.noindex`: noindex everywhere, an `X-Robots-Tag` header and an empty sitemap). `Cms::site()`. **Page titles now end with the site name** unless that's turned off.
 - SEO: `<x-sunrice-cms::seo />` reads the page shown (entries, terms, listing pages) or takes `title` on the app's own pages, and adds `og:type`, `og:site_name`, `og:locale`, an X card and `x-default`; an entry's or term's SEO may set a canonical address. `Seo::forListing()` and `Seo::forPage()`. Listing pages get SEO tags.
 - Site code: Settings → Site code (`Sunrice\Cms\Settings\CodeSettings`, `cms.settings.code`) for HTML on every page, printed with `<x-sunrice-cms::code place="head|body-start|body-end" />`; each change is a `site code changed` security event and sends an alert.
