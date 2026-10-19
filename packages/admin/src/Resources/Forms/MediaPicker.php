@@ -53,7 +53,7 @@ final class MediaPicker extends Field
         if ($unknown !== []) {
             throw new InvalidArgumentException("MediaPicker \"{$this->name}\": unknown types ".implode(', ', $unknown).'; use '.implode(', ', Media::TYPES).'.');
         }
-        $this->types = array_values($types);
+        $this->types = $types;
 
         return $this;
     }
