@@ -15,6 +15,16 @@ With the CMS, AI agents connected to the panel ([AI access](../admin/ai.md)) can
 | `cms_save_term` | `cms.terms.manage` | Add or rename a term, or give it another language. |
 | `cms_get_globals`, `cms_save_globals` | `cms.globals.view`, `.update` | Global sets' fields and values, per language. |
 | `cms_list_submissions` | `cms.submissions.view` | Forms and what visitors sent. |
+| `cms_delete_submissions` | `cms.submissions.delete` | Delete submissions, with their files. |
+| `cms_get_site_info` | panel access | The site's name, languages, homepage, and the collections, taxonomies, globals, menus and forms the user may see. |
+| `cms_seo_audit` | `cms.entries.view` | Live pages with SEO problems: no or a too long/short description, a long or repeated title, hidden from search engines. |
+| `cms_entry_revisions` | `cms.entries.view` / `.update` | An entry's published versions; `"restore"` makes one the draft again. |
+| `cms_move_entry` | `cms.entries.update` | Move an entry up or down in a manually ordered collection. |
+| `cms_get_blueprint`, `cms_save_blueprint` | `cms.blueprints.manage` | Blueprints' and fieldsets' fields, and changing them. |
+| `cms_get_menu`, `cms_save_menu` | `cms.menus.view`, `.update` | A menu's links as a tree, and replacing them. |
+| `cms_get_listing`, `cms_save_listing` | `cms.entries.view`, `.update` | A collection's listing page fields, per language. |
+
+Agents can't write templates, run commands or read the server's logs: an access token is never more than a person in the panel.
 
 Read-only tokens get only the reading tools (`cms_list_*`, `cms_get_*`). Agents are told to ask before publishing, unpublishing, trashing or changing globals, which are live as soon as they're saved.
 

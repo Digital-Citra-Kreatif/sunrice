@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- AI tools: `cms_get_site_info`, `cms_seo_audit`, `cms_entry_revisions`, `cms_move_entry`, `cms_get_blueprint`, `cms_save_blueprint`, `cms_get_menu`, `cms_save_menu`, `cms_get_listing`, `cms_save_listing` and `cms_delete_submissions`, each behind its permission. See `docs/cms/ai.md`.
 - `sunrice:ai-token` creates, lists and revokes a user's AI access tokens. The Activity log page deletes old lines (`sunrice.activity.prune`; a security event that alerts). The user menu chooses light, dark or the device's appearance.
 - Users: the edit page shows the last login, lock, sign-outs, AI tokens and what the user owns; deleting a user hands what they own to whoever deletes them (`$panel->ownedContent()`, `Users\OwnedContent`, `@api`; the panel counts files, the CMS entries); new passwords are typed twice. Resources get `aside()`, `deleteRecord()` and `Password::confirmed()` (`@api`). **Creating a user needs `password_confirmation`.**
 - Security alerts: Settings → Security chooses more roles and addresses for them; a new alert when someone is refused many pages (`security.alerts.forbidden`, the `pages refused` event); unpublishing and purging count towards *Many things deleted*; the account's owner is told when their account is locked or their AI token is used from a new address.
