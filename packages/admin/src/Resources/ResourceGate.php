@@ -19,7 +19,7 @@ final class ResourceGate
 {
     public const ABILITIES = ['view', 'create', 'update', 'delete'];
 
-    /** @param class-string<resource> $resource */
+    /** @param class-string<\Sunrice\Admin\Resources\Resource> $resource */
     public function __construct(private string $resource, private string $permissionPrefix) {}
 
     public function allows(Authorizable $user, string $ability, ?Model $record = null): bool
@@ -27,7 +27,7 @@ final class ResourceGate
         $model = $this->resource::model();
 
         $policy = Gate::getPolicyFor($model);
-        if ($policy !== null) {
+        if (is_object($policy) || is_string($policy)) {
             return match (true) {
                 $ability === 'view' => $record === null ? $user->can('viewAny', $model) : $user->can('view', $record),
                 $ability === 'create' => $user->can('create', $model),

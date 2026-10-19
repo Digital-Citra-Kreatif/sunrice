@@ -22,7 +22,7 @@ final class RegisteredResource
 
     private ?Table $table = null;
 
-    /** @param class-string<resource> $class */
+    /** @param class-string<\Sunrice\Admin\Resources\Resource> $class */
     public function __construct(public readonly string $class, public readonly string $permissionPrefix) {}
 
     public function key(): string

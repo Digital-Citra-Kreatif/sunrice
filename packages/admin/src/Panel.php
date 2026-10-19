@@ -223,7 +223,7 @@ final class Panel
      * prefixed with the registering plugin's id ("shop.products.view") or,
      * when the app registers it, the resource's key ("products.view").
      *
-     * @param  class-string<resource>  ...$classes
+     * @param  class-string<Resources\Resource>  ...$classes
      */
     public function resources(string ...$classes): self
     {

@@ -258,6 +258,7 @@ final class ResourceController
             $rules[$field->name] = $field->validationRules($record);
             $attributes[$field->name] = $field->toArray()['label'];
         }
+        /** @var array<string, mixed> $validated */
         $validated = $request->validate($rules, [], $attributes);
 
         // Only declared fields are written, whatever else the request sends.
