@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Auth\LoginThrottle;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 
 /**
@@ -56,6 +57,14 @@ final class AttemptLogin
             $this->security->record('login refused', $account, $account === null ? $email : null, ['note' => 'no access to the panel']);
 
             throw ValidationException::withMessages(['email' => __('This account can\'t use the admin panel.')]);
+        }
+
+        // Locked by an administrator: the right password isn't enough.
+        if ($account !== null && app(AccountGuard::class)->isLocked($account)) {
+            $guard->logout();
+            $this->security->record('login blocked', $account, null, ['note' => 'the account is locked']);
+
+            throw ValidationException::withMessages(['email' => __('This account is locked. Ask an administrator to unlock it.')]);
         }
 
         $this->security->record('logged in', $account, $account === null ? $email : null);

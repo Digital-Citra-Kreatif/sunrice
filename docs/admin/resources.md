@@ -113,6 +113,7 @@ Override `newRecord()` to prepare the record the create form fills (`$record->te
 
 - `Column::make('name')`, or a relationship's attribute `Column::make('category.name')` (eager loaded; for a to-many relationship, `Column::make('tags.name')` lists the values). `->sortable()` (the model's own attributes), `->searchable()`, `->badge()`, `->boolean()`, `->date('d/m/Y')`, `->label()`.
 - `Filter::make('status')->options([...])` (or a closure returning them), `Filter::make('active')->boolean()`, or any query: `->query(fn (Builder $q, string $value) => ...)`. Only the listed option values are applied.
+- `Column::make('overdue')->state(fn (Invoice $i) => $i->due_on->isPast())->boolean()` shows a value worked out from the record (not sortable or searchable; keep it free of queries).
 - `->defaultSort('-created_at')`, `->perPage(50)`, `->exportable()` (CSV of the filtered, sorted list; values that spreadsheets would run as formulas are escaped).
 
 Sorting, filtering and searching only ever use what the table declares; anything else in the URL is ignored.
@@ -136,4 +137,4 @@ Edit and delete are built in. Add your own, per row or for the selected rows:
 ])
 ```
 
-`->ability()` is the resource ability the action needs (`update` by default), checked for each record. A handler returns the message to show, or throws `ActionFailed` with one to show as an error.
+`->visible(fn (Product $p) => ! $p->isLive())` offers a row action only for some records (and refuses it for the others). `->ability()` is the resource ability the action needs (`update` by default), checked for each record. A handler returns the message to show, or throws `ActionFailed` with one to show as an error.

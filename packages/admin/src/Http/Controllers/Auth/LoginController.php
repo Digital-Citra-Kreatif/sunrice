@@ -12,6 +12,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Admin\Actions\Auth\AttemptLogin;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 
 /** @internal */
@@ -37,6 +38,8 @@ final class LoginController
             (string) $request->ip(),
         );
         $request->session()->regenerate();
+        // Sessions that signed in before "sign out everywhere" end (AccountGuard).
+        $request->session()->put(AccountGuard::LOGIN_AT, now()->getTimestamp());
 
         return redirect()->intended(route('sunrice.admin.dashboard'));
     }

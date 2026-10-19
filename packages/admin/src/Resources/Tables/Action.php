@@ -39,6 +39,9 @@ final class Action
 
     private ?Closure $handler = null;
 
+    /** @var (Closure(Model): bool)|null */
+    private ?Closure $visible = null;
+
     private function __construct(public readonly string $key, public readonly bool $isBulk)
     {
         if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1) {
@@ -93,6 +96,24 @@ final class Action
         $this->ability = $ability;
 
         return $this;
+    }
+
+    /**
+     * Offer a row action only for some records: ->visible(fn (Order $o) => ! $o->isPaid()).
+     * Running it on another record is refused too.
+     *
+     * @param  Closure(Model): bool  $visible
+     */
+    public function visible(Closure $visible): self
+    {
+        $this->visible = $visible;
+
+        return $this;
+    }
+
+    public function isVisibleFor(Model $record): bool
+    {
+        return $this->visible === null || ($this->visible)($record) === true;
     }
 
     /** @param Closure(Model): mixed|Closure(Collection<int, Model>): mixed $handler */

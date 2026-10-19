@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources\Tables;
 
+use Closure;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,9 @@ final class Column
 
     private ?string $dateFormat = null;
 
+    /** @var (Closure(Model): (string|int|float|bool|null))|null */
+    private ?Closure $state = null;
+
     private function __construct(public readonly string $name)
     {
         $this->label = Str::headline(str_replace('.', ' ', $name));
@@ -60,7 +64,7 @@ final class Column
     /** Sortable by clicking its header (attributes of the model itself only). */
     public function sortable(bool $sortable = true): self
     {
-        if ($sortable && $this->relation() !== null) {
+        if ($sortable && ($this->relation() !== null || $this->state !== null)) {
             throw new InvalidArgumentException("Column \"{$this->name}\": only the model's own attributes can be sorted.");
         }
         $this->sortable = $sortable;
@@ -71,6 +75,9 @@ final class Column
     /** Included in the list's search box. */
     public function searchable(bool $searchable = true): self
     {
+        if ($searchable && $this->state !== null) {
+            throw new InvalidArgumentException("Column \"{$this->name}\": a worked-out column can't be searched.");
+        }
         $this->searchable = $searchable;
 
         return $this;
@@ -86,6 +93,22 @@ final class Column
     public function boolean(): self
     {
         $this->display = 'boolean';
+
+        return $this;
+    }
+
+    /**
+     * A value worked out from the record rather than read from an attribute:
+     * ->state(fn (Order $order) => $order->lines_count > 10). Keep it free of
+     * queries (eager load, or work out what you need once). Not sortable or searchable.
+     *
+     * @param  Closure(Model): (string|int|float|bool|null)  $state
+     */
+    public function state(Closure $state): self
+    {
+        $this->state = $state;
+        $this->sortable = false;
+        $this->searchable = false;
 
         return $this;
     }
@@ -123,6 +146,11 @@ final class Column
     /** The value shown for a record. */
     public function value(Model $record): string|int|float|bool|null
     {
+        if ($this->state !== null) {
+            $state = ($this->state)($record);
+
+            return $this->display === 'boolean' ? (bool) $state : $state;
+        }
         $relation = $this->relation();
         $related = $relation === null ? null : $record->getRelationValue($relation);
         $value = match (true) {
