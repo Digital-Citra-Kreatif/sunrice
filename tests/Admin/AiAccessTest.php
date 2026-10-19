@@ -62,6 +62,13 @@ it('creates tokens on the AI access page, shows each once, and revokes them', fu
     get('/admin/ai')->assertInertia(fn (Assert $page) => $page->where('created', null)); // shown once
 
     post('/admin/ai/tokens', ['name' => '', 'expires_in_days' => 7])->assertSessionHasErrors(['name', 'expires_in_days']);
+    // 90 days unless asked otherwise; "never" only on purpose.
+    post('/admin/ai/tokens', ['name' => 'Default'])->assertRedirect();
+    post('/admin/ai/tokens', ['name' => 'Forever', 'expires_in_days' => null])->assertRedirect();
+    expect(AiToken::query()->where('name', 'Default')->sole()->expires_at?->isSameDay(now()->addDays(90)))->toBeTrue()
+        ->and(AiToken::query()->where('name', 'Forever')->sole()->expires_at)->toBeNull();
+    AiToken::query()->whereKeyNot($token->id)->delete();
+
     delete("/admin/ai/tokens/{$token->id}")->assertSessionHas('success');
     expect(AiToken::query()->count())->toBe(0)
         ->and(Activity::query()->where('source', 'security')->pluck('action')->all())->toContain('token created', 'token revoked');
@@ -84,13 +91,30 @@ it('lets an agent in with a valid token only, as its owner', function () {
     $token->forceFill(['expires_at' => now()->subMinute()])->save();
     mcp($plain, 'tools/list')->assertUnauthorized();
 
-    [, $other] = AiToken::issue((string) $this->rina->id, 'Cursor');
-    app(AccountGuard::class)->lock($this->rina);
-    mcp($other, 'tools/list')->assertForbidden();
-
     $nobody = adminUser(Panel::ACCESS);
     [, $plain] = AiToken::issue((string) $nobody->id, 'X');
-    mcp($plain, 'tools/list')->assertForbidden();
+    mcp($plain, 'tools/list')->assertForbidden()->assertJsonPath('error', fn (string $error) => str_contains($error, 'Connect AI agents'));
+
+    // Allowed to connect agents, but not to open the panel (an app's customers).
+    $outsider = adminUser('sunrice.ai.connect');
+    [, $plain] = AiToken::issue((string) $outsider->id, 'X');
+    mcp($plain, 'tools/list')->assertForbidden()->assertJsonPath('error', fn (string $error) => str_contains($error, 'may not open the admin panel'));
+});
+
+it('revokes the tokens on "sign out everywhere" and on locking, and keeps a locked account out', function () {
+    [, $plain] = AiToken::issue((string) $this->rina->id, 'Claude');
+    mcp($plain, 'tools/list')->assertOk();
+
+    app(AccountGuard::class)->signOutEverywhere($this->rina);
+    mcp($plain, 'tools/list')->assertUnauthorized();
+    expect(AiToken::query()->count())->toBe(0)
+        ->and(Activity::query()->where('source', 'security')->orderBy('id')->pluck('action')->all())->toBe(['tokens revoked', 'signed out everywhere']);
+
+    [, $other] = AiToken::issue((string) $this->rina->id, 'Cursor');
+    app(AccountGuard::class)->lock($this->rina);
+    mcp($other, 'tools/list')->assertUnauthorized();
+    [, $later] = AiToken::issue((string) $this->rina->id, 'Cursor');
+    mcp($later, 'tools/list')->assertForbidden()->assertJsonPath('error', fn (string $error) => str_contains($error, 'locked'));
 });
 
 it('records an agent\'s changes as the AI agent\'s, and gives the instructions', function () {

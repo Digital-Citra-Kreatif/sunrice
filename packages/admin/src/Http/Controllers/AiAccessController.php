@@ -53,7 +53,8 @@ final class AiAccessController
             'read_only' => ['boolean'],
             'expires_in_days' => ['nullable', Rule::in([30, 90, 365])],
         ]);
-        $days = $request->integer('expires_in_days');
+        // 90 days unless asked otherwise; null (sent on purpose) is never.
+        $days = $request->has('expires_in_days') ? $request->integer('expires_in_days') : 90;
         [$token, $plain] = $create->handle($user, $request->string('name')->toString(), $request->boolean('read_only'), $days > 0 ? now()->addDays($days) : null);
 
         return back()->with('sunrice.ai.created', ['name' => $token->name, 'token' => $plain]);

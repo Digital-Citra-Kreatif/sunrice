@@ -20,8 +20,9 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Signs an MCP request in as the owner of its bearer token, so every tool
  * runs with that user's permissions (and a read-only token's limits). The
- * owner needs "sunrice.ai.connect" and an unlocked account. Their changes
- * show in the activity log as the AI agent's, by token name.
+ * owner needs Panel::ACCESS, "sunrice.ai.connect" and an unlocked account
+ * ("Sign out everywhere" and locking revoke the tokens, see AccountGuard).
+ * Their changes show in the activity log as the AI agent's, by token name.
  *
  * @internal
  */
@@ -38,7 +39,10 @@ final class AuthenticateAiToken
             return response()->json(['error' => 'Missing, expired or revoked access token. Create one in the admin panel under AI access.'], 401)
                 ->header('WWW-Authenticate', 'Bearer');
         }
-        if (! $user instanceof Authorizable || ! $user->can('sunrice.ai.connect')) {
+        if (! $user instanceof Authorizable || ! $user->can(Panel::ACCESS)) {
+            return response()->json(['error' => 'This user may not open the admin panel (the "Access the admin panel" permission), so its AI agents may not either.'], 403);
+        }
+        if (! $user->can('sunrice.ai.connect')) {
             return response()->json(['error' => 'This user may not connect AI agents (the "Connect AI agents" permission).'], 403);
         }
         if (app(AccountGuard::class)->isLocked($user)) {

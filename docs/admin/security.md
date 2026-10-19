@@ -27,7 +27,7 @@ Each line keeps the IP and, in its properties, the browser's user agent.
 
 On **Users**, each row's menu has:
 
-- **Sign out everywhere**: ends all of the user's sessions and "remember me" logins. Sessions that signed in before end on their next page, whatever your session driver; with the `database` driver they're deleted at once. They can log in again with their password (change it first if it may have leaked). Signing out yourself keeps your current session.
+- **Sign out everywhere**: ends all of the user's sessions and "remember me" logins, and revokes their [AI access tokens](ai.md) (a `tokens revoked` event of its own, so the log says what stopped). Sessions that signed in before end on their next page, whatever your session driver; with the `database` driver they're deleted at once. They can log in again with their password (change it first if it may have leaked) and create new tokens. Signing out yourself keeps your current session.
 - **Lock account**: signs them out everywhere, and they can't log in or open a panel page until someone unlocks the account. Nothing is deleted. Nobody can lock their own account.
 - **Unlock account**: lets them log in again; it also lifts a lock after too many wrong passwords. From the console: `php artisan sunrice:unlock rina@example.com`.
 
