@@ -73,6 +73,39 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 
 `NavigationItem::make($key)` takes a label, a `url` relative to the panel path, an `icon` (a lucide name), a `group`, a `parent` (another item's key, for a submenu), a `sort` (lower first, 100 by default) and a `permission`. An item without a permission is shown to everyone who can open the panel. Hiding a parent hides its submenu.
 
+## Dashboard cards
+
+The dashboard shows cards from the panel and its plugins: figures
+(`stats`) or a list of links (`list`). Their content is worked out for the
+user looking, after the page shows (an Inertia deferred prop), so slow
+queries don't hold up the panel. Each card says who sees it, or the panel
+refuses it:
+
+```php
+use Sunrice\Admin\Dashboard\DashboardCard;
+
+$panel->dashboardCards(
+    DashboardCard::make('shop.today')->title('Today')->permission('shop.orders.view')->span(2)
+        ->stats(fn (User $user) => [
+            ['label' => 'Orders', 'value' => Order::today()->count(), 'url' => '/admin/shop/orders'],
+            ['label' => 'Revenue', 'value' => Money::format(Order::today()->sum('total'))],
+        ]),
+    DashboardCard::make('shop.recent')->title('Recent orders')->visible(fn (User $user) => $user->isStaff())
+        ->list(fn (User $user) => Order::latest()->limit(8)->get()->map(fn (Order $order) => [
+            'title' => $order->number, 'meta' => $order->created_at->diffForHumans(), 'url' => "/admin/shop/orders/{$order->id}",
+        ])->all())
+        ->empty('No orders yet.')->link('All orders', 'shop/orders'),
+);
+```
+
+- `permission()`, `visible()` or `everyone()` (everyone who can open the panel).
+- `sort()` (lower first, 100 by default) and `span()` (1 to 3 columns).
+- Items' addresses are paths or web addresses (anything else is dropped);
+  `link()`'s is relative to the panel's path, like navigation items'.
+
+The panel has **Recent activity** (`sunrice.activity.view`); the CMS adds
+content per collection, recent edits, new submissions and comments.
+
 ## Routes and pages
 
 `$panel->routes(fn () => ...)` adds routes for signed-in users who may open the panel (the `sunrice.access` permission), under the panel's path and named `sunrice.admin.…`. Plugin pages in React are explained in [Admin pages in React](frontend.md).
