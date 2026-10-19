@@ -8,6 +8,11 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Sunrice\Admin\Actions\Resources\SaveRecord;
+use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Tables\Table;
 
@@ -100,6 +105,40 @@ abstract class Resource
     public static function query(): Builder
     {
         return static::model()::query();
+    }
+
+    /**
+     * Saves a record from form values as the admin's form does: validated
+     * by the form, only its fields written, and the activity log told. For
+     * imports and tools; check the user may do it first.
+     *
+     *     TagResource::saveRecord(['title' => 'News']);          // creates
+     *     TagResource::saveRecord(['title' => 'Updates'], $tag);  // edits
+     *
+     * @param  array<mixed>  $input
+     *
+     * @throws ValidationException
+     * @throws PanelMisconfigured when the resource isn't registered
+     */
+    public static function saveRecord(array $input, ?Model $record = null): Model
+    {
+        $resource = null;
+        foreach (app(Panel::class)->getResources() as $registered) {
+            if ($registered->class === static::class) {
+                $resource = $registered;
+            }
+        }
+        if ($resource === null) {
+            throw new PanelMisconfigured('The resource '.static::class.' isn\'t registered on the panel.');
+        }
+        $record ??= static::newRecord();
+        $creating = ! $record->exists;
+        $changed = app(SaveRecord::class)->handle($resource, $record, $input, $creating ? 'create' : 'edit');
+        $creating
+            ? app(ActivityLog::class)->record('created', $resource->key(), $record, static::title($record))
+            : app(ActivityLog::class)->updated($resource->key(), $record, static::title($record), $changed);
+
+        return $record;
     }
 
     /** The new record the create form fills. */

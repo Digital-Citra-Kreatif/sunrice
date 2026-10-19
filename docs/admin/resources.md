@@ -105,6 +105,15 @@ CheckboxList::make('tags')
     ->saveUsing(fn (Product $product, array $ids) => $product->tags()->sync($ids));
 ```
 
+To save a record from code (an import, a tool) the way the form does, validated and written field by field and logged, use `saveRecord()`. Check the user may do it first:
+
+```php
+$product = ProductResource::saveRecord(['name' => 'Mug', 'sku' => 'MUG-1']);   // creates
+ProductResource::saveRecord(['name' => 'Big mug'] + $values, $product);          // edits
+```
+
+It throws a `ValidationException` like the form's, and `PanelMisconfigured` when the resource isn't registered.
+
 Override `newRecord()` to prepare the record the create form fills (`$record->team_id = …`).
 
 **Only fields in the form are written.** Anything else a request sends (an `id`, a timestamp, an attribute that isn't on the form) is ignored, so the model doesn't need `$fillable` for the panel.

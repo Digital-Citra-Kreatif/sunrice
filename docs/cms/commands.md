@@ -43,3 +43,38 @@ Fills a collection of its own with published fake articles in ten demo
 topics, to see how the site does with a lot of content, and prints pages
 to try. It only ever touches collections and taxonomies it made (the ones
 with the `sunrice_demo` blueprints); `--collection=` picks another handle.
+
+## Importing structure: `sunrice:import-structure`
+
+A package or starter site describes the structure it needs in a file, PHP
+returning an array or JSON, and imports it:
+
+```bash
+php artisan sunrice:import-structure database/structure.php --dry-run
+php artisan sunrice:import-structure database/structure.php
+```
+
+```php
+return [
+    'fieldsets' => [['handle' => 'hero', 'title' => 'Hero', 'fields' => [/* … */]]],
+    'blueprints' => [['handle' => 'post', 'title' => 'Post', 'fields' => [/* … */]]],
+    'collections' => [['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'route' => '/blog/{slug}', 'listing_route' => '/blog', 'dated' => true]],
+    'taxonomies' => [['handle' => 'tags', 'title' => 'Tags', 'collections' => ['blog'], 'route' => '/tags/{slug}']],
+    'globals' => [['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']],
+    'forms' => [['handle' => 'contact', 'title' => 'Contact us', 'blueprint' => 'contact_form', 'notify' => ['team@example.com']]],
+    'entries' => [['collection' => 'blog', 'slug' => 'hello', 'title' => 'Hello', 'data' => [/* … */], 'publish' => true]],
+    'menus' => [['handle' => 'main', 'title' => 'Main', 'items' => [
+        ['entry' => 'blog/hello', 'children' => [['url' => 'https://example.com', 'labels' => ['en' => 'Example']]]],
+        ['listing' => 'blog', 'labels' => ['en' => 'Blog']],
+        ['term' => 'tags/news'],
+    ]]],
+];
+```
+
+Items are made by handle, in that order, through the admin's own actions
+and forms (`Actions\Structure\ImportStructure`), so they are validated as
+there; fields and settings take the names the admin uses. Running it
+again is safe: what is there and matches stays, what differs (someone
+changed it, or the file did) is listed and left alone unless `--force`.
+Entries (drafts unless `publish`) and menus are only ever created. One
+invalid item stops the import and nothing is saved.
