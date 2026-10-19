@@ -45,6 +45,24 @@ export const DropdownMenuSeparator = m.DropdownMenuSeparator as AnyComponent;
 export const DropdownMenuTrigger = m.DropdownMenuTrigger as AnyComponent;
 export const Input = m.Input as AnyComponent;
 export const Label = m.Label as AnyComponent;
+
+/**
+ * Choose files from the media library (folders, search, upload), as the
+ * panel's own MediaPicker field does: one id, or an ordered list with
+ * `multiple`. Choosing needs sunrice.media.view, uploading .upload.
+ */
+export const MediaPickerInput = m.MediaPickerInput as ComponentType<{
+    id: string;
+    value: number | number[] | null;
+    multiple: boolean;
+    /** With `multiple`: at most this many. */
+    max: number | null;
+    /** image, video, audio, document; none for any. */
+    types: string[];
+    disabled: boolean;
+    invalid: boolean;
+    onChange: (value: number | number[] | null) => void;
+}>;
 export const Select = m.Select as AnyComponent;
 export const SelectContent = m.SelectContent as AnyComponent;
 export const SelectItem = m.SelectItem as AnyComponent;

@@ -30,7 +30,7 @@ beforeEach(function () {
     $this->user = adminUser();
     actingAs($this->user);
     Blueprint::query()->create(['handle' => 'article', 'title' => 'Article', 'fields' => [
-        ['handle' => 'intro', 'type' => 'textarea', 'required' => true],
+        ['handle' => 'intro', 'type' => 'textarea', 'label' => 'Intro', 'required' => true],
         ['handle' => 'featured', 'type' => 'toggle'],
         ['handle' => 'day', 'type' => 'date'],
     ]]);
@@ -150,7 +150,7 @@ it('checks the draft again before publishing', function () {
     $translation->entry->collection->flushSchema();
 
     app(PublishEntry::class)->handle($translation);
-})->throws(ValidationException::class, 'body');
+})->throws(ValidationException::class, 'The Body field is required');
 
 it('keeps only the latest revisions', function () {
     config(['sunrice-cms.revisions.keep' => 2]);
@@ -241,4 +241,10 @@ it('keeps data when the blueprint loses a field', function () {
     app(SaveDraft::class)->handle($translation, ['data' => ['intro' => 'Changed', 'featured' => false]]);
 
     expect($translation->draft_data)->toEqual(['intro' => 'Changed', 'featured' => true, 'day' => null]);
+});
+
+it('names fields by their labels in messages', function () {
+    expect(fn () => article(['data' => ['intro' => '']]))->toThrow(function (ValidationException $e) {
+        expect($e->errors()['data.intro'][0])->toBe('The Intro field is required.');
+    });
 });

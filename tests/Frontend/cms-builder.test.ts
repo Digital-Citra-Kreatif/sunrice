@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    errorsUnder, fromDefinitions, handleFromLabel, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
+    errorsAt, errorsUnder, fromDefinitions, handleFromLabel, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -63,4 +63,11 @@ test('finds errors under a field', () => {
     assert.equal(hasErrors(errors, 'fields.0.fields'), true);
     assert.equal(hasErrors(errors, 'fields.1'), false);
     assert.equal(hasErrors(errors, 'title'), true);
+});
+
+test('gives a value its own error and those under it', () => {
+    const errors = { 'config.options': 'Required.', 'config.options.0.value': 'Too long.', 'config.optionsx': 'Other.' };
+
+    assert.deepEqual(errorsAt(errors, 'config.options'), { '': 'Required.', '0.value': 'Too long.' });
+    assert.deepEqual(errorsAt(errors, 'config.max'), {});
 });

@@ -35,7 +35,7 @@ export const SHARED_MODULES = {
         'Badge', 'Button', 'Card', 'CardContent', 'CardDescription', 'CardFooter', 'CardHeader', 'CardTitle', 'Checkbox',
         'Dialog', 'DialogContent', 'DialogDescription', 'DialogFooter', 'DialogHeader', 'DialogTitle', 'DialogTrigger',
         'DropdownMenu', 'DropdownMenuContent', 'DropdownMenuItem', 'DropdownMenuLabel', 'DropdownMenuSeparator', 'DropdownMenuTrigger',
-        'Input', 'Label', 'Select', 'SelectContent', 'SelectItem', 'SelectTrigger', 'SelectValue', 'Separator', 'Skeleton', 'Switch',
+        'Input', 'Label', 'MediaPickerInput', 'Select', 'SelectContent', 'SelectItem', 'SelectTrigger', 'SelectValue', 'Separator', 'Skeleton', 'Switch',
         'Table', 'TableBody', 'TableCell', 'TableHead', 'TableHeader', 'TableRow', 'Tabs', 'TabsContent', 'TabsList', 'TabsTrigger',
         'Textarea', 'Tooltip', 'TooltipContent', 'TooltipTrigger', 'toast', 'useBreadcrumbs',
     ],
