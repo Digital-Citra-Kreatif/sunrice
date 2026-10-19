@@ -1,0 +1,25 @@
+# Globals
+
+**Global sets** hold values the whole site uses: contact details, social links, footer text, an announcement bar. Each set has a blueprint for its fields and values in each language. There are no drafts: saved values are live.
+
+## Setting up
+
+Under **Structure → Global sets** (permissions `cms.global-sets.view`, `.create`, `.update`, `.delete`): a title, a handle that templates use and that can't change later, and a blueprint. Changing the blueprint keeps the values already saved.
+
+## Editing
+
+Under **Content → Globals** (`cms.globals.view` to see, `cms.globals.update` to save): each set's fields, in each language. Fields the blueprint shares across languages are edited in the main language and shown read-only in the others, as for entries. Until a set is saved, its fields have their defaults.
+
+In code, `SaveGlobals` saves a set's values in a language: `app(SaveGlobals::class)->handle($set, ['phone' => '…'], 'id')`. Fields left out keep their values.
+
+## Reading them
+
+```php
+use Sunrice\Cms\Globals;
+
+$contact = app(Globals::class)->get('contact');         // the main language
+$contact = app(Globals::class)->get('contact', 'id');   // Indonesian, shared fields from the main language
+$contact['phone'];
+```
+
+Values come as templates get them (media as `Media` models, dates as Carbon…). All global sets load in one query the first time one is read in a request; an unknown handle gives an empty array.
