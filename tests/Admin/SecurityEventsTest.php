@@ -38,7 +38,7 @@ beforeEach(function () {
 /** The security lines as [action, actor, subject label, note], oldest first. */
 function securityLines(): array
 {
-    return Activity::query()->where('source', 'security')->orderBy('id')->get()
+    return Activity::query()->where('source', 'security')->where('action', '!=', 'alert sent')->orderBy('id')->get()
         ->map(fn (Activity $a) => [$a->action, $a->user_name, $a->subject_label, $a->properties['note'] ?? null])->all();
 }
 

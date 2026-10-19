@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Panel;
 use Throwable;
 
@@ -91,6 +92,7 @@ final class ActivityLog
             if ($subjectId !== null && in_array($action, ['created', 'updated'], true)) {
                 $this->written[$key] = $activity;
             }
+            ActivityRecorded::dispatch($activity);
 
             return $activity;
         } catch (Throwable $e) {

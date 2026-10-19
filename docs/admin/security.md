@@ -45,3 +45,20 @@ use Sunrice\Admin\Security\SecurityLog;
 app(SecurityLog::class)->record('two-factor turned off', $user, null, ['note' => 'by an administrator']);
 app(SecurityLog::class)->about('api key rotated', 'integration', $integration, 'Payment gateway');
 ```
+
+## Email alerts
+
+When something may be a break-in, the panel emails super admins, users with the roles in `security.alerts.roles`, and the addresses in `security.alerts.emails` (`config/sunrice-admin.php`). Each alert says what happened and what to do, and links to the security events:
+
+| Alert | When |
+| --- | --- |
+| An account was locked after wrong passwords | `account locked` |
+| One address is trying many accounts | Too many wrong passwords from one IP (password spraying). |
+| A powerful account signed in from a new address | Someone who can manage users or roles (or a super admin) signed in from an IP they hadn't used. |
+| An account signed in after a long time | The first login in `dormant_days` (90). |
+| Someone was given power over users or roles | A user got the super admin role or permissions to manage users or roles, or such a role. |
+| A dangerous upload was blocked | `upload blocked` |
+| Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
+| Many things deleted in a short time | `mass_deletes` (20) deletes or trashes by one person or AI agent within 10 minutes. |
+
+The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. They need your app's mail settings; with a queue for mail they're sent like any other email.

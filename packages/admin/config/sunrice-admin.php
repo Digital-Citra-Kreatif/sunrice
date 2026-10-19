@@ -79,6 +79,22 @@ return [
         // uploads …) to this log channel, e.g. 'daily', for fail2ban or a log
         // service. null: only the activity log.
         'log_channel' => env('SUNRICE_SECURITY_LOG_CHANNEL'),
+
+        // Emails when something may be a break-in (see docs/admin/security.md).
+        // Sent to super admins, users with these roles, and these addresses.
+        'alerts' => [
+            'enabled' => env('SUNRICE_SECURITY_ALERTS', true),
+            'roles' => [],
+            'emails' => [],
+            // The same alert (rule and account) at most this often.
+            'cooldown_minutes' => 60,
+            // A login after this many days without one.
+            'dormant_days' => 90,
+            // CSV exports by one person in an hour.
+            'exports' => 5,
+            // Deletes and trashes by one person (or AI agent) in 10 minutes.
+            'mass_deletes' => 20,
+        ],
     ],
 
 ];
