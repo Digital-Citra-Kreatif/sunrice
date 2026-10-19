@@ -7,6 +7,7 @@ import { FormSections } from '@/components/resources/form-sections';
 import type { SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
+import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -36,10 +37,22 @@ function SettingsForm({ section, sections, form: schema, values, secrets }: Prop
             : field)),
     })), [schema, secrets]);
 
+    const save = () => {
+        if (form.processing) return;
+        form.put(adminUrl(`settings/${section.key}`), {
+            preserveScroll: true,
+            // Typed secrets are cleared again; what's on screen is the new baseline.
+            onSuccess: () => {
+                form.reset(...Object.keys(secrets));
+                form.setDefaults();
+            },
+        });
+    };
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
-        form.put(adminUrl(`settings/${section.key}`), { preserveScroll: true, onSuccess: () => form.reset(...Object.keys(secrets)) });
+        save();
     };
+    useUnsavedChanges(form.isDirty, save);
 
     return (
         <div className="flex flex-col gap-6 lg:flex-row">

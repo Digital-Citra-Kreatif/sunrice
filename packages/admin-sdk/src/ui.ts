@@ -91,3 +91,9 @@ export const toast = m.toast as { success(message: string): void; error(message:
 
 /** The header's breadcrumb trail for this page: useBreadcrumbs([{ label: 'Orders', href: adminUrl('shop/orders') }, { label: '#1042' }]). */
 export const useBreadcrumbs = m.useBreadcrumbs as (crumbs: { label: string; href?: string }[]) => void;
+
+/**
+ * Guards a form with unsaved edits: asks before leaving the page and saves
+ * on Ctrl/Cmd+S. useUnsavedChanges(form.isDirty, () => form.put(url)).
+ */
+export const useUnsavedChanges = m.useUnsavedChanges as (dirty: boolean, onSave?: () => void) => void;
