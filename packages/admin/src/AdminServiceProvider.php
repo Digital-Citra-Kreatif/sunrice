@@ -5,14 +5,25 @@ declare(strict_types=1);
 namespace Sunrice\Admin;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\MigrationsEnded;
+use Illuminate\Database\Events\NoPendingMigrations;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\View as ViewInstance;
 use Inertia\ServiceProvider as InertiaServiceProvider;
+use Spatie\Permission\PermissionServiceProvider;
+use Spatie\Permission\Traits\HasRoles;
+use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Assets\AdminAssets;
+use Sunrice\Admin\Console\MakeAdminCommand;
 use Sunrice\Admin\Console\PublishAssetsCommand;
+use Sunrice\Admin\Console\SyncPermissionsCommand;
 
 /**
  * Boots the admin panel package. The panel itself and its plugins are
@@ -26,6 +37,7 @@ final class AdminServiceProvider extends ServiceProvider
     {
         // Registered here too, so the panel works in apps that turn off package discovery.
         $this->app->register(InertiaServiceProvider::class);
+        $this->app->register(PermissionServiceProvider::class);
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');
     }
 
@@ -37,13 +49,31 @@ final class AdminServiceProvider extends ServiceProvider
             return Limit::perMinute(is_numeric($perMinute) ? (int) $perMinute : 5)->by((string) $request->ip());
         });
 
+        $this->loadMigrationsFrom(dirname(__DIR__).'/database/migrations');
+
+        // Super admins may do everything.
+        Gate::before(function (mixed $user): ?bool {
+            if (! $user instanceof Model || ! in_array(HasRoles::class, class_uses_recursive($user), true)) {
+                return null;
+            }
+
+            return $user->hasRole(SyncPermissions::superAdminRole()) ? true : null; // @phpstan-ignore method.notFound (HasRoles is checked above)
+        });
+
+        // Keep the permissions in step with the code after every migrate.
+        Event::listen([MigrationsEnded::class, NoPendingMigrations::class], function (): void {
+            if ($this->app->bound(Panel::class) && Schema::hasTable((string) config('permission.table_names.permissions'))) {
+                $this->app->make(SyncPermissions::class)->handle();
+            }
+        });
+
         $this->loadViewsFrom(dirname(__DIR__).'/resources/views', 'sunrice-admin');
         View::composer('sunrice-admin::app', function (ViewInstance $view): void {
             $view->with('sunricePanel', $this->app->make(Panel::class));
         });
 
         if ($this->app->runningInConsole()) {
-            $this->commands([PublishAssetsCommand::class]);
+            $this->commands([PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class]);
             $this->publishes([dirname(__DIR__).'/config/sunrice-admin.php' => config_path('sunrice-admin.php')], 'sunrice-admin-config');
             $this->publishes([AdminAssets::distPath() => public_path(AdminAssets::BUILD_DIRECTORY)], 'sunrice-admin-assets');
         }

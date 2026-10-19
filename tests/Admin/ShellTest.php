@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Assets\PluginBundle;
@@ -22,8 +21,7 @@ use function Pest\Laravel\getJson;
 /** A signed-in user; `$admin` users may open the panel. */
 function signIn(bool $admin = true): User
 {
-    Gate::define(Panel::ACCESS, fn (User $user) => $user->getAttribute('is_admin') === true);
-    $user = new User(['name' => 'Rina', 'email' => 'rina@example.com', 'is_admin' => $admin]);
+    $user = $admin ? adminUser(Panel::ACCESS) : adminUser();
     actingAs($user);
 
     return $user;

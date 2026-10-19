@@ -4,7 +4,7 @@ The panel has its own login, logout and password reset pages under its path (`/a
 
 ## Who can sign in
 
-Signing in needs the right password **and** the `sunrice.access` permission ("Open the admin panel"): an app's customers can share the users table without getting into the admin. An account without it gets "This account can't use the admin panel." and stays signed out. Every panel route checks the same permission.
+Signing in needs the right password **and** the `sunrice.access` permission ("Open the admin panel"): an app's customers can share the users table without getting into the admin. An account without it gets "This account can't use the admin panel." and stays signed out. Every panel route checks the same permission. Give it through a role, or make someone a super admin with `php artisan sunrice:make-admin` (see [Roles and permissions](permissions.md)).
 
 ## Brute-force protection
 
