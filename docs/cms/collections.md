@@ -30,10 +30,16 @@ Editors write entries under **Content → Entries**: a list per collection (sear
 | Permission | |
 | --- | --- |
 | `cms.entries.view` | See the lists and open entries. |
-| `cms.entries.create` | Create entries. |
+| `cms.entries.create` | Create and duplicate entries. |
 | `cms.entries.update` | Save drafts and restore revisions. |
-| `cms.entries.publish` | Publish (now or on a date) and unpublish. |
-| `cms.entries.delete` | Move entries to the trash and restore them. |
+| `cms.entries.publish` | Publish (now or on a date) and unpublish, also several at once. |
+| `cms.entries.delete` | Move entries to the trash, restore them and delete them for good, also several at once. |
+
+In the list, tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** downloads the collection's entries in the main language, a column per field (an `exported` security event). In the editor:
+
+- **Ctrl/Cmd+S** saves the draft, and leaving the page with unsaved changes asks first.
+- **Duplicate** copies every language's draft as a new draft entry ("Hello (copy)", slug `hello-copy`).
+- When someone else saved since you opened the page, saving says so: **Load theirs**, or **Save mine anyway** over their version.
 
 Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it).
 
@@ -88,10 +94,10 @@ A slug is lowercase letters, digits and dashes. Left empty, it's made from the t
 
 ## Revisions
 
-Every publish keeps a `Revision` (title, slug, fields and who published it); the latest 50 per translation are kept (`revisions.keep`). `RestoreRevision` loads one into the draft, to publish when ready. If another entry took its slug since, the draft keeps its current slug.
+Every publish keeps a `Revision` (title, slug, fields and who published it); the latest 50 per translation are kept (`revisions.keep`). `RestoreRevision` loads one into the draft, to publish when ready. If another entry took its slug since, the draft keeps its current slug. In the editor, **Undo the restore** puts the replaced draft back, until the session ends (`PutBackDraft`).
 
 ## Trash
 
-`TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was.
+`TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms. `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
 
-Every action is written to the [activity log](../admin/activity.md): created, updated (with the fields that changed), published, unpublished, reverted, trashed and restored.
+Every action is written to the [activity log](../admin/activity.md): created, duplicated, updated (with the fields that changed), published, unpublished, reverted, trashed, restored and deleted.

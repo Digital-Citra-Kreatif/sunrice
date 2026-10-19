@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { adminUrl } from '@/lib/admin-url';
 import { registerPage } from '@/lib/page-registry';
+import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
 /** What `@sunrice/admin-sdk/ui` gives plugins. Keep in step with SHARED_MODULES (a test checks). */
 const ui = {
@@ -36,7 +37,7 @@ const ui = {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
     Input, Label, MediaPickerInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Skeleton, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
-    Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, useBreadcrumbs,
+    Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, useBreadcrumbs, useUnsavedChanges,
 };
 
 const modules: Record<SharedModuleName, Record<string, unknown>> = {

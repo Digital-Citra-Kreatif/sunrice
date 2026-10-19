@@ -8,6 +8,7 @@ import { FormSections } from '@/components/resources/form-sections';
 import type { ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
+import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
 interface Props {
     resource: ResourceInfo;
@@ -24,14 +25,20 @@ export default function ResourceForm({ resource, record, sections, values, can }
     const [confirm, confirmDialog] = useConfirm();
     const form = useForm<Record<string, FieldValue>>(values);
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
+    const save = () => {
+        if (form.processing) return;
         if (record) {
-            form.put(`${base}/${record.id}`, { preserveScroll: true });
+            // Saved: what's on screen is the new baseline for "unsaved changes".
+            form.put(`${base}/${record.id}`, { preserveScroll: true, onSuccess: () => form.setDefaults() });
         } else {
-            form.post(base);
+            form.post(base, { onSuccess: () => form.setDefaults() });
         }
     };
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        save();
+    };
+    useUnsavedChanges(form.isDirty, save);
 
     const remove = () => record && confirm(`Delete ${record.title}? This can't be undone.`, () => router.delete(`${base}/${record.id}`), true);
 
