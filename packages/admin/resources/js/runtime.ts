@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { SDK_VERSION, type SharedModuleName } from '@sunrice/admin-sdk/shared';
 import type { SunriceRuntime } from '@sunrice/admin-sdk';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { MediaPickerInput } from '@/components/media/media-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +34,7 @@ const ui = {
     Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-    Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Skeleton, Switch,
+    Input, Label, MediaPickerInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Skeleton, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
     Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, useBreadcrumbs,
 };

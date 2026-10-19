@@ -21,6 +21,20 @@ $articles = app(SaveCollection::class)->handle(['handle' => 'articles', 'title' 
 
 Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave the admin and the site.
 
+## Editing entries
+
+Editors write entries under **Content → Entries**: a list per collection (search, the trash) and the editor, with the blueprint's fields, the entry's status and its revisions. What each person may do follows their permissions:
+
+| Permission | |
+| --- | --- |
+| `cms.entries.view` | See the lists and open entries. |
+| `cms.entries.create` | Create entries. |
+| `cms.entries.update` | Save drafts and restore revisions. |
+| `cms.entries.publish` | Publish (now or on a date) and unpublish. |
+| `cms.entries.delete` | Move entries to the trash and restore them. |
+
+Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it). The editor edits the main language; other languages come with the multilingual editor. Rich text is edited as HTML for now, cleaned when saved.
+
 ## Languages
 
 The languages content is written in are set in `config/sunrice-cms.php` (or `SUNRICE_LOCALES=id,en`), the first being the main one. Without either, it's the app's locale. `Sunrice\Cms\Support\Locales::all()` and `::default()` read them.

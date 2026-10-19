@@ -1,1 +1,0 @@
-import{o as e}from"./app-CzF0_VsM.js";const o={name:"chevron-left",size:24,node:[["path",{d:"m15 18-6-6 6-6",key:"1wnfg3"}]]};o.node;const a=e(o);const c={name:"search",size:24,node:[["path",{d:"m21 21-4.34-4.34",key:"14j7rj"}],["circle",{cx:"11",cy:"11",r:"8",key:"4ej97u"}]]};c.node;const t=e(c);export{a as C,t as S};

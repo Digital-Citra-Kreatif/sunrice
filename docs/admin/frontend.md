@@ -77,12 +77,12 @@ $panel->bundle(
 
 ### Styles
 
-The panel's stylesheet already holds Tailwind's base styles and theme. Build only the utilities your pages use, with the theme's values written in and the panel's colours read from its CSS variables, so your pages follow the panel's colours, dark mode and branding without a second copy of Tailwind:
+The panel's stylesheet already holds Tailwind's base styles and theme. Build only the utilities your pages use, **with a prefix of your own**, the theme's values written in and the panel's colours read from its CSS variables. Your pages then follow the panel's colours, dark mode and branding, without a second copy of Tailwind:
 
 ```css
 /* resources/css/admin.css, imported by the bundle's entry */
 @layer theme, base, components, utilities;
-@import 'tailwindcss/theme.css' layer(theme) theme(reference inline);
+@import 'tailwindcss/theme.css' layer(theme) theme(reference inline) prefix(shop);
 @import 'tailwindcss/utilities.css' layer(utilities) source('../js');
 
 @custom-variant dark (&:is(.dark *));
@@ -94,9 +94,19 @@ The panel's stylesheet already holds Tailwind's base styles and theme. Build onl
 }
 ```
 
+```tsx
+<div className="shop:flex shop:gap-4 shop:md:grid-cols-2">…</div>
+```
+
+The prefix matters: your stylesheet loads after the panel's, so an unprefixed utility it happens to contain (Tailwind makes `.hidden` from any word "hidden" in your code) would override the panel's own responsive classes, hiding its sidebar for one. Prefixed utilities never meet the panel's.
+
 The CMS's own bundle (`packages/cms`) is a complete example.
 
 The panel loads the bundle the first time a page under `Shop/` opens, not on every admin page. Page prefixes are folders ending in `/`; two bundles can't claim the same pages, and the panel's own folders (`Auth/`, `Users/`, `Settings/`…) are reserved.
+
+## UI components
+
+`@sunrice/admin-sdk/ui` gives the panel's own components: buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, and `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file).
 
 ## Compatibility
 

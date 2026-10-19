@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The entry editor (Content → Entries): lists per collection with search and the trash, and the editor with every field type (rich text as HTML for now), save draft, publish now or on a date, unpublish, trash and restore, and revisions. Permissions `cms.entries.view`, `.create`, `.update`, `.publish` and `.delete`. Validation messages name fields by their labels.
+- `MediaPickerInput` in `@sunrice/admin-sdk/ui`: plugins can use the media library picker.
+- Plugin styles are prefixed (`prefix(cms)` in the CMS): unprefixed utilities in a plugin's stylesheet could override the panel's own, and the CMS's hid the sidebar. `docs/admin/frontend.md` shows the prefixed setup.
 - The blueprint and fieldset builder (Structure → Blueprints and Fieldsets, permission `cms.blueprints.manage`): add, edit, reorder and remove fields, nest groups and repeaters, each type's settings; server errors shown on the field they belong to. Collections moved to the Structure group.
 - The CMS's admin bundle (`packages/cms`, built with `@sunrice/admin-sdk`), published with `php artisan vendor:publish --tag=sunrice-cms-assets` (also part of `laravel-assets`). `docs/admin/frontend.md` shows how a plugin builds its styles on the panel's.
 - Fix: a select's options were stored with repeater row data (`_id`, `_key`, `_hidden`).
