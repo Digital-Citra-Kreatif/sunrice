@@ -33,7 +33,9 @@ Editors write entries under **Content → Entries**: a list per collection (sear
 | `cms.entries.publish` | Publish (now or on a date) and unpublish. |
 | `cms.entries.delete` | Move entries to the trash and restore them. |
 
-Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it). The editor edits the main language; other languages come with the multilingual editor. Rich text is edited as HTML for now, cleaned when saved.
+Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it). The editor edits the main language; other languages come with the multilingual editor.
+
+Rich text fields have a formatting toolbar: headings, bold, italic, underline, strikethrough, code, lists, quotes, dividers, links (web addresses, paths on the site, mailto: and tel:; others are refused) and images from the media library, which keep their library id. The server cleans the HTML again when saving.
 
 ## Languages
 

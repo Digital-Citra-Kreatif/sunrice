@@ -221,3 +221,17 @@ it('says which fields are translatable', function () {
 
     expect(array_map(fn (array $f) => $f['translatable'], $schema->toAdmin()))->toBe([true, false, false]);
 });
+
+it('keeps what the rich text editor writes', function () {
+    $html = '<h2>A heading</h2><p>Plain <strong>bold</strong> <em>it</em> <u>under</u> <s>gone</s> <code>x</code> '
+        .'<a target="_blank" rel="noopener noreferrer nofollow" href="/about">link</a></p>'
+        .'<ul><li><p>one</p></li></ul><ol><li><p>two</p></li></ol><blockquote><p>quote</p></blockquote>'
+        .'<pre><code>code()</code></pre><hr><img src="https://example.com/a.png" alt="A" title="T" data-media-id="7">';
+    $stored = Schema::make([Field::make('body', 'rich_text')])->normalize(['body' => $html])['body'];
+
+    foreach (['<h2>A heading</h2>', '<strong>bold</strong>', '<em>it</em>', '<u>under</u>', '<s>gone</s>', '<code>x</code>',
+        'href="/about"', 'target="_blank"', '<ul><li><p>one</p></li></ul>', '<ol><li><p>two</p></li></ol>',
+        '<blockquote><p>quote</p></blockquote>', '<pre><code>code()</code></pre>', '<hr', 'data-media-id="7"', 'alt="A"'] as $kept) {
+        expect($stored)->toContain($kept);
+    }
+});

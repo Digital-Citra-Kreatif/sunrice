@@ -104,6 +104,8 @@ The CMS's own bundle (`packages/cms`) is a complete example.
 
 The panel loads the bundle the first time a page under `Shop/` opens, not on every admin page. Page prefixes are folders ending in `/`; two bundles can't claim the same pages, and the panel's own folders (`Auth/`, `Users/`, `Settings/`…) are reserved.
 
+Your bundle can split: a dynamic `import()` (or `React.lazy`) becomes a chunk next to it, loaded when needed. Publish the whole build folder.
+
 ## UI components
 
 `@sunrice/admin-sdk/ui` gives the panel's own components: buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, and `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file).

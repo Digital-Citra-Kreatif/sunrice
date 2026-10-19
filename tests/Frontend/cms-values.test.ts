@@ -26,3 +26,14 @@ test('makes new rows and blocks shown', () => {
     assert.deepEqual(newRow(), { _hidden: false });
     assert.deepEqual(newBlock('quote'), { type: 'quote', hidden: false, values: {} });
 });
+
+test('checks link addresses like the server', async () => {
+    const { isSafeUrl } = await import('../../packages/cms/resources/js/lib/values.ts');
+
+    for (const url of ['https://example.com', '/about', '#top', '?page=2', 'mailto:hi@example.com', 'tel:+62123', 'about-us']) {
+        assert.equal(isSafeUrl(url), true, url);
+    }
+    for (const url of ['javascript:alert(1)', ' JavaScript:alert(1)', 'java\tscript:alert(1)', 'data:text/html,x', 'vbscript:x', '/\\evil.com']) {
+        assert.equal(isSafeUrl(url), false, url);
+    }
+});

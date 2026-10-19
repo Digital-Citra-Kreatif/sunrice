@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Rich text fields get an editor (TipTap): headings, marks, lists, quotes, code, links checked like the server does, and images from the media library. It loads only on entries that have a rich text field.
+- `@sunrice/admin-sdk/vite` defines `process.env.NODE_ENV`, which libraries in plugin bundles read and browsers lack.
 - The entry editor (Content → Entries): lists per collection with search and the trash, and the editor with every field type (rich text as HTML for now), save draft, publish now or on a date, unpublish, trash and restore, and revisions. Permissions `cms.entries.view`, `.create`, `.update`, `.publish` and `.delete`. Validation messages name fields by their labels.
 - `MediaPickerInput` in `@sunrice/admin-sdk/ui`: plugins can use the media library picker.
 - Plugin styles are prefixed (`prefix(cms)` in the CMS): unprefixed utilities in a plugin's stylesheet could override the panel's own, and the CMS's hid the sidebar. `docs/admin/frontend.md` shows the prefixed setup.
