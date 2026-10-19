@@ -74,4 +74,11 @@ return [
         'keep_days' => 365,
     ],
 
+    'security' => [
+        // Also write security events (logins, failed and blocked logins, blocked
+        // uploads …) to this log channel, e.g. 'daily', for fail2ban or a log
+        // service. null: only the activity log.
+        'log_channel' => env('SUNRICE_SECURITY_LOG_CHANNEL'),
+    ],
+
 ];

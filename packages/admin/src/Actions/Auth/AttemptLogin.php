@@ -6,10 +6,12 @@ namespace Sunrice\Admin\Actions\Auth;
 
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Auth\Access\Authorizable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Auth\LoginThrottle;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\SecurityLog;
 
 /**
  * Signs a user in to the panel: throttled, and only accounts that may
@@ -19,7 +21,7 @@ use Sunrice\Admin\Panel;
  */
 final class AttemptLogin
 {
-    public function __construct(private Panel $panel, private LoginThrottle $throttle) {}
+    public function __construct(private Panel $panel, private LoginThrottle $throttle, private SecurityLog $security) {}
 
     public function handle(string $email, string $password, bool $remember, string $ip): void
     {
@@ -37,6 +39,8 @@ final class AttemptLogin
         }
 
         if (! $guard->attempt(['email' => $email, 'password' => $password], $remember)) {
+            $account = $this->security->findAccount($email);
+            $this->security->record('login failed', $account, $account === null ? $email : null, ['note' => $account === null ? 'no account with this email' : 'wrong password']);
             $this->throttle->failed($email, $ip);
 
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
@@ -46,10 +50,14 @@ final class AttemptLogin
 
         // Signed in, but some accounts (an app's customers) may not open the panel.
         $user = $guard->user();
+        $account = $user instanceof Model ? $user : null;
         if (! $user instanceof Authorizable || ! $user->can(Panel::ACCESS)) {
             $guard->logout();
+            $this->security->record('login refused', $account, $account === null ? $email : null, ['note' => 'no access to the panel']);
 
             throw ValidationException::withMessages(['email' => __('This account can\'t use the admin panel.')]);
         }
+
+        $this->security->record('logged in', $account, $account === null ? $email : null);
     }
 }

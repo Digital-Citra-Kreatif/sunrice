@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Actions\Media;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -14,6 +15,7 @@ use Sunrice\Admin\Media\Jobs\GenerateImageSizes;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\SafeSvg;
+use Sunrice\Admin\Security\SecurityLog;
 
 /**
  * Adds a file to the media library: checks it (size, allowed type, no
@@ -78,6 +80,9 @@ final class UploadMedia
 
         $extension = strtolower($file->getClientOriginalExtension());
         $allowed = MediaConfig::allowedExtensions();
+        if (in_array($extension, MediaConfig::BLOCKED_EXTENSIONS, true)) {
+            self::blocked($file, ".{$extension} files are never accepted");
+        }
         if (! in_array($extension, $allowed, true)) {
             throw ValidationException::withMessages(['file' => ($extension === '' ? 'Files without an extension' : ".{$extension} files")." can't be uploaded. Allowed: ".implode(', ', $allowed).'.']);
         }
@@ -85,13 +90,25 @@ final class UploadMedia
         // What the content really is, whatever its name says.
         $detected = strtolower((string) $file->getMimeType());
         if (in_array($detected, MediaConfig::BLOCKED_MIME_TYPES, true)) {
+            self::blocked($file, "the content is {$detected}");
+
             throw ValidationException::withMessages(['file' => 'This file contains a web page or a script, so it can\'t be uploaded.']);
         }
         if ($extension === 'svg' || str_contains($detected, 'svg')) {
             if ($extension !== 'svg' || ! SafeSvg::isSafe((string) $file->getContent())) {
+                self::blocked($file, 'an SVG with scripts or links that run code');
+
                 throw ValidationException::withMessages(['file' => 'This SVG contains scripts or links that could run code, so it can\'t be uploaded. Export it again without scripts, or upload a PNG.']);
             }
         }
+    }
+
+    /** A file that could run code is a security event; an extension that just isn't allowed is a mistake. */
+    private static function blocked(UploadedFile $file, string $reason): void
+    {
+        $name = Str::limit($file->getClientOriginalName(), 120, '');
+        $user = auth()->user();
+        app(SecurityLog::class)->record('upload blocked', $user instanceof Model ? $user : null, null, ['note' => "{$name}: {$reason}"]);
     }
 
     /** {directory}/{Y}/{m}/{random}-{slug}.{ext}: unique, and never the uploader's raw name. */

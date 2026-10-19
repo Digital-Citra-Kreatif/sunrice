@@ -70,6 +70,7 @@ it('records users\' roles and passwords as changed, and settings', function () {
     put('/admin/settings/mail', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
 
     expect(activityLines())->toBe([
+        ['security', 'Rina', 'roles changed', 'account', 'Dewi', null],
         ['admin', 'Rina', 'updated', 'users', 'Dewi', ['password', 'roles']],
         ['admin', 'Rina', 'updated', 'settings', 'Mail settings', ['from']],
     ]);

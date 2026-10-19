@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Security events in the activity log (source "security"): logins in, out, failed, refused and blocked, accounts locked, password resets, blocked uploads, exports, and changes of roles and permissions. `SecurityLog` for your own, the `SecurityEventRecorded` event, and `security.log_channel` to copy them to a log channel. See `docs/admin/security.md`.
 - The activity log: who changed what (resources, users and roles, settings, media), with the fields that changed but never their values, the source (admin, AI agent, system, security) and IP. `ActivityLog::record()` / `updated()` / `withSource()` / `withoutLogging()` for plugins, the Activity log page (`sunrice.activity.view`) with filters and item histories, and `sunrice:activity-prune` (daily, `activity.keep_days`). New `TrashMedia` action. See `docs/admin/activity.md`.
 - The `MediaPicker` form field: choose media from the library (folders, search, upload) in resource and settings forms; one id or an ordered list, limited to types. `Media::whereTypes()`. The picker's JSON endpoint `GET /admin/media/picker`, and JSON answers to uploads that ask for them.
 - The Media page: folders, upload by drop or picker with progress, search, type filter, details (title, alt text, caption), replace, move, trash and restore. Permissions `sunrice.media.view`, `.upload`, `.update` and `.delete`; `$panel->mediaLibrary(false)` turns it off. `UpdateMedia`, `MoveMedia`, `SaveMediaFolder` and `DeleteMediaFolder` actions. The workbench links its storage and serves at 127.0.0.1:8000.

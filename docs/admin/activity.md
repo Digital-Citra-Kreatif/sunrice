@@ -10,7 +10,7 @@
 
 Values are never stored, only which fields changed, so the log holds no personal data or secrets. Each line keeps the user's name as it was, so it reads well after the user is deleted, and the IP address.
 
-**Source** says where a change came from: **Admin** (someone signed in), **AI agent** (with the name of its access token), **System** (the console or the queue) or **Security** (security events). Changes made by nobody signed in, outside the console (a visitor), aren't recorded. Within one request, several "updated" lines for the same thing become one.
+**Source** says where a change came from: **Admin** (someone signed in), **AI agent** (with the name of its access token), **System** (the console or the queue) or **Security** ([security events](security.md)). Changes made by nobody signed in, outside the console (a visitor), aren't recorded. Within one request, several "updated" lines for the same thing become one.
 
 ## Recording your own
 
