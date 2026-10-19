@@ -1,27 +1,27 @@
 {
-  "_AuthLayout-BdgJJczo.js": {
-    "file": "assets/AuthLayout-BdgJJczo.js",
+  "_AuthLayout-uaE_VPKs.js": {
+    "file": "assets/AuthLayout-uaE_VPKs.js",
     "name": "AuthLayout",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
-  "_confirm-YuSmezcZ.js": {
-    "file": "assets/confirm-YuSmezcZ.js",
+  "_confirm-D1Ip0fz5.js": {
+    "file": "assets/confirm-D1Ip0fz5.js",
     "name": "confirm",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
-  "_input-error-D8EU9CHp.js": {
-    "file": "assets/input-error-D8EU9CHp.js",
+  "_input-error-HRsPp2Os.js": {
+    "file": "assets/input-error-HRsPp2Os.js",
     "name": "input-error",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-BtXce3Vl.js",
+    "file": "assets/app-DiLVHHQ8.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -38,40 +38,40 @@
     ]
   },
   "resources/js/pages/Auth/ForgotPassword.tsx": {
-    "file": "assets/ForgotPassword-X6MYGMqk.js",
+    "file": "assets/ForgotPassword-CbD2cbcj.js",
     "name": "ForgotPassword",
     "src": "resources/js/pages/Auth/ForgotPassword.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AuthLayout-BdgJJczo.js",
-      "_input-error-D8EU9CHp.js"
+      "_AuthLayout-uaE_VPKs.js",
+      "_input-error-HRsPp2Os.js"
     ]
   },
   "resources/js/pages/Auth/Login.tsx": {
-    "file": "assets/Login-CLZoW-bt.js",
+    "file": "assets/Login-BfRXdLQo.js",
     "name": "Login",
     "src": "resources/js/pages/Auth/Login.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AuthLayout-BdgJJczo.js",
-      "_input-error-D8EU9CHp.js"
+      "_AuthLayout-uaE_VPKs.js",
+      "_input-error-HRsPp2Os.js"
     ]
   },
   "resources/js/pages/Auth/ResetPassword.tsx": {
-    "file": "assets/ResetPassword-CUA9eEP6.js",
+    "file": "assets/ResetPassword-DJDinyrD.js",
     "name": "ResetPassword",
     "src": "resources/js/pages/Auth/ResetPassword.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AuthLayout-BdgJJczo.js",
-      "_input-error-D8EU9CHp.js"
+      "_AuthLayout-uaE_VPKs.js",
+      "_input-error-HRsPp2Os.js"
     ]
   },
   "resources/js/pages/Dashboard.tsx": {
-    "file": "assets/Dashboard-D6e123xS.js",
+    "file": "assets/Dashboard-Co8GDfbG.js",
     "name": "Dashboard",
     "src": "resources/js/pages/Dashboard.tsx",
     "isDynamicEntry": true,
@@ -80,24 +80,24 @@
     ]
   },
   "resources/js/pages/Resources/Form.tsx": {
-    "file": "assets/Form-Dfpf4kJM.js",
+    "file": "assets/Form-CHgWY_KA.js",
     "name": "Form",
     "src": "resources/js/pages/Resources/Form.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_input-error-D8EU9CHp.js",
-      "_confirm-YuSmezcZ.js"
+      "_input-error-HRsPp2Os.js",
+      "_confirm-D1Ip0fz5.js"
     ]
   },
   "resources/js/pages/Resources/Index.tsx": {
-    "file": "assets/Index-CrcmKrmF.js",
+    "file": "assets/Index-DnNb4duF.js",
     "name": "Index",
     "src": "resources/js/pages/Resources/Index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_confirm-YuSmezcZ.js"
+      "_confirm-D1Ip0fz5.js"
     ]
   }
 }

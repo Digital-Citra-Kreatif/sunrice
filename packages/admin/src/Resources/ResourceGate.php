@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Gate;
 /**
  * Whether a user may view, create, update or delete through a resource:
  * through the model's policy when it has one, otherwise through the
- * resource's permissions ("<prefix>.view" …).
+ * resource's permissions ("<prefix>.view" …), then the resource's can().
  *
  * @internal
  */
@@ -23,6 +23,11 @@ final class ResourceGate
     public function __construct(private string $resource, private string $permissionPrefix) {}
 
     public function allows(Authorizable $user, string $ability, ?Model $record = null): bool
+    {
+        return $this->baseAllows($user, $ability, $record) && $this->resource::can($user, $ability, $record);
+    }
+
+    private function baseAllows(Authorizable $user, string $ability, ?Model $record): bool
     {
         $model = $this->resource::model();
 

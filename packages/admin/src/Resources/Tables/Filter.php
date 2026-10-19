@@ -15,6 +15,8 @@ use Illuminate\Support\Str;
  *
  *     Filter::make('status')->options(['draft' => 'Draft', 'live' => 'Live']);
  *     Filter::make('active')->boolean();
+ *     Filter::make('role')->options(fn () => Role::pluck('name', 'name')->all())
+ *         ->query(fn (Builder $q, string $role) => $q->whereRelation('roles', 'name', $role));
  *     Filter::make('price')->options(['cheap' => 'Under 10'])
  *         ->query(fn (Builder $q, string $value) => $q->where('price', '<', 10));
  *
@@ -26,8 +28,8 @@ final class Filter
 {
     private string $label;
 
-    /** @var array<string, string> */
-    private array $options = [];
+    /** @var array<string|int, string>|Closure(): array<string|int, string> */
+    private array|Closure $options = [];
 
     /** @var (Closure(Builder<Model>, string): mixed)|null */
     private ?Closure $query = null;
@@ -51,13 +53,15 @@ final class Filter
         return $this;
     }
 
-    /** @param array<string|int, string> $options value => label */
-    public function options(array $options): self
+    /**
+     * value => label, or a closure returning them (called when the list
+     * is shown).
+     *
+     * @param  array<string|int, string>|Closure(): array<string|int, string>  $options
+     */
+    public function options(array|Closure $options): self
     {
-        $this->options = [];
-        foreach ($options as $value => $label) {
-            $this->options[(string) $value] = $label;
-        }
+        $this->options = $options;
 
         return $this;
     }
@@ -81,7 +85,7 @@ final class Filter
     /** Whether the value is one of its options. */
     public function accepts(string $value): bool
     {
-        return array_key_exists($value, $this->options);
+        return array_key_exists($value, $this->resolveOptions());
     }
 
     /** @param Builder<Model> $builder */
@@ -102,10 +106,21 @@ final class Filter
     public function toArray(): array
     {
         $options = [];
-        foreach ($this->options as $value => $label) {
+        foreach ($this->resolveOptions() as $value => $label) {
             $options[] = ['value' => (string) $value, 'label' => $label];
         }
 
         return ['name' => $this->name, 'label' => $this->label, 'options' => $options];
+    }
+
+    /** @return array<string, string> */
+    private function resolveOptions(): array
+    {
+        $options = [];
+        foreach ($this->options instanceof Closure ? ($this->options)() : $this->options as $value => $label) {
+            $options[(string) $value] = $label;
+        }
+
+        return $options;
     }
 }

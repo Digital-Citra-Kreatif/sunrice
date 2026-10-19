@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Resources\Tables;
 
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -12,8 +13,9 @@ use UnitEnum;
 
 /**
  * A column of a resource's list. The name is an attribute, or a
- * relationship's attribute ("category.name", eager loaded). Values are
- * formatted on the server; the list only shows them.
+ * relationship's attribute ("category.name", eager loaded; for a to-many
+ * relationship like "roles.name", the values joined with commas). Values
+ * are formatted on the server; the list only shows them.
  *
  *     Column::make('name')->searchable()->sortable();
  *     Column::make('active')->boolean();
@@ -121,7 +123,15 @@ final class Column
     /** The value shown for a record. */
     public function value(Model $record): string|int|float|bool|null
     {
-        $value = data_get($record, $this->name);
+        $relation = $this->relation();
+        $related = $relation === null ? null : $record->getRelationValue($relation);
+        $value = match (true) {
+            $relation === null => $record->getAttribute($this->name),
+            $related instanceof Collection => $related->map(fn (Model $item) => $item->getAttribute($this->attribute()))
+                ->filter(fn (mixed $v) => is_scalar($v) && $v !== '')->implode(', '),
+            $related instanceof Model => $related->getAttribute($this->attribute()),
+            default => null,
+        };
 
         return match (true) {
             $value === null => null,

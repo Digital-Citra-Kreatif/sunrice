@@ -38,10 +38,11 @@ export interface Row {
 
 export interface FieldInfo {
     kind: 'field';
-    type: 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'date' | string;
+    type: 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'date' | 'password' | 'checkboxes' | string;
     name: string;
     label: string;
     required: boolean;
+    disabled: boolean;
     help: string | null;
     placeholder: string | null;
     span: number;

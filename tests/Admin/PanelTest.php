@@ -72,7 +72,8 @@ it('is locked once booted', function () {
 });
 
 it('makes plugins prefix their permissions with their id', function () {
-    $ok = Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(Permission::make('shop.orders.view', 'View orders', 'Shop'))));
+    $ok = Panel::make()->userResource(null)->roleResource(null)
+        ->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(Permission::make('shop.orders.view', 'View orders', 'Shop'))));
     $ok->boot();
     expect(array_keys($ok->getPermissions()))->toBe([Panel::ACCESS, 'shop.orders.view']);
 

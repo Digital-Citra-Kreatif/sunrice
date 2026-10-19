@@ -55,7 +55,20 @@ That adds a sidebar item, the routes (`/admin/products`, named `sunrice.admin.re
 - If the model has a **policy**, it decides: `viewAny` and `view`, `create`, `update`, `delete` (and `updateAny`/`deleteAny`, if present, to offer bulk actions).
 - Otherwise the resource's **permissions** decide: `<prefix>.view`, `.create`, `.update`, `.delete`. The prefix is the registering plugin's id and the resource's key (`shop.products.view`), or just the key when your app registers it (`products.view`). `sunrice:sync-permissions` creates them.
 
-Every request is checked, per record where there is one. **`query()`** limits what the resource can reach at all: records outside it are "not found" for every screen, action and export.
+Every request is checked, per record where there is one. **`can()`** may refuse more, after the policy or permissions allowed it; `$record` is null for the list, the create form and whether to offer bulk actions:
+
+```php
+public static function can(Authorizable $user, string $ability, ?Model $record = null): bool
+{
+    // Products with orders can't be deleted.
+    if ($ability === 'delete' && $record !== null) {
+        return $record->orders()->doesntExist();
+    }
+
+    return true;
+}
+```
+ **`query()`** limits what the resource can reach at all: records outside it are "not found" for every screen, action and export.
 
 ```php
 public static function query(): Builder
@@ -74,15 +87,30 @@ public static function query(): Builder
 | `Toggle` | boolean | |
 | `Select` | one of the options | `->options([value => label])`: other values are refused |
 | `DatePicker` | date | `->withTime()` |
+| `Password` | a hash | never sent to the browser; empty keeps the current one when editing, so `->required()` applies when creating; Laravel's `Password::defaults()` rules |
+| `CheckboxList` | an array of values | `->options([value => label])`, or groups `[group => [value => label]]`, or a closure returning them |
 
 Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `->default()` (the create form's value), `->rules([...])` (more Laravel rules), `->unique()` (except the record being edited), `->onlyOnCreate()` / `->onlyOnEdit()` and `->span(2)` (columns in a section's grid). `Section::make('Title')->columns(2)->schema([...])` groups fields in a card.
+
+`->disabled()` shows a field without letting anyone change it (it's never validated or written); give it a closure to decide per record: `->disabled(fn (?Model $record) => $record?->locked)` (null when creating).
+
+A field that isn't a column reads and writes with closures; `saveUsing` runs after the record is saved, in the same transaction:
+
+```php
+CheckboxList::make('tags')
+    ->options(fn () => Tag::pluck('name', 'id')->all())
+    ->loadUsing(fn (Product $product) => $product->tags->pluck('id')->map(fn ($id) => (string) $id)->all())
+    ->saveUsing(fn (Product $product, array $ids) => $product->tags()->sync($ids));
+```
+
+Override `newRecord()` to prepare the record the create form fills (`$record->team_id = …`).
 
 **Only fields in the form are written.** Anything else a request sends (an `id`, a timestamp, an attribute that isn't on the form) is ignored, so the model doesn't need `$fillable` for the panel.
 
 ## Lists
 
-- `Column::make('name')`, or a relationship's attribute `Column::make('category.name')` (eager loaded). `->sortable()` (the model's own attributes), `->searchable()`, `->badge()`, `->boolean()`, `->date('d/m/Y')`, `->label()`.
-- `Filter::make('status')->options([...])`, `Filter::make('active')->boolean()`, or any query: `->query(fn (Builder $q, string $value) => ...)`. Only the listed option values are applied.
+- `Column::make('name')`, or a relationship's attribute `Column::make('category.name')` (eager loaded; for a to-many relationship, `Column::make('tags.name')` lists the values). `->sortable()` (the model's own attributes), `->searchable()`, `->badge()`, `->boolean()`, `->date('d/m/Y')`, `->label()`.
+- `Filter::make('status')->options([...])` (or a closure returning them), `Filter::make('active')->boolean()`, or any query: `->query(fn (Builder $q, string $value) => ...)`. Only the listed option values are applied.
 - `->defaultSort('-created_at')`, `->perPage(50)`, `->exportable()` (CSV of the filtered, sorted list; values that spreadsheets would run as formulas are escaped).
 
 Sorting, filtering and searching only ever use what the table declares; anything else in the URL is ignored.
