@@ -6,7 +6,7 @@
  * In a bundle built with the Vite plugin these come straight from the
  * panel; this module is the fallback for other bundlers.
  */
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 type AnyComponent = ComponentType<any>;
 
@@ -44,6 +44,9 @@ export const DropdownMenuLabel = m.DropdownMenuLabel as AnyComponent;
 export const DropdownMenuSeparator = m.DropdownMenuSeparator as AnyComponent;
 export const DropdownMenuTrigger = m.DropdownMenuTrigger as AnyComponent;
 export const Input = m.Input as AnyComponent;
+export interface KeptEdit { id: number; by: string | null; taken_by: string | null; at: string | null }
+/** "Ana's unsaved changes were kept" notices, with Load and Discard (see useEditLock). */
+export const KeptEditsNotice = m.KeptEditsNotice as ComponentType<{ kept: KeptEdit[]; onLoad: (id: number) => void; onDiscard: (id: number) => void; disabled?: boolean }>;
 export const Label = m.Label as AnyComponent;
 
 /**
@@ -97,3 +100,30 @@ export const useBreadcrumbs = m.useBreadcrumbs as (crumbs: { label: string; href
  * on Ctrl/Cmd+S. useUnsavedChanges(form.isDirty, () => form.put(url)).
  */
 export const useUnsavedChanges = m.useUnsavedChanges as (dirty: boolean, onSave?: () => void) => void;
+
+/**
+ * The edit lock of an editor page, for a type registered with
+ * $panel->lockable(): holds it while the page is open, asks what to do when
+ * someone else is editing, and keeps unsaved changes when taken over.
+ * Render `dialogs`; disable saving while `readOnly`.
+ */
+export const useEditLock = m.useEditLock as (options: {
+    type: string;
+    id: string | number | null | undefined;
+    locale?: string;
+    enabled: boolean;
+    getUnsaved: () => Record<string, unknown> | null;
+    leaveTo: string;
+    noun?: string;
+}) => {
+    readOnly: boolean;
+    viewingBy: string | null;
+    takenOver: boolean;
+    kept: KeptEdit[];
+    loadKept: (id: number) => Promise<Record<string, unknown>>;
+    discardKept: (id: number) => Promise<void>;
+    dialogs: ReactNode;
+};
+
+/** The banner while viewing what someone else is editing (useEditLock's viewingBy). */
+export const ViewingNotice = m.ViewingNotice as ComponentType<{ by: string | null }>;

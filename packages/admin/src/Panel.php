@@ -91,6 +91,9 @@ final class Panel
     /** @var list<string> */
     private array $aiInstructions = [];
 
+    /** @var array<string, Closure(string, string, Authorizable): bool> */
+    private array $lockables = [];
+
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
 
@@ -380,6 +383,34 @@ final class Panel
         return $this;
     }
 
+    /**
+     * Something editors open that should have an edit lock (see
+     * Sunrice\Admin\Locks\EditLocks): a type name, and who may edit an
+     * item of it, by id and language ('' when it has none). A plugin's
+     * types start with its id and a dot ("shop.product").
+     *
+     *     $panel->lockable('shop.product', fn (string $id, string $locale, Authorizable $user) => $user->can('shop.products.update'));
+     *
+     * @param  Closure(string, string, Authorizable): bool  $mayEdit
+     */
+    public function lockable(string $type, Closure $mayEdit): self
+    {
+        $this->assertRegistering();
+        if (preg_match('/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/', $type) !== 1) {
+            throw new PanelMisconfigured("The lockable type \"{$type}\": use lowercase letters, numbers, dots and dashes.");
+        }
+        $owner = $this->registering?->id();
+        if ($owner !== null && ! str_starts_with($type, $owner.'.')) {
+            throw new PanelMisconfigured("The plugin \"{$owner}\" registered the lockable type \"{$type}\": a plugin's types start with its id (\"{$owner}.…\").");
+        }
+        if (isset($this->lockables[$type])) {
+            throw new PanelMisconfigured("The lockable type \"{$type}\" is registered twice{$this->owner()}.");
+        }
+        $this->lockables[$type] = $mayEdit;
+
+        return $this;
+    }
+
     /** More instructions for AI agents: how to work with what you added. */
     public function aiInstructions(string $markdown): self
     {
@@ -550,6 +581,12 @@ final class Panel
     public function getTools(): array
     {
         return $this->tools;
+    }
+
+    /** @return array<string, Closure(string, string, Authorizable): bool> */
+    public function getLockables(): array
+    {
+        return $this->lockables;
     }
 
     /** @return list<string> */

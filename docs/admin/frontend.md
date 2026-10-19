@@ -108,7 +108,7 @@ Your bundle can split: a dynamic `import()` (or `React.lazy`) becomes a chunk ne
 
 ## UI components
 
-`@sunrice/admin-sdk/ui` gives the panel's own components: buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, and saves on Ctrl/Cmd+S, as the panel's own forms do), and `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file).
+`@sunrice/admin-sdk/ui` gives the panel's own components: buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, and saves on Ctrl/Cmd+S, as the panel's own forms do), `useEditLock`, `KeptEditsNotice` and `ViewingNotice` ([edit locks](locks.md)), and `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file).
 
 ## Compatibility
 
