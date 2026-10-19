@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { adminUrl } from '@/lib/admin-url';
+import { fetchJson } from '@/lib/fetch-json';
 import { formatBytes, mediaKind } from './format';
-import type { MediaItem } from './types';
+import type { MediaItem, MediaUsageInfo } from './types';
 
 interface Props {
     item: MediaItem | null;
@@ -38,6 +39,20 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
     const url = adminUrl(`media/${item.id}`);
     const kind = mediaKind(item.mimeType);
     const editable = can.update && !item.trashed;
+    const [usages, setUsages] = React.useState<MediaUsageInfo[]>([]);
+    React.useEffect(() => {
+        if (!item.usages) return;
+        fetchJson<{ usages: MediaUsageInfo[] }>(`${url}/usages`).then((r) => setUsages(r.usages)).catch(() => setUsages([]));
+    }, [item.usages, url]);
+    const usedBy = usages.length > 0 ? ` It's used by ${usages.slice(0, 5).map((u) => u.label).join(', ')}${usages.length > 5 ? ` and ${usages.length - 5} more` : ''}.` : '';
+    const trash = () => {
+        const go = () => router.delete(url, { preserveScroll: true, onSuccess: onClose });
+        if (usages.length > 0) {
+            confirm(`Move ${item.filename} to the trash?${usedBy} You can restore it.`, go, true);
+        } else {
+            go();
+        }
+    };
 
     const save = (event: React.FormEvent) => {
         event.preventDefault();
@@ -72,6 +87,19 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
                     {item.width && item.height && (<><dt className="text-muted-foreground">Dimensions</dt><dd>{item.width} × {item.height}</dd></>)}
                     {item.createdAt && (<><dt className="text-muted-foreground">Uploaded</dt><dd>{new Date(item.createdAt).toLocaleString()}</dd></>)}
                 </dl>
+
+                {usages.length > 0 && (
+                    <div className="grid gap-1 text-sm">
+                        <p className="font-medium">Used by</p>
+                        <ul className="grid gap-1">
+                            {usages.map((u, i) => (
+                                <li key={i} className="truncate">
+                                    {u.url ? <a href={u.url} className="underline-offset-4 hover:underline">{u.label}</a> : u.label}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 <div className="flex flex-wrap gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={copy}><Copy />Copy link</Button>
@@ -108,7 +136,7 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
                         </div>
                         <div className="flex justify-between gap-2">
                             {can.delete ? (
-                                <Button type="button" variant="outline" className="text-destructive" onClick={() => router.delete(url, { preserveScroll: true, onSuccess: onClose })}>
+                                <Button type="button" variant="outline" className="text-destructive" onClick={trash}>
                                     <Trash2 />Move to trash
                                 </Button>
                             ) : <span />}
@@ -118,7 +146,7 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
                 ) : item.trashed && can.delete ? (
                     <div className="flex justify-between gap-2">
                         <Button type="button" variant="outline" onClick={() => router.post(`${url}/restore`, {}, { preserveScroll: true, onSuccess: onClose })}><RotateCcw />Restore</Button>
-                        <Button type="button" variant="destructive" onClick={() => confirm(`Delete ${item.filename} for good? Pages using it will show a broken link.`, () => router.delete(`${url}/force`, { preserveScroll: true, onSuccess: onClose }), true)}>
+                        <Button type="button" variant="destructive" onClick={() => confirm(`Delete ${item.filename} for good?${usedBy || ' Pages using it will show a broken link.'}`, () => router.delete(`${url}/force`, { data: { force: usages.length > 0 }, preserveScroll: true, onSuccess: onClose }), true)}>
                             <Trash2 />Delete for good
                         </Button>
                     </div>

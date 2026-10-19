@@ -26,6 +26,8 @@ final class ReplaceMedia
     public function handle(Media $media, UploadedFile $file): Media
     {
         UploadMedia::validate($file);
+        // A new file: the old one's original isn't its original.
+        OptimizeImage::forgetBackup($media);
         $disk = Storage::disk($media->disk);
 
         foreach ($media->sizes as $size) {

@@ -2,17 +2,24 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Media\MediaUsages;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
+use Sunrice\Cms\Actions\Entries\ForceDeleteEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Globals\SaveGlobals;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\GlobalSet;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -146,4 +153,29 @@ it('locks entries and global sets for those who may edit them', function () {
     manager('view', 'update');
     postJson("/admin/locks/cms.entry/{$hello->entry_id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertJson(['status' => 'ok']);
     postJson('/admin/locks/cms.entry/999', ['editor' => 'tab-a'])->assertForbidden();
+});
+
+it('tells the media library where entries and globals use files', function () {
+    Storage::fake('public');
+    $photo = app(UploadMedia::class)->handle(UploadedFile::fake()->image('photo.jpg'));
+    $share = app(UploadMedia::class)->handle(UploadedFile::fake()->image('share.jpg'));
+    Blueprint::query()->create(['handle' => 'with-image', 'title' => 'With image', 'fields' => [['handle' => 'image', 'type' => 'media']]]);
+    $gallery = Collection::query()->create(['handle' => 'gallery', 'title' => 'Gallery', 'blueprint' => 'with-image']);
+
+    $entry = app(CreateEntry::class)->handle($gallery, ['title' => 'Sunset', 'data' => ['image' => $photo->id], 'seo' => ['image' => $share->id]]);
+    expect(app(MediaUsages::class)->of($photo)[0]['label'])->toBe('Gallery: Sunset (EN)')
+        ->and(app(MediaUsages::class)->of($share))->toHaveCount(1);
+
+    app(SaveDraft::class)->handle($entry, ['data' => ['image' => null], 'seo' => []]);
+    expect(app(MediaUsages::class)->of($photo))->toBe([]);
+    app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($entry->fresh() ?? $entry, ['data' => ['image' => $photo->id]]));
+    expect(app(MediaUsages::class)->of($photo))->toHaveCount(1);
+
+    $set = GlobalSet::query()->create(['handle' => 'brand', 'title' => 'Brand', 'blueprint' => 'with-image']);
+    app(SaveGlobals::class)->handle($set, ['image' => $share->id]);
+    expect(array_column(app(MediaUsages::class)->of($share), 'label'))->toBe(['Globals: Brand (EN)']);
+
+    $entry->entry->delete();
+    app(ForceDeleteEntry::class)->handle($entry->entry);
+    expect(app(MediaUsages::class)->of($photo))->toBe([]);
 });

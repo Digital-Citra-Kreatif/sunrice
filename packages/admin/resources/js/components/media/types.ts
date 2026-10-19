@@ -15,6 +15,15 @@ export interface MediaItem {
     thumbnail: string | null;
     createdAt: string | null;
     trashed: boolean;
+    /** How many places use it (MediaUsages); null where not counted. */
+    usages?: number | null;
+}
+
+/** One place a file is used. */
+export interface MediaUsageInfo {
+    type: string;
+    label: string;
+    url: string | null;
 }
 
 export interface FolderInfo {

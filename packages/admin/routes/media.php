@@ -24,6 +24,7 @@ Route::prefix('media')->name('media.')->group(function (): void {
     Route::put('{media}', [MediaController::class, 'update'])->name('update')->whereNumber('media');
     Route::post('{media}/replace', [MediaController::class, 'replace'])->name('replace')->whereNumber('media');
     Route::delete('{media}', [MediaController::class, 'destroy'])->name('destroy')->whereNumber('media');
+    Route::get('{media}/usages', [MediaController::class, 'usages'])->name('usages')->whereNumber('media');
     Route::post('{media}/restore', [MediaController::class, 'restore'])->name('restore')->whereNumber('media');
     Route::delete('{media}/force', [MediaController::class, 'forceDelete'])->name('force-delete')->whereNumber('media');
 });
