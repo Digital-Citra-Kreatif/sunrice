@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ChevronRight, LayoutGrid } from 'lucide-react';
+import { ChevronRight, ChevronsUpDown, LayoutGrid, LogOut } from 'lucide-react';
 import {
     Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
     SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { navIcon } from '@/components/app/nav-icon';
 import { adminUrl } from '@/lib/admin-url';
 import type { NavItem, SharedProps } from '@/types';
@@ -106,10 +107,30 @@ export function AppSidebar() {
 
             <SidebarFooter className="border-t border-sidebar-border/60 py-3">
                 {auth.user && (
-                    <div className="truncate px-2 text-sm group-data-[collapsible=icon]:hidden">
-                        <div className="truncate font-medium">{auth.user.name ?? auth.user.email}</div>
-                        {auth.user.name && <div className="truncate text-xs text-muted-foreground">{auth.user.email}</div>}
-                    </div>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <SidebarMenuButton size="lg" tooltip={auth.user.name ?? auth.user.email ?? ''}>
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                                            {(auth.user.name ?? auth.user.email ?? '?').slice(0, 1).toUpperCase()}
+                                        </span>
+                                        <span className="grid min-w-0 text-left leading-tight">
+                                            <span className="truncate font-medium">{auth.user.name ?? auth.user.email}</span>
+                                            {auth.user.name && <span className="truncate text-xs text-muted-foreground">{auth.user.email}</span>}
+                                        </span>
+                                        <ChevronsUpDown className="ml-auto size-4" />
+                                    </SidebarMenuButton>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent side="top" align="start" className="w-56">
+                                    <DropdownMenuItem onSelect={() => router.post(adminUrl('logout'))}>
+                                        <LogOut />
+                                        Log out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
                 )}
             </SidebarFooter>
             <SidebarRail />
