@@ -55,6 +55,28 @@ On the CMS's pages it reads the page shown (entry, term or listing page; or name
 
 `/sitemap.xml` lists every live entry of a collection with a URL, with its other languages, term and listing pages, but those hidden from search engines (at most 50,000).
 
+### Structured data
+
+The seo component also prints structured data (schema.org, as JSON-LD), so search engines know what pages are and can show richer results:
+
+- every page: the **WebSite**, with its search box (a SearchAction, when the search page is on), and who publishes it (an **Organization** with its logo, or a **Person**: Settings → Site);
+- entries: an **Article** (dated collections) or a **WebPage**, or the collection's **Structured data type** (Structure → Collections: Article, Blog post, News article, Web page, About page, Contact page). Articles get a headline, publish and change dates, the share image, author and publisher;
+- **BreadcrumbList**: Home, the collection's listing page, parent entries, the page;
+- listing and term pages: a **CollectionPage**; the search page: a **SearchResultsPage**.
+
+A template adds nodes of its own (an event, a product, FAQs) with `:schema`:
+
+```blade
+<x-sunrice-cms::seo :schema="[[
+    '@type' => 'Event',
+    'name' => $entry->title,
+    'startDate' => $values['starts_at'],
+    'location' => ['@type' => 'Place', 'name' => $values['venue']],
+]]" />
+```
+
+What's printed can't end the script (`<`, `>`, `&` and quotes are escaped). `Sunrice\Cms\Support\StructuredData::graph($page, $extra)` gives the nodes as an array. Turn it off in Settings → Site.
+
 ## Site code
 
 **Settings → Site code** (`cms.settings.code`) takes HTML for every page, as is: analytics, chat widgets, verification tags. Your layout says where:
