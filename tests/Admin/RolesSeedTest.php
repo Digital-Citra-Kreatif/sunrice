@@ -45,3 +45,17 @@ it('installs: migrations, assets, permissions, roles, and points to make-admin',
 
     expect(Role::query()->pluck('name')->all())->toContain('administrator', 'cashier', 'super-admin');
 });
+
+it('resolves permissions that depend on data, when asked and after a flush', function () {
+    $shops = ['north'];
+    $panel = Panel::make()->permissionsUsing(function () use (&$shops): array {
+        return array_map(fn (string $shop) => Permission::make("shop.{$shop}.orders", "Orders of {$shop}", 'Shops'), $shops);
+    });
+    $panel->boot();
+
+    expect(array_keys($panel->getPermissions()))->toContain('shop.north.orders');
+    $shops[] = 'south';
+    expect(array_keys($panel->getPermissions()))->not->toContain('shop.south.orders');
+    $panel->flushPermissions();
+    expect(array_keys($panel->getPermissions()))->toContain('shop.north.orders', 'shop.south.orders');
+});

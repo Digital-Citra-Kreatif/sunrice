@@ -38,6 +38,12 @@ Editors write entries under **Content → Entries**: a list per collection (sear
 | `cms.entries.update` | Save drafts and restore revisions. |
 | `cms.entries.publish` | Publish (now or on a date) and unpublish, also several at once. |
 | `cms.entries.delete` | Move entries to the trash, restore them and delete them for good, also several at once. |
+| `cms.entries.update-own`, `.delete-own` | The same, for entries they created, in collections they may view. |
+| `cms.entries.translate` | Save drafts of entries' other languages (not the main one), in collections they may view. |
+
+Each of the first five also comes for one collection: `cms.entries.blog.publish` publishes only in Blog. They're created with the collection (and deleted with it), and the role editor shows them under "Entries: Blog". The same goes for terms (`cms.terms.{taxonomy}.manage`) and form submissions (`cms.submissions.{form}.view`, `.delete`). People see only the collections, taxonomies and forms they may work in. In code: `Sunrice\Cms\Support\Access::entries($user, 'publish', $collection, $entry, $locale)`.
+
+`sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
 
 In the list, tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** downloads the collection's entries in the main language, a column per field (an `exported` security event). In the editor:
 

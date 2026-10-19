@@ -69,6 +69,12 @@ final class Panel
     /** @var array<string, list<string>> role name => permission names or patterns */
     private array $defaultRoles = ['administrator' => ['*']];
 
+    /** @var list<array{owner: string|null, resolve: Closure(): iterable<Permission>}> */
+    private array $permissionResolvers = [];
+
+    /** @var array<string, Permission>|null the resolvers' permissions, once asked */
+    private ?array $resolvedPermissions = null;
+
     /** @var array<string, Closure(): mixed> */
     private array $shared = [];
 
@@ -271,6 +277,33 @@ final class Panel
         }
 
         return $this;
+    }
+
+    /**
+     * Permissions that depend on data, like one per collection of a CMS,
+     * resolved when they're needed (by the role editor, permission syncs)
+     * and again after flushPermissions():
+     *
+     *     $panel->permissionsUsing(fn () => Shop::query()->get()->map(
+     *         fn ($shop) => Permission::make("shop.{$shop->handle}.orders", "Orders of {$shop->name}", 'Shops')));
+     *
+     * Their names start with the plugin's id, like its other permissions.
+     * Run SyncPermissions after the data changes to create and delete them.
+     *
+     * @param  Closure(): iterable<Permission>  $resolve
+     */
+    public function permissionsUsing(Closure $resolve): self
+    {
+        $this->assertRegistering();
+        $this->permissionResolvers[] = ['owner' => $this->registering?->id(), 'resolve' => $resolve];
+
+        return $this;
+    }
+
+    /** Forget the permissions permissionsUsing() resolved, after their data changed. */
+    public function flushPermissions(): void
+    {
+        $this->resolvedPermissions = null;
     }
 
     /**
@@ -650,7 +683,25 @@ final class Panel
     /** @return array<string, Permission> keyed by name */
     public function getPermissions(): array
     {
-        return $this->permissions;
+        if ($this->permissionResolvers === []) {
+            return $this->permissions;
+        }
+        if ($this->resolvedPermissions === null) {
+            $resolved = [];
+            foreach ($this->permissionResolvers as ['owner' => $owner, 'resolve' => $resolve]) {
+                foreach ($resolve() as $permission) {
+                    if ($owner !== null && $permission->prefix() !== $owner) {
+                        throw new PanelMisconfigured("The plugin \"{$owner}\" resolved the permission \"{$permission->name}\": a plugin's permissions start with its id (\"{$owner}.…\").");
+                    }
+                    if (! isset($this->permissions[$permission->name])) {
+                        $resolved[$permission->name] = $permission;
+                    }
+                }
+            }
+            $this->resolvedPermissions = $resolved;
+        }
+
+        return [...$this->permissions, ...$this->resolvedPermissions];
     }
 
     /** @return array<string, list<string>> role name => permission names or patterns */

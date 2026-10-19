@@ -52,12 +52,25 @@ Every admin route needs `sunrice.access` ("Open the admin panel"); give it to th
 | --- | --- |
 | `administrator` | Every permission, without the super admin's bypass of your app's own checks. |
 | `editor` (the CMS) | The panel, media, and all content: entries, terms, globals, menus, comments, reading form submissions. Not structure, settings, users or roles. |
+| `author` (the CMS) | The panel, viewing and uploading media, viewing and creating entries, and editing and trashing their own. Publishes nothing. |
+| `translator` (the CMS) | The panel, viewing media and entries, and editing entries' other languages. |
 
 Run it again after adding plugins or collections: it gives these roles the permissions they're missing. It only adds, so permissions you give these roles in the panel stay, but one you take away comes back the next time. Plugins and your app add roles, or add to them, while the panel registers:
 
 ```php
 $panel->defaultRole('cashier', ['sunrice.access', 'shop.orders.*']);   // names or patterns; "*" for every one
 ```
+
+## Permissions from data
+
+Some permissions depend on what's in the database, like the CMS's one per collection. Register them with a closure; the panel asks it when it needs them (the role editor, `sunrice:sync-permissions`):
+
+```php
+$panel->permissionsUsing(fn () => Shop::query()->get()->map(
+    fn (Shop $shop) => Permission::make("shop.{$shop->handle}.orders", "Orders of {$shop->name}", 'Shops'))->all());
+```
+
+When the data changes, call `$panel->flushPermissions()` and `SyncPermissions::handle()` to create and delete them (the CMS does when collections, taxonomies and forms come and go).
 
 ## Managing roles in the panel
 
