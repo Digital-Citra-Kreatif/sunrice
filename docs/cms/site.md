@@ -36,6 +36,24 @@ Views get:
 
 Rich text is cleaned when it's saved, so print it as is: `{!! $values['body'] !!}`. Print everything else escaped: `{{ $values['intro'] }}`.
 
+## SEO
+
+Each entry's **Search and sharing** card holds an SEO title, a description, a share image and *Hide from search engines*, per language, with the draft and its revisions (stored under the reserved `seo` key). Put the tags in your layout's `<head>`:
+
+```blade
+<head>
+    <x-sunrice-cms::seo :entry="$entry" :preview="$preview" />
+</head>
+```
+
+It prints the `<title>` (the SEO title, else the entry's), the description, `robots` noindex (always in previews), the canonical URL, `hreflang` links to the entry's other live languages, and Open Graph tags. `Sunrice\Cms\Support\Seo::for($entry)` gives the same as an array if you'd rather write the tags yourself.
+
+`/sitemap.xml` lists every live entry of a collection with a URL, with its other languages, but those hidden from search engines (at most 50,000).
+
+## Redirects
+
+When a published entry's address changes (a new slug), publishing it adds a permanent redirect from the old address, so links and search results keep working. Chains are flattened: every old address points straight at the newest. Structure → Redirects (`cms.redirects.*`) lists them and takes your own, from a path on the site to a path or a web address, 301 or 302. A live page always wins over a redirect from its address.
+
 ## Querying entries
 
 In any view, `Cms::entries()` finds live entries in the current language (`Sunrice\Cms\Content`, aliased as `Cms` unless your app uses that name):
