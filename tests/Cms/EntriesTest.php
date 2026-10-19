@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+/*
+ * Fields are compared with toEqual, not toBe: MySQL's JSON columns
+ * reorder object keys.
+ */
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Activity\Activity;
@@ -42,7 +47,7 @@ it('creates an entry as a draft, with defaults and a slug from its title', funct
 
     expect($translation->only(['locale', 'status', 'draft_title', 'draft_slug', 'title', 'slug']))
         ->toBe(['locale' => 'en', 'status' => 'draft', 'draft_title' => 'Hello world', 'draft_slug' => 'hello-world', 'title' => null, 'slug' => null])
-        ->and($translation->draft_data)->toBe(['intro' => 'Hi', 'featured' => false, 'day' => null])
+        ->and($translation->draft_data)->toEqual(['intro' => 'Hi', 'featured' => false, 'day' => null])
         ->and($translation->entry->author_id)->toBe($this->user->id)
         ->and($translation->isLive())->toBeFalse()
         ->and(Activity::query()->latest('id')->first()?->only(['action', 'subject_type', 'subject_label']))
@@ -84,7 +89,7 @@ it('saves drafts without touching the live version', function () {
 
     expect($translation->title)->toBe('Hello world')
         ->and($translation->draft_title)->toBe('Hello again')
-        ->and($translation->draft_data)->toBe(['intro' => 'Hi', 'featured' => true, 'day' => null])
+        ->and($translation->draft_data)->toEqual(['intro' => 'Hi', 'featured' => true, 'day' => null])
         ->and($translation->data['featured'])->toBeFalse()
         ->and($translation->version)->toBe(2)
         ->and($translation->hasUnpublishedChanges())->toBeTrue()
@@ -235,5 +240,5 @@ it('keeps data when the blueprint loses a field', function () {
     $translation->entry->collection->flushSchema();
     app(SaveDraft::class)->handle($translation, ['data' => ['intro' => 'Changed', 'featured' => false]]);
 
-    expect($translation->draft_data)->toBe(['intro' => 'Changed', 'featured' => true, 'day' => null]);
+    expect($translation->draft_data)->toEqual(['intro' => 'Changed', 'featured' => true, 'day' => null]);
 });
