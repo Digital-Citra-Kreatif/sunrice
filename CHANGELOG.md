@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Lists keep each person's page size and hidden columns (**Columns** menu), in `Users\UserPreferences` (`@api`, migration `000009` `sunrice_user_preferences`).
 - Administration → Email (`sunrice.email.test`): how the app sends email, and a test send. The page key `email` and pages under `Email/` are the panel's.
 - Settings → Branding (`Branding\BrandingSettings`, `sunrice.settings.branding`): the panel's name, logo, colour and sign-in text, shared as `sunrice.logo`, `sunrice.color`, `sunrice.colorText` and `sunrice.login`. The settings key `branding` is the panel's. See `docs/admin/settings.md`.
 - Dashboard cards: `$panel->dashboardCards()` and `Dashboard\DashboardCard` (`@api`; stats or a list, loaded after the page, each guarded by a permission, a check or `everyone()`). The panel shows recent activity; the CMS shows content per collection, recent edits, new submissions and comments. See `docs/admin/panel.md#dashboard-cards`.

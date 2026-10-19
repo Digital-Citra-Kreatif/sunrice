@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Admin\Actions\Resources\SaveRecord;
@@ -23,6 +24,7 @@ use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Support\Csv;
+use Sunrice\Admin\Users\UserPreferences;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -43,7 +45,19 @@ final class ResourceController
         $table = $resource->table();
         $list = new ListQuery($resource, $request);
 
-        $page = $list->builder()->paginate(ListQuery::perPage($request, $table->getPerPage()))->withQueryString();
+        // The page size and hidden columns the person chose for this list last time.
+        $preferences = app(UserPreferences::class);
+        $key = "table.{$resource->key()}";
+        $saved = $request->user() === null ? [] : $preferences->get($request->user(), $key, []);
+        $saved = is_array($saved) ? $saved : [];
+        $perPage = ListQuery::perPage($request, is_int($saved['perPage'] ?? null) ? $saved['perPage'] : $table->getPerPage());
+        if ($request->has('per_page') && $request->user() !== null && $perPage !== ($saved['perPage'] ?? null)) {
+            $preferences->put($request->user(), $key, ['perPage' => $perPage] + $saved);
+        }
+        $names = array_map(fn (Column $column): string => $column->name, $table->getColumns());
+        $hidden = array_values(array_intersect(is_array($saved['hidden'] ?? null) ? array_filter($saved['hidden'], is_string(...)) : [], $names));
+
+        $page = $list->builder()->paginate($perPage)->withQueryString();
         $rowActions = array_values(array_filter($table->getActions(), fn (Action $action) => ! $action->isBulk));
         $bulkActions = array_values(array_filter($table->getActions(), fn (Action $action) => $action->isBulk));
 
@@ -88,7 +102,26 @@ final class ResourceController
                 'nextUrl' => $page->nextPageUrl(),
             ],
             'perPageOptions' => ListQuery::PER_PAGE,
+            'hidden' => $hidden,
         ]);
+    }
+
+    /** The columns the person hides in the list (all but one may go). */
+    public function columns(Request $request): RedirectResponse
+    {
+        $resource = $this->resource($request);
+        $this->authorize($request, $resource, 'view');
+        $names = array_map(fn (Column $column): string => $column->name, $resource->table()->getColumns());
+        $request->validate(['hidden' => ['present', 'array', 'max:'.max(0, count($names) - 1)], 'hidden.*' => ['string', Rule::in($names)]]);
+        $hidden = $request->input('hidden');
+        $user = $request->user();
+        if ($user !== null) {
+            $key = "table.{$resource->key()}";
+            $saved = app(UserPreferences::class)->get($user, $key, []);
+            app(UserPreferences::class)->put($user, $key, ['hidden' => array_values(array_unique(is_array($hidden) ? array_filter($hidden, is_string(...)) : []))] + (is_array($saved) ? $saved : []));
+        }
+
+        return back();
     }
 
     public function create(Request $request): Response

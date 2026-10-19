@@ -97,7 +97,7 @@ it('lists records with search, filters, sorting and pages', function () {
     get('/admin/products?sort=-price')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.title', 'Hammer'));
     get('/admin/products?sort=sku')->assertInertia(fn (Assert $page) => $page->where('query.sort', 'name')); // not sortable
     get('/admin/products?per_page=10&page=2')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 10)->where('rows.data', []));
-    get('/admin/products?per_page=7')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 25));
+    get('/admin/products?per_page=7')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 10)); // not an option: the one they chose last
 });
 
 it('creates a record from the declared fields only', function () {

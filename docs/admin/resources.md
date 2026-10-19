@@ -127,6 +127,8 @@ Override `newRecord()` to prepare the record the create form fills (`$record->te
 
 Sorting, filtering and searching only ever use what the table declares; anything else in the URL is ignored.
 
+Each person's page size and the columns they hide (**Columns**, at least one stays) are kept for each list, in `Sunrice\Admin\Users\UserPreferences` (`@api`: `get($user, $key)`, `put($user, $key, $value)`; keep a plugin's own choices under its id).
+
 ## Actions
 
 Edit and delete are built in. Add your own, per row or for the selected rows:
