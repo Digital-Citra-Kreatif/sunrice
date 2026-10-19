@@ -62,7 +62,8 @@ final class AdminServiceProvider extends ServiceProvider
 
         // Keep the permissions in step with the code after every migrate.
         Event::listen([MigrationsEnded::class, NoPendingMigrations::class], function (): void {
-            if ($this->app->bound(Panel::class) && Schema::hasTable((string) config('permission.table_names.permissions'))) {
+            $table = config('permission.table_names.permissions');
+            if ($this->app->bound(Panel::class) && is_string($table) && Schema::hasTable($table)) {
                 $this->app->make(SyncPermissions::class)->handle();
             }
         });
