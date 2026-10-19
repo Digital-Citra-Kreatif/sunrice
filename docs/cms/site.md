@@ -169,6 +169,39 @@ In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancest
 @endforeach
 ```
 
+## Search
+
+`/search?q=…` (and `/{locale}/search`) searches the live entries that have pages, in that language: their title and field text (the words only: no field handles, HTML tags, addresses or SEO), titles first, then newest first. What's typed is matched as is (`%` and `_` aren't wildcards). It renders with `cms.search`, or the CMS's plain page, with `$query`, `$results` (a paginator of `EntryTranslation`s), `$title` and `$locale`. Search pages are never indexed or kept by the page cache, and one visitor may search `per_minute` times a minute. Your app's own `/search` route wins; the search page wins over an entry at that address.
+
+```php
+// config/sunrice-cms.php
+'search' => [
+    'enabled' => env('SUNRICE_SEARCH', true),
+    'path' => 'search',
+    'collections' => null,   // handles; null: every collection with pages
+    'per_page' => 10,
+    'per_minute' => 30,
+],
+```
+
+`<x-sunrice-cms::search>` makes a search box anywhere, or results of your own:
+
+```blade
+<x-sunrice-cms::search>
+    <form action="{{ $component->action }}" role="search">
+        <input type="search" name="{{ $component->name }}" value="{{ $component->query }}">
+    </form>
+</x-sunrice-cms::search>
+
+<x-sunrice-cms::search results collection="help" :per-page="20">
+    @foreach ($component->results as $entry)
+        <a href="{{ $entry->url() }}">{{ $entry->title }}</a>
+    @endforeach
+</x-sunrice-cms::search>
+```
+
+In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perPage: 20, locale: 'id')`. Field text is kept when an entry is published (`search_text`).
+
 ## Previews
 
 The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex`. Save first to see changes.
