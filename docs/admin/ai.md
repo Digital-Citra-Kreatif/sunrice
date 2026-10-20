@@ -5,7 +5,7 @@ AI agents such as Claude, ChatGPT or Cursor can work in the panel through its [M
 ## Connecting an agent
 
 1. Give the user's role **Connect AI agents** (`sunrice.ai.connect`). Super admins have it.
-2. **Administration → AI access**: create a token, name it after the agent or computer that uses it, and copy it (it's shown once). Tick **Read-only** for an agent that should only look, and pick when it expires.
+2. **Administration → AI access**: create a token, name it after the agent or computer that uses it, and copy it (it's shown once). Tick **Read-only** for an agent that should only look, and pick when it expires (90 days unless you choose otherwise; **Never** is a choice, not the default).
 3. Add the panel to the agent with the settings shown on the page:
 
    ```bash
@@ -16,10 +16,10 @@ Revoke a token on the same page. Administrators revoke all of a user's tokens on
 
 ## What an agent can do
 
-Exactly what its user can, and no more: every tool checks the user's permissions. With a **read-only** token it can only view: it sees only read-only tools, and every permission but viewing is refused, for super admins too.
+Exactly what its user can, and no more: every tool checks the user's permissions. With a **read-only** token it can only view: it sees only read-only tools, and every ability but viewing is refused, for super admins too. Only `view`, `viewAny`, permissions ending in `.view`, `sunrice.access` and `sunrice.ai.connect` pass; anything else, including a policy ability the panel doesn't know (`publish`, `refund`), is refused.
 
 - Changes show in the [activity log](activity.md) under the user, with the source **AI agent** and the token's name.
-- A locked account's tokens stop working; so do expired and revoked ones.
+- A token works only while its owner may open the panel (`sunrice.access`) and connect agents, and isn't locked. **Sign out everywhere** and **Lock account** on Users [revoke the account's tokens](security.md#when-an-account-may-be-in-the-wrong-hands) (`tokens revoked`), so agents stop with the sessions; expired and revoked tokens stop too.
 - Each token may make `ai.requests_per_minute` (120) requests a minute.
 - Security events: `token created`, `token revoked`, `tokens revoked`, and `token used from new IP` (a copied token?); the first and last also send [alerts](security.md#email-alerts).
 

@@ -11,7 +11,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `logged in`, `logged out` | Someone signed in to or out of the panel. |
 | `login failed` | A wrong password, or an email with no account (then the email typed is shown), or a wrong [login code](auth.md#two-factor-login). |
 | `login refused` | The right password for an account that may not open the panel (`sunrice.access`). |
-| `login blocked` | Too many wrong passwords from one IP, or for one email from one IP (once, when the limit is reached), or a locked account trying to log in or open a page. |
+| `login blocked` | Too many wrong passwords from one IP, or for one email from one IP: once when the limit is reached, then at most once a minute per email and IP while attempts keep coming (`tried while blocked`), so a sustained attack shows without flooding the log. Also a locked account trying to log in or open a page. |
 | `account locked` | Too many wrong passwords for one account from any IPs: it's locked for `account_lock_seconds`. |
 | `password reset requested`, `password reset` | The "Forgot password?" form (also for emails without an account) and a completed reset. |
 | `upload blocked` | A script, executable or web page, or an SVG that could run code, uploaded to the media library. |
@@ -27,13 +27,25 @@ Each line keeps the IP and, in its properties, the browser's user agent.
 
 On **Users**, each row's menu has:
 
-- **Sign out everywhere**: ends all of the user's sessions and "remember me" logins. Sessions that signed in before end on their next page, whatever your session driver; with the `database` driver they're deleted at once. They can log in again with their password (change it first if it may have leaked). Signing out yourself keeps your current session.
+- **Sign out everywhere**: ends all of the user's sessions and "remember me" logins, and revokes their [AI access tokens](ai.md) (a `tokens revoked` event of its own, so the log says what stopped). Sessions that signed in before end on their next page, whatever your session driver; with the `database` driver they're deleted at once. They can log in again with their password (change it first if it may have leaked) and create new tokens. Signing out yourself keeps your current session.
 - **Lock account**: signs them out everywhere, and they can't log in or open a panel page until someone unlocks the account. Nothing is deleted. Nobody can lock their own account.
 - **Unlock account**: lets them log in again; it also lifts a lock after too many wrong passwords. From the console: `php artisan sunrice:unlock rina@example.com`.
 
 The list's **Locked** column shows locked accounts. Who may do this follows the Users screen: the `sunrice.users.update` permission and [who may manage whom](users.md#who-may-manage-whom). Each is a security event (`signed out everywhere`, `account locked by admin`, `account unlocked`), and a locked account's attempts are `login blocked`.
 
 In code: `Sunrice\Admin\Security\AccountGuard` has `signOutEverywhere($user)`, `lock($user, $reason)`, `unlock($user)` and `isLocked($user)`.
+
+## Security headers
+
+Every panel response (`PanelRoutes::middleware()`, so plugin routes too) carries `X-Frame-Options: DENY` (no other site can frame the panel), `Referrer-Policy: same-origin` and `X-Content-Type-Options: nosniff`. The site's own pages aren't touched.
+
+A `Content-Security-Policy` is sent only when you set one, because what it must allow depends on how your app serves the panel's assets (Vite, a CDN, inline scripts in your layout). Set `SUNRICE_CSP` or `security.headers.csp` in `config/sunrice-admin.php` to the policy string:
+
+```
+SUNRICE_CSP="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+```
+
+Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
 
 ## Elsewhere too
 

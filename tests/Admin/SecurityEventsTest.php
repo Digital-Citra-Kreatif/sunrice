@@ -78,6 +78,31 @@ it('records login limits reached: blocked, and the account locked', function () 
     ]);
 });
 
+it('records attempts made while blocked, at most once a minute per email and IP', function () {
+    config(['sunrice-admin.auth.throttle' => ['attempts' => 2, 'per_ip' => 50, 'per_account' => 50]]);
+    attemptPanelLogin('rina@example.com', 'wrong');
+    attemptPanelLogin('rina@example.com', 'wrong');
+    attemptPanelLogin('rina@example.com', 'wrong');
+    attemptPanelLogin('rina@example.com', 'secret-password')->assertSessionHasErrors('email');
+    foreach (range(1, 3) as $i) {
+        test()->withServerVariables(['REMOTE_ADDR' => '10.0.0.9'])->post('/admin/login', ['email' => 'nobody@example.com', 'password' => 'x']);
+    }
+
+    expect(array_values(array_filter(securityLines(), fn ($line) => $line[0] !== 'login failed')))->toBe([
+        ['login blocked', null, 'Rina', 'too many wrong passwords; blocked for 1 min'],
+        ['login blocked', null, 'Rina', 'tried while blocked (pair)'],
+        ['login blocked', null, 'nobody@example.com', 'too many wrong passwords; blocked for 1 min'],
+        ['login blocked', null, 'nobody@example.com', 'tried while blocked (pair)'],
+    ]);
+
+    // A minute later, the next attempt while blocked is recorded again.
+    $this->travel(61)->seconds();
+    attemptPanelLogin('rina@example.com', 'wrong');
+    attemptPanelLogin('rina@example.com', 'wrong');
+    attemptPanelLogin('rina@example.com', 'wrong');
+    expect(array_values(array_filter(securityLines(), fn ($line) => $line[3] === 'tried while blocked (pair)')))->toHaveCount(3);
+});
+
 it('records password resets', function () {
     Notification::fake();
     post('/admin/forgot-password', ['email' => 'rina@example.com']);

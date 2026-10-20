@@ -9,6 +9,9 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Auth\LoginThrottle;
 use Sunrice\Admin\Auth\TwoFactorLogin;
@@ -22,16 +25,29 @@ use Sunrice\Admin\Security\SecurityLog;
  * With two-factor login on, the right password emails a code instead
  * (TwoFactorLogin) and nobody is signed in yet.
  *
+ * Attempts made while blocked are "login blocked" security events too,
+ * at most one a minute per email and IP, so a sustained attack shows in
+ * the log without flooding it. An unknown email costs a password check
+ * all the same, so the answer's timing doesn't tell who has an account.
+ *
  * @internal
  */
 final class AttemptLogin
 {
+    /** Cache key: a hash of nothing, made once with the app's hasher, to check unknown emails against. */
+    private const DUMMY_HASH = 'sunrice-login-dummy-hash';
+
     public function __construct(private Panel $panel, private LoginThrottle $throttle, private SecurityLog $security, private TwoFactorLogin $twoFactor) {}
 
     /** @return bool whether a login code was emailed (two-factor) rather than signed in */
     public function handle(string $email, string $password, bool $remember, string $ip, ?Request $request = null): bool
     {
         if (($blocked = $this->throttle->blocked($email, $ip)) !== null) {
+            if (Cache::add('sunrice-login-blocked-logged|'.mb_strtolower(trim($email)).'|'.$ip, true, 60)) {
+                $account = $this->security->findAccount($email);
+                $this->security->record('login blocked', $account, $account === null ? $email : null, ['note' => "tried while blocked ({$blocked['scope']})"]);
+            }
+
             throw ValidationException::withMessages([
                 'email' => $blocked['seconds'] > 120
                     ? __('Too many login attempts. Try again in :minutes minutes.', ['minutes' => (int) ceil($blocked['seconds'] / 60)])
@@ -49,6 +65,10 @@ final class AttemptLogin
         // With two-factor login the password only checks; the code signs in.
         if (! ($twoFactor ? $guard->validate($credentials) : $guard->attempt($credentials, $remember))) {
             $account = $this->security->findAccount($email);
+            if ($account === null) {
+                // No account, so nothing was hashed: take as long as a wrong password would.
+                Hash::check($password, $this->dummyHash());
+            }
             $this->security->record('login failed', $account, $account === null ? $email : null, ['note' => $account === null ? 'no account with this email' : 'wrong password']);
             $this->throttle->failed($email, $ip);
 
@@ -95,5 +115,11 @@ final class AttemptLogin
         $this->security->record('logged in', $account, $account === null ? $email : null);
 
         return false;
+    }
+
+    /** A hash made by the app's hasher (so with its driver and cost), computed once. */
+    private function dummyHash(): string
+    {
+        return Cache::rememberForever(self::DUMMY_HASH, fn (): string => Hash::make(Str::random(32)));
     }
 }

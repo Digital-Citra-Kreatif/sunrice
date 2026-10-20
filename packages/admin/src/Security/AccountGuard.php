@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
 use Sunrice\Admin\Auth\LoginThrottle;
 use Sunrice\Admin\Panel;
 use Throwable;
@@ -23,7 +24,8 @@ use Throwable;
  * Signing out works with any session driver: sessions that signed in
  * before it end on their next panel page, and "remember me" cookies stop
  * working. With the database session driver the other sessions are
- * deleted right away too.
+ * deleted right away too. The account's AI access tokens are revoked
+ * (a "tokens revoked" security event), so agents stop working as well.
  *
  * @api
  */
@@ -79,9 +81,9 @@ final class AccountGuard
     }
 
     /**
-     * End the account's sessions and "remember me" logins. Signing out
-     * yourself keeps this session. How many sessions were deleted
-     * (database session driver), or null with other drivers.
+     * End the account's sessions, "remember me" logins and AI access
+     * tokens. Signing out yourself keeps this session. How many sessions
+     * were deleted (database session driver), or null with other drivers.
      */
     public function signOutEverywhere(Model $user, bool $record = true): ?int
     {
@@ -112,6 +114,9 @@ final class AccountGuard
                 Log::warning('Sunrice: could not reset the remember token: '.$e->getMessage());
             }
         }
+
+        // AI agents hold tokens, not sessions: they're revoked (a security event of its own).
+        app(RevokeAiTokens::class)->all($user);
 
         if ($record) {
             $this->security->record('signed out everywhere', $user, null, $deleted === null ? [] : ['note' => $deleted.' '.Str::plural('session', $deleted).' ended']);

@@ -41,7 +41,7 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
     useBreadcrumbs([{ label: 'AI access' }]);
     const [confirm, confirmDialog] = useConfirm();
     const [creating, setCreating] = React.useState(false);
-    const form = useForm<{ name: string; read_only: boolean; expires_in_days: string }>({ name: '', read_only: false, expires_in_days: NEVER });
+    const form = useForm<{ name: string; read_only: boolean; expires_in_days: string }>({ name: '', read_only: false, expires_in_days: '90' });
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();

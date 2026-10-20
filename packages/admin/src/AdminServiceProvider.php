@@ -64,7 +64,7 @@ final class AdminServiceProvider extends ServiceProvider
             $gate->before(function (mixed $user, string $ability): ?bool {
                 $scope = $this->app->make(TokenScope::class);
 
-                return $scope->readOnly() && $this->app->bound(Panel::class) && $scope->refuses($ability, array_keys($this->app->make(Panel::class)->getPermissions())) ? false : null;
+                return $scope->refuses($ability) ? false : null;
             });
         });
 

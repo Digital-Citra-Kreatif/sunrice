@@ -83,7 +83,8 @@ final class PasswordResetController
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            throw ValidationException::withMessages(['email' => __($status)]);
+            // An unknown email reads like a wrong token, so the form can't be used to find out who has an account.
+            throw ValidationException::withMessages(['email' => __($status === Password::INVALID_USER ? Password::INVALID_TOKEN : $status)]);
         }
 
         return redirect()->route('sunrice.admin.login')->with('success', __('Your password has been reset. You can log in now.'));
