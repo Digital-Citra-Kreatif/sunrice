@@ -86,6 +86,7 @@ public static function query(): Builder
 | --- | --- | --- |
 | `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slugFrom('title')` (while creating, filled from that field as it's typed, `main_menu`, or with `'-'` `main-menu`, until someone types in it) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
+| `Pairs` | string, one `key: value` per line | Edited as rows of two inputs: `->labels('Code', 'Name')`, `->suggest(['en' => 'English'])` (picking a key fills an empty value), `->firstBadge('Main')`, `->addLabel(…)`, `->maxLength(…)` |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |
 | `Select` | one of the options | `->options([value => label])`: other values are refused |

@@ -29,6 +29,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Settings → Languages lists the languages as rows of a code and a name, with **Add a language** (common languages suggested, the name filled in), arrows to reorder and the first marked *Main*, starting from the languages in use; through the new `Pairs` form field (`@api`, `key: value` lines edited as rows). The stored value didn't change.
 - The entry editor switches language with short codes (EN · ID), a green dot for live and amber for outdated, the full name and status on hover; a missing language is a dashed **+ ID**.
 - The sidebar marks only the closest link as current (an entry under `cms/collections/blog/…` is Blog's, not Collections').
 - AI access starts with **Connect an agent**: the server URL, the Claude Code command and the JSON config, each with a Copy button (and a fallback on plain-http hosts), named after the panel's brand, with `YOUR_TOKEN` until a token is created; then the tokens.

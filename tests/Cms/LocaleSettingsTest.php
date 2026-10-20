@@ -44,7 +44,11 @@ it('edits the languages behind their permission, and keeps the main one while it
     get('/admin/settings/locales')->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.locales'));
-    get('/admin/settings/locales')->assertOk();
+    // Rows of a code and a name, starting from the languages in use.
+    get('/admin/settings/locales')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('form.0.fields.0.type', 'pairs')->where('form.0.fields.0.firstBadge', 'Main')
+        ->where('form.0.fields.0.suggestions.0', ['key' => 'en', 'value' => 'English'])
+        ->where('values.languages', "en: English\nid: Bahasa Indonesia"));
     put('/admin/settings/locales', ['languages' => ''])->assertSessionHasErrors('languages');
     put('/admin/settings/locales', ['languages' => "en: English\nEnglish!"])->assertSessionHasErrors('languages');
     put('/admin/settings/locales', ['languages' => "en: English\nen: Again"])->assertSessionHasErrors('languages');
