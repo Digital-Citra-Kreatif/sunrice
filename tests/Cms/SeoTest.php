@@ -9,11 +9,15 @@ use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Redirect;
+use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Site\Page;
+use Sunrice\Cms\Support\SafeUrl;
 use Sunrice\Cms\Support\Seo;
 
 use function Pest\Laravel\actingAs;
@@ -82,6 +86,41 @@ it('falls back to the title, and links the other languages', function () {
         ->assertSee('<link rel="alternate" hreflang="id" href="'.url('/id/blog/halo').'">', false)
         ->assertSee('<link rel="alternate" hreflang="x-default" href="'.url('/blog/hello').'">', false)
         ->assertSee('<meta property="og:locale" content="id">', false);
+});
+
+it('gives each page of a listing or term its own canonical and alternate URLs', function () {
+    $this->blog->update(['listing_route' => '/blog', 'per_page' => 1]);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'route' => '/topics/{slug}']);
+    $news = app(SaveTerm::class)->handle($topics, ['title' => 'News']);
+    Blueprint::query()->create(['handle' => 'tagged', 'title' => 'Tagged', 'fields' => [['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics', 'multiple' => true]]]]);
+    $this->blog->update(['blueprint' => 'tagged']);
+    foreach (range(1, 11) as $n) {
+        seoPost($this->blog, "Post {$n}", ['data' => ['topics' => [$news->id]]]);
+    }
+
+    get('/blog')->assertOk()->assertSee('<link rel="canonical" href="'.url('/blog').'">', false);
+    get('/blog?page=2')->assertOk()
+        ->assertSee('<link rel="canonical" href="'.url('/blog?page=2').'">', false)
+        ->assertSee('<link rel="alternate" hreflang="en" href="'.url('/blog?page=2').'">', false)
+        ->assertSee('<link rel="alternate" hreflang="id" href="'.url('/id/blog?page=2').'">', false)
+        ->assertSee('<link rel="alternate" hreflang="x-default" href="'.url('/blog?page=2').'">', false);
+    get('/topics/news?page=2')->assertOk()->assertSee('<link rel="canonical" href="'.url('/topics/news?page=2').'">', false);
+    // Named (<x-sunrice-cms::seo :term="$term">), the term's tags still carry the page shown.
+    expect(Seo::forTerm($news->translations()->firstOrFail())['canonical'])->toBe(url('/topics/news?page=2'));
+
+    expect(Seo::forListing($this->blog, 'en', 3)['canonical'])->toBe(url('/blog?page=3'))
+        ->and(Seo::forTerm($news->translations()->firstOrFail(), 1)['canonical'])->toBe(url('/topics/news'))
+        ->and((new Page(Page::LISTING, 'en', 'cms.listing', collection: $this->blog, pageNumber: 2))->localeUrls())->toBe(['en' => url('/blog?page=2'), 'id' => url('/id/blog?page=2')])
+        ->and((new Page(Page::SEARCH, 'en', 'cms.search', pageNumber: 2))->localeUrls()['id'])->toBe(url('/id/search?page=2'));
+});
+
+it('refuses addresses that lead off the site in disguise', function () {
+    expect(SafeUrl::isSafe('/about'))->toBeTrue()
+        ->and(SafeUrl::isSafe('https://example.com/x'))->toBeTrue()
+        ->and(SafeUrl::isSafe('//evil.com/x'))->toBeFalse()
+        ->and(SafeUrl::isSafe('/ /evil.com'))->toBeFalse()
+        ->and(SafeUrl::isSafe('/\\evil.com'))->toBeFalse()
+        ->and(SafeUrl::isSafe('javascript:alert(1)'))->toBeFalse();
 });
 
 it('asks search engines to skip noindex pages', function () {
