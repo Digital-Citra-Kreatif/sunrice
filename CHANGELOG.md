@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- `tests/Browser/smoke.mjs`: a browser sweep of every admin page (desktop and phone, light and dark) that fails on console errors, failed requests and horizontal overflow; run by hand with an ad hoc `playwright-core` (README, "Developing this repository").
 - Panel pages: the activity log's date filters use the DatePicker (they were unstyled native date inputs), security lines get the amber badge instead of the red one, a resource form's side cards (the user's Security card) start level with the form instead of beside its title, the centered sign-in layout is vertically centered on a card, and the empty media library is a softer dashed panel.
 - CMS pages match the panel: published and approved badges are the green `success` badge (as on the dashboard) instead of solid black, an up-to-date entry shows a quiet "✓ Published" button instead of a greyed-out primary one, the listing page's SEO card folds like the entry editor's, the comments list has a search icon and a proper empty state, and the term form's Add button lines up with its fields, and "Publish on a date" uses the DatePicker.
 - Panel controls line up: buttons, icon buttons and selects are all 40 px tall with the inputs' 10 px radius (icon buttons were 36 px, selects 36 px); placeholders in monospace inputs are set in the UI font; the colour field draws its own swatch (empty, not black, when unset); the rows-per-page selects no longer clip their text.
