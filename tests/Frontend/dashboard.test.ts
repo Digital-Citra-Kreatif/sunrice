@@ -49,3 +49,16 @@ test('takes quick links from the sidebar, administration last', () => {
     assert.deepEqual(quickLinks(navigation).map((link) => link.key), ['media', 'entries', 'terms', 'settings']);
     assert.deepEqual(quickLinks([]), []);
 });
+
+test('every <Deferred> has a fallback Inertia accepts (it throws on a falsy one, crashing the page)', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const files = (dir: string): string[] => readdirSync(dir, { withFileTypes: true })
+        .flatMap((entry) => entry.isDirectory() ? files(join(dir, entry.name)) : entry.name.endsWith('.tsx') ? [join(dir, entry.name)] : []);
+    for (const file of [...files('packages/admin/resources/js'), ...files('packages/cms/resources/js')]) {
+        const source = readFileSync(file, 'utf8');
+        for (const tag of source.match(/<Deferred\b[^>]*>/g) ?? []) {
+            assert.match(tag, /fallback=\{(?!null\}|undefined\}|false\}|''\})/, `${file}: ${tag}`);
+        }
+    }
+});

@@ -138,7 +138,7 @@ function Widget({ widget, now }: { widget: WidgetDefinition; now: Date }) {
                     <div className="flex items-center gap-2">
                         <WidgetIcon name={widget.icon} />
                         <h2 className="truncate text-[15px] font-semibold tracking-tight">{widget.title}</h2>
-                        <Deferred data={widget.prop} fallback={null}>
+                        <Deferred data={widget.prop} fallback={<></>}>
                             {() => {
                                 const result = props[widget.prop] as WidgetResult<ListData> | undefined;
 
