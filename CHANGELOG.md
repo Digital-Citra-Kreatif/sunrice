@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Settings → Security chooses who else gets security alerts: more roles (`SecuritySettings::$alertRoles`) and addresses, one per line (`$alertEmails`), on top of super admins and `security.alerts.roles`/`emails`.
 - The sidebar no longer shows two "Menus": the menus resource is **Menu settings** under Structure (the links stay **Menus** under Content), through the new `Resource::navigationLabel()` (`@api`, the sidebar item's text; `label()` unless overridden; page titles and permission labels still use `label()`). The guide, the docs and the menus page's empty state name it.
 - Command palette and calendar polish: the palette sits near the top of the screen instead of jumping as its results change, and "Nothing found." is muted; the date picker opens with focus on the selected day (else today) rather than the previous-month button, today is marked with a dot instead of the hover colour, the selected day keeps its colour on hover, and days outside the month are fainter.
 - Help pages: the page list and *On this page* scroll within the screen with edge fades where there is more, and the current page is scrolled into view; on phones, Settings' section tabs fade at the edges, snap, and keep the current section in view (`sunrice-scroll-fade-x` / `-y` with `hooks/use-scroll-fade.ts`).
