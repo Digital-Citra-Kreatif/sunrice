@@ -10,11 +10,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Sunrice\Admin\Actions\Settings\SendTestMail;
 use Sunrice\Admin\Actions\Settings\UpdateSettings;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
+use Sunrice\Admin\Support\Card;
 
 /**
  * The Settings page: each section's form, for users with its permission.
@@ -65,6 +68,7 @@ final class SettingsController
             'form' => $form->toSections('edit'),
             'values' => $values,
             'secrets' => $secrets,
+            'cards' => array_map(fn (Card $card) => $card->toArray(), $registered->class::cards($user)),
         ]);
     }
 
@@ -74,6 +78,24 @@ final class SettingsController
         $update->handle($registered, $request->all());
 
         return back()->with('success', $registered->class::label().' settings saved.');
+    }
+
+    /** Settings → Mail → Send a test email, to the signed-in user. */
+    public function testMail(Request $request, SendTestMail $send): RedirectResponse
+    {
+        $user = $this->user($request);
+        abort_unless($user->can('sunrice.settings.mail'), 403);
+        $email = data_get($user, 'email');
+        if (! is_string($email) || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return back()->with('error', 'Your account has no email address to send the test to.');
+        }
+        $id = data_get($user, 'id');
+
+        try {
+            return back()->with('success', $send->handle($email, is_scalar($id) ? (string) $id : $email));
+        } catch (ActionFailed $failed) {
+            return back()->with('error', $failed->getMessage());
+        }
     }
 
     private function section(Authorizable $user, string $key): RegisteredSettings

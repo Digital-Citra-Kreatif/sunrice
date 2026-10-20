@@ -67,12 +67,12 @@ it('records users\' roles and passwords as changed, and settings', function () {
     actingAs($this->admin);
 
     put("/admin/users/{$user->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-new-password', 'roles' => ['editor']])->assertSessionHasNoErrors();
-    put('/admin/settings/mail', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
+    put('/admin/settings/outbox', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
 
     expect(activityLines())->toBe([
         ['security', 'Rina', 'roles changed', 'account', 'Dewi', null],
         ['admin', 'Rina', 'updated', 'users', 'Dewi', ['password', 'roles']],
-        ['admin', 'Rina', 'updated', 'settings', 'Mail settings', ['from']],
+        ['admin', 'Rina', 'updated', 'settings', 'Outbox settings', ['from']],
     ]);
 });
 
@@ -126,7 +126,7 @@ it('merges by an id each request gets, so a worker\'s next request never continu
 it('shows the log to those allowed, with filters and links', function () {
     actingAs($this->admin);
     post('/admin/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft']);
-    put('/admin/settings/mail', ['from' => 'hello@example.com']);
+    put('/admin/settings/outbox', ['from' => 'hello@example.com']);
     $product = Product::query()->sole();
     app(ActivityLog::class)->withSource('ai', 'Claude', fn () => app(ActivityLog::class)->record('noted', 'products', $product, 'Kettle'));
 
@@ -134,14 +134,14 @@ it('shows the log to those allowed, with filters and links', function () {
         ->component('Activity/Index', shouldExist: false)
         ->where('rows.total', 3)
         ->where('rows.data.0.via', 'Claude')
-        ->where('rows.data.1.url', '/admin/settings/mail')
+        ->where('rows.data.1.url', '/admin/settings/outbox')
         ->where('rows.data.2.url', "/admin/products/{$product->id}/edit")
         ->where('rows.data.2.typeLabel', 'Product')
         ->where('types', [['value' => 'products', 'label' => 'Product'], ['value' => 'settings', 'label' => 'Settings']]));
 
     get('/admin/activity?source=ai')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
     get("/admin/activity?type=products&subject={$product->id}")->assertInertia(fn (Assert $page) => $page->where('rows.total', 2));
-    get('/admin/activity?search=mail')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
+    get('/admin/activity?search=outbox')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
     get("/admin/activity?user={$this->admin->id}&from=".now()->toDateString())->assertInertia(fn (Assert $page) => $page->where('rows.total', 3));
     get('/admin/activity?to='.now()->subDay()->toDateString())->assertInertia(fn (Assert $page) => $page->where('rows.total', 0));
     get('/admin/activity?source=nope')->assertSessionHasErrors('source');

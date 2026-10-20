@@ -37,7 +37,7 @@ Register it in a plugin's `register()` or in your panel provider:
 $panel->settings(ShopSettings::class);
 ```
 
-That adds the section to `/admin/settings/shop` and a permission to edit it: `shop.settings.shop` when the plugin `shop` registers it, `settings.shop` when your app does. The Settings sidebar item shows for users who may edit at least one section. The key `security` belongs to the panel's own section (two-factor login, `sunrice.settings.security`).
+That adds the section to `/admin/settings/shop` and a permission to edit it: `shop.settings.shop` when the plugin `shop` registers it, `settings.shop` when your app does. The Settings sidebar item shows for users who may edit at least one section. The keys `security` and `mail` belong to the panel's own sections: two-factor login (`sunrice.settings.security`) and how mail is sent with a test email (`sunrice.settings.mail`, see [Mail](mail.md)).
 
 ## Reading and writing
 
@@ -60,5 +60,15 @@ $shop->fill(['guestCheckout' => '0'])->save();   // converted to the property's 
 ## The form
 
 Settings forms use the [resource form fields](resources.md#forms), with field names matching the properties. Only the fields on the form are written. `Secret` is for API keys and the like: its value is never sent to the browser, and leaving it empty keeps the saved one. `Password` (which hashes) and fields with `saveUsing()` can't be settings.
+
+A section may also show read-only cards under its form with `cards(Authorizable $user)`, built with `Sunrice\Admin\Support\Card` (see [Cards beside the form](resources.md#cards-beside-the-form)): how something is set up outside the panel, with a button that tries it. A section with no fields shows only its cards and no Save button (Settings → Mail is one):
+
+```php
+public static function cards(Authorizable $user): array
+{
+    return [Card::make('Payment provider')->rows(['Mode' => config('shop.live') ? 'Live' : 'Test'])
+        ->button('Check the connection', route('shop.settings.check', [], false))];
+}
+```
 
 Saving a section fires `Sunrice\Admin\Events\SettingsSaved` with the section's key and the names of the settings that changed (no values: they may be secrets). The `Sunrice\Admin\Actions\Settings\SaveSettings` action does the same for your own screens.

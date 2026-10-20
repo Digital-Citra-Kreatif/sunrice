@@ -16,6 +16,7 @@ use Sunrice\Admin\Http\Controllers\SettingsController;
 Route::get('/', DashboardController::class)->name('dashboard');
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+Route::post('settings/mail/test', [SettingsController::class, 'testMail'])->middleware('can:sunrice.settings.mail')->name('settings.mail.test');
 Route::get('settings/{section}', [SettingsController::class, 'edit'])->name('settings.edit');
 Route::put('settings/{section}', [SettingsController::class, 'update'])->name('settings.update');
 

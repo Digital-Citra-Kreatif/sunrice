@@ -14,7 +14,7 @@ final class MailSettings extends Settings
 
     public static function key(): string
     {
-        return 'mail';
+        return 'outbox';
     }
 
     public static function form(Form $form): Form
