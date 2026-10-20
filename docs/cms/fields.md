@@ -2,7 +2,7 @@
 
 A **blueprint** lists the fields editors fill in for one kind of content: the entries of a collection, a taxonomy's terms, a global set or a form. A **fieldset** is a group of fields used in several places: blueprints include it, and flexible fields use fieldsets as their kinds of block.
 
-Both are stored in the database (`sunrice_blueprints`, `sunrice_fieldsets`) and built in the admin under **Structure → Blueprints** and **Structure → Fieldsets**, for people with the `cms.blueprints.manage` permission. The builder adds, edits, reorders and removes fields, nests groups and repeaters, and shows each type's settings. Changing a blueprint never deletes data: content keeps values under handles the blueprint no longer has, and they come back when the field does.
+Both are stored in the database (`sunrice_blueprints`, `sunrice_fieldsets`) and built in the admin under **Structure → Blueprints** and **Structure → Fieldsets**, for people with the `cms.blueprints.manage` permission. The builder adds, edits, reorders and removes fields, nests groups and repeaters, and shows each type's settings. Changing a blueprint never deletes data: content keeps values under handles the blueprint no longer has, and they come back when the field does. A blueprint can't be deleted while a collection (for its entries or its listing page), a taxonomy, a global set or a form uses it: the error names them.
 
 ## Field definitions
 
@@ -30,7 +30,7 @@ Each field is stored as JSON and read as a `Sunrice\Cms\Fields\Field`:
 
 | Type | Stores | Templates get | Settings |
 | --- | --- | --- | --- |
-| `text` | a string | the string | `max` (≤ 255), `placeholder`, `default` |
+| `text` | a string | the string | `max` (≤ 255; none: values up to 65535 characters pass, so longer data saved before isn't refused), `placeholder`, `default` |
 | `textarea` | a string | the string | `rows`, `max` |
 | `rich_text` | HTML, cleaned on save | the HTML | |
 | `number` | a number | the number | `min`, `max`, `step` (1 for whole numbers), `default` |
@@ -64,7 +64,7 @@ Every repeater row gets a stable `_id`, an optional `_key` and a `_hidden` switc
 {{ $entry->get('features')->byKey('pricing')['title'] }}
 ```
 
-A block's values are readable as properties (`$block->heading`) or keys (`$block['heading']`). A block whose fieldset was deleted keeps its values; it can't be deleted while used.
+A block's values are readable as properties (`$block->heading`) or keys (`$block['heading']`). A block whose fieldset was deleted keeps its values; it can't be deleted while used. A fieldset may use itself (or one that uses it) as a kind of block, for sections within sections: the editor offers blocks within blocks `Schema::MAX_DEPTH` (5) levels deep, and stored content nests as deep as it goes.
 
 ### Fieldsets
 

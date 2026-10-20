@@ -12,6 +12,7 @@ use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Fieldset;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -115,10 +116,21 @@ it('opens an entry with its draft, status and revisions', function () {
     get("/admin/cms/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('entry.status', 'published')
         ->where('entry.hasUnpublishedChanges', true)
-        ->where('entry.version', 2)
+        ->where('entry.version', 3)
         ->where('values.title', 'Hello again')
         ->where('revisions.0.title', 'Hello')
         ->where('can.update', false));
+});
+
+it('opens an entry whose blocks may hold themselves', function () {
+    Fieldset::query()->create(['handle' => 'section', 'title' => 'Section', 'fields' => [['handle' => 'parts', 'type' => 'flexible', 'config' => ['blocks' => ['section']]]]]);
+    Blueprint::query()->where('handle', 'article')->update(['fields' => json_encode([['handle' => 'sections', 'type' => 'flexible', 'config' => ['blocks' => ['section']]]])]);
+    $translation = draft(data: ['sections' => [['type' => 'section', 'values' => ['parts' => [['type' => 'section', 'values' => []]]]]]]);
+    editor('view');
+
+    get("/admin/cms/entries/{$translation->entry_id}/edit")->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('fields.0.blocks.0.fields.0.blocks.0.label', 'Section')
+        ->where('values.data.sections.0.values.parts.0.type', 'section'));
 });
 
 it('saves the draft, refusing a stale version', function () {

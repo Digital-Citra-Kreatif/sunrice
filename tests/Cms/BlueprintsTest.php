@@ -10,7 +10,11 @@ use Sunrice\Cms\Actions\Fieldsets\DeleteFieldset;
 use Sunrice\Cms\Actions\Fieldsets\SaveFieldset;
 use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Models\Blueprint;
+use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Fieldset;
+use Sunrice\Cms\Models\Form;
+use Sunrice\Cms\Models\GlobalSet;
+use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\actingAs;
 
@@ -53,6 +57,29 @@ it('deletes a blueprint', function () {
 
     expect(Blueprint::query()->count())->toBe(0)
         ->and(Activity::query()->latest('id')->first()?->action)->toBe('deleted');
+});
+
+it('refuses to delete a blueprint anything uses, naming what', function () {
+    $page = Blueprint::query()->create(['handle' => 'page', 'title' => 'Page']);
+    $delete = fn () => app(DeleteBlueprint::class)->handle($page);
+    Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page']);
+    Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'listing_route' => '/blog', 'listing_blueprint' => 'page']);
+    Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'blueprint' => 'page']);
+    GlobalSet::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'page']);
+    Form::query()->create(['handle' => 'enquiry', 'title' => 'Enquiry', 'blueprint' => 'page']);
+
+    expect($delete)->toThrow(ValidationException::class, 'used by the listing page of "Blog", the collection "Pages", the taxonomy "Topics", the global set "Contact", the form "Enquiry". Choose another blueprint there first.');
+
+    Collection::query()->where('handle', 'blog')->update(['listing_blueprint' => null]);
+    GlobalSet::query()->update(['blueprint' => null]);
+    Form::query()->update(['blueprint' => null]);
+    expect($delete)->toThrow(ValidationException::class, 'used by the collection "Pages", the taxonomy "Topics".');
+
+    // Deleted collections and taxonomies don't count.
+    Collection::query()->where('handle', 'pages')->firstOrFail()->delete();
+    Taxonomy::query()->where('handle', 'topics')->firstOrFail()->delete();
+    $delete();
+    expect(Blueprint::query()->count())->toBe(0);
 });
 
 it('saves fieldsets and sees the change at once', function () {

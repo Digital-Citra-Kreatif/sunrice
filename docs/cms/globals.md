@@ -10,7 +10,7 @@ Under **Structure → Global sets** (permissions `cms.global-sets.view`, `.creat
 
 Under **Content → Globals** (`cms.globals.view` to see, `cms.globals.update` to save): each set's fields, in each language. Fields the blueprint shares across languages are edited in the main language and shown read-only in the others, as for entries. Until a set is saved, its fields have their defaults. One person edits a set in a language at a time ([edit locks](../admin/locks.md)).
 
-In code, `SaveGlobals` saves a set's values in a language: `app(SaveGlobals::class)->handle($set, ['phone' => '…'], 'id')`. Fields left out keep their values.
+In code, `SaveGlobals` saves a set's values in a language: `app(SaveGlobals::class)->handle($set, ['phone' => '…'], 'id')`. Fields left out keep their values. Pass the `version` the editor opened as the fourth argument (`GlobalValue::$version`, counted up on each save): if someone saved since, the save is refused with an error on `version` instead of overwriting their work, and the editor offers **Load theirs** or **Save mine anyway**, as for entries.
 
 ## Reading them
 

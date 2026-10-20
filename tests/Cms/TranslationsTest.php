@@ -15,6 +15,7 @@ use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Revision;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -63,6 +64,29 @@ it('leaves shared fields to the main language', function () {
     app(SaveDraft::class)->handle($this->main->fresh() ?? $this->main, ['data' => ['price' => 35]]);
     expect($id->fresh()?->values(new HydrationContext('id', preview: true))['price'])->toBe(35)
         ->and($id->fresh()?->values(new HydrationContext('id'))['price'])->toBe(30);
+});
+
+it('stores only the translated fields in other languages, and reads the shared ones from the main one', function () {
+    $id = app(CreateTranslation::class)->handle($this->main->entry, 'id');
+    expect($id->draft_data)->toBe(['intro' => 'Strong coffee']);
+
+    // A draft that still holds copies of shared fields (saved before) loses them on save.
+    $id->forceFill(['draft_data' => ['intro' => 'Kopi', 'price' => 1, 'tagline' => 'Stale']])->save();
+    app(SaveDraft::class)->handle($id, ['data' => ['intro' => 'Kopi kental']]);
+    expect($id->fresh()?->draft_data)->toBe(['intro' => 'Kopi kental']);
+
+    // Search text and templates read the main language's shared fields, live and in a preview, also after they change.
+    app(PublishEntry::class)->handle($this->main);
+    app(PublishEntry::class)->handle($id->fresh() ?? $id);
+    expect($id->fresh()?->search_text)->toBe('Kopi kental Brewed daily')
+        ->and($id->fresh()?->completeData())->toBe(['intro' => 'Kopi kental', 'price' => 30, 'tagline' => 'Brewed daily']);
+
+    app(SaveDraft::class)->handle($this->main->fresh() ?? $this->main, ['data' => ['tagline' => 'Roasted here']]);
+    expect($id->fresh()?->completeData(draft: true)['tagline'])->toBe('Roasted here')
+        ->and($id->fresh()?->search_text)->toBe('Kopi kental Brewed daily');
+    app(PublishEntry::class)->handle($this->main->fresh() ?? $this->main);
+    expect($id->fresh()?->search_text)->toBe('Kopi kental Roasted here')
+        ->and(Revision::query()->where('entry_translation_id', $id->id)->firstOrFail()->data)->toBe(['intro' => 'Kopi kental']);
 });
 
 it('keeps each language\'s slug unique on its own', function () {
