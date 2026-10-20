@@ -59,6 +59,34 @@ Views get:
 
 Rich text is cleaned when it's saved, so print it as is: `{!! $values['body'] !!}`. Print everything else escaped: `{{ $values['intro'] }}`.
 
+### Starter templates
+
+A working set of templates to start from, and edit freely:
+
+```bash
+php artisan vendor:publish --tag=sunrice-cms-templates
+```
+
+It copies them into `resources/views/cms/`, where the rules above pick them up, the error pages into `resources/views/errors/`, and a small stylesheet to `public/cms/site.css`:
+
+| File | Used for | Shows how to |
+| --- | --- | --- |
+| `cms/layout.blade.php` | every page (`@extends('cms.layout')`, `@section('content')`, `@push('head')`) | `<x-sunrice-cms::seo>`, site code, the `main` and `footer` menus, the language switcher, a footer (the `footer` global's `text`), `@bodyClass`, a skip link |
+| `cms/entry.blade.php` | any entry | the title, date and fields; a note on [untranslated pages](#untranslated-pages); comments |
+| `cms/listing.blade.php` | listing pages | the listing's fields, cards, pagination |
+| `cms/term.blade.php` | term pages | the term's fields and its entries |
+| `cms/search.blade.php` | the search page | the search box, results |
+| `cms/partials/fields.blade.php` | the pages above | text, rich text, images, galleries, links and flexible blocks, by kind |
+| `cms/partials/blocks.blade.php`, `block.blade.php` | flexible blocks | `cms/blocks/{fieldset}.blade.php` per kind of block when you make one (it gets `$block`), else the block's fields |
+| `cms/partials/card.blade.php` | lists of entries | title, date, and an `image` and `excerpt` field when there are |
+| `cms/partials/pagination.blade.php` | lists of entries | previous and next links |
+| `cms/partials/language-switcher.blade.php` | the layout | `cms_locale_urls()`, with `hreflang` and `lang` |
+| `cms/partials/menu.blade.php` | the layout | a menu with its sub-menus, `aria-current` on the page shown |
+| `errors/404.blade.php`, `errors/500.blade.php` | error pages | the 404 in the layout with a search box; the 500 on its own (whatever failed would fail again in the layout) |
+| `public/cms/site.css` | all of the above | plain CSS with light and dark colours; replace it with your own build and change the `<link>` in the layout |
+
+Every template works on a fresh install: missing menus, globals and fields render nothing. Layouts and partials read the page from `cms_page()`, not from `$entry` or `$term`: Blade hands a page's variables to its layout, so after a listing's `@foreach` those would be its last card. Words are wrapped in `__()`, so a `lang/{locale}.json` translates them.
+
 ## SEO
 
 Each entry's **Search and sharing** card holds an SEO title, a description, a share image, *Hide from search engines* and, for a page that copies one elsewhere, a canonical address, per language, with the draft and its revisions (stored under the reserved `seo` key). Put the tags in your layout's `<head>`:
