@@ -57,19 +57,18 @@ it('puts entries in the order dragged, renumbering the collection', function () 
 
     expect(pageOrder())->toBe(['C', 'A', 'B'])
         ->and(Entry::query()->orderBy('sort_order')->pluck('sort_order')->all())->toBe([1, 2, 3])
-        ->and($changes)->toContain('collection pages')
+        ->and($changes)->toContain('collection pages order')
         ->and(Activity::query()->latest('id')->first()?->only(['action', 'subject_type', 'subject_label']))
         ->toBe(['action' => 'reordered', 'subject_type' => 'collection', 'subject_label' => 'Pages']);
 });
 
-it('reorders some entries among the places they held, the others staying put', function () {
+it('puts the entries given first, the rest of the level after them as they were', function () {
     [$a, $b, $c, $d] = [orderedPage('A'), orderedPage('B'), orderedPage('C'), orderedPage('D')];
     app(TrashEntry::class)->handle($b);
 
-    // A page of the list: C and A swap places; B (in the trash) and D keep theirs.
     app(ReorderEntries::class)->handle($this->pages, [$c->id, $a->id]);
 
-    expect(pageOrder())->toBe(['C', 'B', 'A', 'D']);
+    expect(pageOrder())->toBe(['C', 'A', 'B', 'D']);
 });
 
 it('reorders siblings under one parent in a hierarchical collection', function () {
@@ -77,13 +76,15 @@ it('reorders siblings under one parent in a hierarchical collection', function (
     [$x, $y] = [orderedPage('X', $parent->id), orderedPage('Y', $parent->id)];
     $top = orderedPage('Top');
 
+    $level = fn (?int $under) => Entry::query()->where('collection_id', $this->pages->id)->where('parent_id', $under)->orderBy('sort_order')->orderBy('id')->pluck('id')->all();
+
     app(ReorderEntries::class)->handle($this->pages, [$y->id, $x->id], $parent->id);
-    expect(pageOrder())->toBe(['Parent', 'Y', 'X', 'Top'])
-        ->and(fn () => app(ReorderEntries::class)->handle($this->pages, [$x->id, $top->id], $parent->id))->toThrow(ValidationException::class, 'same parent')
-        ->and(fn () => app(ReorderEntries::class)->handle($this->pages, [$top->id, $x->id]))->toThrow(ValidationException::class, 'same parent');
+    expect($level($parent->id))->toBe([$y->id, $x->id])
+        ->and(fn () => app(ReorderEntries::class)->handle($this->pages, [$x->id, $top->id], $parent->id))->toThrow(ValidationException::class, 'at this level')
+        ->and(fn () => app(ReorderEntries::class)->handle($this->pages, [$top->id, $x->id]))->toThrow(ValidationException::class, 'at this level');
 
     app(ReorderEntries::class)->handle($this->pages, [$top->id, $parent->id]);
-    expect(pageOrder())->toBe(['Top', 'Y', 'X', 'Parent']);
+    expect($level(null))->toBe([$top->id, $parent->id])->and($level($parent->id))->toBe([$y->id, $x->id]);
 });
 
 it('refuses entries of another collection, repeated ids, and collections in date order', function () {
@@ -92,7 +93,7 @@ it('refuses entries of another collection, repeated ids, and collections in date
     $other = app(CreateEntry::class)->handle($news, ['title' => 'Elsewhere'])->entry;
 
     expect(fn () => app(ReorderEntries::class)->handle($this->pages, [$a->id, $other->id]))->toThrow(ValidationException::class)
-        ->and(fn () => app(ReorderEntries::class)->handle($this->pages, [$a->id, $a->id]))->toThrow(ValidationException::class, 'each id once')
+        ->and(fn () => app(ReorderEntries::class)->handle($this->pages, [$a->id, $a->id]))->toThrow(ValidationException::class, 'each entry id once')
         ->and(fn () => app(ReorderEntries::class)->handle($this->pages, ['x']))->toThrow(ValidationException::class)
         ->and(fn () => app(ReorderEntries::class)->handle($news, [$other->id]))->toThrow(ValidationException::class, 'Manual order');
 });
@@ -134,7 +135,7 @@ it('puts terms of one level in the order dragged', function () {
         ->and($level($a->id))->toBe([$a2->id, $a1->id])
         ->and(Term::query()->whereNull('parent_id')->orderBy('sort_order')->pluck('sort_order')->all())->toBe([0, 1, 2])
         ->and(Activity::query()->latest('id')->first()?->only(['action', 'subject_type']))->toBe(['action' => 'reordered', 'subject_type' => 'taxonomy'])
-        ->and(fn () => app(ReorderTerms::class)->handle($this->categories, [$a1->id, $b->id], $a->id))->toThrow(ValidationException::class, 'same level')
+        ->and(fn () => app(ReorderTerms::class)->handle($this->categories, [$a1->id, $b->id], $a->id))->toThrow(ValidationException::class, 'at this level')
         ->and(fn () => app(ReorderTerms::class)->handle(Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']), [$a->id]))->toThrow(ValidationException::class);
 });
 

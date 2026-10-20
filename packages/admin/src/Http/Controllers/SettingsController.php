@@ -13,8 +13,10 @@ use Inertia\Response;
 use Sunrice\Admin\Actions\Settings\UpdateSettings;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Settings\BrandingSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * The Settings page: each section's form, for users with its permission.
@@ -68,12 +70,20 @@ final class SettingsController
         ]);
     }
 
-    public function update(Request $request, string $section, UpdateSettings $update): RedirectResponse
+    public function update(Request $request, string $section, UpdateSettings $update): RedirectResponse|SymfonyResponse
     {
         $registered = $this->section($this->user($request), $section);
-        $update->handle($registered, $request->all());
+        $changed = $update->handle($registered, $request->all());
+        $message = $registered->class::label().' settings saved.';
 
-        return back()->with('success', $registered->class::label().' settings saved.');
+        // The font and colour are in the page's <head>: load the whole page again to show them.
+        if ($registered->class === BrandingSettings::class && $changed !== []) {
+            $request->session()->flash('success', $message);
+
+            return Inertia::location(route('sunrice.admin.settings.edit', $registered->key()));
+        }
+
+        return back()->with('success', $message);
     }
 
     private function section(Authorizable $user, string $key): RegisteredSettings

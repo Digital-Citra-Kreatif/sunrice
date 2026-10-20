@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Http\Controllers\ActivityController;
 use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Http\Controllers\EditLocksController;
+use Sunrice\Admin\Http\Controllers\PreferencesController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
+use Sunrice\Admin\Preferences\Preferences;
 
 /*
  * The panel's own routes for signed-in users with Panel::ACCESS. Loaded
@@ -30,3 +32,7 @@ Route::prefix('locks/{type}/{id}')->name('locks.')->controller(EditLocksControll
 });
 Route::get('kept-edits/{kept}', [EditLocksController::class, 'show'])->name('kept-edits.show');
 Route::delete('kept-edits/{kept}', [EditLocksController::class, 'destroy'])->name('kept-edits.destroy');
+
+// The signed-in user's own preferences (useTablePreferences); nobody else's.
+Route::get('preferences/{key}', [PreferencesController::class, 'show'])->name('preferences.show')->where('key', Preferences::KEY_PATTERN);
+Route::put('preferences/{key}', [PreferencesController::class, 'update'])->name('preferences.update')->where('key', Preferences::KEY_PATTERN);

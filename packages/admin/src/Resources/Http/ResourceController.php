@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Resources\Http;
 
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Inertia\Response;
 use Sunrice\Admin\Actions\Resources\SaveRecord;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Preferences\Preferences;
 use Sunrice\Admin\Resources\ListQuery;
 use Sunrice\Admin\Resources\RegisteredResource;
 use Sunrice\Admin\Resources\Tables\Action;
@@ -34,7 +36,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class ResourceController
 {
-    public function __construct(private Panel $panel, private ActivityLog $activity) {}
+    public function __construct(private Panel $panel, private ActivityLog $activity, private Preferences $preferences) {}
 
     public function index(Request $request): Response
     {
@@ -42,8 +44,11 @@ final class ResourceController
         $user = $this->authorize($request, $resource, 'view');
         $table = $resource->table();
         $list = new ListQuery($resource, $request);
+        // The user's columns and page size for this table (useTablePreferences).
+        $preferencesKey = 'table.resources.'.$resource->key();
+        $preferences = $user instanceof Authenticatable ? $this->preferences->table($user, $preferencesKey) : ['columns' => null, 'perPage' => null];
 
-        $page = $list->builder()->paginate(ListQuery::perPage($request, $table->getPerPage()))->withQueryString();
+        $page = $list->builder()->paginate(ListQuery::perPage($request, $table->getPerPage(), $preferences['perPage']))->withQueryString();
         $rowActions = array_values(array_filter($table->getActions(), fn (Action $action) => ! $action->isBulk));
         $bulkActions = array_values(array_filter($table->getActions(), fn (Action $action) => $action->isBulk));
 
@@ -88,6 +93,7 @@ final class ResourceController
                 'nextUrl' => $page->nextPageUrl(),
             ],
             'perPageOptions' => ListQuery::PER_PAGE,
+            'preferences' => ['key' => $preferencesKey, 'columns' => $preferences['columns'], 'perPage' => $preferences['perPage']],
         ]);
     }
 

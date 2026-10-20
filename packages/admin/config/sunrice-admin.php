@@ -160,6 +160,29 @@ return [
         'path' => 'mcp',
         // Requests per minute per token.
         'requests_per_minute' => 120,
+        // The user an agent on the server itself acts as, over stdio
+        // (`php artisan mcp:start sunrice`), by email. Unset: refused.
+        'local_user' => env('SUNRICE_AI_USER'),
+        // read_error_log: recent errors from the Laravel log, secrets masked
+        // (with the "sunrice.ai.error-log" permission). The logs' directory:
+        // null for storage/logs.
+        'error_log' => env('SUNRICE_AI_ERROR_LOG', true),
+        'log_path' => env('SUNRICE_AI_LOG_PATH'),
+        // run_command: the artisan commands agents may run (with the
+        // "sunrice.ai.run-commands" permission); anything else is refused. A
+        // name takes any of the command's own options; `name => [options]`
+        // only those ("--days", "--force").
+        'commands' => [
+            'sunrice:activity-prune',
+            'sunrice:sync-permissions',
+            'sunrice:media-sizes',
+            'sunrice:optimize-images',
+            'cache:clear',
+            'view:clear',
+            'config:clear',
+            'route:clear',
+            'optimize:clear',
+        ],
     ],
 
 ];

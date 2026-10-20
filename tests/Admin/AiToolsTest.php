@@ -3,13 +3,20 @@
 declare(strict_types=1);
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Mcp\Server\Registrar;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\AiToken;
+use Sunrice\Admin\Ai\PanelServer;
+use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Media\Media;
+use Sunrice\Admin\Media\MediaUsages;
 use Sunrice\Admin\Panel;
 use Sunrice\Tests\Admin\Fixtures\Product;
 use Sunrice\Tests\Admin\Fixtures\ProductResource;
@@ -141,4 +148,164 @@ it('lists media and reads the activity log', function () {
     $this->rina->givePermissionTo([Panel::ACCESS, 'sunrice.ai.connect']);
     expect(callTool($this->token, 'get_activity'))->toContain('permission to view the activity log')
         ->and(callTool($this->token, 'list_media'))->toContain('permission to view the media library');
+});
+
+it('reads the developer docs, and no file outside them', function () {
+    $list = callTool($this->token, 'read_docs');
+    $panel = collect($list['sections'])->firstWhere('section', 'Panel');
+    expect(collect($panel['pages'])->firstWhere('page', 'panel/ai'))->toBe(['page' => 'panel/ai', 'title' => 'AI access']);
+
+    // The page comes as Markdown text, not JSON.
+    $page = $this->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => ['name' => 'read_docs', 'arguments' => ['page' => 'panel/ai']]], ['Authorization' => "Bearer {$this->token}"]);
+    expect($page->json('result.content.0.text'))->toStartWith('# AI access');
+    foreach (['panel/../../composer', '../panel/ai', 'panel/ai.md', 'panel/nope', 'shop/ai'] as $page) {
+        expect(callTool($this->token, 'read_docs', ['page' => $page]))->toContain('No such page');
+    }
+
+    expect(fn () => Panel::make()->docs('Shop', __DIR__)->docs('Shop', __DIR__))->toThrow(PanelMisconfigured::class, 'Two docs are called "Shop"');
+});
+
+it('reads the error log grouped, newest first, with secrets masked', function () {
+    $dir = storage_path('framework/testing/ai-logs');
+    File::ensureDirectoryExists($dir);
+    File::put($dir.'/laravel.log', implode("\n", [
+        '[2026-10-01 10:00:00] production.ERROR: Undefined variable $title {"exception":"[object] (ErrorException(code: 0): Undefined variable $title at '.base_path('resources/views/cms/entry.blade.php').':12)',
+        '[stacktrace]',
+        '#0 '.base_path('vendor/laravel/framework/src/View.php').'(10): x()',
+        '#1 '.base_path('app/Http/Kernel.php').'(5): y()',
+        '"}',
+        '[2026-10-01 11:00:00] production.ERROR: Undefined variable $title {"exception":"[object] (ErrorException(code: 0): Undefined variable $title at '.base_path('resources/views/cms/entry.blade.php').':12)',
+        '"}',
+        '[2026-10-01 12:00:00] production.WARNING: Slow query',
+        '[2026-10-01 13:00:00] production.ERROR: Mail failed password=hunter2 Bearer abc.def token: sra_abcdefghijk',
+        '',
+    ]));
+    config(['sunrice-admin.ai.log_path' => $dir]);
+
+    expect(callTool($this->token, 'read_error_log'))->toContain('permission to read the error log');
+    $this->rina->givePermissionTo('sunrice.ai.error-log');
+
+    $log = callTool($this->token, 'read_error_log');
+    expect($log['files'])->toBe(['storage/framework/testing/ai-logs/laravel.log'])
+        ->and($log['errors'])->toHaveCount(2)
+        ->and($log['errors'][0]['message'])->toBe('Mail failed password=[masked] Bearer [masked] token: [masked]')
+        ->and($log['errors'][1])->toMatchArray(['count' => 2, 'first_seen' => '2026-10-01 10:00:00', 'last_seen' => '2026-10-01 11:00:00', 'exception' => 'ErrorException', 'at' => 'resources/views/cms/entry.blade.php:12']);
+    expect(callTool($this->token, 'read_error_log', ['level' => 'warning'])['errors'])->toHaveCount(3)
+        ->and(callTool($this->token, 'read_error_log', ['search' => 'slow', 'level' => 'debug'])['errors'][0]['message'])->toBe('Slow query')
+        ->and(callTool($this->token, 'read_error_log', ['level' => 'loud']))->toContain('level');
+
+    // Read-only tokens may read it; the site may turn it off.
+    [, $reader] = AiToken::issue((string) $this->rina->id, 'Reader', readOnly: true);
+    expect(callTool($reader, 'read_error_log')['errors'])->toHaveCount(2);
+    config(['sunrice-admin.ai.error_log' => false]);
+    expect(callTool($this->token, 'read_error_log'))->toContain('turned off');
+    File::deleteDirectory($dir);
+});
+
+it('runs only allowed commands, with their own options, and logs it', function () {
+    expect(callTool($this->token, 'run_command', ['command' => 'list']))->toContain('permission to run commands');
+    $this->rina->givePermissionTo('sunrice.ai.run-commands');
+    config(['sunrice-admin.ai.commands' => ['sunrice:activity-prune' => ['--days'], 'view:clear', 'no:such-command']]);
+
+    expect(array_column(callTool($this->token, 'run_command', ['command' => 'list'])['commands'], 'command'))->toBe(['sunrice:activity-prune', 'view:clear'])
+        ->and(callTool($this->token, 'run_command', ['command' => 'migrate:fresh']))->toContain('isn\'t one of the commands')
+        ->and(callTool($this->token, 'run_command', ['command' => 'sunrice:activity-prune', 'options' => ['--env' => 'local']]))->toContain('doesn\'t take "--env"')
+        ->and(callTool($this->token, 'run_command', ['command' => 'view:clear', 'options' => ['--nope' => true]]))->toContain('doesn\'t take "--nope"')
+        ->and(callTool($this->token, 'run_command', ['command' => 'sunrice:activity-prune', 'options' => ['--days' => ['x' => ['y']]]]))->toContain('Give "--days"');
+
+    $run = callTool($this->token, 'run_command', ['command' => 'sunrice:activity-prune', 'options' => ['--days' => 30]]);
+    expect($run['exit_code'])->toBe(0)->and($run['output'])->toContain('older than 30 days');
+    expect(Activity::query()->where('action', 'ran command')->sole())->subject_label->toBe('sunrice:activity-prune')->source->toBe('ai')
+        ->and(Activity::query()->where('action', 'ran command')->sole()->properties['options'])->toBe(['--days']);
+});
+
+it('uploads media from base64 and public addresses, with every upload check', function () {
+    $png = base64_encode((string) UploadedFile::fake()->image('dot.png', 2, 2)->getContent());
+    expect(callTool($this->token, 'upload_media', ['content_base64' => $png, 'filename' => 'dot.png']))->toContain('permission to upload media');
+    $this->rina->givePermissionTo('sunrice.media.upload');
+
+    $file = callTool($this->token, 'upload_media', ['content_base64' => $png, 'filename' => '../../dot.png', 'alt' => 'A dot']);
+    expect($file)->toMatchArray(['uploaded' => true, 'filename' => 'dot.png', 'title' => 'dot', 'alt' => 'A dot', 'mimeType' => 'image/png', 'width' => 2])
+        ->and(Media::query()->sole()->uploaded_by)->toBe((string) $this->rina->id)
+        ->and(Activity::query()->where('action', 'uploaded')->sole()->source)->toBe('ai');
+
+    expect(callTool($this->token, 'upload_media', ['content_base64' => base64_encode('<?php echo 1;'), 'filename' => 'x.php']))->toContain('.php files can\'t be uploaded')
+        ->and(callTool($this->token, 'upload_media', ['content_base64' => base64_encode('<html><script>alert(1)</script></html>'), 'filename' => 'page.png']))->toContain('web page or a script')
+        ->and(callTool($this->token, 'upload_media', ['content_base64' => '***', 'filename' => 'a.png']))->toContain('valid base64')
+        ->and(callTool($this->token, 'upload_media', ['filename' => 'a.png']))->toContain('url');
+
+    Http::fake(['93.184.216.34/*' => Http::response(base64_decode($png), 200)]);
+    expect(callTool($this->token, 'upload_media', ['url' => 'http://93.184.216.34/photos/sun.png'])['filename'])->toBe('sun.png');
+    foreach (['http://127.0.0.1/a.png', 'http://localhost/a.png', 'http://10.1.2.3/a.png', 'http://169.254.169.254/latest'] as $inside) {
+        expect(callTool($this->token, 'upload_media', ['url' => $inside]))->toContain('public web addresses');
+    }
+    expect(callTool($this->token, 'upload_media', ['url' => 'file:///etc/passwd']))->toContain('url');
+    Http::assertSentCount(1);
+});
+
+it('edits and organises media: folders, moving, trash, usage rules', function () {
+    $this->actingAs($this->rina);
+    $logo = app(UploadMedia::class)->handle(UploadedFile::fake()->image('logo.png'));
+    auth()->logout();
+
+    expect(callTool($this->token, 'update_media', ['id' => $logo->id, 'alt' => 'Our logo']))->toContain('permission to edit media')
+        ->and(callTool($this->token, 'manage_media', ['action' => 'folders']))->toBe(['folders' => []])
+        ->and(callTool($this->token, 'manage_media', ['action' => 'trash', 'id' => $logo->id]))->toContain('permission to delete media');
+    $this->rina->givePermissionTo('sunrice.media.update', 'sunrice.media.delete');
+
+    expect(callTool($this->token, 'update_media', ['id' => $logo->id, 'alt' => 'Our logo']))->toMatchArray(['saved' => true, 'alt' => 'Our logo', 'title' => 'logo'])
+        ->and(callTool($this->token, 'update_media', ['id' => $logo->id, 'alt' => str_repeat('a', 300)]))->toContain('250');
+
+    $brand = callTool($this->token, 'manage_media', ['action' => 'create_folder', 'name' => 'Brand'])['folder'];
+    $old = callTool($this->token, 'manage_media', ['action' => 'create_folder', 'name' => 'Old', 'parent_id' => $brand['id']])['folder'];
+    expect(callTool($this->token, 'manage_media', ['action' => 'create_folder', 'name' => 'Brand']))->toContain('already a folder')
+        ->and(callTool($this->token, 'manage_media', ['action' => 'folders'])['folders'])->toBe([['id' => $brand['id'], 'name' => 'Brand', 'depth' => 0], ['id' => $old['id'], 'name' => 'Old', 'depth' => 1]])
+        ->and(callTool($this->token, 'manage_media', ['action' => 'move', 'ids' => [$logo->id], 'folder_id' => $old['id']]))->toBe(['moved' => 1, 'folder' => 'Old'])
+        ->and(callTool($this->token, 'manage_media', ['action' => 'delete_folder', 'folder_id' => $old['id']]))->toMatchArray(['deleted' => true])
+        ->and($logo->fresh()->folder_id)->toBe($brand['id']);
+
+    app(MediaUsages::class)->sync('shop.product', '1', [$logo->id], 'Product: Kettle');
+    expect(callTool($this->token, 'manage_media', ['action' => 'usages', 'id' => $logo->id])['usages'][0]['label'])->toBe('Product: Kettle')
+        ->and(callTool($this->token, 'manage_media', ['action' => 'delete', 'id' => $logo->id]))->toContain('Trash the file first')
+        ->and(callTool($this->token, 'manage_media', ['action' => 'trash', 'id' => $logo->id]))->toBe(['trashed' => true, 'id' => $logo->id])
+        ->and(callTool($this->token, 'manage_media', ['action' => 'delete', 'id' => $logo->id]))->toContain('is used by Product: Kettle')
+        ->and(callTool($this->token, 'manage_media', ['action' => 'restore', 'id' => $logo->id]))->toMatchArray(['restored' => true, 'trashed' => false]);
+    callTool($this->token, 'manage_media', ['action' => 'trash', 'id' => $logo->id]);
+    expect(callTool($this->token, 'manage_media', ['action' => 'delete', 'id' => $logo->id, 'force' => true]))->toBe(['deleted' => true, 'id' => $logo->id])
+        ->and(Media::withTrashed()->count())->toBe(0);
+
+    expect(Activity::query()->where('source', 'ai')->pluck('action')->all())->toContain('updated', 'created', 'moved', 'trashed', 'restored', 'deleted');
+});
+
+it('creates, lists and revokes tokens from the console', function () {
+    $this->artisan('sunrice:ai-token', ['email' => 'nobody@example.com'])->assertFailed();
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--name' => 'Cursor', '--read-only' => true, '--expires' => '30'])
+        ->expectsOutputToContain('shown only once')->assertSuccessful();
+    $token = AiToken::query()->where('name', 'Cursor')->sole();
+    expect($token->read_only)->toBeTrue()->and($token->expires_at?->isSameDay(now()->addDays(30)))->toBeTrue()
+        ->and(Activity::query()->where('action', 'token created')->exists())->toBeTrue();
+
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--expires' => 'soon'])->assertFailed();
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--expires' => 'never'])->assertSuccessful();
+    expect(AiToken::query()->where('name', 'AI agent')->sole()->expires_at)->toBeNull();
+
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--list' => true])->expectsOutputToContain('Cursor')->assertSuccessful();
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--revoke' => '999'])->assertFailed();
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--revoke' => (string) $token->id])->assertSuccessful();
+    expect(AiToken::query()->whereKey($token->id)->exists())->toBeFalse();
+});
+
+it('serves a local agent over stdio as the configured user, and refuses without one', function () {
+    expect(app(Registrar::class)->getLocalServer('sunrice'))->not->toBeNull();
+
+    expect(fn () => PanelServer::actAsLocalUser())->toThrow(RuntimeException::class, 'sunrice-admin.ai.local_user');
+    config(['sunrice-admin.ai.local_user' => 'nobody@example.com']);
+    expect(fn () => PanelServer::actAsLocalUser())->toThrow(RuntimeException::class, 'No account');
+    $plain = User::query()->create(['name' => 'Plain', 'email' => 'plain@example.com', 'password' => 'x']);
+    config(['sunrice-admin.ai.local_user' => 'plain@example.com']);
+    expect(fn () => PanelServer::actAsLocalUser())->toThrow(RuntimeException::class, 'may not open the panel');
+
+    config(['sunrice-admin.ai.local_user' => 'rina@example.com']);
+    expect(PanelServer::actAsLocalUser()->getAuthIdentifier())->toBe($this->rina->id)
+        ->and(auth()->id())->toBe($this->rina->id);
 });

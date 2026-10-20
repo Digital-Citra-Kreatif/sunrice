@@ -15,9 +15,10 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `route` | The entries' URL, like `/blog/{slug}`; none: no pages. See [the site](site.md). |
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
 | `listing_route` | The URL of a page listing the entries, like `/blog`; none: no listing page. See [the site](site.md#listing-pages). |
-| `listing_blueprint`, `per_page` | The listing page's own fields (an intro…), edited from the entries list, and how many entries it shows per page (10). `SaveListing` saves the fields per language and, given the `version` the editor opened (`CollectionListing::$version`), refuses a save over someone else's newer one. |
+| `listing_blueprint`, `per_page` | The listing page's own fields (an intro…), edited from the entries list, and how many entries it shows per page (10). `SaveListing` saves the fields (and the listing page's own SEO, `$seo`) per language and, given the `version` the editor opened (`CollectionListing::$version`), refuses a save over someone else's newer one. |
 | `ordered` | **Manual order**: editors put entries in order in the list (**Reorder**, then drag; in a hierarchical collection among an entry's siblings), instead of by date or title. |
 | `hierarchical` | Entries may have a **parent** entry, like pages under pages, for breadcrumbs and sub-menus. URLs stay flat: *Team* under *About* is still `/team`. |
+| `seo_title_field`, `seo_description_field`, `seo_image_field` | **SEO from fields**: a text field for the SEO title, a text or textarea field for the description and a media field for the share image, used where an entry's SEO card is empty. See [SEO](site.md#seo). |
 
 ```php
 use Sunrice\Cms\Actions\Collections\SaveCollection;
@@ -29,7 +30,7 @@ Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave
 
 ## Editing entries
 
-Editors write entries under **Content → Entries**: a list per collection (search, the trash) and the editor, with the blueprint's fields, the entry's status and its revisions. What each person may do follows their permissions:
+Editors write entries under **Content → Entries**: a list per collection (see [the entries list](#the-entries-list)) and the editor, with the blueprint's fields, the entry's status and its revisions. What each person may do follows their permissions:
 
 | Permission | |
 | --- | --- |
@@ -45,7 +46,7 @@ Each of the first five also comes for one collection: `cms.entries.blog.publish`
 
 `sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
 
-In the list, tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** downloads the collection's entries in the main language, a column per field (an `exported` security event). In the editor:
+In the editor:
 
 - **Ctrl/Cmd+S** saves the draft, and leaving the page with unsaved changes asks first.
 - **Page settings**: the parent (in hierarchical collections; never the entry itself or one below it, at most 10 deep) and a Blade view for this entry alone, for every language (`SaveEntrySettings`). Deleting an entry for good moves its children up to its parent.
@@ -57,11 +58,31 @@ In the list, tick entries to publish, unpublish or trash them together (in the t
 - **Comments** (when the collection takes comments and the person has `cms.comments.view`): the counts by status and the latest five, with **Approve**, **Spam** and **Reply** for those with `cms.comments.moderate`, and a link to the [comments page](comments.md) showing only this entry's (`?entry=`).
 - The revisions and comments load just after the page shows (Inertia's deferred props), and a terms field's terms load when it shows (`cms/term-picker`), so a large entry opens fast.
 
-**Reordering** in code: `ReorderEntries::handle($collection, $ids, $parentId)` puts those entries (of an ordered collection, and all under `$parentId` in a hierarchical one; null is the top level) in the order given. They take the places they held among the collection's entries, so reordering one page of the list leaves the others where they are; the collection is numbered again in one transaction, and the change is logged (`reordered`) and clears the site's cache. Its route is `POST cms/entries/reorder` (`collection`, `ids`, `parent_id`), behind `cms.entries.update` for that collection. `MoveEntry` still moves one entry a place up or down.
+**Reordering** in code: `ReorderEntries::handle($collection, $ids, $parentId)` puts one level of an ordered collection's entries (those under `$parentId` in a hierarchical one, null for the top level; else all of them) in the order given, the rest of the level after them as they were; the level is numbered again in one transaction, and the change is logged (`reordered`) and clears the site's cache. Its route is `POST cms/entries/reorder` (`collection`, `ids`, `parent_id`), behind `cms.entries.update` for that collection. `MoveEntry` still moves one entry a place up or down.
 
 Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it).
 
 Rich text fields have a formatting toolbar: headings, bold, italic, underline, strikethrough, code, lists, quotes, dividers, links (web addresses, paths on the site, mailto: and tel:; others are refused) and images from the media library, which keep their library id. The server cleans the HTML again when saving.
+
+## The entries list
+
+Each collection's list (`EntryController::index`, built by `Sunrice\Cms\Admin\EntryList`) shows the entries of one language, 25 to a page, and keeps everything it shows in the address, so a list can be bookmarked or shared:
+
+| Parameter | |
+| --- | --- |
+| `search` | Titles and slugs containing the text (any case); `#12` finds the entry with id 12. |
+| `status` | `draft`, `published`, `scheduled` (published with a date to come) or `trashed` (the trash; `trashed=1` works too). None: everything but the trash. |
+| `author` | Entries a user created (the filter offers everyone who wrote in the collection). |
+| `terms[topics]` | Entries with that term (id) of a taxonomy attached to the collection, one per taxonomy. |
+| `locale` | The language listed (its titles, slugs and statuses); the main one by default. Entries without that language aren't listed. |
+| `sort` | `title`, `slug`, `status`, `published_at`, `updated_at`, `created_at`, `author` or `field.{handle}`, with `-` first for descending. None: the collection's order (manual, newest first when dated, else by title). |
+| `per_page` | 10, 25, 50 or 100. |
+
+Besides the title, the **Columns** menu shows the slug, the status (with a badge per other language), the author, the dates, and **field columns**: the blueprint's top-level text, textarea, number, date, select, toggle and entries fields (custom fields built on them too), shown as short text (select labels, Yes/No, linked entries' titles). Field columns sort by the draft's value (shared fields: the main language's), numbers and dates as such; entries fields and multiple selects don't sort. The chosen columns and page size are kept per person ([preferences](../admin/preferences.md), key `table.cms.entries.{collection}`); a `per_page` in the address wins.
+
+**Go to** links to what an editor tends to need next, where they may go: the listing page (edit and view), the collection's taxonomies' terms (`cms.terms.*`), the collection's settings (`cms.collections.update`) and its blueprint (`cms.blueprints.manage`). In a collection with manual order, Move up and Move down appear while the list is in that order, unfiltered.
+
+Tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** downloads the list as it is filtered, searched, sorted and in its language (every page): the ID, title, slug, status, publish date, URL, last change and author, and a column per top-level field (field columns as the list shows them); it's an `exported` security event.
 
 ## Languages
 
@@ -121,3 +142,17 @@ Every publish keeps a `Revision` (title, slug, fields and who published it); the
 `TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms. `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
 
 Every action is written to the [activity log](../admin/activity.md): created, duplicated, updated (with the fields that changed), published, unpublished, reverted, trashed, restored and deleted.
+
+## The dashboard
+
+The CMS adds these widgets to the panel's [dashboard](../admin/panel.md#dashboard-widgets), each showing only what the user may see (per collection and per form, as `Support\Access` decides):
+
+| Widget | Shows | Who sees it |
+| --- | --- | --- |
+| `cms.collections` (Content) | Each collection's entries in the main language: live, drafts and scheduled, linking to its list. | Users who may view some collection's entries. |
+| `cms.recent-edits` (Recently edited) | The last eight entry translations edited, any language, with their status. | The same. |
+| `cms.comments` (Comments waiting) | How many comments wait for moderation, and the latest five. | `cms.comments.view` |
+| `cms.scheduled` (Coming up) | The next eight entries scheduled to go live. | Users who may view some collection's entries. |
+| `cms.submissions` (Latest submissions) | The last eight submissions of the forms the user may read, each summed up by its first text field. | `cms.submissions.view`, or a form's own. |
+
+Each reads its data in one query (the comments widget a second one for signed-in commenters' names), after the page has painted. Entries in the trash and deleted collections are left out.

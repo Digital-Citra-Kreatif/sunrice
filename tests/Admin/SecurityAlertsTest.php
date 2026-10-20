@@ -109,7 +109,7 @@ it('alerts when someone gains a privileged permission, reading what was added fr
 
 it('treats settings, AI access, the activity log and what plugins register as privileged', function () {
     $panel = app(Panel::class);
-    expect($panel->getPrivilegedPermissions())->toBe(['sunrice.users.*', 'sunrice.roles.*', 'sunrice.settings.*', 'sunrice.ai.connect', 'sunrice.activity.*', 'shop.payouts.*'])
+    expect($panel->getPrivilegedPermissions())->toBe(['sunrice.users.*', 'sunrice.roles.*', 'sunrice.settings.*', 'sunrice.ai.*', 'sunrice.activity.*', 'shop.payouts.*'])
         ->and($panel->isPrivilegedPermission('sunrice.settings.security'))->toBeTrue()
         ->and($panel->isPrivilegedPermission('shop.payouts.manage'))->toBeTrue()
         ->and($panel->isPrivilegedPermission('shop.orders.view'))->toBeFalse()

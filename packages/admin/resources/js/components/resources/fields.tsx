@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { isHexColor, readableOn } from '@/lib/branding';
 import type { FieldInfo } from './types';
 
 export type FieldValue = string | number | boolean | string[] | number[] | null;
@@ -69,6 +70,9 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
             return <DatePicker id={id} disabled={disabled} invalid={invalid} required={field.required === true} withTime={field.withTime === true}
                 placeholder={field.placeholder ?? undefined} value={value === null ? null : String(value)} onChange={onChange} />;
         default:
+            if (field.inputType === 'color') {
+                return <ColorInput common={common} value={typeof value === 'string' ? value : ''} onChange={onChange} />;
+            }
             return <Input {...common} type={String(field.inputType ?? 'text')} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
     }
@@ -111,6 +115,27 @@ function CheckboxList({ id, options, value, disabled, onChange }: {
                     </div>
                 </fieldset>
             ))}
+        </div>
+    );
+}
+
+/** A #rrggbb colour: a picker and the code, with a sample of the text that goes on it. Empty means none. */
+function ColorInput({ common, value, onChange }: {
+    common: { id: string; disabled: boolean; 'aria-invalid': boolean; required?: boolean; placeholder?: string };
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    const valid = isHexColor(value);
+
+    return (
+        <div className="flex items-center gap-2">
+            <input type="color" aria-label="Pick a colour" disabled={common.disabled} value={valid ? value.toLowerCase() : '#000000'}
+                onChange={(e) => onChange(e.target.value)}
+                className="size-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-1 disabled:cursor-not-allowed" />
+            <Input {...common} type="text" maxLength={7} spellCheck={false} className="font-mono" value={value} onChange={(e) => onChange(e.target.value.trim())} />
+            {valid && (
+                <span aria-hidden="true" className="flex h-9 shrink-0 items-center rounded-md px-3 text-sm font-medium" style={{ background: value, color: readableOn(value) }}>Aa</span>
+            )}
         </div>
     );
 }
