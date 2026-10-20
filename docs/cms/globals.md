@@ -17,9 +17,11 @@ In code, `SaveGlobals` saves a set's values in a language: `app(SaveGlobals::cla
 ```php
 use Sunrice\Cms\Globals;
 
-$contact = app(Globals::class)->get('contact');         // the main language
+$contact = app(Globals::class)->get('contact');         // the current language (as Cms::global('contact'))
 $contact = app(Globals::class)->get('contact', 'id');   // Indonesian, shared fields from the main language
 $contact['phone'];
 ```
+
+The current language is the app's locale when it's one of the site's languages (the CMS sets it from the address on its pages), else the main one.
 
 Values come as templates get them (media as `Media` models, dates as Carbon…). All global sets load in one query the first time one is read in a request; an unknown handle gives an empty array.

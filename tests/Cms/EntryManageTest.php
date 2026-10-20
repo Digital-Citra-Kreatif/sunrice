@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Activity\Activity;
@@ -153,6 +154,35 @@ it('locks entries and global sets for those who may edit them', function () {
     manager('view', 'update');
     postJson("/admin/locks/cms.entry/{$hello->entry_id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertJson(['status' => 'ok']);
     postJson('/admin/locks/cms.entry/999', ['editor' => 'tab-a'])->assertForbidden();
+});
+
+it('lets only the collection\'s editors pick a template, under the site\'s prefixes', function () {
+    $hello = app(PublishEntry::class)->handle(managed('Hello'));
+    $views = sys_get_temp_dir().'/sunrice-views-'.uniqid();
+    mkdir("{$views}/layouts", recursive: true);
+    file_put_contents("{$views}/layouts/app.blade.php", 'THE APP LAYOUT');
+    View::addLocation($views);
+    manager('view', 'update');
+
+    // No other view of the app can be made a public page.
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'layouts.app'])->assertSessionHasErrors('template');
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'emails.invoice'])->assertSessionHasErrors('template');
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'cms.landing'])->assertSessionHasNoErrors();
+    config(['sunrice-cms.site.template_prefixes' => ['cms.', 'pages.']]);
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'pages.landing'])->assertSessionHasNoErrors();
+    expect($hello->entry->fresh()?->template)->toBe('pages.landing');
+
+    // Authors of their own entries may change the rest, keeping the template as it is.
+    $author = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own');
+    actingAs($author);
+    $mine = managed('Mine');
+    put("/admin/cms/entries/{$mine->entry_id}/settings", ['template' => 'cms.landing'])->assertForbidden();
+    put("/admin/cms/entries/{$mine->entry_id}/settings", ['template' => '', 'comments_closed' => '1'])->assertSessionHasNoErrors();
+    expect($mine->entry->fresh()?->only(['template', 'comments_closed']))->toBe(['template' => null, 'comments_closed' => true]);
+
+    // A template stored outside the prefixes (from before, or after the config changed) isn't rendered.
+    $hello->entry->forceFill(['template' => 'layouts.app'])->save();
+    get('/articles/hello')->assertOk()->assertDontSee('THE APP LAYOUT')->assertSee('Hello');
 });
 
 it('tells the media library where entries and globals use files', function () {

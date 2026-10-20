@@ -44,6 +44,7 @@ function contactInput(array $changes = []): array
 
 it('keeps what visitors send and emails the form\'s addresses', function () {
     Mail::fake();
+    $this->form->update(['notify' => ['team@example.com', 'boss@example.com']]);
 
     from('/contact-page')->post('/forms/contact', contactInput(['photo' => 5, 'extra' => 'ignored']))
         ->assertRedirect('/contact-page')->assertSessionHas('sunrice-cms.form.contact', 'Thanks!');
@@ -51,7 +52,10 @@ it('keeps what visitors send and emails the form\'s addresses', function () {
     $submission = Submission::query()->sole();
     expect($submission->data)->toEqual(['name' => 'Ana', 'email' => 'ana@example.com', 'topic' => 'help', 'message' => "Hello\nthere", 'newsletter' => true])
         ->and($submission->locale)->toBe('en');
-    Mail::assertQueued(SubmissionReceived::class, fn (SubmissionReceived $mail) => $mail->hasTo('team@example.com') && $mail->hasReplyTo('ana@example.com'));
+    // One email each: the addresses aren't shown to each other.
+    Mail::assertQueued(SubmissionReceived::class, 2);
+    Mail::assertQueued(SubmissionReceived::class, fn (SubmissionReceived $mail) => $mail->hasTo('team@example.com') && ! $mail->hasTo('boss@example.com') && $mail->hasReplyTo('ana@example.com'));
+    Mail::assertQueued(SubmissionReceived::class, fn (SubmissionReceived $mail) => $mail->hasTo('boss@example.com') && ! $mail->hasTo('team@example.com'));
 });
 
 it('renders the notification escaped, with labels', function () {

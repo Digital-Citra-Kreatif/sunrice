@@ -6,7 +6,7 @@ The CMS serves entries as pages: each collection with a **URL** (`route`) shows 
 
 Set a collection's URL under Structure → Collections: a path with `{slug}` once, like `/blog/{slug}`, or `/{slug}` for pages at the root. Collections without one have no pages of their own (their entries can still be shown by your templates).
 
-- The main language has no prefix; others start with their code: `/blog/hello`, `/id/blog/halo`.
+- The main language has no prefix; others start with their code: `/blog/hello`, `/id/blog/halo`. The app's locale is set from the address as soon as the CMS's route takes over, so 404 pages, redirects and the search page are in that language too. The main language's own prefix (`/en/about`, from before the main language changed) redirects (301) to the plain address, query string kept; your app's own routes aren't touched.
 - The more specific pattern is tried first (more fixed characters): `/blog/{slug}` before `/{slug}`. The first pattern that matches decides: `/blog/about` looks for a blog entry "about", and is a 404 if there's none, even when a page "about" exists.
 - Two collections can't have the same URL.
 - Only live entries have pages: published, past their date, not in the trash, of a collection not deleted. Anything else is a 404.
@@ -23,6 +23,8 @@ An entry renders with the first view that exists:
 2. `cms.{handle}`: `resources/views/cms/blog.blade.php`;
 3. `cms.entry`: `resources/views/cms/entry.blade.php`;
 4. the CMS's plain page, which shows the title and text fields.
+
+An entry's or a term's own template must be under one of the site's template prefixes, `cms.` unless `sunrice-cms.site.template_prefixes` says otherwise (`['cms.', 'pages.']`), so no other view of the app (`layouts.app`, `emails.invoice`) can be made a public page; a stored one outside them is ignored. Only the collection's editors (`cms.entries.update`) pick it: authors with `cms.entries.update-own` change the other page settings and keep the template as it is.
 
 Views get:
 
@@ -52,6 +54,8 @@ On the CMS's pages it reads the page shown (entry, term or listing page; or name
 **Settings → Site** (`cms.settings.site`) holds what pages don't set: the site name (else `app.name`), a description, a share image, the title separator and whether titles get the site name, and the site's X account (`twitter:site`). The homepage's title is the site name. `Cms::site()` gives these settings to templates (`->name()`, `->title('About')`).
 
 *Hide the whole site from search engines* (or `SUNRICE_NOINDEX=true`, config `sunrice-cms.seo.noindex`, for a staging copy) marks every page noindex, also in an `X-Robots-Tag` header, and empties the sitemap.
+
+Past the first page of a listing, term or search page, the canonical and `hreflang` URLs (and `Cms::localeUrls()`) carry the page number (`/blog?page=2`), so each page is its own, not a copy of the first.
 
 `/sitemap.xml` lists every live entry of a collection with a URL, with its other languages, term and listing pages, but those hidden from search engines (at most 50,000).
 
@@ -110,7 +114,7 @@ Code there runs in every visitor's browser, so give the permission only to peopl
 
 ## Redirects
 
-When a published entry's address changes (a new slug), publishing it adds a permanent redirect from the old address, so links and search results keep working. Chains are flattened: every old address points straight at the newest. Structure → Redirects (`cms.redirects.*`) lists them and takes your own, from a path on the site to a path or a web address, 301 or 302. A live page always wins over a redirect from its address.
+When a published entry's address changes (a new slug), publishing it adds a permanent redirect from the old address, so links and search results keep working. Chains are flattened: every old address points straight at the newest. The query string comes along (`/old?utm_source=mail` → `/new?utm_source=mail`). Structure → Redirects (`cms.redirects.*`) lists them and takes your own, from a path on the site to a path or a web address, 301 or 302. A live page always wins over a redirect from its address.
 
 ## Listing pages
 
@@ -226,4 +230,4 @@ In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perP
 
 ## Previews
 
-The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex`. Save first to see changes.
+The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex` and `Cache-Control: no-store, private`, so no cache keeps a draft. Save first to see changes.

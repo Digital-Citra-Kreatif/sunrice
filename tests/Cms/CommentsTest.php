@@ -48,9 +48,9 @@ function guest(array $input = []): array
     return [...['body' => 'Nice post', 'author_name' => 'Rina', 'author_email' => 'rina@example.com'], ...$input];
 }
 
-function commentOn(EntryTranslation $post, array $input = []): Comment
+function commentOn(EntryTranslation $post, array $input = [], string $ip = '10.0.0.1'): Comment
 {
-    return app(PostComment::class)->handle($post->entry, guest($input), null, 'en', '10.0.0.1');
+    return app(PostComment::class)->handle($post->entry, guest($input), null, 'en', $ip);
 }
 
 function commentSettings(array $values): void
@@ -66,7 +66,11 @@ it('holds a commenter\'s first comment, then trusts them', function () {
 
     app(SetCommentStatus::class)->handle($first, Comment::APPROVED);
     expect(commentOn($this->post, ['author_email' => 'RINA@example.com'])->status)->toBe(Comment::APPROVED)
-        ->and(commentOn($this->post, ['author_email' => 'other@example.com'])->status)->toBe(Comment::PENDING);
+        ->and(commentOn($this->post, ['author_email' => 'other@example.com'])->status)->toBe(Comment::PENDING)
+        // An email alone proves nothing: the same name and address (its hash) too, else held again.
+        ->and(commentOn($this->post, [], '10.0.0.2')->status)->toBe(Comment::PENDING)
+        ->and(commentOn($this->post, ['author_name' => 'Rina S.'])->status)->toBe(Comment::PENDING)
+        ->and(app(PostComment::class)->handle($this->post->entry, guest(), null, 'en', null)->status)->toBe(Comment::PENDING);
 
     commentSettings(['moderation' => CommentSettings::HOLD_ALL]);
     expect(commentOn($this->post)->status)->toBe(Comment::PENDING);
@@ -174,7 +178,10 @@ it('emails moderators, and commenters about replies once, with a way to stop', f
     commentSettings(['notifyEmails' => "editor@example.com\nnot-an-address"]);
 
     $question = commentOn($this->post, ['notify_replies' => '1']);
-    Mail::assertQueued(CommentPosted::class, fn (CommentPosted $mail) => $mail->hasTo('mod@example.com') && $mail->hasTo('editor@example.com'));
+    // One email each: moderators don't see each other's addresses.
+    Mail::assertQueued(CommentPosted::class, 2);
+    Mail::assertQueued(CommentPosted::class, fn (CommentPosted $mail) => $mail->hasTo('mod@example.com') && ! $mail->hasTo('editor@example.com'));
+    Mail::assertQueued(CommentPosted::class, fn (CommentPosted $mail) => $mail->hasTo('editor@example.com') && ! $mail->hasTo('mod@example.com'));
     app(SetCommentStatus::class)->handle($question, Comment::APPROVED);
 
     $answer = commentOn($this->post, ['body' => 'Answer', 'parent_id' => $question->id, 'author_email' => 'budi@example.com']);
@@ -197,6 +204,19 @@ it('emails moderators, and commenters about replies once, with a way to stop', f
     // Guests can't sign anyone up when nothing is held.
     commentSettings(['moderation' => CommentSettings::HOLD_NONE]);
     expect(commentOn($this->post, ['notify_replies' => '1', 'author_email' => 'z@example.com'])->notify_replies)->toBeFalse();
+});
+
+it('signs a guest up for reply emails only when a moderator saw them ask', function () {
+    $first = commentOn($this->post);
+    app(SetCommentStatus::class)->handle($first, Comment::APPROVED);
+    // Trusted, so published at once: no moderator sees the address, and the comment that earned the trust didn't ask.
+    expect(commentOn($this->post, ['notify_replies' => '1'])->notify_replies)->toBeFalse();
+
+    $asked = commentOn($this->post, ['notify_replies' => '1', 'author_name' => 'Rina S.']);
+    expect($asked->status)->toBe(Comment::PENDING)->and($asked->notify_replies)->toBeTrue();
+    app(SetCommentStatus::class)->handle($asked, Comment::APPROVED);
+    expect(commentOn($this->post, ['notify_replies' => '1', 'author_name' => 'Rina S.'])->notify_replies)->toBeTrue()
+        ->and(commentOn($this->post, ['author_name' => 'Rina S.'])->notify_replies)->toBeFalse();
 });
 
 it('moderates in the admin, behind its permissions', function () {
