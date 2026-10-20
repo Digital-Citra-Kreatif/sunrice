@@ -128,6 +128,10 @@ it('lists media and reads the activity log', function () {
 
     $media = callTool($this->token, 'list_media', ['type' => 'image']);
     expect($media['files'][0])->toMatchArray(['title' => 'logo', 'mimeType' => 'image/png'])->toHaveKey('url');
+    // Searched for what's typed: % and _ aren't wildcards (they'd list every file).
+    expect(callTool($this->token, 'list_media', ['search' => 'log'])['total'])->toBe(1)
+        ->and(callTool($this->token, 'list_media', ['search' => '%'])['total'])->toBe(0)
+        ->and(callTool($this->token, 'list_media', ['search' => '_'])['total'])->toBe(0);
 
     callTool($this->token, 'save_record', ['resource' => 'products', 'id' => (string) $this->kettle->id, 'values' => ['price' => 31]]);
     $activity = callTool($this->token, 'get_activity', ['source' => 'ai', 'mine' => true]);

@@ -25,6 +25,7 @@ use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\MediaFolder;
 use Sunrice\Admin\Media\MediaUsages;
+use Sunrice\Admin\Support\Like;
 
 /**
  * The Media page: browse, upload, edit, move, trash and restore. Each
@@ -59,8 +60,8 @@ final class MediaController
         $media = ($trash ? Media::onlyTrashed() : Media::query())
             ->when(! $everywhere, fn (Builder $q) => $q->where('folder_id', $current?->id))
             ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
-                ->whereLike('title', '%'.self::escapeLike($search).'%')
-                ->orWhereLike('filename', '%'.self::escapeLike($search).'%')))
+                ->whereLike('title', '%'.Like::escape($search).'%')
+                ->orWhereLike('filename', '%'.Like::escape($search).'%')))
             ->when($type !== null, fn (Builder $q) => Media::whereTypes($q, [(string) $type]))
             ->withCount('usages')
             ->orderByDesc('id')
@@ -129,8 +130,8 @@ final class MediaController
         $page = Media::query()
             ->when($search === '', fn (Builder $q) => $q->where('folder_id', $current?->id))
             ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
-                ->whereLike('title', '%'.self::escapeLike($search).'%')
-                ->orWhereLike('filename', '%'.self::escapeLike($search).'%')))
+                ->whereLike('title', '%'.Like::escape($search).'%')
+                ->orWhereLike('filename', '%'.Like::escape($search).'%')))
             ->tap(fn (Builder $q) => Media::whereTypes($q, $input['types'] ?? []))
             ->orderByDesc('id')
             ->paginate(30);
@@ -273,11 +274,6 @@ final class MediaController
             // With withCount('usages'): how many places use it.
             'usages' => $media->getAttribute('usages_count'),
         ];
-    }
-
-    private static function escapeLike(string $value): string
-    {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     /**

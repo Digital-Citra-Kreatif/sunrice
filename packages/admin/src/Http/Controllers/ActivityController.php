@@ -14,6 +14,7 @@ use Inertia\Response;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Support\Like;
 
 /**
  * The activity log page: who changed what, newest first, with filters.
@@ -53,9 +54,9 @@ final class ActivityController
             ->when($text('from'), fn (Builder $q, string $v) => $q->where('created_at', '>=', now()->parse($v)->startOfDay()))
             ->when($text('to'), fn (Builder $q, string $v) => $q->where('created_at', '<=', now()->parse($v)->endOfDay()))
             ->when($search, fn (Builder $q, string $v) => $q->where(fn (Builder $w) => $w
-                ->whereLike('subject_label', '%'.self::escapeLike($v).'%')
-                ->orWhereLike('user_name', '%'.self::escapeLike($v).'%')
-                ->orWhereLike('action', '%'.self::escapeLike($v).'%')))
+                ->whereLike('subject_label', '%'.Like::escape($v).'%')
+                ->orWhereLike('user_name', '%'.Like::escape($v).'%')
+                ->orWhereLike('action', '%'.Like::escape($v).'%')))
             ->orderByDesc('id')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
@@ -142,10 +143,5 @@ final class ActivityController
         }
 
         return null;
-    }
-
-    private static function escapeLike(string $value): string
-    {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }
