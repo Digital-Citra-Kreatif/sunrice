@@ -29,7 +29,7 @@ Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave
 
 ## Editing entries
 
-Editors write entries under **Content → Entries**: a list per collection (search, the trash) and the editor, with the blueprint's fields, the entry's status and its revisions. What each person may do follows their permissions:
+Editors write entries under **Content → Entries**: a list per collection (see [the entries list](#the-entries-list)) and the editor, with the blueprint's fields, the entry's status and its revisions. What each person may do follows their permissions:
 
 | Permission | |
 | --- | --- |
@@ -45,7 +45,7 @@ Each of the first five also comes for one collection: `cms.entries.blog.publish`
 
 `sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
 
-In the list, tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** downloads the collection's entries in the main language, a column per field (an `exported` security event). In the editor:
+In the editor:
 
 - **Ctrl/Cmd+S** saves the draft, and leaving the page with unsaved changes asks first.
 - **Page settings**: the parent (in hierarchical collections; never the entry itself or one below it, at most 10 deep) and a Blade view for this entry alone, for every language (`SaveEntrySettings`). Deleting an entry for good moves its children up to its parent.
@@ -56,6 +56,26 @@ In the list, tick entries to publish, unpublish or trash them together (in the t
 Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it).
 
 Rich text fields have a formatting toolbar: headings, bold, italic, underline, strikethrough, code, lists, quotes, dividers, links (web addresses, paths on the site, mailto: and tel:; others are refused) and images from the media library, which keep their library id. The server cleans the HTML again when saving.
+
+## The entries list
+
+Each collection's list (`EntryController::index`, built by `Sunrice\Cms\Admin\EntryList`) shows the entries of one language, 25 to a page, and keeps everything it shows in the address, so a list can be bookmarked or shared:
+
+| Parameter | |
+| --- | --- |
+| `search` | Titles and slugs containing the text (any case); `#12` finds the entry with id 12. |
+| `status` | `draft`, `published`, `scheduled` (published with a date to come) or `trashed` (the trash; `trashed=1` works too). None: everything but the trash. |
+| `author` | Entries a user created (the filter offers everyone who wrote in the collection). |
+| `terms[topics]` | Entries with that term (id) of a taxonomy attached to the collection, one per taxonomy. |
+| `locale` | The language listed (its titles, slugs and statuses); the main one by default. Entries without that language aren't listed. |
+| `sort` | `title`, `slug`, `status`, `published_at`, `updated_at`, `created_at`, `author` or `field.{handle}`, with `-` first for descending. None: the collection's order (manual, newest first when dated, else by title). |
+| `per_page` | 10, 25, 50 or 100. |
+
+Besides the title, the **Columns** menu shows the slug, the status (with a badge per other language), the author, the dates, and **field columns**: the blueprint's top-level text, textarea, number, date, select, toggle and entries fields (custom fields built on them too), shown as short text (select labels, Yes/No, linked entries' titles). Field columns sort by the draft's value (shared fields: the main language's), numbers and dates as such; entries fields and multiple selects don't sort. The chosen columns and page size are kept per person ([preferences](../admin/preferences.md), key `table.cms.entries.{collection}`); a `per_page` in the address wins.
+
+**Go to** links to what an editor tends to need next, where they may go: the listing page (edit and view), the collection's taxonomies' terms (`cms.terms.*`), the collection's settings (`cms.collections.update`) and its blueprint (`cms.blueprints.manage`). In a collection with manual order, Move up and Move down appear while the list is in that order, unfiltered.
+
+Tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** downloads the list as it is filtered, searched, sorted and in its language (every page): the ID, title, slug, status, publish date, URL, last change and author, and a column per top-level field (field columns as the list shows them); it's an `exported` security event.
 
 ## Languages
 

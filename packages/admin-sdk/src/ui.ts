@@ -81,6 +81,8 @@ export const DialogHeader = m.DialogHeader as AnyComponent;
 export const DialogTitle = m.DialogTitle as AnyComponent;
 export const DialogTrigger = m.DialogTrigger as AnyComponent;
 export const DropdownMenu = m.DropdownMenu as AnyComponent;
+/** A menu item with a check mark: `checked`, `onCheckedChange`. */
+export const DropdownMenuCheckboxItem = m.DropdownMenuCheckboxItem as AnyComponent;
 export const DropdownMenuContent = m.DropdownMenuContent as AnyComponent;
 export const DropdownMenuItem = m.DropdownMenuItem as AnyComponent;
 export const DropdownMenuLabel = m.DropdownMenuLabel as AnyComponent;
@@ -216,6 +218,26 @@ export const toast = m.toast as { success(message: string): void; error(message:
 
 /** The header's breadcrumb trail for this page: useBreadcrumbs([{ label: 'Orders', href: adminUrl('shop/orders') }, { label: '#1042' }]). */
 export const useBreadcrumbs = m.useBreadcrumbs as (crumbs: { label: string; href?: string }[]) => void;
+
+/** A table's saved choices: the visible columns' keys in order, and rows per page; null where not chosen. */
+export interface TablePreferences {
+    columns: string[] | null;
+    perPage: number | null;
+}
+
+/**
+ * The signed-in user's saved columns and page size for a table, kept per
+ * user on the server (`GET`/`PUT admin/preferences/{key}`; read them in
+ * PHP with `Sunrice\Admin\Preferences\Preferences::table()`). Pass what
+ * the page's props already hold as `initial`, or nothing to fetch them:
+ *
+ *     const { preferences, setColumns, setPerPage } = useTablePreferences('table.shop.orders', props.preferences);
+ */
+export const useTablePreferences = m.useTablePreferences as (key: string, initial?: Partial<TablePreferences> | null) => {
+    preferences: TablePreferences;
+    setColumns: (columns: string[] | null) => Promise<void>;
+    setPerPage: (perPage: number | null) => Promise<void>;
+};
 
 /**
  * Guards a form with unsaved edits: asks before leaving the page and saves

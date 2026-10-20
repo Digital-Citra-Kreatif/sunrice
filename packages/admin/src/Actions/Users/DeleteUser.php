@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
 use Sunrice\Admin\Locks\KeptEdit;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Preferences\Preferences;
 use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Security\AccountSecurity;
 
@@ -25,7 +26,7 @@ use Sunrice\Admin\Security\AccountSecurity;
  *   trash; uploads stay without an uploader, since other content may use
  *   them).
  *
- * Their AI access tokens, lock state and kept edits go too. Authorize
+ * Their AI access tokens, lock state, kept edits and preferences go too. Authorize
  * first (UserResource: nobody deletes themselves, and only users strictly
  * below them).
  *
@@ -99,6 +100,7 @@ final class DeleteUser
             $id = is_scalar($id) ? (string) $id : '';
             AccountSecurity::query()->where('user_id', $id)->delete();
             KeptEdit::query()->where('user_id', $id)->delete();
+            app(Preferences::class)->forgetUser($id);
             $user->delete();
         });
 
