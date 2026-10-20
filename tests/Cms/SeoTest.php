@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
@@ -9,12 +10,16 @@ use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Redirect;
+use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Site\Sitemap;
 use Sunrice\Cms\Support\Seo;
+use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -155,6 +160,45 @@ it('lists live, indexable pages in the sitemap', function () {
         ->not->toContain('draft')
         ->not->toContain('hidden');
     expect(simplexml_load_string((string) $xml))->not->toBeFalse();
+    get('/sitemap-1.xml')->assertOk()->assertSee('<loc>'.url('/blog/hello').'</loc>', false);
+    get('/sitemap-2.xml')->assertNotFound();
+});
+
+it('splits the sitemap into an index of files past the limit', function () {
+    app()->bind(Sitemap::class, fn () => new Sitemap(app(SiteCache::class), limit: 2));
+    foreach (range(1, 5) as $i) {
+        seoPost($this->blog, "Post {$i}");
+    }
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+
+    $index = get('/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml; charset=UTF-8')->getContent();
+    expect($index)->toContain('<sitemapindex')->not->toContain('<url>');
+    foreach ([1, 2, 3] as $n) {
+        expect($index)->toContain('<loc>'.url("/sitemap-{$n}.xml").'</loc>');
+    }
+    expect($index)->not->toContain('sitemap-4.xml');
+    expect(simplexml_load_string((string) $index))->not->toBeFalse();
+
+    $all = '';
+    foreach ([1, 2, 3] as $n) {
+        $part = get("/sitemap-{$n}.xml")->assertOk()->getContent();
+        expect(substr_count((string) $part, '<url>'))->toBe(2)->and(simplexml_load_string((string) $part))->not->toBeFalse();
+        $all .= $part;
+    }
+    foreach (range(1, 5) as $i) {
+        expect($all)->toContain('<loc>'.url("/blog/post-{$i}").'</loc>');
+    }
+    expect($all)->toContain('<loc>'.url('/tags/news').'</loc><lastmod>'.$news->translation()?->updated_at?->toAtomString().'</lastmod>');
+    get('/sitemap-4.xml')->assertNotFound();
+    get('/sitemap-0.xml')->assertNotFound();
+
+    // Built once: every file is read from the cache afterwards.
+    DB::enableQueryLog();
+    get('/sitemap-2.xml')->assertOk();
+    get('/sitemap.xml')->assertOk();
+    expect(DB::getQueryLog())->toBe([]);
+    DB::disableQueryLog();
 });
 
 it('guards redirects with their permissions', function () {

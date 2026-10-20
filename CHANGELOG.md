@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The sitemap is built in chunks (never 50,000 rows at once) and kept per file in the `sitemap` cache area; past 50,000 addresses `/sitemap.xml` is an index of `/sitemap-{n}.xml` files (route `sunrice.cms.sitemap.part`), and term pages get `lastmod`. `Site\Sitemap`.
 - `Seo` reads the site's share image once per content version (the `pages` area) instead of once per page, and `Site::entryQuery()` eager loads an entry's other languages for `hreflang` links; the query budgets are 5 (entry page), 6 (listing) and 7 (term page).
 - The whole-page cache tells pages apart by host, path, language and only the query parameters the site reads (`page`, `q` and `sunrice-cms.cache.query`), so `?x=<random>` can't fill the store: `Site\PageCacheHasher`, set as `responsecache.hasher` unless the app names its own. With `cache.pages` on, the CMS throws `PanelMisconfigured` at boot when `responsecache.replacers` lacks `CsrfTokenReplacer`.
 - **`SiteCache` keeps a content version per area** (`pages`, `routes`, `menus`, `sitemap`; `SiteCache::PAGES` …): `remember($key, $make, $area = PAGES)`, `key($key, $area)`, `version($area)` and `changed($what, ...$areas)` (no areas: all). A menu change no longer rebuilds the sitemap or address lookups, and a media edit only drops kept pages. Comments no longer bump any version (they're read per render); an approved comment appearing, changing or going bumps `pages` only while whole pages are kept, and `ContentChanged` fires for comments only then.
