@@ -170,6 +170,11 @@ it('publishes on a date, and unpublishes', function () {
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-10-25 08:00'])->assertSessionHas('success', fn ($m) => str_starts_with($m, 'Scheduled for'));
     expect($translation->fresh()?->isPublished())->toBeTrue()->and($translation->fresh()?->isLive())->toBeFalse();
 
+    // A live entry's date changes, back in time too, and it stays live.
+    post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-10-19 08:00'])->assertSessionHas('success', 'Published.');
+    post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-01-02 10:30'])->assertSessionHas('success', 'Published.');
+    expect($translation->fresh()?->published_at?->format('Y-m-d H:i'))->toBe('2026-01-02 10:30')->and($translation->fresh()?->isLive())->toBeTrue();
+
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => 'whenever'])->assertSessionHasErrors('published_at');
     post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHasNoErrors();
     expect($translation->fresh()?->status)->toBe('draft');
