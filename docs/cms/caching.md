@@ -47,6 +47,7 @@ With several servers, use a shared store (redis, memcached, database). Cache you
 app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:bestsellers', fn () => $ids);
 app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:paths', fn () => $paths, SiteCache::ROUTES);
 app(\Sunrice\Cms\Support\SiteCache::class)->changed('shop products', SiteCache::PAGES); // no areas: all of them
+app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:stock', fn () => $stock, ttl: 60); // seconds, instead of cache.ttl
 ```
 
 Menu and sitemap entries are keyed by the site's URL (`url('/')`), since they hold full links. Set `APP_URL` and Laravel's `TrustHosts` middleware (or your web server's host check) so a request with a made-up `Host:` header can't fill the store with copies under other hosts.

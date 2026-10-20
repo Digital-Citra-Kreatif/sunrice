@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -15,10 +17,24 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Site\Search;
 use Sunrice\Cms\Support\SearchText;
+use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\get;
 
+/*
+ * These tests run on every database. InnoDB's FULLTEXT index sees committed
+ * rows only, so on MySQL each test commits the transaction the suite wraps
+ * it in, and empties the tables afterwards instead of rolling back.
+ */
+function commitsForFullText(): bool
+{
+    return in_array(DB::getDriverName(), ['mysql', 'mariadb'], true);
+}
+
 beforeEach(function () {
+    if (commitsForFullText()) {
+        DB::commit();
+    }
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     config(['sunrice-cms.locales' => ['en', 'id']]);
     Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
@@ -29,6 +45,18 @@ beforeEach(function () {
     $this->blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'route' => '/blog/{slug}']);
     $this->help = Collection::query()->create(['handle' => 'help', 'title' => 'Help', 'blueprint' => 'post', 'route' => '/help/{slug}']);
     $this->snippets = Collection::query()->create(['handle' => 'snippets', 'title' => 'Snippets', 'blueprint' => 'post']); // no pages
+});
+
+afterEach(function () {
+    if (commitsForFullText()) {
+        Schema::withoutForeignKeyConstraints(function (): void {
+            foreach (Schema::getTableListing(schemaQualified: false) as $table) {
+                if ($table !== 'migrations') {
+                    DB::table($table)->truncate();
+                }
+            }
+        });
+    }
 });
 
 function found(Collection $collection, string $title, array $data = [], bool $publish = true): EntryTranslation
@@ -52,7 +80,8 @@ it('keeps the words of the live version for search', function () {
         'seo' => ['title' => 'Not this'],
         'count' => 3,
     ]))->toBe('Fresh coffee Roasted daily in Bandung Beans')
-        ->and(SearchText::of([]))->toBeNull();
+        ->and(SearchText::of([]))->toBeNull()
+        ->and(mb_strlen((string) SearchText::of(['body' => str_repeat('word ', 5000)])))->toBe(20000); // cut: the index stays small
 
     $draft = found($this->blog, 'Hello', ['intro' => 'Coffee'], publish: false);
     expect($draft->fresh()?->search_text)->toBeNull(); // drafts aren't searched
@@ -72,10 +101,31 @@ it('finds live entries with pages by title and field text, titles first', functi
     expect(titles($search->entries('coffee')))->toBe(['Coffee guide', 'Brewing', 'All about tea'])
         ->and(titles($search->entries('coffee', ['help'])))->toBe(['Brewing'])
         ->and(titles($search->entries('100%')))->toBe(['100% arabica'])
-        ->and(titles($search->entries('%')))->toBe(['100% arabica']) // typed literally, not a wildcard
-        ->and(titles($search->entries('e_b')))->toBe(['100% arabica'])
+        ->and(titles($search->entries('%')))->not->toContain('Coffee guide') // never a wildcard
+        ->and(titles($search->entries('_')))->not->toContain('Coffee guide')
         ->and(titles($search->entries('  ')))->toBe([])
-        ->and($search->entries('coffee', perPage: 1)->total())->toBe(3);
+        ->and($search->entries('coffee', perPage: 1)->total())->toBe(3)
+        ->and(titles($search->entries('coffee', perPage: 2, pageName: 'p')))->toBe(['Coffee guide', 'Brewing']);
+    if (DB::getDriverName() === 'sqlite') {
+        // The LIKE scan: what's typed is matched literally, anywhere in a word.
+        expect(titles($search->entries('%')))->toBe(['100% arabica'])
+            ->and(titles($search->entries('e_b')))->toBe(['100% arabica']);
+    }
+});
+
+it('answers the same search from the cache for a minute', function () {
+    $guide = found($this->blog, 'Coffee guide', ['intro' => 'Beans']);
+    $search = app(Search::class);
+    expect(titles($search->entries('coffee')))->toBe(['Coffee guide']);
+
+    // Changed behind the CMS's back (no content version bump): the ids are kept, the rows read again.
+    DB::table('sunrice_entry_translations')->where('id', $guide->id)->update(['title' => 'Tea guide', 'search_text' => 'Leaves']);
+    expect(titles($search->entries('coffee')))->toBe(['Tea guide'])
+        ->and(titles($search->entries('coffee', locale: 'id')))->toBe([]) // another key
+        ->and(titles($search->entries('tea')))->toBe(['Tea guide']);
+
+    app(SiteCache::class)->changed('test');
+    expect(titles($search->entries('coffee')))->toBe([]);
 });
 
 it('searches in the page\'s language', function () {
@@ -106,6 +156,14 @@ it('shows the search page, never indexed, and limits searches', function () {
     get('/search?q=coffee&page=5')->assertNotFound();
     get('/search?q=coffee')->assertOk()->assertHeader('X-Cache-Status', 'MISS'); // the second time: not kept
     get('/search?q=x')->assertStatus(429);
+});
+
+it('limits searches for everyone together', function () {
+    config(['sunrice-cms.search.per_minute' => 5, 'sunrice-cms.search.per_minute_global' => 2]);
+
+    get('/search?q=a')->assertOk();
+    get('/search?q=b')->assertOk();
+    get('/search?q=c')->assertStatus(429);
 });
 
 it('gives templates a search box and results of their own', function () {

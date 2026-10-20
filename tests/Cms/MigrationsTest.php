@@ -4,6 +4,43 @@ declare(strict_types=1);
 
 use Illuminate\Database\MySqlConnection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+/*
+ * Lookups the panel and the CMS make have an index (foreign keys too:
+ * Postgres and SQLite don't index them by themselves), and site search
+ * has its full-text index where the database has one.
+ */
+it('indexes what is looked up', function (string $table, array $columns) {
+    $indexed = collect(Schema::getIndexes($table))->map(fn (array $index): array => $index['columns']);
+
+    expect($indexed->contains(fn (array $on): bool => array_slice($on, 0, count($columns)) === $columns))
+        ->toBeTrue("{$table} has no index starting with ".implode(', ', $columns).'.');
+})->with([
+    ['sunrice_revisions', ['entry_translation_id']],
+    ['sunrice_media_usages', ['media_id']],
+    ['sunrice_entry_term', ['entry_id']],
+    ['sunrice_comments', ['parent_id']],
+    ['sunrice_comments', ['author_email']],
+    ['sunrice_comments', ['deleted_at']],
+    ['sunrice_menu_items', ['entry_id']],
+    ['sunrice_menu_items', ['term_id']],
+    ['sunrice_menu_items', ['collection_id']],
+    ['sunrice_entry_translations', ['status', 'published_at']],
+    ['sunrice_entries', ['deleted_at']],
+    ['sunrice_media', ['deleted_at']],
+    ['sunrice_media', ['mime_type']],
+    ['sunrice_terms', ['deleted_at']],
+]);
+
+it('has the full-text index for site search where the database has one', function () {
+    $indexes = collect(Schema::getIndexes('sunrice_entry_translations'));
+    match (DB::getDriverName()) {
+        'mysql', 'mariadb' => expect($indexes->firstWhere('name', 'sunrice_entry_tr_search_fulltext'))->toMatchArray(['type' => 'fulltext', 'columns' => ['title', 'search_text']]),
+        'pgsql' => expect($indexes->firstWhere('name', 'sunrice_entry_tr_search_index'))->not->toBeNull(),
+        default => expect($indexes->firstWhere('name', 'sunrice_entry_tr_search_index'))->toBeNull(),
+    };
+});
 
 /*
  * MySQL refuses identifiers (index and key names) over 64 characters, and

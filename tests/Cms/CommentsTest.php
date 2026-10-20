@@ -249,6 +249,9 @@ it('moderates in the admin, behind its permissions', function () {
     expect(Comment::onlyTrashed()->count())->toBe(1);
     post("/admin/cms/comments/{$pending->id}/restore");
     post('/admin/cms/comments/bulk', ['action' => 'trash', 'ids' => [$pending->id, $spam->id]]);
+    get('/admin/cms/comments?status=trash')->assertInertia(fn (Assert $page) => $page
+        ->where('counts', ['all' => 1, 'pending' => 0, 'approved' => 1, 'spam' => 0, 'trash' => 2]) // the reply stays
+        ->where('comments.total', 2));
     post('/admin/cms/comments/bulk', ['action' => 'delete', 'ids' => [$pending->id]]);
     expect(Comment::withTrashed()->find($pending->id))->toBeNull()
         ->and(Comment::query()->sole()->parent_id)->toBeNull(); // the reply moved up

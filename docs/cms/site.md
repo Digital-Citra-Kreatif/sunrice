@@ -197,7 +197,9 @@ In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancest
 
 ## Search
 
-`/search?q=…` (and `/{locale}/search`) searches the live entries that have pages, in that language: their title and field text (the words only: no field handles, HTML tags, addresses or SEO), titles first, then newest first. What's typed is matched as is (`%` and `_` aren't wildcards). It renders with `cms.search`, or the CMS's plain page, with `$query`, `$results` (a paginator of `EntryTranslation`s), `$title` and `$locale`. Search pages are never indexed or kept by the page cache, and one visitor may search `per_minute` times a minute. Your app's own `/search` route wins; the search page wins over an entry at that address.
+`/search?q=…` (and `/{locale}/search`) searches the live entries that have pages, in that language: their title and field text (the words only: no field handles, HTML tags, addresses or SEO), titles first, then newest first. It renders with `cms.search`, or the CMS's plain page, with `$query`, `$results` (a paginator of `EntryTranslation`s), `$title` and `$locale`. Search pages are never indexed or kept by the page cache, and one visitor may search `per_minute` times a minute, everyone together `per_minute_global` times. Your app's own `/search` route wins; the search page wins over an entry at that address.
+
+Each database searches its own way, with the index of migration `000017`: MySQL and MariaDB by whole words with a FULLTEXT index (natural language mode, so words shorter than `innodb_ft_min_token_size`, three characters, and stopwords aren't found), Postgres by words with a GIN index (the `simple` dictionary: every language, no stemming), and SQLite, for development only, by matching what's typed anywhere (`%` and `_` aren't wildcards). The same search within a minute is answered from the [site cache](caching.md) (ids only), gone with the next change to content.
 
 ```php
 // config/sunrice-cms.php
@@ -206,7 +208,8 @@ In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancest
     'path' => 'search',
     'collections' => null,   // handles; null: every collection with pages
     'per_page' => 10,
-    'per_minute' => 30,
+    'per_minute' => 30,         // searches per visitor
+    'per_minute_global' => 300, // and for everyone together
 ],
 ```
 
@@ -226,7 +229,7 @@ In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancest
 </x-sunrice-cms::search>
 ```
 
-In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perPage: 20, locale: 'id')`. Field text is kept when an entry is published (`search_text`).
+In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perPage: 20, locale: 'id')`. Field text is kept when an entry is published (`search_text`, its first 20,000 characters).
 
 ## Previews
 
