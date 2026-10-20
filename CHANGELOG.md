@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Component attributes: `<x-sunrice-cms::entries>` takes `page-name`, `terms` (taxonomy handle => slugs, with the terms under them) and `where` rows with an operator (`[['price', '<', 100], ['city', 'in', [...]]]`), and `order` takes several fields; `<x-sunrice-cms::terms>` takes `parent` (slug, id or `top`), `order-by`, `limit` and gives `isCurrent($term)`; `<x-sunrice-cms::seo>` takes `description`, `default-title`, `noindex` and `collection` (a listing page), and `title` now wins on the CMS's pages too (`Seo::adjust()`); `<x-sunrice-cms::search>` takes `name` and `page-name`. `EntryQuery::paginate()` takes a `$pageName`. Paginated `entries` keep the rest of the query string.
 - Login attempts made while blocked are `login blocked` security events too (`tried while blocked`), at most once a minute per email and IP; and an unknown email costs a password check like a wrong password does, so the timing doesn't tell who has an account (`AttemptLogin`).
 - Tests prove plugin routes guarded: every `sunrice.admin.*` route, the CMS's included, is behind `Authenticate` and `EnsureCanAccessPanel` (but the guest pages and logout), and every `sunrice.admin.cms.*` route names a `can:` permission or `AuthorizeContent` (`tests/Cms/AdminRoutesGuardTest.php`).
 - Security headers on every panel response (`PanelSecurityHeaders` in `PanelRoutes::middleware()`): `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, and a `Content-Security-Policy` from `sunrice-admin.security.headers.csp` (`SUNRICE_CSP`) when set.

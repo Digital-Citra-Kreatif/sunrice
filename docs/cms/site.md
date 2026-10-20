@@ -146,7 +146,7 @@ In any view, `Cms::entries()` finds live entries in the current language (`Sunri
 {{ Cms::global('contact')['phone'] ?? '' }}
 ```
 
-`entries(...$collections)` (none: every collection), then `locale()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate()` or `toBase()`.
+`entries(...$collections)` (none: every collection), then `locale()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate($perPage, $pageName = 'page')` or `toBase()`.
 
 ```php
 Cms::entries('events')->where('featured', true)->where('date', '>=', today())->orderBy('date')->get();
@@ -191,9 +191,45 @@ For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice
 </x-sunrice-cms::terms>
 ```
 
-`entries`: `collection` (handles, comma-separated; none for all), `limit`, `paginate` (per page: a paginator, `$component->entries->links()`), `order` (`latest`, `oldest`, `alphabetical`, `ordered`, or a field, `-field` for descending), `term` (one or a list), `parent` (an entry, or `top`), `where` (`['featured' => true]`), `except`, `search` (words to find) and `remember` (keep the matched ids in the site's cache).
+#### `<x-sunrice-cms::entries>`
 
-`terms`: `taxonomy`, in the editors' order, each with `entries_count` (its live entries in the current language, of `collection` when given); `hide-empty`; `tree` (the top-level terms, each with `children`); `:entry` (only that entry's terms).
+| Attribute | |
+| --- | --- |
+| `collection` | Handles, comma-separated (`"blog,news"`) or a list; none for every collection. |
+| `limit` | At most this many. |
+| `paginate` | Entries per page (1–100): `$component->entries` is then a paginator (`->links()`), keeping the rest of the query string. |
+| `page-name` | The query string's page number for `paginate` (`page`): give two lists on one page their own. |
+| `order` | `latest` (default), `oldest`, `alphabetical`, `ordered` (Manual order), or fields: `price`, `-price` for descending, several comma-separated (`-date,title`). |
+| `term` | A `Term` or id, or a list: entries with any of them. |
+| `terms` | Terms by slug, per taxonomy: `:terms="['topics' => ['news', 'tips']]"` or `terms="topics:news,tips"`. Each slug takes the terms under it too; each taxonomy narrows the list further. |
+| `where` | `:where="['featured' => true]"`, or rows with an operator: `:where="[['price', '<', 100], ['city', 'in', ['Jakarta', 'Bandung']]]"` (operators as `where()`). |
+| `parent` | An entry (or id): those directly under it; `top`: the top-level ones. |
+| `except` | Entries to leave out (the one shown, in a "related" list). |
+| `search` | Words to find, as `search()`. |
+| `remember` | Keep the matched ids in the site's cache. |
+
+#### `<x-sunrice-cms::terms>`
+
+| Attribute | |
+| --- | --- |
+| `taxonomy` | Its handle (required). |
+| `collection` | Count only that collection's entries in `entries_count`. |
+| `hide-empty` | Leave out terms without live entries. |
+| `tree` | Only the top-level terms, each with `children` (to any depth). |
+| `parent` | The terms directly under a term (its slug, in any language, or id); `top`: the top-level ones. |
+| `order-by` | `manual` (the editors' order, default), `title`, `entries` (by `entries_count`), `created_at`; `-title` for the other way round. |
+| `limit` | At most this many (of the top level, with `tree`). |
+| `entry` | Only that entry's terms. |
+
+Each term has `entries_count` (its live entries in the current language). `$component->isCurrent($term)` says whether it's the term page shown, for an `aria-current` link.
+
+#### `<x-sunrice-cms::seo>`
+
+See [SEO](#seo): `entry` with `preview`, `term`, `collection` (a `Collection` or handle: its listing page), or none (the page shown); `title` (instead of the page's), `default-title` (when the page has no SEO title of its own), `description` (instead of the page's), `noindex` (keep this page out of search results), `schema` (JSON-LD nodes of your own). Titles and descriptions given are taken as plain text.
+
+#### `<x-sunrice-cms::search>`
+
+See [Search](#search): `results`, `collection`, `per-page`, `name` (the query string's name, `q`) and `page-name` (`page`).
 
 In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancestors()` (top-down) give breadcrumbs and sub-menus:
 
