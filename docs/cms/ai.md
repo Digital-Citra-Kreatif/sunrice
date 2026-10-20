@@ -4,8 +4,8 @@ With the CMS, AI agents connected to the panel ([AI access](../admin/ai.md)) can
 
 | Tool | Permission | |
 | --- | --- | --- |
-| `cms_list_entries` | `cms.entries.view` | The collections; or a collection's entries (search, trash, pages) with their status in each language. |
-| `cms_get_entry` | `cms.entries.view` | An entry in a language: status, fields, and the draft's title, slug, data and SEO. With a collection instead of an id: a new entry's fields. |
+| `cms_list_entries` | `cms.entries.view` | The collections; or a collection's entries (search, trash, pages) with their status in each language and which translations are outdated (`outdated_languages`). |
+| `cms_get_entry` | `cms.entries.view` | An entry in a language: status (and `outdated` when the main language changed since it was translated), fields, and the draft's title, slug, data and SEO. With a collection instead of an id: a new entry's fields. |
 | `cms_save_entry` | `cms.entries.create` / `.update` | Create an entry, or change a draft in a language; only what's sent changes. `"publish": true` publishes too (`cms.entries.publish`). |
 | `cms_publish_entry` | `cms.entries.publish` | Publish a draft now, or schedule it. |
 | `cms_unpublish_entry` | `cms.entries.publish` | Take a language off the site, keeping its draft. |

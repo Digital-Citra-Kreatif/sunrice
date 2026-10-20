@@ -8,6 +8,8 @@ use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
+use Sunrice\Cms\Actions\Entries\CreateTranslation;
+use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Forms\SubmitForm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
@@ -62,6 +64,15 @@ it('lists collections and entries, and reads an entry with its fields', function
         ->and(array_column($entry['fields'], 'handle'))->toBe(['intro', 'tags'])
         ->and(cmsTool($token, 'cms_get_entry', ['collection' => 'blog'])['defaults'])->toHaveKey('intro')
         ->and(cmsTool($token, 'cms_get_entry', ['id' => 999]))->toContain('No such entry');
+});
+
+it('tells which translations are outdated', function () {
+    $token = cmsAgent(['cms.entries.view']);
+    app(CreateTranslation::class)->handle($this->hello->entry, 'id');
+    app(SaveDraft::class)->handle($this->hello, ['title' => 'Hello again']);
+
+    expect(cmsTool($token, 'cms_list_entries', ['collection' => 'blog'])['entries'][0])->toMatchArray(['outdated' => false, 'outdated_languages' => ['id']])
+        ->and(cmsTool($token, 'cms_get_entry', ['id' => $this->hello->entry_id, 'locale' => 'id']))->toMatchArray(['locale' => 'id', 'outdated' => true]);
 });
 
 it('writes drafts and publishes them, as the editor does', function () {
