@@ -72,7 +72,7 @@ it('names the languages in the editor and the list', function () {
     $page = app(CreateEntry::class)->handle($pages, ['title' => 'Hello']);
 
     get("/admin/cms/entries/{$page->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
-        ->where('locales.0', ['code' => 'en', 'name' => Locales::displayName('en'), 'main' => true, 'status' => 'draft'])
+        ->where('locales.0', ['code' => 'en', 'name' => Locales::displayName('en'), 'main' => true, 'status' => 'draft', 'outdated' => false])
         ->where('locales.1.name', 'Bahasa Indonesia'));
     get('/admin/cms/collections/pages/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.locales.1.name', 'Bahasa Indonesia'));
 });

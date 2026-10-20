@@ -5,11 +5,17 @@ import Image from '@tiptap/extension-image';
 import {
     Bold, Code, Heading2, Heading3, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Quote, Redo2, Strikethrough, Underline, Undo2,
 } from 'lucide-react';
-import { adminUrl } from '@sunrice/admin-sdk';
-import {
-    Button, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Label, MediaPickerInput, Tooltip, TooltipContent, TooltipTrigger,
-} from '@sunrice/admin-sdk/ui';
-import { isSafeUrl } from '@/lib/values.ts';
+import { MediaPickerInput } from '@/components/media/media-picker';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { adminUrl } from '@/lib/admin-url';
+import { isSafeUrl } from '@/lib/safe-url';
+import { cn } from '@/lib/utils';
+import type { RichTextEditorProps } from './rich-text';
 
 /** Images keep their media library id, so the server knows which files a text uses. */
 const LibraryImage = Image.extend({
@@ -21,20 +27,12 @@ const LibraryImage = Image.extend({
     },
 });
 
-interface Props {
-    id: string;
-    value: string;
-    onChange: (html: string | null) => void;
-    invalid: boolean;
-    /** The label's id, for the editing area's name. */
-    labelledBy: string;
-}
-
 /**
- * Rich text for entries: the formatting the server keeps when it cleans
- * the HTML (headings, lists, quotes, code, links, library images).
+ * The rich text editor (TipTap): the formatting the servers keep when they
+ * clean the HTML (headings, lists, quotes, code, links, library images).
+ * Loaded on demand through RichTextEditor in rich-text.tsx.
  */
-export function RichTextEditor({ id, value, onChange, invalid, labelledBy }: Props) {
+export function RichTextEditor({ id, value, onChange, invalid = false, labelledBy, images = true, disabled = false }: RichTextEditorProps) {
     const [dialog, setDialog] = React.useState<'link' | 'image' | null>(null);
     const editor = useEditor({
         extensions: [
@@ -42,13 +40,14 @@ export function RichTextEditor({ id, value, onChange, invalid, labelledBy }: Pro
             LibraryImage,
         ],
         content: value,
+        editable: !disabled,
         editorProps: {
             attributes: {
                 id,
-                class: 'cms-prose',
+                class: 'sunrice-prose',
                 role: 'textbox',
                 'aria-multiline': 'true',
-                'aria-labelledby': labelledBy,
+                ...(labelledBy ? { 'aria-labelledby': labelledBy } : {}),
                 ...(invalid ? { 'aria-invalid': 'true' } : {}),
             },
         },
@@ -56,8 +55,8 @@ export function RichTextEditor({ id, value, onChange, invalid, labelledBy }: Pro
     });
 
     return (
-        <div className={`cms:rounded-lg cms:border cms:border-input/80 cms:bg-card cms:shadow-xs cms:transition-[border-color,box-shadow] cms:duration-150 cms:ease-out-quart cms:focus-within:border-ring/70 cms:focus-within:ring-4 cms:focus-within:ring-ring-glow cms:dark:bg-input/20 ${invalid ? 'cms:border-destructive cms:focus-within:ring-destructive/20' : ''}`}>
-            {editor && <Toolbar editor={editor} onLink={() => setDialog('link')} onImage={() => setDialog('image')} />}
+        <div className={cn('rounded-lg border border-input/80 bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out-quart focus-within:border-ring/70 focus-within:ring-4 focus-within:ring-ring-glow dark:bg-input/20', invalid && 'border-destructive focus-within:ring-destructive/20', disabled && 'opacity-60')}>
+            {editor && !disabled && <Toolbar editor={editor} onLink={() => setDialog('link')} onImage={images ? () => setDialog('image') : null} />}
             <EditorContent editor={editor} />
             {editor && <LinkDialog editor={editor} open={dialog === 'link'} onClose={() => setDialog(null)} />}
             {editor && <ImageDialog editor={editor} open={dialog === 'image'} onClose={() => setDialog(null)} />}
@@ -65,7 +64,7 @@ export function RichTextEditor({ id, value, onChange, invalid, labelledBy }: Pro
     );
 }
 
-function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => void; onImage: () => void }) {
+function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => void; onImage: (() => void) | null }) {
     const state = useEditorState({
         editor,
         selector: ({ editor: e }) => ({
@@ -78,7 +77,7 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
     const chain = () => editor.chain().focus();
 
     return (
-        <div role="toolbar" aria-label="Formatting" className="cms:flex cms:flex-wrap cms:gap-0.5 cms:border-b cms:p-1">
+        <div role="toolbar" aria-label="Formatting" className="flex flex-wrap gap-0.5 border-b p-1">
             <Tool label="Bold" active={state.bold} onClick={() => chain().toggleBold().run()}><Bold /></Tool>
             <Tool label="Italic" active={state.italic} onClick={() => chain().toggleItalic().run()}><Italic /></Tool>
             <Tool label="Underline" active={state.underline} onClick={() => chain().toggleUnderline().run()}><Underline /></Tool>
@@ -93,7 +92,7 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
             <Tool label="Divider" onClick={() => chain().setHorizontalRule().run()}><Minus /></Tool>
             <Separator />
             <Tool label="Link" active={state.link} onClick={onLink}><Link2 /></Tool>
-            <Tool label="Image from the media library" onClick={onImage}><ImagePlus /></Tool>
+            {onImage && <Tool label="Image from the media library" onClick={onImage}><ImagePlus /></Tool>}
             <Separator />
             <Tool label="Undo" disabled={!state.undo} onClick={() => chain().undo().run()}><Undo2 /></Tool>
             <Tool label="Redo" disabled={!state.redo} onClick={() => chain().redo().run()}><Redo2 /></Tool>
@@ -102,14 +101,14 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
 }
 
 function Separator() {
-    return <span aria-hidden className="cms:mx-1 cms:my-1 cms:w-px cms:bg-border" />;
+    return <span aria-hidden className="mx-1 my-1 w-px bg-border" />;
 }
 
 function Tool({ label, active, disabled, onClick, children }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <Button type="button" variant={active ? 'secondary' : 'ghost'} size="icon" className="cms:size-8" aria-label={label}
+                <Button type="button" variant={active ? 'secondary' : 'ghost'} size="icon" className="size-8" aria-label={label}
                     aria-pressed={active === undefined ? undefined : active} disabled={disabled} onClick={onClick}
                     // A mouse click keeps the text's focus and selection, so typing goes on where it was.
                     onMouseDown={(e: React.MouseEvent) => e.preventDefault()}>
@@ -146,16 +145,16 @@ function LinkDialog({ editor, open, onClose }: { editor: Editor; open: boolean; 
                     <DialogTitle>Link</DialogTitle>
                     <DialogDescription>A web address, a path on this site (/about), mailto: or tel:. Empty removes the link.</DialogDescription>
                 </DialogHeader>
-                <div className="cms:flex cms:flex-col cms:gap-3">
-                    <div className="cms:flex cms:flex-col cms:gap-2">
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2">
                         <Label htmlFor="rich-link-url">Address</Label>
                         <Input id="rich-link-url" value={url} placeholder="https://…" aria-invalid={!safe}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
                             onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); if (safe) apply(); } }} />
-                        {!safe && <p className="cms:text-sm cms:text-destructive">This address could run code; use https://, a path, mailto: or tel:.</p>}
+                        {!safe && <p className="text-sm text-destructive">This address could run code; use https://, a path, mailto: or tel:.</p>}
                     </div>
-                    <label className="cms:flex cms:items-center cms:gap-2 cms:text-sm">
-                        <Checkbox checked={newTab} onCheckedChange={(checked: boolean) => setNewTab(checked)} /> Open in a new tab
+                    <label className="flex items-center gap-2 text-sm">
+                        <Checkbox checked={newTab} onCheckedChange={(checked) => setNewTab(checked === true)} /> Open in a new tab
                     </label>
                 </div>
                 <DialogFooter>
@@ -196,7 +195,7 @@ function ImageDialog({ editor, open, onClose }: { editor: Editor; open: boolean;
                 </DialogHeader>
                 <MediaPickerInput id="rich-image" value={id} multiple={false} max={null} types={['image']} disabled={false} invalid={error !== null}
                     onChange={(value) => setId(typeof value === 'number' ? value : null)} />
-                {error && <p className="cms:text-sm cms:text-destructive">{error}</p>}
+                {error && <p className="text-sm text-destructive">{error}</p>}
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
                     <Button type="button" disabled={id === null} onClick={() => void insert()}>Insert</Button>

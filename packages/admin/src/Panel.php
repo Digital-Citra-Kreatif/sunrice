@@ -132,7 +132,7 @@ final class Panel
     private ?string $roleResource = RoleResource::class;
 
     /** URL segments the panel uses itself; resources can't take them. */
-    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai', 'docs', 'guide'];
+    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai', 'resources', 'docs', 'guide'];
 
     /** The plugin whose register() is running, if any: it owns what is declared meanwhile. */
     private ?Plugin $registering = null;
@@ -417,9 +417,10 @@ final class Panel
 
     /**
      * Admin screens for models (see Resource). Each gets a sidebar item,
-     * routes under the panel ("/admin/products") and four permissions,
-     * prefixed with the registering plugin's id ("shop.products.view") or,
-     * when the app registers it, the resource's key ("products.view").
+     * routes under the panel ("/admin/products") and four permissions (a
+     * fifth, ".export", when its table is exportable), prefixed with the
+     * registering plugin's id ("shop.products.view") or, when the app
+     * registers it, the resource's key ("products.view").
      *
      * @param  class-string<Resources\Resource>  ...$classes
      */
@@ -1133,6 +1134,11 @@ final class Panel
             Permission::make("{$prefix}.update", "Edit {$label}", $label),
             Permission::make("{$prefix}.delete", "Delete {$label}", $label),
         );
+        // "<prefix>.export" for a resource whose table is ->exportable(); worked out when
+        // permissions are needed, so the table isn't built at boot.
+        $this->permissionResolvers[] = ['owner' => $this->registering?->id(), 'resolve' => fn (): array => $resource->table()->isExportable()
+            ? [Permission::make("{$prefix}.export", "Export {$label}", $label)]
+            : []];
         $this->navigation(
             NavigationItem::make("resources.{$key}")->label($label)->url($key)->icon($class::navigationIcon())
                 ->group($class::navigationGroup())->sort($class::navigationSort())->visible($resource->visibleTo()),

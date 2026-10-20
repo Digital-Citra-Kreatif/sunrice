@@ -232,7 +232,7 @@ class UserResource extends Resource
                     DeleteUser::KEEP => 'Keep it, without an owner',
                     DeleteUser::DELETE => 'Delete it (entries and comments go to the trash; uploads stay)',
                 ]),
-                Select::make('heir')->label('Give it to')->options(static::heirs())
+                Select::make('heir')->label('Give it to')->options(static fn (): array => static::heirs())
                     ->help('Only when giving their content to another user.'),
             )
             ->handle(function (Model $user, array $input): string {

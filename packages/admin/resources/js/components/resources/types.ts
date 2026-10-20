@@ -18,6 +18,8 @@ export interface ColumnInfo {
 export interface FilterInfo {
     name: string;
     label: string;
+    /** A select of options, or two dates ("from,to"). */
+    type: 'select' | 'date_range';
     options: { value: string; label: string }[];
 }
 
@@ -26,6 +28,9 @@ export interface ActionInfo {
     label: string;
     confirm: string | null;
     destructive: boolean;
+    /** It opens an address (the row's `urls`) instead of running. */
+    url: boolean;
+    newTab: boolean;
     /** Fields the dialog asks for (Action::form()), each with its `default`. */
     fields: FieldInfo[];
 }
@@ -36,11 +41,13 @@ export interface Row {
     cells: Record<string, CellValue>;
     can: { update: boolean; delete: boolean };
     actions: string[];
+    /** The addresses of the row's url actions, by key. */
+    urls: Record<string, string>;
 }
 
 export interface FieldInfo {
     kind: 'field';
-    type: 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'date' | 'password' | 'checkboxes' | string;
+    type: 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'date' | 'password' | 'checkboxes' | 'belongs_to' | 'belongs_to_many' | 'richtext' | string;
     name: string;
     label: string;
     required: boolean;

@@ -9,15 +9,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * Whether a user may view, create, update or delete through a resource:
- * through the model's policy when it has one, otherwise through the
- * resource's permissions ("<prefix>.view" …), then the resource's can().
+ * Whether a user may view, create, update, delete or export through a
+ * resource: through the model's policy when it has one, otherwise through
+ * the resource's permissions ("<prefix>.view" …), then the resource's
+ * can(). Export is "<prefix>.export" unless the policy has export().
  *
  * @internal
  */
 final class ResourceGate
 {
-    public const ABILITIES = ['view', 'create', 'update', 'delete'];
+    public const ABILITIES = ['view', 'create', 'update', 'delete', 'export'];
 
     /** @param class-string<\Sunrice\Admin\Resources\Resource> $resource */
     public function __construct(private string $resource, private string $permissionPrefix) {}
@@ -32,6 +33,12 @@ final class ResourceGate
         $model = $this->resource::model();
 
         $policy = Gate::getPolicyFor($model);
+        // Export: the policy's export() if it has one, else the permission, policy or not.
+        if ($ability === 'export') {
+            return (is_object($policy) || is_string($policy)) && method_exists($policy, 'export')
+                ? $user->can('export', $model)
+                : $user->can("{$this->permissionPrefix}.export");
+        }
         if (is_object($policy) || is_string($policy)) {
             return match (true) {
                 $ability === 'view' => $record === null ? $user->can('viewAny', $model) : $user->can('view', $record),

@@ -10,6 +10,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ use Sunrice\Admin\Actions\Resources\SaveRecord;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Preferences\Preferences;
+use Sunrice\Admin\Resources\Forms\RelationSelect;
 use Sunrice\Admin\Resources\ListQuery;
 use Sunrice\Admin\Resources\RegisteredResource;
 use Sunrice\Admin\Resources\Tables\Action;
@@ -61,15 +63,22 @@ final class ResourceController
             foreach ($table->getColumns() as $column) {
                 $cells[$column->name] = $column->value($record);
             }
+            $offered = array_filter($rowActions, fn (Action $action) => $action->isVisibleFor($record)
+                && $resource->allows($user, $action->getAbility(), $record) && $action->allows($user, $record)
+                && (! $action->isUrl() || $action->urlFor($record) !== null));
+            $urls = [];
+            foreach ($offered as $action) {
+                if ($action->isUrl()) {
+                    $urls[$action->key] = $action->urlFor($record);
+                }
+            }
             $rows[] = [
                 'id' => $record->getKey(),
                 'title' => $resource->class::title($record),
                 'cells' => $cells,
                 'can' => ['update' => $resource->allows($user, 'update', $record), 'delete' => $resource->allows($user, 'delete', $record)],
-                'actions' => array_values(array_map(
-                    fn (Action $action) => $action->key,
-                    array_filter($rowActions, fn (Action $action) => $action->isVisibleFor($record) && $resource->allows($user, $action->getAbility(), $record)),
-                )),
+                'actions' => array_values(array_map(fn (Action $action) => $action->key, $offered)),
+                'urls' => (object) $urls,
             ];
         }
 
@@ -82,7 +91,7 @@ final class ResourceController
                 ...($resource->allows($user, 'delete') ? [['key' => 'delete', 'label' => 'Delete', 'confirm' => 'Delete the selected records? This can\'t be undone.', 'destructive' => true]] : []),
                 ...array_map(fn (Action $action) => $action->toArray(), $bulkActions),
             ],
-            'can' => ['create' => $resource->allows($user, 'create'), 'export' => $table->isExportable()],
+            'can' => ['create' => $resource->allows($user, 'create'), 'export' => $table->isExportable() && $resource->allows($user, 'export')],
             'query' => $list->state(),
             'rows' => [
                 'data' => $rows,
@@ -163,9 +172,10 @@ final class ResourceController
     {
         $resource = $this->resource($request);
         $definition = $this->findAction($resource, $action, bulk: false);
+        abort_if($definition->isUrl(), 404);
         $model = $this->find($resource, $record, $definition->isForTrashed());
-        $this->authorize($request, $resource, $definition->getAbility(), $model);
-        abort_unless($definition->isVisibleFor($model), 403);
+        $user = $this->authorize($request, $resource, $definition->getAbility(), $model);
+        abort_unless($definition->isVisibleFor($model) && $definition->allows($user, $model), 403);
 
         return $this->run(function () use ($definition, $model, $resource, $request): ?string {
             $message = $definition->run($model, $request->all());
@@ -190,7 +200,7 @@ final class ResourceController
         }
         $ability = $definition?->getAbility() ?? 'delete';
         foreach ($records as $record) {
-            abort_unless($resource->allows($user, $ability, $record), 403);
+            abort_unless($resource->allows($user, $ability, $record) && ($definition === null || $definition->allows($user, $record)), 403);
         }
 
         if ($definition === null) {
@@ -217,6 +227,7 @@ final class ResourceController
         $resource = $this->resource($request);
         $this->authorize($request, $resource, 'view');
         abort_unless($resource->table()->isExportable(), 404);
+        $this->authorize($request, $resource, 'export');
 
         $columns = $resource->table()->getColumns();
         $query = (new ListQuery($resource, $request))->builder();
@@ -235,6 +246,31 @@ final class ResourceController
             }
             fclose($out);
         }, $resource->key().'-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * Records a relation field may choose, matching `q` (at most
+     * RelationSelect::LIMIT): for anyone who may view the resource.
+     */
+    public function options(Request $request, string $field): JsonResponse
+    {
+        $resource = $this->resource($request);
+        $this->authorize($request, $resource, 'view');
+
+        $definition = null;
+        foreach ([...$resource->form()->fields('create'), ...$resource->form()->fields('edit')] as $candidate) {
+            if ($candidate->name === $field && $candidate instanceof RelationSelect) {
+                $definition = $candidate;
+                break;
+            }
+        }
+        abort_if($definition === null, 404);
+        $search = $request->query('q');
+
+        return response()->json(['options' => $definition->search(
+            $resource->class::newRecord(),
+            is_string($search) ? mb_substr(trim($search), 0, 100) : '',
+        )]);
     }
 
     private function form(RegisteredResource $resource, ?Model $record): Response

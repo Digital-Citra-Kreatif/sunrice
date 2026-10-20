@@ -58,7 +58,7 @@ final class UpdateSettings
             if ((! array_key_exists($field->name, $validated) && ! $field instanceof Toggle) || ($field->keepsValueWhenEmpty() && ($value === null || $value === ''))) {
                 continue;
             }
-            $values[$field->name] = $field instanceof Toggle ? (bool) $value : $value;
+            $values[$field->name] = $field instanceof Toggle ? (bool) $value : $field->dehydrate($value);
         }
 
         return $this->save->handle($settings, $values);

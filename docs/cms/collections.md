@@ -8,15 +8,16 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 
 | | |
 | --- | --- |
-| `handle` | Lowercase letters, digits and underscores, starting with a letter. Set when created; it can't change, and a deleted collection's handle stays taken. |
+| `handle` | Lowercase letters, digits and underscores, starting with a letter. It can be changed on the edit form (with a warning): roles keep their permissions for the collection (see [renaming](#renaming-a-handle)), but templates and code that name it need the new one. A deleted collection's handle stays taken. |
 | `title` | The name editors see. |
 | `blueprint` | A blueprint's handle, or none. Changing it keeps entries' data: values of fields the new blueprint lacks stay stored, out of sight, and come back with the field. A blueprint can't be deleted while a collection uses it. |
+| `blueprints` | More blueprints its entries may use instead of its own (**Other blueprints**); see [per-entry blueprints](#per-entry-blueprints). |
 | `dated` | Entries show a date and list newest first. |
 | `route` | The entries' URL, like `/blog/{slug}` or `/projects/{project}/{slug}`; none: no pages. See [the site](site.md). |
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
 | `listing_route` | The URL of a page listing the entries, like `/blog`; none: no listing page. See [the site](site.md#listing-pages). |
 | `listing_blueprint`, `per_page` | The listing page's own fields (an intro…), edited from the entries list, and how many entries it shows per page (10). `SaveListing` saves the fields (and the listing page's own SEO, `$seo`) per language and, given the `version` the editor opened (`CollectionListing::$version`), refuses a save over someone else's newer one. |
-| `ordered` | **Manual order**: editors put entries in order with Move up and Move down in the list, instead of by date or title. In code: `ReorderEntries::handle($collection, $ids, $parentId)` puts one level in the order given (the rest of the level after them), logged as `reordered`. |
+| `ordered` | **Manual order**: editors put entries in order in the list (**Reorder**, then drag; in a hierarchical collection among an entry's siblings), instead of by date or title. |
 | `hierarchical` | Entries may have a **parent** entry, like pages under pages, for breadcrumbs and sub-menus. URLs stay flat: *Team* under *About* is still `/team`. |
 | `seo_title_field`, `seo_description_field`, `seo_image_field` | **SEO from fields**: a text field for the SEO title, a text or textarea field for the description and a media field for the share image, used where an entry's SEO card is empty. See [SEO](site.md#seo). |
 
@@ -27,6 +28,22 @@ $articles = app(SaveCollection::class)->handle(['handle' => 'articles', 'title' 
 ```
 
 Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave the admin and the site. The list's **Deleted** filter shows deleted collections with a **Restore** action, and `sunrice:orphans --purge` deletes them for good, freeing their handles ([leftovers](structure.md#leftovers)). To rename a field without losing its values, use `sunrice:rename-field` ([renaming a field](structure.md#renaming-a-field)).
+
+### Per-entry blueprints
+
+A collection may offer more than one blueprint: its own, plus those ticked under **Other blueprints** (`Collection::$blueprints`, a list of handles). An entry then picks one in its **Page settings** (the **Blueprint** select, shown only when there's a choice), for every language at once:
+
+```php
+use Sunrice\Cms\Actions\Entries\ChangeBlueprint;
+
+app(ChangeBlueprint::class)->handle($entry, 'landing');   // null (or the collection's own) for the collection's
+```
+
+- `Entry::$blueprint` holds the choice (null: the collection's). A handle the collection no longer offers is ignored: the entry has the collection's fields again. `Entry::blueprintHandle()` says which one applies.
+- **No value is moved or dropped.** Fields both blueprints have keep their values; the others stay stored, out of sight, and come back if the entry switches back.
+- Every translation's version counts up, so an editor opened on the old fields can't save over the change (the editor reloads after the switch). The change is logged.
+- Choosing needs the right to edit the entry itself (`cms.entries.update`, or `update-own` for one's own), not only `translate`.
+- **`Entry::schema()`** is the entry's fields. Use it, not `$entry->collection->schema()`, for anything about one entry: the editor, validation, `values()`, shared fields, search text, references, media usage, term syncing, machine translation, duplicates and switching the main language all do. `Entry::usingBlueprint($handle)` is the entries a blueprint fills (theirs or their collection's), as `RenameFieldHandle` uses it; structure export and import carry a collection's `blueprints` and an entry's `blueprint`. `Collection::schemaFor($handle)` and `Collection::allSchemas()` (every blueprint it offers: field queries such as `whereField()` and sorting look through all of them) load each blueprint once. The entries list offers field columns from every blueprint offered, and the CSV export has a column per field of each; every entry fills its own.
 
 ## Editing entries
 
@@ -39,21 +56,32 @@ Editors write entries under **Content → Entries**: a list per collection (see 
 | `cms.entries.update` | Save drafts and restore revisions. |
 | `cms.entries.publish` | Publish (now or on a date) and unpublish, also several at once. |
 | `cms.entries.delete` | Move entries to the trash, restore them and delete them for good, also several at once. |
+| `cms.entries.export` | Download a collection's entries as CSV (with `view`). |
 | `cms.entries.update-own`, `.delete-own` | The same, for entries they created, in collections they may view. |
 | `cms.entries.translate` | Save drafts of entries' other languages (not the main one), in collections they may view. |
 | `cms.entries.view-drafts` | While signed in, see on the site that a live page has unpublished changes, and open them (`?draft`), in collections they may view. See [draft viewing](site.md#draft-viewing). |
 
-Each of the first five also comes for one collection: `cms.entries.blog.publish` publishes only in Blog. They're created with the collection (and deleted with it), and the role editor shows them under "Entries: Blog". The same goes for terms (`cms.terms.{taxonomy}.manage`) and form submissions (`cms.submissions.{form}.view`, `.delete`). People see only the collections, taxonomies and forms they may work in. In code: `Sunrice\Cms\Support\Access::entries($user, 'publish', $collection, $entry, $locale)`.
+Each of the first six also comes for one collection: `cms.entries.blog.publish` publishes only in Blog. They're created with the collection (and deleted with it), renamed with its handle, and the role editor shows them under "Entries: Blog". The same goes for terms (`cms.terms.{taxonomy}.manage`) and form submissions (`cms.submissions.{form}.view`, `.export`, `.delete`). People see only the collections, taxonomies and forms they may work in. In code: `Sunrice\Cms\Support\Access::entries($user, 'publish', $collection, $entry, $locale)`.
+
+### Renaming a handle
+
+Scoped permissions are named after handles, so when a collection's, taxonomy's or form's handle changes on its edit form, its stored permissions are renamed in place (`cms.entries.blog.view` becomes `cms.entries.journal.view`, through `ScopedPermissions::renamed()` and the panel's `RenamePermissions`): every role and person keeps what they were given. What the CMS can't rename for you is shown as a warning under the field: Blade views named after the handle (`cms.{handle}`, `cms.taxonomy-{handle}`), `Cms::entries('…')`, `whereTerm('…')`, `<x-sunrice-cms::form handle="…" />`, and entries fields limited to a collection. `SaveCollection` still refuses a new handle; rename through the admin.
 
 `sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing, sees drafts on the site) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
 
 In the editor:
 
 - **Ctrl/Cmd+S** saves the draft, and leaving the page with unsaved changes asks first.
-- **Page settings**: the parent (in hierarchical collections; never the entry itself or one below it, at most 10 deep) and a Blade view for this entry alone, for every language (`SaveEntrySettings`). Deleting an entry for good moves its children up to its parent.
+- **Page settings**: the parent (in hierarchical collections; never the entry itself or one below it, at most 10 deep), a Blade view for this entry alone (`SaveEntrySettings`) and, when the collection offers more than one, its blueprint (`ChangeBlueprint`), for every language. Deleting an entry for good moves its children up to its parent.
 - **Duplicate** copies every language's draft as a new draft entry ("Hello (copy)", slug `hello-copy`).
 - Only one person edits an entry in a language at a time: others are told who's editing and can view it or take over (see [edit locks](../admin/locks.md)).
 - When someone else saved since you opened the page, saving says so: **Load theirs**, or **Save mine anyway** over their version.
+- Group fields, **Search and sharing** and the sidebar's cards (status, page settings, comments, revisions) fold away; each remembers being open or closed in the browser, and opens by itself when a field inside has an error.
+- Repeater rows, flexible blocks and an entries field's chosen entries are dragged into order by their handle (or with the keyboard: focus the handle, space, arrows, space).
+- **Comments** (when the collection takes comments and the person has `cms.comments.view`): the counts by status and the latest five, with **Approve**, **Spam** and **Reply** for those with `cms.comments.moderate`, and a link to the [comments page](comments.md) showing only this entry's (`?entry=`).
+- The revisions and comments load just after the page shows (Inertia's deferred props), and a terms field's terms load when it shows (`cms/term-picker`), so a large entry opens fast.
+
+**Reordering** in code: `ReorderEntries::handle($collection, $ids, $parentId)` puts one level of an ordered collection's entries (those under `$parentId` in a hierarchical one, null for the top level; else all of them) in the order given, the rest of the level after them as they were; the level is numbered again in one transaction, and the change is logged (`reordered`) and clears the site's cache. Its route is `POST cms/entries/reorder` (`collection`, `ids`, `parent_id`), behind `cms.entries.update` for that collection. `MoveEntry` still moves one entry a place up or down.
 
 Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it).
 
@@ -77,7 +105,7 @@ Besides the title, the **Columns** menu shows the slug, the status (with a badge
 
 **Go to** links to what an editor tends to need next, where they may go: the listing page (edit and view), the collection's taxonomies' terms (`cms.terms.*`), the collection's settings (`cms.collections.update`) and its blueprint (`cms.blueprints.manage`). In a collection with manual order, Move up and Move down appear while the list is in that order, unfiltered.
 
-Tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** downloads the list as it is filtered, searched, sorted and in its language (every page): the ID, title, slug, status, publish date, URL, last change and author, and a column per top-level field (field columns as the list shows them); it's an `exported` security event.
+Tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** (`cms.entries.export`) downloads the list as it is filtered, searched, sorted and in its language (every page): the ID, title, slug, status, publish date, URL, last change and author, and a column per top-level field of every blueprint the collection offers (field columns as the list shows them; each entry fills its own blueprint's); it's an `exported` security event.
 
 ## Languages
 
@@ -109,6 +137,7 @@ Each language of an entry is a translation of its own: its own title, slug, draf
 
 - **Adding a language** (`cms.entries.create`, or `CreateTranslation`) makes a draft copied from the main translation, to translate and publish on its own.
 - **Removing one** (`cms.entries.delete`, or `DeleteTranslation`) deletes that translation and its revisions. The main translation can't be removed: trash the entry instead.
+- **Outdated** shows on a language (in the bar, in the list's language badges, and to AI tools as `outdated` and `outdated_languages`) when the main translation changed after it was translated: each translation keeps the main one's `version` from when it was created, saved or published (`main_version`), and `$translation->isOutdated()` compares. Saving or publishing the translation clears it.
 
 Fields are **translated** or **shared**. A field's *Per language* setting in the blueprint decides; left to the type, text fields (text, textarea, rich text, links, groups, repeaters, flexible) are translated and the others (numbers, toggles, selects, dates, media) shared. Shared fields belong to the main translation: other languages show its values, read-only, and templates get them from it (`$translation->values()`). A price changed in the main language is the price in every language. Other languages store only their translated fields (`CreateTranslation` and `SaveDraft` leave the shared ones out; `$translation->ownData()`), and `$translation->completeData()` gives the stored fields with the main translation's shared ones, live or in the draft, which site search text and revisions follow.
 

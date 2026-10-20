@@ -68,6 +68,9 @@ final class PanelRoutes
                 $route->defaults('resource', $key);
             }
         });
+        // What a relation field may choose: "/admin/resources/products/options/category?q=".
+        Route::get("resources/{$key}/options/{field}", [ResourceController::class, 'options'])
+            ->name("resources.{$key}.options")->defaults('resource', $key);
     }
 
     public static function register(Panel $panel): void

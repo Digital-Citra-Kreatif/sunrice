@@ -46,7 +46,7 @@ Both are queued: run a queue worker.
 
 ## Moderating
 
-**Content → Comments** (`cms.comments.view`) lists comments newest first, in tabs: All (pending and approved), Pending, Approved, Spam and Trash, with search over the text, name and email and a collection filter (the editor's Page settings link to an entry's own). Each shows the entry, the comment it answers and its language.
+**Content → Comments** (`cms.comments.view`) lists comments newest first, in tabs: All (pending and approved), Pending, Approved, Spam and Trash, with search over the text, name and email, a collection filter, and an entry filter (`?entry=`, which the entry editor's **Comments** card and Page settings link to; the card also shows the latest five with Approve, Spam and Reply). Each shows the entry, the comment it answers and its language.
 
 - **Approve**, **Unapprove**, **Spam** (`cms.comments.moderate`), one by one or for the selected ones.
 - **Reply**: published at once under your name, even when the entry is closed; replying to a held comment approves it.

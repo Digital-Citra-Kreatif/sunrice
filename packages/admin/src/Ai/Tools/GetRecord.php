@@ -46,7 +46,7 @@ final class GetRecord extends ResourceTool
             ],
             'actions' => $record === null ? [] : array_values(array_map(
                 fn (Action $action) => $action->toArray(),
-                array_filter($resource->table()->getActions(), fn (Action $action) => ! $action->isBulk && $action->isVisibleFor($record) && $resource->allows($user, $action->getAbility(), $record)),
+                array_filter($resource->table()->getActions(), fn (Action $action) => ! $action->isBulk && ! $action->isUrl() && $action->isVisibleFor($record) && $resource->allows($user, $action->getAbility(), $record) && $action->allows($user, $record)),
             )),
         ]);
     }

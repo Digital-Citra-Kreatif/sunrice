@@ -275,6 +275,15 @@ abstract class Field implements Component
         };
     }
 
+    /**
+     * The validated value as it is kept: what fill(), saveUsing(), an
+     * action's handler and settings get (RichText sanitises its HTML here).
+     */
+    public function dehydrate(mixed $value): mixed
+    {
+        return $value;
+    }
+
     /** Write the validated input to the record, before it is saved. */
     public function fill(Model $record, mixed $value): void
     {

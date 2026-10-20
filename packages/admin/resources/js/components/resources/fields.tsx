@@ -1,4 +1,5 @@
 import { DatePicker } from '@/components/app/date-picker';
+import { RichTextEditor } from '@/components/app/rich-text';
 import { MediaPickerInput } from '@/components/media/media-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -7,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, readableOn } from '@/lib/branding';
+import { RelationSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
 
-export type FieldValue = string | number | boolean | string[] | number[] | null;
+export type FieldValue = string | number | boolean | string[] | number[] | (string | number)[] | null;
 
 export interface CheckboxOption {
     value: string;
@@ -66,6 +68,17 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
                 </Select>
             );
         }
+        case 'belongs_to':
+        case 'belongs_to_many': {
+            const multiple = field.type === 'belongs_to_many';
+            const keys = Array.isArray(value) ? value : [];
+            return <RelationSelect id={id} field={field.name} multiple={multiple} required={field.required} disabled={disabled} invalid={invalid}
+                placeholder={field.placeholder ?? undefined} selected={(field.selected as RelationOption[] | undefined) ?? []}
+                value={multiple ? keys : (typeof value === 'string' || typeof value === 'number' ? value : null)} onChange={onChange} />;
+        }
+        case 'richtext':
+            return <RichTextEditor id={id} labelledBy={`${id}-label`} invalid={invalid} disabled={disabled} images={field.images !== false}
+                value={typeof value === 'string' ? value : ''} onChange={onChange} />;
         case 'date':
             return <DatePicker id={id} disabled={disabled} invalid={invalid} required={field.required === true} withTime={field.withTime === true}
                 placeholder={field.placeholder ?? undefined} value={value === null ? null : String(value)} onChange={onChange} />;

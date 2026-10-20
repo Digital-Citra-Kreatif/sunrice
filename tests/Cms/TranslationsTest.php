@@ -112,7 +112,7 @@ it('edits each language in the editor', function () {
 
     get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('entry.locale', 'en')->where('entry.isMain', true)->where('shared', [])
-        ->where('locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft'], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => null]]));
+        ->where('locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => null, 'outdated' => false]]));
     get("/admin/cms/entries/{$entry->id}/edit?locale=id")->assertNotFound();
 
     post("/admin/cms/entries/{$entry->id}/translations", ['locale' => 'id'])->assertRedirect("/admin/cms/entries/{$entry->id}/edit?locale=id");
@@ -126,10 +126,43 @@ it('edits each language in the editor', function () {
         ->and($this->main->fresh()?->status)->toBe('draft');
 
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('entries.data.0.locales.1', ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'published']));
+        ->where('entries.data.0.locales.1', ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'published', 'outdated' => false]));
 
     delete("/admin/cms/entries/{$entry->id}/translations/id")->assertRedirect("/admin/cms/entries/{$entry->id}/edit");
     delete("/admin/cms/entries/{$entry->id}/translations/en")->assertSessionHasErrors('locale');
+});
+
+it('marks a translation outdated when the main language changes after it', function () {
+    $id = app(CreateTranslation::class)->handle($this->main->entry, 'id');
+    expect($id->main_version)->toBe($this->main->version)->and($id->fresh()?->isOutdated())->toBeFalse();
+
+    app(SaveDraft::class)->handle($this->main, ['title' => 'Coffee, stronger']);
+    $id = EntryTranslation::query()->findOrFail($id->id);
+    expect($id->isOutdated())->toBeTrue()
+        ->and($this->main->fresh()?->isOutdated())->toBeFalse(); // never the main one
+
+    // Saving the translation brings it up to date with the main one as it is now.
+    app(SaveDraft::class)->handle($id, ['title' => 'Kopi']);
+    expect($id->fresh()?->isOutdated())->toBeFalse()->and($id->fresh()?->main_version)->toBe($this->main->fresh()?->version);
+
+    // So does publishing it.
+    app(PublishEntry::class)->handle($this->main->fresh());
+    expect($id->fresh()?->isOutdated())->toBeTrue();
+    app(PublishEntry::class)->handle($id->fresh());
+    expect($id->fresh()?->isOutdated())->toBeFalse();
+});
+
+it('shows outdated translations in the editor and the list', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
+    $entry = $this->main->entry;
+    app(CreateTranslation::class)->handle($entry, 'id');
+    app(SaveDraft::class)->handle($this->main, ['title' => 'Coffee, stronger']);
+
+    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('locales.0.outdated', false)->where('locales.1.outdated', true));
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
+        ->where('entries.data.0.locales.1.outdated', true));
 });
 
 it('shares the shared fields inside translated groups, rows and blocks with the main language', function () {

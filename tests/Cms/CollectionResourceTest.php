@@ -74,13 +74,17 @@ it('refuses bad handles, taken ones (deleted collections included) and unknown b
     expect(Collection::query()->count())->toBe(0);
 });
 
-it('keeps the handle when editing', function () {
+it('changes the handle when editing, only to a free and valid one', function () {
     $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages']);
+    Collection::query()->create(['handle' => 'posts', 'title' => 'Posts'])->delete();
     collectionsUser('view', 'update');
 
+    put("/admin/collections/{$pages->id}", ['title' => 'Pages'])->assertSessionHasNoErrors(); // left out: kept
+    expect($pages->fresh()?->handle)->toBe('pages');
+    put("/admin/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'posts'])->assertSessionHasErrors('handle'); // a deleted one's
     put("/admin/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'other'])->assertSessionHasNoErrors();
 
-    expect($pages->fresh()?->only(['handle', 'title']))->toBe(['handle' => 'pages', 'title' => 'Site pages']);
+    expect($pages->fresh()?->only(['handle', 'title']))->toBe(['handle' => 'other', 'title' => 'Site pages']);
 });
 
 it('deletes a collection but keeps its entries', function () {

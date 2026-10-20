@@ -16,6 +16,7 @@ use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Fields\Schema;
+use Sunrice\Cms\Fields\Types\TermsField;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Taxonomy;
@@ -118,7 +119,10 @@ it('gives entries terms through a terms field', function () {
     expect($values['tags']->map->title()->all())->toBe(['Laravel', 'PHP'])
         ->and($values['category']->title())->toBe('News')
         ->and(DB::getQueryLog())->toHaveCount(4); // two per terms field: the terms, then their translations
-    expect($schema->toAdmin()[0]['terms'])->toBe([['value' => (string) $php->id, 'label' => 'PHP'], ['value' => (string) $laravel->id, 'label' => 'Laravel']]);
+    // The editor gets the taxonomy only; the terms come from cms/term-picker.
+    expect($schema->toAdmin()[0])->toMatchArray(['taxonomy' => 'tags'])->not->toHaveKey('terms')
+        ->and(TermsField::options($this->tags)['items'])->toBe([['id' => $php->id, 'label' => 'PHP', 'depth' => 0], ['id' => $laravel->id, 'label' => 'Laravel', 'depth' => 0]])
+        ->and(TermsField::labels([$laravel->id, $news->id]))->toBe([$laravel->id => 'Laravel', $news->id => 'News']);
 });
 
 it('keeps published entries\' terms in a table, for queries', function () {

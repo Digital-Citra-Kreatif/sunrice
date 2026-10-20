@@ -88,7 +88,11 @@ it('exports the collection as CSV', function () {
     app(PublishEntry::class)->handle(managed('=Sum', ['intro' => 'Hello', 'kind' => 'news']));
     managed('Gone')->entry->delete();
     manager('view');
+    get('/admin/cms/collections/articles/entries/export')->assertForbidden(); // viewing isn't exporting
+    get('/admin/cms/collections/articles/entries')->assertInertia(fn (Assert $page) => $page->where('can.export', false));
 
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.articles.view', 'cms.entries.articles.export'));
+    get('/admin/cms/collections/articles/entries')->assertInertia(fn (Assert $page) => $page->where('can.export', true));
     $csv = get('/admin/cms/collections/articles/entries/export')->assertOk()->streamedContent();
 
     expect($csv)->toStartWith('ID,Title,Slug,Status,Published,URL,Updated,Author,Intro,Kind')

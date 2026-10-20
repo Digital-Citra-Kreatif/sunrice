@@ -79,7 +79,7 @@ it('saves the parent and template from the editor, and renders the entry\'s own 
     View::addLocation(__DIR__.'/Fixtures/views');
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
 
-    get("/admin/cms/entries/{$team->id}/edit")->assertInertia(fn (Assert $page) => $page->where('settings', ['parentId' => null, 'template' => null, 'commentsClosed' => false]));
+    get("/admin/cms/entries/{$team->id}/edit")->assertInertia(fn (Assert $page) => $page->where('settings', ['parentId' => null, 'template' => null, 'commentsClosed' => false, 'blueprint' => 'page']));
     put("/admin/cms/entries/{$team->id}/settings", ['parent_id' => $about->id, 'template' => 'Bad Name!'])->assertSessionHasErrors('template');
     put("/admin/cms/entries/{$team->id}/settings", ['parent_id' => $about->id, 'template' => 'cms.special'])->assertSessionHasNoErrors();
 

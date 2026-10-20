@@ -5,6 +5,7 @@ import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
 import { Cell } from '@/components/resources/cell';
 import { useConfirm } from '@/components/resources/confirm';
+import { DateRangeFilter } from '@/components/resources/date-range-filter';
 import type { ActionInfo, ColumnInfo, FilterInfo, ResourceInfo, Row } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -136,7 +137,14 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                     <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input className="pl-9" placeholder="Search…" aria-label="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
-                {filters.map((filter) => (
+                {filters.map((filter) => filter.type === 'date_range' ? (
+                    <DateRangeFilter key={filter.name} filter={filter} value={query.filters[filter.name]} onChange={(value) => {
+                        const next = { ...query.filters };
+                        if (value === '') delete next[filter.name];
+                        else next[filter.name] = value;
+                        visit({ filters: next });
+                    }} />
+                ) : (
                     <Select
                         key={filter.name}
                         value={query.filters[filter.name] ?? ALL}
@@ -243,7 +251,11 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     {row.can.update && <DropdownMenuItem asChild><Link href={`${base}/${row.id}/edit`}>Edit</Link></DropdownMenuItem>}
-                                                    {rowActions.filter((action) => row.actions.includes(action.key)).map((action) => (
+                                                    {rowActions.filter((action) => row.actions.includes(action.key)).map((action) => action.url ? (
+                                                        <DropdownMenuItem key={action.key} asChild>
+                                                            <a href={row.urls[action.key]} {...(action.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{action.label}</a>
+                                                        </DropdownMenuItem>
+                                                    ) : (
                                                         <DropdownMenuItem key={action.key} variant={action.destructive ? 'destructive' : 'default'} onSelect={() => runRowAction(row, action)}>
                                                             {action.label}
                                                         </DropdownMenuItem>

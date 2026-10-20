@@ -5,7 +5,7 @@
 ## Setting up
 
 1. Make a blueprint with the form's fields (Structure → Blueprints). Visitors get the `text`, `textarea`, `number`, `toggle`, `select`, `date` and `file` fields; fields of other types are left out of the form. Required fields and extra validation rules (like `email`) apply as for entries. A text field with the `email` rule, or with the handle `email`, is an email input, and the notification's replies go to it.
-2. Under **Structure → Forms** (permissions `cms.forms.view`, `.create`, `.update`, `.delete`), add a form: a title, a handle that templates use and that can't change later, the blueprint, the addresses to email (one per line, at most 10) and roles whose members are emailed too (**Also email roles**), a thank-you message, and optionally a page to go to once it's sent (**After sending, go to**), how often one visitor may send it (**Sends per visitor a minute**), and whether it needs a [captcha](#captcha).
+2. Under **Structure → Forms** (permissions `cms.forms.view`, `.create`, `.update`, `.delete`), add a form: a title, a handle that templates use (it can be changed later, with a warning: templates need the new one, roles keep their permissions), the blueprint, the addresses to email (one per line, at most 10) and roles whose members are emailed too (**Also email roles**), a thank-you message, and optionally a page to go to once it's sent (**After sending, go to**), how often one visitor may send it (**Sends per visitor a minute**), and whether it needs a [captcha](#captcha).
 
 ## On the site
 
@@ -112,7 +112,7 @@ Visitors go back to the page they were on, or to the form's **After sending, go 
 
 ## Submissions
 
-Under **Content → Submissions** (`cms.submissions.view`): each form's submissions, newest first; open one to read all of it, with who sent it (IP address, browser and the page it was sent from). **Export CSV** downloads them all, a column per field, then `IP address`, `User agent` and `Referrer`, with values spreadsheets would run as formulas escaped. Exports are recorded in the security log. `cms.submissions.delete` deletes them for good.
+Under **Content → Submissions** (`cms.submissions.view`): each form's submissions, newest first; open one to read all of it, with who sent it (IP address, browser and the page it was sent from). **Export CSV** (`cms.submissions.export`, or `cms.submissions.{form}.export`) downloads them all, a column per field, then `IP address`, `User agent` and `Referrer`, with values spreadsheets would run as formulas escaped. Exports are recorded in the security log. `cms.submissions.delete` deletes them for good.
 
 The notification email lists the fields with their labels. It goes to the form's addresses and to everyone with one of its roles, one email each (an address that's both gets one). It's queued, so it's sent by your queue worker when the app has a queue, and right away when it doesn't.
 

@@ -8,7 +8,7 @@ One person edits an item at a time. While an editor page is open, it holds the i
 
 A person's own tabs never lock each other out. Saves are still checked against the item's version (see the CMS's [Save mine anyway](../cms/collections.md#editing-entries)), so an expired lock can't silently overwrite someone's work.
 
-The CMS locks entries (per language) and global sets (per language).
+The CMS locks entries (`cms.entry`), global sets (`cms.global`) and terms' pages (`cms.term`, for those who manage the term's taxonomy), each per language.
 
 ## Locking your own pages
 

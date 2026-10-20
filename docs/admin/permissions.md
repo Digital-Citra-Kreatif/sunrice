@@ -42,6 +42,8 @@ The panel and its plugins register their permissions in PHP (`$panel->permission
 
 It also runs after every `php artisan migrate`, so a deploy keeps them in step.
 
+A resource registers `<prefix>.view`, `.create`, `.update` and `.delete`, and `<prefix>.export` when its table is exportable ([Resources](resources.md#who-may-do-what)): viewing a list doesn't let anyone carry it out as CSV.
+
 Every admin route needs `sunrice.access` ("Open the admin panel"); give it to the roles that may sign in to the panel. Unknown permissions are denied.
 
 ## Default roles
@@ -51,7 +53,7 @@ Every admin route needs `sunrice.access` ("Open the admin panel"); give it to th
 | Role | Permissions |
 | --- | --- |
 | `administrator` | Every permission, without the super admin's bypass of your app's own checks. |
-| `editor` (the CMS) | The panel, media, and all content: entries, terms, globals, menus, comments, reading form submissions. Not structure, settings, users or roles. |
+| `editor` (the CMS) | The panel, media, and all content: entries, terms, globals, menus, comments, reading and exporting form submissions. Not structure, settings, users or roles. |
 | `author` (the CMS) | The panel, viewing and uploading media, viewing and creating entries, editing and trashing their own, and seeing drafts on the site (`cms.entries.view-drafts`). Publishes nothing. |
 | `translator` (the CMS) | The panel, viewing media and entries, and editing entries' other languages. |
 
@@ -71,6 +73,17 @@ $panel->permissionsUsing(fn () => Shop::query()->get()->map(
 ```
 
 When the data changes, call `$panel->flushPermissions()` and `SyncPermissions::handle()` to create and delete them (the CMS does when collections, taxonomies and forms come and go).
+
+When the data a permission is named after is **renamed**, rename the stored permissions instead, before anything syncs, so roles and people keep them:
+
+```php
+use Sunrice\Admin\Actions\Permissions\RenamePermissions;
+
+app(RenamePermissions::class)->handle(['shop.north.orders' => 'shop.northwest.orders']);   // old => new; returns the old names renamed
+$panel->flushPermissions();
+```
+
+A permission whose new name is already stored is left alone. The CMS does this when a collection's, taxonomy's or form's handle changes.
 
 ## Managing roles in the panel
 

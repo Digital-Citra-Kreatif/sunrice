@@ -7,6 +7,13 @@ namespace Sunrice\Tests\Admin\Fixtures;
 /** Everyone may see products; locked ones can't be edited; none deleted. */
 final class ProductPolicy
 {
+    public static bool $exports = true;
+
+    public function export(mixed $user): bool
+    {
+        return self::$exports;
+    }
+
     public function viewAny(mixed $user): bool
     {
         return true;

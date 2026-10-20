@@ -7,6 +7,7 @@ import { useConfirm } from '@/components/resources/confirm';
 import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
 import { InfoCards } from '@/components/resources/info-cards';
+import { ResourceKeyContext } from '@/components/resources/resource-context';
 import type { InfoCard, ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
@@ -69,7 +70,9 @@ export default function ResourceForm({ resource, record, sections, values, can, 
                 }
             />
 
-            <FormSections sections={sections} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
+            <ResourceKeyContext value={resource.key}>
+                <FormSections sections={sections} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
+            </ResourceKeyContext>
         </form>
     );
     if (aside.length === 0) return page;

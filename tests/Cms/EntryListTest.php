@@ -127,7 +127,7 @@ it('lists another language\'s translations', function () {
         ->and(listed('locale=id'))->toBe(['Teh'])
         ->and(listed('locale=fr'))->toBe(['Mug', 'Tea']);
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('entries.data.1.locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft'], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'draft']])
+        ->where('entries.data.1.locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'draft', 'outdated' => false]])
         ->where('filters.locales', ['en', 'id']));
 });
 
@@ -260,7 +260,7 @@ it('keeps scoped permissions: a collection\'s viewers see its list, nobody else'
     get('/admin/cms/collections/products/entries')->assertForbidden();
     get('/admin/cms/collections/products/entries/export')->assertForbidden();
 
-    lister('cms.entries.products.view');
+    lister('cms.entries.products.view', 'cms.entries.products.export');
     expect(listed())->toBe(['Tea']);
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
         ->where('can.publish', false)->where('collections', [['handle' => 'products', 'title' => 'Products']]));
@@ -268,7 +268,7 @@ it('keeps scoped permissions: a collection\'s viewers see its list, nobody else'
 });
 
 it('exports what the list shows: filters, search, sort and language, with every field', function () {
-    lister();
+    lister('cms.entries.view', 'cms.entries.export');
     $first = listProduct('Assam', ['price' => 20, 'kind' => 'tea'], publish: true);
     listProduct('Sencha', ['price' => 5, 'related' => [$first->entry_id]]);
     listProduct('Mug', ['price' => 1]);
