@@ -132,142 +132,23 @@ Code there runs in every visitor's browser, so give the permission only to peopl
 - `Cms::localeUrls()`: the page shown in each language it's live in (and, with the [main-language fallback](#untranslated-pages), the others), in the order of `sunrice-cms.locales`, for a language switcher (none on your app's own pages).
 - `Cms::page()`: the page shown (`Sunrice\Cms\Site\Page`: `type`, `locale`, `view`, `entry`, `collection`, `term`, `preview`, `home`, `pageNumber`, `fallback`), or null.
 
-## Redirects
+`@bodyClass` prints the whole attribute: `<body @bodyClass>` or `<body @bodyClass('dark')>` gives `<body class="page-entry … dark">`.
 
-When a published entry's address changes (a new slug), publishing it adds a permanent redirect from the old address, so links and search results keep working. Chains are flattened: every old address points straight at the newest. The query string comes along (`/old?utm_source=mail` → `/new?utm_source=mail`). Structure → Redirects (`cms.redirects.*`) lists them and takes your own, from a path on the site to a path or a web address, 301 or 302. A live page always wins over a redirect from its address.
+The same as functions, for templates that prefer them (each defined only if the app hasn't defined it first): `cms_entries(...$collections)`, `cms_menu($handle, $locale = null)`, `cms_global($handle, $locale = null)`, `cms_locale_urls()`, `cms_body_class($extra = [])` and `cms_page()`.
 
-## Listing pages
+### Hooks
 
-A collection with a **listing page URL** (`listing_route`, like `/blog`) gets a page listing its live entries, `per_page` at a time (`?page=2`), newest first for dated collections, in Manual order for ordered ones, else by title; other languages under their prefix (`/id/blog`). Its own fields come from the collection's listing blueprint and are edited from the entries list (**Listing page**, `cms.entries.update`; `SaveListing` in code), per language. It renders with the first view that exists: `cms.{handle}-listing`, `cms.listing`, or the CMS's plain one, with:
-
-| | |
-| --- | --- |
-| `$collection` | the `Collection` (`->listingUrl($locale)`) |
-| `$entries` | a paginator of `EntryTranslation`s (`{{ $entries->links() }}`) |
-| `$values`, `$richText` | the listing page's fields, as for entries |
-| `$title`, `$locale`, `$url` | the collection's title, the language and the page's URL |
-
-Listing URLs are fixed, so they're matched before any `{slug}` pattern; they're in the sitemap.
-
-## The homepage
-
-Pick the entry shown at `/` in **Settings → Site** (`cms.settings.site`). In other languages, `/{locale}` shows its translation there. The entry's own address redirects (301) to `/`, and `$translation->url()` gives `/`. Your app's own `/` route, if it has one, wins.
-
-## Querying entries
-
-In any view, `Cms::entries()` finds live entries in the current language (`Sunrice\Cms\Content`, aliased as `Cms` unless your app uses that name):
-
-```blade
-@foreach (Cms::entries('blog')->latest()->limit(3)->get() as $post)
-    <a href="{{ $post->url() }}">{{ $post->title }}</a>
-@endforeach
-
-{{ Cms::entries('blog')->whereTerm($news)->paginate(10)->links() }}
-{{ Cms::global('contact')['phone'] ?? '' }}
-```
-
-`entries(...$collections)` (none: every collection), then `locale()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate()` or `toBase()`.
+In a service provider's `boot()`, change what every page of the CMS does (entries, listing, term and search pages):
 
 ```php
-Cms::entries('events')->where('featured', true)->where('date', '>=', today())->orderBy('date')->get();
-Cms::entries('shop')->where('price', '<', 100)->where('color', 'in', ['red', 'blue'])->orderBy('price', 'desc')->get();
-Cms::entries('blog')->where('city', '!=', 'Jakarta')->except($entry)->limit(3)->get();   // "more like this"
-Cms::entries('blog')->whereEntry('related', $entry)->get();                             // pointing at $entry
-Cms::entries('blog')->whereTerm('topics', 'news', includeChildren: true)->latest()->paginate(10);
-Cms::entries('blog')->search($request->query('q', ''))->paginate(10);
+use Sunrice\Cms\Content as Cms;
+use Sunrice\Cms\Site\Page;
+
+// The view: return another one's name, or null to keep $page->view (what the rules above chose, or an earlier hook).
+Cms::resolveTemplateUsing(fn (Page $page): ?string => $page->entry?->entry->parent_id !== null ? 'cms.child-page' : null);
+
+// More body classes (Cms::bodyClass(), @bodyClass), after the CMS's own.
+Cms::bodyClassUsing(fn (Page $page): array => $page->collection?->dated ? ['has-date'] : []);
 ```
 
-- `locale($locale)`: another language than the current one. `preview()`: every entry not in the trash, by its draft title, slug and fields (`values()` give the draft's too), as the site's preview does; never cached.
-- `where($field, [$operator,] $value)`: a field, or `title`, `slug`, `published_at`, `parent_id`; operators `=`, `!=`, `<`, `>`, `<=`, `>=`, and `in`, `not in` with a list; `null` for "no value" (`where('subtitle', null)`, `where('subtitle', '!=', null)`). Number and date fields compare as such (`9 < 100`, a `Carbon` or `2026-01-01` for dates); the others as text.
-- `whereTerm($term, ...)`: entries with a term (or any of several): `Term` models or ids (`whereTerm($news, $tips)`, `whereTerm([$news, $tips])`), or a taxonomy handle and a slug or list of slugs (`whereTerm('topics', 'news')`, `whereTerm('topics', ['news', 'tips'])`); `includeChildren: true` takes the terms under them too. Looks at the terms of every terms field.
-- `whereFieldTerm($field, $terms, includeChildren: false)`: the same for one terms field, with slugs looked up in that field's taxonomy.
-- `whereEntry($field, $entries)`: entries whose entries field links to an entry (or any of a list).
-- `search($text)`: entries whose title or field text holds the words, as the site's search matches them; title matches first, then in the query's order.
-- `orderBy($field, 'asc'|'desc')`: a column or a field; numbers and dates sort as such.
-- `except(...$entries)`: leave these out.
-- `remember()`: keep the matched ids in the site's cache (`SiteCache`, when it's on) until the content changes, so the query runs once; the entries themselves are always read fresh.
-- `toBase()`: the Eloquent query (`Builder<EntryTranslation>`, a new one each time) for what the methods here don't do.
-
-Field filters read the main language's published values (shared fields, like entries and terms, live there).
-
-A result's entries share one `HydrationContext`: whatever their fields point at (media, entries, terms) is loaded up front, one query per kind, so `$post->values()` in a loop costs no queries of its own.
-
-### Components
-
-For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice-cms::terms>` run the query and leave the markup to you, as `$component->entries` and `$component->terms`:
-
-```blade
-<x-sunrice-cms::entries collection="blog" :limit="3" :term="$news" :except="$entry" order="-date">
-    @foreach ($component->entries as $post)
-        <a href="{{ $post->url() }}">{{ $post->title }}</a>
-    @endforeach
-</x-sunrice-cms::entries>
-
-<x-sunrice-cms::terms taxonomy="categories" collection="blog" hide-empty tree>
-    @foreach ($component->terms as $term)
-        <a href="{{ $term->url() }}">{{ $term->title() }}</a> ({{ $term->entries_count }})
-        {{-- $term->children: the terms under it --}}
-    @endforeach
-</x-sunrice-cms::terms>
-```
-
-`entries`: `collection` (handles, comma-separated; none for all), `limit`, `paginate` (per page: a paginator, `$component->entries->links()`), `order` (`latest`, `oldest`, `alphabetical`, `ordered`, or a field, `-field` for descending), `term` (one or a list), `parent` (an entry, or `top`), `where` (`['featured' => true]`), `except`, `search` (words to find) and `remember` (keep the matched ids in the site's cache).
-
-`terms`: `taxonomy`, in the editors' order, each with `entries_count` (its live entries in the current language, of `collection` when given); `hide-empty`; `tree` (the top-level terms, each with `children`); `:entry` (only that entry's terms).
-
-In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancestors()` (top-down) give breadcrumbs and sub-menus:
-
-```blade
-@foreach ($entry->entry->ancestors() as $ancestor)
-    <a href="{{ $ancestor->mainTranslation()?->url() }}">{{ $ancestor->mainTranslation()?->title }}</a> ›
-@endforeach
-@foreach (Cms::entries('pages')->childrenOf($entry->entry)->ordered()->get() as $child)
-    <a href="{{ $child->url() }}">{{ $child->title }}</a>
-@endforeach
-```
-
-## Search
-
-`/search?q=…` (and `/{locale}/search`) searches the live entries that have pages, in that language: their title and field text (the words only: no field handles, HTML tags, addresses or SEO), titles first, then newest first. It renders with `cms.search`, or the CMS's plain page, with `$query`, `$results` (a paginator of `EntryTranslation`s), `$title` and `$locale`. Search pages are never indexed or kept by the page cache, and one visitor may search `per_minute` times a minute, everyone together `per_minute_global` times. Your app's own `/search` route wins; the search page wins over an entry at that address.
-
-Each database searches its own way, with the index of migration `000017`: MySQL and MariaDB by whole words with a FULLTEXT index (natural language mode, so words shorter than `innodb_ft_min_token_size`, three characters, and stopwords aren't found), Postgres by words with a GIN index (the `simple` dictionary: every language, no stemming), and SQLite, for development only, by matching what's typed anywhere (`%` and `_` aren't wildcards). The same search within a minute is answered from the [site cache](caching.md) (ids only), gone with the next change to content.
-
-```php
-// config/sunrice-cms.php
-'search' => [
-    'enabled' => env('SUNRICE_SEARCH', true),
-    'path' => 'search',
-    'collections' => null,   // handles; null: every collection with pages
-    'per_page' => 10,
-    'per_minute' => 30,         // searches per visitor
-    'per_minute_global' => 300, // and for everyone together
-],
-```
-
-`<x-sunrice-cms::search>` makes a search box anywhere, or results of your own:
-
-```blade
-<x-sunrice-cms::search>
-    <form action="{{ $component->action }}" role="search">
-        <input type="search" name="{{ $component->name }}" value="{{ $component->query }}">
-    </form>
-</x-sunrice-cms::search>
-
-<x-sunrice-cms::search results collection="help" :per-page="20">
-    @foreach ($component->results as $entry)
-        <a href="{{ $entry->url() }}">{{ $entry->title }}</a>
-    @endforeach
-</x-sunrice-cms::search>
-```
-
-In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perPage: 20, locale: 'id')`. Field text is kept when an entry is published (`search_text`, its first 20,000 characters).
-
-## Previews
-
-The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex` and `Cache-Control: no-store, private`, so no cache keeps a draft. Save first to see changes.
-
-### Draft viewing
-
-People signed in to the panel with `cms.entries.view-drafts` (in the `editor` and `author` roles), who may view the entry's collection, see a **Draft** banner at the top of a live page whose entry has unpublished changes in that language, with links to **View the draft** (the same address with `?draft`) and to edit it. The draft shows in the page's template, as a preview does: its title and fields (`$preview` and `$draft` are true), the body class `is-draft`, `noindex` (meta tag and `X-Robots-Tag`) and `Cache-Control: no-store, private`; it's never kept by the page cache. Everyone else, and the same address without the permission, gets the live page.
-
-The banner (`resources/views/draft-banner.blade.php`, styled inline so it doesn't depend on the site's CSS) is put right after `<body>`, so it works with any template.
+Hooks run in the order they were registered, on every request; keep them cheap. How long the page cache keeps a page has its own hook, [`PageCache::lifetimeUsing()`](caching.md).
