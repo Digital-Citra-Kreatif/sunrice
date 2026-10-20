@@ -48,7 +48,7 @@ export default function ResourceForm({ resource, record, sections, values, can, 
     const remove = () => record && confirm(`Delete ${record.title}? This can't be undone.`, () => router.delete(`${base}/${record.id}`), true);
 
     const page = (
-        <form onSubmit={submit} className="flex max-w-3xl min-w-0 flex-1 flex-col gap-6">
+        <form onSubmit={submit} className="flex max-w-5xl min-w-0 flex-1 flex-col gap-6">
             <Head title={title} />
             {confirmDialog}
 

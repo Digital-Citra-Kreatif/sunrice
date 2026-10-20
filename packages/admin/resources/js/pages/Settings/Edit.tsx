@@ -75,7 +75,7 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
                     ))}
                 </nav>
             )}
-            <form onSubmit={submit} className="flex max-w-3xl min-w-0 flex-1 flex-col gap-6">
+            <form onSubmit={submit} className="flex max-w-5xl min-w-0 flex-1 flex-col gap-6">
                 <PageHeader
                     title={section.label}
                     description={section.description}

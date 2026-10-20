@@ -10,10 +10,10 @@ return [
 
     // The panel's typeface. `stylesheet` is loaded on every admin page
     // (null loads none); `family` names the font the panel uses instead of
-    // Inter (the CSS variable --sunrice-font). Set both to use another web
+    // Instrument Sans (the CSS variable --sunrice-font). Set both to use another web
     // font, or family alone for a system font.
     'font' => [
-        'stylesheet' => 'https://fonts.bunny.net/css?family=inter:400,500,600&display=swap',
+        'stylesheet' => 'https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap',
         'family' => null,
     ],
 

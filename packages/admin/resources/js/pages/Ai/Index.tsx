@@ -59,7 +59,7 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
     const json = JSON.stringify({ mcpServers: { panel: { type: 'http', url: endpoint, headers: { Authorization: `Bearer ${token}` } } } }, null, 2);
 
     return (
-        <div className="flex max-w-4xl flex-col gap-6">
+        <div className="flex max-w-5xl flex-col gap-6">
             <Head title="AI access" />
             {confirmDialog}
             <PageHeader

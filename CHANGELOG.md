@@ -28,6 +28,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- A cleaner look, after sunrice-cms: neutral greys instead of warm ones, a smaller radius (`--radius` 0.5rem), squarer buttons and inputs, cards with a faint shadow under their border instead of a ring, and Instrument Sans as the default font (`sunrice-admin.font`). Pages use up to 1536px of a wide screen (was 1280px), and forms up to 1024px.
 - Activity log: the history button says what it does on hover, the filter it sets is named after the item ("History of account Admin"), and it's hidden on the lines of the item whose history is shown, where it did nothing.
 - Submissions with no forms yet offers **Create a form** to those who may (`cms.forms.create`) instead of pointing at Structure → Forms.
 - The sidebar's groups fold away when their title is clicked, remembered per browser; the group of the current page stays open, and every group shows its icons when the sidebar is shrunk.
