@@ -46,12 +46,14 @@ Their roles, AI tokens and lock state go with them. Prefer **Lock account** when
 
 The **Roles** list shows each role and how many permissions it has. Click **New role**, give it a **Name**, and tick its **Permissions**, grouped by area (the panel, media, entries of each collection, settings…).
 
+Downloading a list as a spreadsheet (**Export CSV**) is a permission of its own, apart from seeing the list, since exports carry data out of the panel.
+
 Your site may come with ready-made roles to start from:
 
 | Role | For |
 | --- | --- |
 | **administrator** | Everything, for people who run the site. |
-| **editor** | All content: entries, terms, globals, menus, comments, media and reading form submissions. Not structure, settings or users. |
+| **editor** | All content: entries, terms, globals, menus, comments, media, and reading and exporting form submissions. Not structure, settings or users. |
 | **author** | Writing entries and editing their own, uploading media and seeing drafts on the site. They can't publish. |
 | **translator** | Writing the other languages of entries. |
 

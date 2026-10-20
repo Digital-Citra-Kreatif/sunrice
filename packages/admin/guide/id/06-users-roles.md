@@ -46,12 +46,14 @@ Peran, token AI, dan status kuncinya ikut terhapus. Jika ragu, pilih **Lock acco
 
 Daftar **Roles** menampilkan setiap peran dan jumlah izinnya. Klik **New role**, beri **Name**, lalu centang **Permissions**-nya, yang dikelompokkan per bidang (panel, media, entri setiap koleksi, pengaturan…).
 
+Mengunduh daftar sebagai spreadsheet (**Export CSV**) adalah izin tersendiri, terpisah dari melihat daftar, karena ekspor membawa data keluar dari panel.
+
 Situs Anda mungkin sudah memiliki peran siap pakai sebagai titik awal:
 
 | Peran | Untuk |
 | --- | --- |
 | **administrator** | Semuanya, bagi orang yang menjalankan situs. |
-| **editor** | Semua konten: entri, term, global, menu, komentar, media, dan membaca kiriman formulir. Tidak termasuk struktur, pengaturan, atau pengguna. |
+| **editor** | Semua konten: entri, term, global, menu, komentar, media, serta membaca dan mengekspor kiriman formulir. Tidak termasuk struktur, pengaturan, atau pengguna. |
 | **author** | Menulis entri dan mengubah entrinya sendiri, mengunggah media, dan melihat draf di situs. Tidak bisa menerbitkan. |
 | **translator** | Menulis bahasa lain dari entri. |
 
