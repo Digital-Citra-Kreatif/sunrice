@@ -147,4 +147,11 @@ Action::make('reject')->ability('update')
     ->handle(fn (Order $order, array $input) => $order->reject($input['reason'])),
 ```
 
+For a model with a trash (`SoftDeletes`), `->trashed()` makes an action for records in the trash only, such as a Restore: it finds them though the resource's query leaves them out, and isn't offered (or run) for anything else. List them with a filter:
+
+```php
+->filters([Filter::make('trashed')->label('Deleted')->options(['only' => 'Deleted'])->query(fn (Builder $q) => $q->onlyTrashed())])
+->actions([Action::make('restore')->trashed()->ability('delete')->handle(fn (Note $note) => $note->restore() ? 'Restored.' : null)])
+```
+
 A row action with the key `delete` replaces the built-in Delete in the row's menu (the Users screen does this to ask what happens to the user's content). Deleting itself, from the row, the edit page or in bulk, goes through the resource's `deleteRecord($record)`: override it to delete through an action of your own, or throw `ActionFailed` to refuse with a message (the Roles screen refuses while users still have the role).

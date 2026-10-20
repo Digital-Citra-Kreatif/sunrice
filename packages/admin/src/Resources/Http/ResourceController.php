@@ -6,7 +6,9 @@ namespace Sunrice\Admin\Resources\Http;
 
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -153,8 +155,8 @@ final class ResourceController
     public function action(Request $request, string $record, string $action): RedirectResponse
     {
         $resource = $this->resource($request);
-        $model = $this->find($resource, $record);
         $definition = $this->findAction($resource, $action, bulk: false);
+        $model = $this->find($resource, $record, $definition->isForTrashed());
         $this->authorize($request, $resource, $definition->getAbility(), $model);
         abort_unless($definition->isVisibleFor($model), 403);
 
@@ -174,8 +176,11 @@ final class ResourceController
         $ids = array_values(array_filter((array) $request->input('ids'), fn (mixed $id) => is_int($id) || is_string($id)));
 
         // Only records the resource can reach, and only if the user may act on each.
-        $records = $resource->class::query()->whereKey($ids)->get();
         $definition = $action === 'delete' ? null : $this->findAction($resource, $action, bulk: true);
+        $records = $this->query($resource, $definition?->isForTrashed() ?? false)->whereKey($ids)->get();
+        if ($definition?->isForTrashed() === true) {
+            $records = $records->filter(fn (Model $record): bool => $definition->isVisibleFor($record))->values();
+        }
         $ability = $definition?->getAbility() ?? 'delete';
         foreach ($records as $record) {
             abort_unless($resource->allows($user, $ability, $record), 403);
@@ -265,9 +270,21 @@ final class ResourceController
         return $resource;
     }
 
-    private function find(RegisteredResource $resource, string $id): Model
+    private function find(RegisteredResource $resource, string $id, bool $trashed = false): Model
     {
-        return $resource->class::query()->whereKey($id)->firstOrFail();
+        return $this->query($resource, $trashed)->whereKey($id)->firstOrFail();
+    }
+
+    /**
+     * The resource's records; with $trashed, those in the trash too.
+     *
+     * @return Builder<Model>
+     */
+    private function query(RegisteredResource $resource, bool $trashed): Builder
+    {
+        $query = $resource->class::query();
+
+        return $trashed ? $query->withoutGlobalScope(SoftDeletingScope::class) : $query;
     }
 
     private function findAction(RegisteredResource $resource, string $key, bool $bulk): Action
