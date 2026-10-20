@@ -97,7 +97,7 @@ final class UploadMedia extends Tool
             // No redirects (they could lead inside), and the address checked is the one connected to.
             $response = Http::timeout(30)->withOptions([
                 'allow_redirects' => false,
-                'curl' => $ip === trim((string) $host, '[]') ? [] : [CURLOPT_RESOLVE => ["{$host}:{$port}:{$ip}"]],
+                'curl' => $ip === trim((string) $host, '[]') || ! defined('CURLOPT_RESOLVE') ? [] : [CURLOPT_RESOLVE => ["{$host}:{$port}:{$ip}"]],
                 'on_headers' => function (ResponseInterface $headers) use ($limit): void {
                     if ((int) $headers->getHeaderLine('Content-Length') > $limit) {
                         throw new \RuntimeException('too large');
