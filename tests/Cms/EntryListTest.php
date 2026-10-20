@@ -81,7 +81,7 @@ it('filters by status, the trash included', function () {
         ->and(listed('status=published'))->toBe(['Live'])
         ->and(listed('status=scheduled'))->toBe(['Soon'])
         ->and(listed('status=trashed'))->toBe(['Gone'])
-        ->and(listed('trashed=1'))->toBe(['Gone'])
+        ->and(listed('status=trashed'))->toBe(['Gone'])
         ->and(listed('status=nonsense'))->toBe(['Draft', 'Live', 'Soon']);
 });
 
@@ -242,15 +242,15 @@ it('links to the pages an editor needs next, those they may open', function () {
 
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
         ->where('links', [
-            ['group' => 'Listing page', 'label' => 'Edit the listing page', 'href' => route('sunrice.admin.cms.listings.edit', 'products')],
+            ['group' => 'Listing page', 'label' => 'Edit the listing page', 'href' => route('sunrice.admin.cms.collections.listing.edit', 'products')],
             ['group' => 'Listing page', 'label' => 'View the listing page', 'href' => url('/products'), 'external' => true],
         ]));
 
-    lister('cms.entries.view', 'cms.terms.topics.manage', 'cms.collections.update', 'cms.blueprints.manage');
+    lister('cms.entries.view', 'cms.terms.topics.view', 'cms.terms.topics.create', 'cms.terms.topics.update', 'cms.terms.topics.delete', 'cms.collections.update', 'cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.view', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete');
     $blueprint = Blueprint::query()->where('handle', 'product')->firstOrFail();
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('links.2', ['group' => 'Terms', 'label' => 'Topics', 'href' => route('sunrice.admin.cms.terms.index', 'topics')])
-        ->where('links.3', ['group' => 'Structure', 'label' => 'Collection settings', 'href' => route('sunrice.admin.resources.collections.edit', $this->products->id)])
+        ->where('links.2', ['group' => 'Terms', 'label' => 'Topics', 'href' => route('sunrice.admin.cms.taxonomies.terms.index', 'topics')])
+        ->where('links.3', ['group' => 'Structure', 'label' => 'Collection settings', 'href' => route('sunrice.admin.cms.collections.edit', 'products')])
         ->where('links.4', ['group' => 'Structure', 'label' => 'Blueprint: Product', 'href' => route('sunrice.admin.cms.blueprints.edit', $blueprint->id)]));
 });
 

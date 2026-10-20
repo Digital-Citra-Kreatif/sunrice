@@ -91,7 +91,7 @@ it('lists entries, newest first in a dated collection, with search and the trash
     get('/admin/cms/collections/articles/entries?search=old')->assertInertia(fn (Assert $page) => $page->where('entries.total', 1));
     get('/admin/cms/collections/articles/entries?search=OLDER')->assertInertia(fn (Assert $page) => $page->where('entries.total', 1));
     get('/admin/cms/collections/articles/entries?search=%25')->assertInertia(fn (Assert $page) => $page->where('entries.total', 0));
-    get('/admin/cms/collections/articles/entries?trashed=1')->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/collections/articles/entries?status=trashed')->assertInertia(fn (Assert $page) => $page
         ->where('entries.total', 1)->where('entries.data.0.title', 'Gone'));
 });
 
@@ -99,7 +99,7 @@ it('creates an entry from the editor', function () {
     editor('view', 'create');
 
     get('/admin/cms/collections/articles/entries/create')->assertInertia(fn (Assert $page) => $page
-        ->component('Cms/Entries/Editor', shouldExist: false)
+        ->component('Cms/Entries/Edit', shouldExist: false)
         ->where('entry', null)
         ->where('values.data', ['intro' => null, 'featured' => false])
         ->where('fields.0.handle', 'intro'));
@@ -197,7 +197,7 @@ it('restores a revision into the draft', function () {
     app(SaveDraft::class)->handle($translation, ['title' => 'Changed']);
     editor('view', 'update');
 
-    post('/admin/cms/revisions/'.$translation->revisions()->firstOrFail()->id.'/restore')->assertSessionHasNoErrors();
+    post("/admin/cms/entries/{$translation->entry_id}/revisions/".$translation->revisions()->firstOrFail()->id.'/restore')->assertSessionHasNoErrors();
 
     expect($translation->fresh()?->draft_title)->toBe('Hello');
 });
@@ -255,17 +255,17 @@ it('sends terms fields their taxonomy and the chosen terms\' titles, and the pic
         ->where('fields.0.taxonomy', 'topics')->missing('fields.0.terms')
         ->where('termLabels', [(string) $local->id => 'Local']));
 
-    $this->getJson('/admin/cms/term-picker?taxonomy=topics')->assertOk()->assertExactJson(['items' => [
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics')->assertOk()->assertExactJson(['items' => [
         ['id' => $news->id, 'label' => 'News', 'depth' => 0], ['id' => $local->id, 'label' => 'Local', 'depth' => 1], ['id' => $sport->id, 'label' => 'Sport', 'depth' => 0],
     ], 'more' => false]);
-    $this->getJson('/admin/cms/term-picker?taxonomy=topics&q=spo')->assertJsonPath('items', [['id' => $sport->id, 'label' => 'Sport', 'depth' => 0]]);
-    $this->getJson("/admin/cms/term-picker?taxonomy=other&ids[]={$sport->id}")->assertJsonPath('items', []);
-    $this->getJson("/admin/cms/term-picker?taxonomy=topics&ids[]={$sport->id}")->assertJsonPath('items.0.label', 'Sport');
-    $this->getJson('/admin/cms/term-picker?taxonomy=nope')->assertNotFound();
-    $this->getJson('/admin/cms/term-picker')->assertUnprocessable();
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics&q=spo')->assertJsonPath('items', [['id' => $sport->id, 'label' => 'Sport', 'depth' => 0]]);
+    $this->getJson("/admin/cms/terms/picker?taxonomy=other&ids[]={$sport->id}")->assertJsonPath('items', []);
+    $this->getJson("/admin/cms/terms/picker?taxonomy=topics&ids[]={$sport->id}")->assertJsonPath('items.0.label', 'Sport');
+    $this->getJson('/admin/cms/terms/picker?taxonomy=nope')->assertNotFound();
+    $this->getJson('/admin/cms/terms/picker')->assertUnprocessable();
 
     actingAs(adminUser(Panel::ACCESS));
-    $this->getJson('/admin/cms/term-picker?taxonomy=topics')->assertForbidden();
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics')->assertForbidden();
 });
 
 it('keeps the editor to a query budget', function () {

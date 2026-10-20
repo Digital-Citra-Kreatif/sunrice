@@ -79,11 +79,11 @@ it('finds entries for the picker', function () {
     entryIn($this->pages, 'Tower page');
 
     actingAs(adminUser(Panel::ACCESS));
-    getJson('/admin/cms/entry-picker?search=tow')->assertForbidden();
+    getJson('/admin/cms/entries/picker?search=tow')->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
-    getJson('/admin/cms/entry-picker?search=TOW&collections[]=projects')->assertOk()
+    getJson('/admin/cms/entries/picker?search=TOW&collections[]=projects')->assertOk()
         ->assertExactJson(['items' => [['id' => $tower->entry_id, 'title' => 'Tower', 'collection' => 'Projects', 'collectionHandle' => 'projects', 'status' => 'published']]]);
-    getJson("/admin/cms/entry-picker?ids[]={$bridge->entry_id}&ids[]={$tower->entry_id}")
+    getJson("/admin/cms/entries/picker?ids[]={$bridge->entry_id}&ids[]={$tower->entry_id}")
         ->assertJsonPath('items.0.title', 'Bridge')->assertJsonPath('items.0.status', 'draft')->assertJsonPath('items.1.title', 'Tower');
 });

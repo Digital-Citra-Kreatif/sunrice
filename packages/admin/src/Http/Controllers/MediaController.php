@@ -45,11 +45,12 @@ final class MediaController
             'folder' => ['nullable', 'integer'],
             'search' => ['nullable', 'string', 'max:200'],
             'type' => ['nullable', Rule::in(Media::TYPES)],
-            'trash' => ['nullable', 'boolean'],
+            // The trash: ?status=trashed, as on every list.
+            'status' => ['nullable', Rule::in(['trashed'])],
         ]);
         $search = is_string($query['search'] ?? null) ? trim($query['search']) : '';
         $type = is_string($query['type'] ?? null) ? $query['type'] : null;
-        $trash = (bool) ($query['trash'] ?? false);
+        $trash = ($query['status'] ?? null) === 'trashed';
 
         // The folder tree is small: one query, the rest in memory.
         $folders = MediaFolder::query()->orderBy('name')->get(['id', 'parent_id', 'name']);

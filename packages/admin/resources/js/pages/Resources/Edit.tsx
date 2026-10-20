@@ -7,7 +7,7 @@ import { useConfirm } from '@/components/resources/confirm';
 import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
 import { InfoCards } from '@/components/resources/info-cards';
-import { ResourceKeyContext } from '@/components/resources/resource-context';
+import { ResourcePathContext } from '@/components/resources/resource-context';
 import type { InfoCard, ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
@@ -16,7 +16,7 @@ import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
 interface Props {
     resource: ResourceInfo;
-    record: { id: string | number; title: string } | null;
+    record: { id: string | number; key: string; title: string } | null;
     sections: SectionInfo[];
     values: Record<string, FieldValue>;
     can: { delete: boolean };
@@ -24,7 +24,7 @@ interface Props {
     aside?: InfoCard[];
 }
 
-export default function ResourceForm({ resource, record, sections, values, can, aside = [] }: Props) {
+export default function ResourceEdit({ resource, record, sections, values, can, aside = [] }: Props) {
     const base = adminUrl(resource.path);
     const title = record ? record.title : `New ${resource.singularLabel.toLowerCase()}`;
     useBreadcrumbs([{ label: resource.label, href: base }, { label: title }]);
@@ -46,7 +46,7 @@ export default function ResourceForm({ resource, record, sections, values, can, 
         if (form.processing) return;
         if (record) {
             // Saved: what's on screen is the new baseline for "unsaved changes".
-            form.put(`${base}/${record.id}`, { preserveScroll: true, onSuccess: () => form.setDefaults() });
+            form.put(`${base}/${record.key}`, { preserveScroll: true, onSuccess: () => form.setDefaults() });
         } else {
             form.post(base, { onSuccess: () => form.setDefaults() });
         }
@@ -57,7 +57,7 @@ export default function ResourceForm({ resource, record, sections, values, can, 
     };
     useUnsavedChanges(form.isDirty, save);
 
-    const remove = () => record && confirm(`Delete ${record.title}? This can't be undone.`, () => router.delete(`${base}/${record.id}`), true);
+    const remove = () => record && confirm(`Delete ${record.title}? This can't be undone.`, () => router.delete(`${base}/${record.key}`), true);
 
     const page = (
         <form onSubmit={submit} className="flex max-w-5xl min-w-0 flex-1 flex-col gap-6">
@@ -82,9 +82,9 @@ export default function ResourceForm({ resource, record, sections, values, can, 
                 }
             />
 
-            <ResourceKeyContext value={resource.key}>
+            <ResourcePathContext value={resource.path}>
                 <FormSections sections={sections} data={form.data} errors={form.errors} storageKey={`sunrice:resource:${resource.key}`} onChange={change} />
-            </ResourceKeyContext>
+            </ResourcePathContext>
         </form>
     );
     if (aside.length === 0) return page;

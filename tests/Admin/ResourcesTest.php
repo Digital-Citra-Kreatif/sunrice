@@ -45,7 +45,7 @@ it('registers permissions, a sidebar item and routes', function () {
     $panel = app(Panel::class);
 
     expect(array_keys($panel->getPermissions()))->toContain('shop.products.view', 'shop.products.create', 'shop.products.update', 'shop.products.delete')
-        ->and(route('sunrice.admin.resources.products.index', absolute: false))->toBe('/admin/shop/products');
+        ->and(route('sunrice.admin.shop.products.index', absolute: false))->toBe('/admin/shop/products');
 
     shopUser('view');
     get('/admin')->assertInertia(fn (Assert $page) => $page
@@ -109,7 +109,7 @@ it('creates a record from the declared fields only', function () {
     shopUser('view', 'create', 'update');
 
     get('/admin/shop/products/create')->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->component('Resources/Form', shouldExist: false)
+        ->component('Resources/Edit', shouldExist: false)
         ->where('record', null)
         ->where('sections.0.title', null)
         ->where('sections.0.fields.0.name', 'name')
@@ -160,11 +160,11 @@ it('deletes records, one or many, only when allowed', function () {
     shopUser('view', 'delete');
 
     delete("/admin/shop/products/{$a->id}")->assertRedirect('/admin/shop/products');
-    post('/admin/shop/products/bulk/delete', ['ids' => [$b->id]])->assertSessionHas('success', '1 deleted.');
+    post('/admin/shop/products/bulk', ['action' => 'delete', 'ids' => [$b->id]])->assertSessionHas('success', '1 deleted.');
     expect(Product::query()->pluck('id')->all())->toBe([$c->id]);
 
     shopUser('view');
-    post('/admin/shop/products/bulk/delete', ['ids' => [$c->id]])->assertForbidden();
+    post('/admin/shop/products/bulk', ['action' => 'delete', 'ids' => [$c->id]])->assertForbidden();
     expect(Product::query()->count())->toBe(1);
 });
 
@@ -174,7 +174,7 @@ it('cannot reach records outside the resource\'s query', function () {
 
     get("/admin/shop/products/{$archived->id}/edit")->assertNotFound();
     delete("/admin/shop/products/{$archived->id}")->assertNotFound();
-    post('/admin/shop/products/bulk/delete', ['ids' => [$archived->id]]);
+    post('/admin/shop/products/bulk', ['action' => 'delete', 'ids' => [$archived->id]]);
     expect($archived->fresh())->not->toBeNull();
 });
 
@@ -187,7 +187,7 @@ it('runs row and bulk actions', function () {
     post("/admin/shop/products/{$product->id}/actions/publish")->assertSessionHas('error', 'It is already live.');
     post("/admin/shop/products/{$product->id}/actions/nope")->assertNotFound();
 
-    post('/admin/shop/products/bulk/deactivate', ['ids' => [$product->id]])->assertSessionHas('success');
+    post('/admin/shop/products/bulk', ['action' => 'deactivate', 'ids' => [$product->id]])->assertSessionHas('success');
     expect($product->fresh()?->active)->toBeFalse();
 
     shopUser('view');
@@ -241,23 +241,23 @@ it('searches a relation field\'s options behind the resource\'s view permission'
     Tag::query()->create(['name' => 'Sale']);
 
     catalogUser();
-    get('/admin/resources/catalog/options/category')->assertForbidden();
+    get('/admin/shop/catalog/options/category')->assertForbidden();
 
     catalogUser('view');
-    expect(get('/admin/resources/catalog/options/category?q=to')->assertOk()->json('options'))
+    expect(get('/admin/shop/catalog/options/category?q=to')->assertOk()->json('options'))
         ->toBe([['value' => 1, 'label' => 'Tools'], ['value' => 2, 'label' => 'Toys']])
-        ->and(get('/admin/resources/catalog/options/category?q=%25')->json('options'))->toBe([]) // what was typed, not a pattern
-        ->and(get('/admin/resources/catalog/options/tags')->json('options'))->toBe([['value' => 2, 'label' => 'Sale']]) // ->query() narrows
-        ->and(route('sunrice.admin.resources.catalog.options', ['field' => 'tags'], false))->toBe('/admin/resources/catalog/options/tags');
-    get('/admin/resources/catalog/options/name')->assertNotFound(); // not a relation field
-    get('/admin/resources/catalog/options/nothing')->assertNotFound();
+        ->and(get('/admin/shop/catalog/options/category?q=%25')->json('options'))->toBe([]) // what was typed, not a pattern
+        ->and(get('/admin/shop/catalog/options/tags')->json('options'))->toBe([['value' => 2, 'label' => 'Sale']]) // ->query() narrows
+        ->and(route('sunrice.admin.shop.catalog.options', ['field' => 'tags'], false))->toBe('/admin/shop/catalog/options/tags');
+    get('/admin/shop/catalog/options/name')->assertNotFound(); // not a relation field
+    get('/admin/shop/catalog/options/nothing')->assertNotFound();
 });
 
 it('caps relation options at 50', function () {
     Category::query()->insert(array_map(fn ($n) => ['name' => sprintf('Category %03d', $n)], range(1, 60)));
     catalogUser('view');
 
-    expect(get('/admin/resources/catalog/options/category')->json('options'))->toHaveCount(50);
+    expect(get('/admin/shop/catalog/options/category')->json('options'))->toHaveCount(50);
 });
 
 it('saves belongs-to and ordered belongs-to-many fields, only to records that may be chosen', function () {

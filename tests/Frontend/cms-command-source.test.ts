@@ -29,7 +29,7 @@ test('searches the entry picker with the query, and gives nothing when refused',
     try {
         const found = await searchEntries(' hello ', new AbortController().signal, href);
         assert.deepEqual(found.map((c) => c.label), ['Found']);
-        assert.deepEqual(calls, ['/admin/cms/entry-picker?search=hello']);
+        assert.deepEqual(calls, ['/admin/cms/entries/picker?search=hello']);
         assert.deepEqual(await searchEntries('forbidden', new AbortController().signal, href), []);
     } finally {
         globalThis.fetch = original;

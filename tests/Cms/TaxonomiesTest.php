@@ -153,7 +153,7 @@ it('edits taxonomies and their terms in the admin', function () {
     expect(Taxonomy::query()->where('handle', 'topics')->firstOrFail()->collections->pluck('handle')->all())->toBe(['pages']);
     get('/admin/cms/terms')->assertForbidden();
 
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     get('/admin/cms/terms')->assertRedirect('/admin/cms/taxonomies/categories/terms');
     post('/admin/cms/taxonomies/categories/terms', ['title' => 'News'])->assertSessionHasNoErrors();
     $news = Term::query()->firstOrFail();
@@ -192,13 +192,13 @@ it('lists each term with its entry count, and the taxonomy\'s collections and se
     $post = app(CreateEntry::class)->handle($blog, ['title' => 'Hello']);
     $post->entry->terms()->attach($laravel);
 
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage', 'cms.taxonomies.update'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete', 'cms.taxonomies.update'));
     get('/admin/cms/taxonomies/tags/terms')->assertInertia(fn (Assert $page) => $page
         ->where('terms.0.title', 'Laravel')
         ->where('terms.0.entries', 1)
         ->where('terms.1.entries', 0)
         ->where('taxonomy.collections', [['title' => 'Blog', 'url' => url('/admin/cms/collections/blog/entries')]])
-        ->where('taxonomy.settings', url("/admin/cms/taxonomies/{$this->tags->id}/edit")));
+        ->where('taxonomy.settings', url("/admin/cms/taxonomies/{$this->tags->handle}/edit")));
 });
 
 it('explains a template setting with the files tried in order when it is empty', function () {
@@ -213,7 +213,7 @@ it('explains a template setting with the files tried in order when it is empty',
 
 it('creates a term on its own page, then goes to its page or back to the list', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     $news = term($this->categories, 'News');
 
     get("/admin/cms/taxonomies/categories/terms/create?parent={$news->id}")->assertInertia(fn (Assert $page) => $page

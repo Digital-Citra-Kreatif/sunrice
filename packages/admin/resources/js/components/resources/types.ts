@@ -39,6 +39,10 @@ export interface ActionInfo {
 
 export interface Row {
     id: string | number;
+    /** In its addresses: /{path}/{key}/edit (Resource::recordKey()). */
+    key: string;
+    /** Where the title links, when not the edit page (Resource::recordUrl()). */
+    url?: string | null;
     title: string;
     cells: Record<string, CellValue>;
     can: { update: boolean; delete: boolean };

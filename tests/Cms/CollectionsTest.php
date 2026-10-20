@@ -66,15 +66,15 @@ it('switches entry pages and the listing page on and off, with default addresses
     $blog = app(SaveCollection::class)->handle(['handle' => 'blog', 'title' => 'Blog']);
 
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update'));
-    Pest\Laravel\get("/admin/cms/collections/{$blog->id}/edit")->assertInertia(fn (AssertableInertia $page) => $page
+    Pest\Laravel\get("/admin/cms/collections/{$blog->handle}/edit")->assertInertia(fn (AssertableInertia $page) => $page
         ->where('values.pages', false)->where('values.listing', false)->where('values.translatable', true));
 
     // On without an address: the defaults, from the handle.
-    Pest\Laravel\put("/admin/cms/collections/{$blog->id}", ['title' => 'Blog', 'per_page' => 10, 'pages' => true, 'listing' => true])->assertSessionHasNoErrors();
+    Pest\Laravel\put("/admin/cms/collections/{$blog->handle}", ['title' => 'Blog', 'per_page' => 10, 'pages' => true, 'listing' => true])->assertSessionHasNoErrors();
     expect($blog->refresh()->route)->toBe('/blog/{slug}')->and($blog->listing_route)->toBe('/blog');
 
     // Given ones are kept; off clears them.
-    Pest\Laravel\put("/admin/cms/collections/{$blog->id}", ['title' => 'Blog', 'per_page' => 10, 'pages' => true, 'route' => '/news/{slug}', 'listing' => false, 'listing_route' => '/news'])->assertSessionHasNoErrors();
+    Pest\Laravel\put("/admin/cms/collections/{$blog->handle}", ['title' => 'Blog', 'per_page' => 10, 'pages' => true, 'route' => '/news/{slug}', 'listing' => false, 'listing_route' => '/news'])->assertSessionHasNoErrors();
     expect($blog->refresh()->route)->toBe('/news/{slug}')->and($blog->listing_route)->toBeNull();
 });
 

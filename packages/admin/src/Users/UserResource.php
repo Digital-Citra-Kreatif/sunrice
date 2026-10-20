@@ -209,7 +209,7 @@ class UserResource extends Resource
             'at' => $event->created_at,
         ]));
         // The list's row actions, which check the right to update this user again.
-        $actions = '/'.trim(route('sunrice.admin.resources.users.index', [], false), '/')."/{$id}/actions";
+        $actions = '/'.trim(route('sunrice.admin.users.index', [], false), '/')."/{$id}/actions";
         $card->button('Sign out everywhere', "{$actions}/sign-out", 'End all of this user\'s sessions? They can log in again with their password.');
         $card->button('Revoke AI tokens', "{$actions}/revoke-tokens", 'Revoke all of this user\'s AI access tokens? AI agents using them stop working at once.');
         if ($user->can('sunrice.activity.view')) {

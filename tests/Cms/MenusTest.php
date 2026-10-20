@@ -111,14 +111,14 @@ it('edits menus in the admin', function () {
     app(SaveMenu::class)->handle($this->main, [['entry_id' => $about->entry_id]]);
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
 
-    get('/admin/cms/menus/main')->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/menus/main/links')->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Menus/Edit', shouldExist: false)
         ->where('items.0.target', ['title' => 'About', 'kind' => 'Pages', 'live' => true])
         ->where('can.update', false));
-    put('/admin/cms/menus/main', ['items' => []])->assertForbidden();
+    put('/admin/cms/menus/main/links', ['items' => []])->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
-    put('/admin/cms/menus/main', ['items' => [['url' => '/contact', 'labels' => ['en' => 'Contact']]]])->assertSessionHasNoErrors();
+    put('/admin/cms/menus/main/links', ['items' => [['url' => '/contact', 'labels' => ['en' => 'Contact']]]])->assertSessionHasNoErrors();
     expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Contact']);
 });
 
@@ -171,15 +171,16 @@ it('links untranslated pages at the language\'s address, or the main page with t
     expect(array_column(app(Menus::class)->get('main', 'id'), 'url'))->toBe([url('/about'), url('/tags/news')]);
 });
 
-it('labels the menus resource apart from the menu editor in the sidebar', function () {
+it('lists the menus once, under Content, each opening its links', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
 
     get('/admin/cms/menus')->assertOk()->assertInertia(function (Assert $page) {
         $items = collect($page->toArray()['props']['navigation'])->pluck('items')->flatten(1)->keyBy('key');
 
-        expect($items['cms-menus']['label'])->toBe('Menus')
-            ->and($items['resources.menus']['label'])->toBe('Menu settings');
+        expect($items['resources.menus']['label'])->toBe('Menus')
+            ->and($items->keys()->filter(fn (string $key) => str_contains($key, 'menus'))->values()->all())->toBe(['resources.menus']);
+        $page->where('rows.data.0.key', 'main')->where('rows.data.0.url', url('/admin/cms/menus/main/links'));
     });
     expect(app(Panel::class)->getPermissions()['cms.menus.view']->label)->toBe('View Menus');
 });
@@ -188,14 +189,14 @@ it('fills a new menu\'s handle from its title, and shows it read-only after, wit
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
 
-    get('/admin/cms/menu-settings/create')->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/menus/create')->assertInertia(fn (Assert $page) => $page
         ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.slugFrom', 'title'));
-    post('/admin/cms/menu-settings', ['title' => 'Footer', 'handle' => 'Footer Links'])
+    post('/admin/cms/menus', ['title' => 'Footer', 'handle' => 'Footer Links'])
         ->assertSessionHasErrors(['handle' => 'Use lowercase letters, numbers and underscores, starting with a letter (like main_menu).']);
 
-    get("/admin/cms/menu-settings/{$this->main->id}/edit")->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/menus/main/edit')->assertInertia(fn (Assert $page) => $page
         ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.disabled', true)->where('values.handle', 'main')
-        ->where('aside.0.title', 'Links')->where('aside.0.links.0.url', '/admin/cms/menus/main'));
-    put("/admin/cms/menu-settings/{$this->main->id}", ['title' => 'Main menu', 'handle' => 'other'])->assertSessionHasNoErrors();
+        ->where('aside.0.title', 'Links')->where('aside.0.links.0.url', '/admin/cms/menus/main/links'));
+    put('/admin/cms/menus/main', ['title' => 'Main menu', 'handle' => 'other'])->assertSessionHasNoErrors();
     expect($this->main->fresh()?->only(['title', 'handle']))->toBe(['title' => 'Main menu', 'handle' => 'main']);
 });

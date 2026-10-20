@@ -26,7 +26,7 @@ function collectionsUser(string ...$abilities): void
 
 it('registers the Collections screens and their permissions', function () {
     expect(array_keys(app(Panel::class)->getPermissions()))->toContain('cms.collections.view', 'cms.collections.create', 'cms.collections.update', 'cms.collections.delete')
-        ->and(route('sunrice.admin.resources.collections.index', absolute: false))->toBe('/admin/cms/collections');
+        ->and(route('sunrice.admin.cms.collections.index', absolute: false))->toBe('/admin/cms/collections');
 });
 
 it('is guarded by the permissions', function () {
@@ -35,8 +35,8 @@ it('is guarded by the permissions', function () {
 
     get('/admin/cms/collections')->assertForbidden();
     post('/admin/cms/collections', ['title' => 'X', 'handle' => 'x'])->assertForbidden();
-    put("/admin/cms/collections/{$pages->id}", ['title' => 'X'])->assertForbidden();
-    delete("/admin/cms/collections/{$pages->id}")->assertForbidden();
+    put("/admin/cms/collections/{$pages->handle}", ['title' => 'X'])->assertForbidden();
+    delete("/admin/cms/collections/{$pages->handle}")->assertForbidden();
 });
 
 it('lists collections', function () {
@@ -79,10 +79,10 @@ it('changes the handle when editing, only to a free and valid one', function () 
     Collection::query()->create(['handle' => 'posts', 'title' => 'Posts'])->delete();
     collectionsUser('view', 'update');
 
-    put("/admin/cms/collections/{$pages->id}", ['title' => 'Pages'])->assertSessionHasNoErrors(); // left out: kept
+    put("/admin/cms/collections/{$pages->handle}", ['title' => 'Pages'])->assertSessionHasNoErrors(); // left out: kept
     expect($pages->fresh()?->handle)->toBe('pages');
-    put("/admin/cms/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'posts'])->assertSessionHasErrors('handle'); // a deleted one's
-    put("/admin/cms/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'other'])->assertSessionHasNoErrors();
+    put("/admin/cms/collections/{$pages->handle}", ['title' => 'Site pages', 'handle' => 'posts'])->assertSessionHasErrors('handle'); // a deleted one's
+    put("/admin/cms/collections/{$pages->handle}", ['title' => 'Site pages', 'handle' => 'other'])->assertSessionHasNoErrors();
 
     expect($pages->fresh()?->only(['handle', 'title']))->toBe(['handle' => 'other', 'title' => 'Site pages']);
 });
@@ -93,9 +93,21 @@ it('deletes a collection but keeps its entries', function () {
     actingAs($user);
     $entry = app(CreateEntry::class)->handle($pages, ['title' => 'About']);
 
-    delete("/admin/cms/collections/{$pages->id}")->assertRedirect();
+    delete("/admin/cms/collections/{$pages->handle}")->assertRedirect();
 
     expect(Collection::withTrashed()->find($pages->id)?->trashed())->toBeTrue()
         ->and($entry->fresh())->not->toBeNull()
         ->and(Activity::query()->latest('id')->first()?->only(['action', 'subject_type']))->toBe(['action' => 'deleted', 'subject_type' => 'collections']);
+});
+
+it('names collections by their handle in addresses, and sends an old id address on to it', function () {
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages']);
+    collectionsUser('view', 'create', 'update');
+
+    get('/admin/cms/collections')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.key', 'pages'));
+    get('/admin/cms/collections/pages/edit')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('Resources/Edit', shouldExist: false)->where('record.key', 'pages'));
+    get("/admin/cms/collections/{$pages->id}/edit")->assertRedirect('/admin/cms/collections/pages/edit');
+    post('/admin/cms/collections', ['title' => 'New', 'handle' => 'create', 'per_page' => 10])->assertSessionHasErrors('handle');
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'per_page' => 10])->assertRedirect('/admin/cms/collections/news/edit');
 });

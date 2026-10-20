@@ -62,7 +62,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             ...(next.folder && !next.search && !next.trash ? { folder: next.folder } : {}),
             ...(next.search ? { search: next.search } : {}),
             ...(next.type ? { type: next.type } : {}),
-            ...(next.trash ? { trash: 1 } : {}),
+            ...(next.trash ? { status: 'trashed' } : {}),
         }, { preserveState: true, preserveScroll: true });
     };
     const bulk = (action: 'move' | 'trash' | 'restore' | 'delete', extra: Record<string, unknown> = {}, ids: number[] = selected) =>

@@ -51,7 +51,7 @@ it('records resource changes with the fields that changed, not their values', fu
 
     put("/admin/shop/products/{$product->id}", ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live'])->assertSessionHasNoErrors();
     put("/admin/shop/products/{$product->id}", ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live']); // nothing changed
-    post('/admin/shop/products/bulk/deactivate', ['ids' => [$product->id]]);
+    post('/admin/shop/products/bulk', ['action' => 'deactivate', 'ids' => [$product->id]]);
     delete("/admin/shop/products/{$product->id}");
 
     expect(activityLines())->toBe([

@@ -6,12 +6,14 @@ namespace Sunrice\Admin\Resources;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Http\Request;
 use Sunrice\Admin\Resources\Tables\Column;
 
 /**
  * A resource's list query from the request: search, filters and sort,
- * each only on what the table declares (anything else is ignored).
+ * each only on what the table declares (anything else is ignored), and
+ * ?status=trashed for the trash of a model with SoftDeletes.
  *
  * @internal
  */
@@ -25,6 +27,9 @@ final class ListQuery
     public array $filters = [];
 
     public string $sort;
+
+    /** Showing the trash (?status=trashed). */
+    public bool $trashed = false;
 
     public function __construct(private RegisteredResource $resource, Request $request)
     {
@@ -41,6 +46,8 @@ final class ListQuery
             }
         }
 
+        $this->trashed = $resource->softDeletes() && $request->query('status') === 'trashed';
+
         $sortable = ['id'];
         foreach ($table->getColumns() as $column) {
             if ($column->isSortable()) {
@@ -56,6 +63,11 @@ final class ListQuery
     {
         $table = $this->resource->table();
         $query = $this->resource->class::query();
+        if ($this->trashed) {
+            $model = $query->getModel();
+            $column = method_exists($model, 'getDeletedAtColumn') ? $model->getDeletedAtColumn() : null;
+            $query->withoutGlobalScope(SoftDeletingScope::class)->whereNotNull($query->qualifyColumn(is_string($column) ? $column : 'deleted_at'));
+        }
 
         $relations = [];
         foreach ($table->getColumns() as $column) {
@@ -108,9 +120,9 @@ final class ListQuery
         return in_array($perPage, self::PER_PAGE, true) ? $perPage : $default;
     }
 
-    /** @return array{search: string, filters: array<string, string>, sort: string} */
+    /** @return array{search: string, filters: array<string, string>, sort: string, status: string} */
     public function state(): array
     {
-        return ['search' => $this->search, 'filters' => $this->filters, 'sort' => $this->sort];
+        return ['search' => $this->search, 'filters' => $this->filters, 'sort' => $this->sort, 'status' => $this->trashed ? 'trashed' : ''];
     }
 }

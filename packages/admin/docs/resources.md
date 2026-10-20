@@ -48,7 +48,22 @@ Register it in a plugin's `register()` or in your panel provider:
 $panel->resources(ProductResource::class);
 ```
 
-That adds a sidebar item, the routes (`/admin/products`, named `sunrice.admin.resources.products.*`) and four permissions, five when the table is `->exportable()`. A plugin's resources live under the plugin's id (`/admin/shop/products`, the CMS's `/admin/cms/collections`); override `path()` to give one another address than its key (the route names and permissions keep the key).
+That adds a sidebar item, the routes and four permissions, five when the table is `->exportable()`. A plugin's resources live under the plugin's id (`/admin/shop/products`, the CMS's `/admin/cms/collections`), and their route names follow the address: `sunrice.admin.shop.products.*` (your app's: `sunrice.admin.products.*`). Override `path()` to give one another address than its key (the permissions keep the key).
+
+| Route | Address | |
+| --- | --- | --- |
+| `.index` | `GET /admin/shop/products` | the list; `?status=trashed` its trash (models with `SoftDeletes`) |
+| `.create`, `.store` | `GET …/create`, `POST …` | |
+| `.edit`, `.update`, `.destroy` | `GET …/{key}/edit`, `PUT …/{key}`, `DELETE …/{key}` | |
+| `.restore` | `POST …/{key}/restore` | back from the trash (models with `SoftDeletes`) |
+| `.bulk` | `POST …/bulk` | `action` (`delete`, `restore` or a bulk action's key) and `ids` |
+| `.action` | `POST …/{key}/actions/{action}` | a row action |
+| `.export` | `GET …/export` | CSV, for an `->exportable()` table |
+| `.options` | `GET …/options/{field}?q=` | what a relation field may choose |
+
+**Addresses name records by `recordKey()`**: the primary key unless you return an attribute that's unique and rarely changes (the CMS's collections, taxonomies, forms, menus and globals use their handle: `/admin/cms/collections/blog/edit`). An address with the numeric id still works for the edit page: it redirects to the record's own. **`recordUrl($record)`** sends the list's title link elsewhere than the edit page (a menu's links, say); the row's menu then has **Open** and **Settings**.
+
+**A model with `SoftDeletes` gets a trash**: Delete becomes **Move to trash**, the list has a **Trash** button (`?status=trashed`, for those who may delete) whose rows have **Restore**, one or selected. Override **`restoreRecord($record)`** to restore through an action of your own (throw `ActionFailed` to refuse with a message), as `deleteRecord()` does for deleting.
 
 The names come from the model: `label()` ("Products", the page title and the permissions' group), `singularLabel()` ("Product") and `navigationLabel()` (the sidebar item, `label()` unless you override it). Override them as static methods, like `navigationGroup()`, `navigationIcon()` (a lucide name) and `navigationSort()`.
 
@@ -127,7 +142,7 @@ BelongsToManySelect::make('tags')->orderColumn('sort_order')
 
 - `->title()` names a related record: a column (searched and sorted by; `name` by default), or a closure (then `->searchColumns()` says where to search).
 - `->query()` narrows the records that can be found **and** chosen: anything else is refused when the form is saved.
-- The form searches `GET /admin/resources/{key}/options/{field}?q=…` (route `sunrice.admin.resources.{key}.options`), which needs the resource's `view` ability and returns at most 50 options. Anyone who may view the list may see the related records' titles, so narrow `->query()` when that matters.
+- The form searches `GET /admin/{path}/options/{field}?q=…` (route `sunrice.admin.{plugin}.{key}.options`), which needs the resource's `view` ability and returns at most 50 options. Anyone who may view the list may see the related records' titles, so narrow `->query()` when that matters.
 - They work in resource forms (not in action dialogs or settings).
 
 ### Rich text

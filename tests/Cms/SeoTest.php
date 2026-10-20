@@ -326,11 +326,11 @@ it('gives listing pages SEO of their own, per language', function () {
     $this->blog->update(['listing_route' => '/blog']);
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
 
-    get('/admin/cms/collections/blog/listing')->assertOk()->assertInertia(fn ($page) => $page->where('seo', null));
+    get('/admin/cms/collections/blog/listing/edit')->assertOk()->assertInertia(fn ($page) => $page->where('seo', null));
     put('/admin/cms/collections/blog/listing', ['locale' => 'en', 'data' => [], 'seo' => ['title' => 'All our posts', 'description' => 'Read them', 'image' => $image->id]])->assertSessionHasNoErrors();
     put('/admin/cms/collections/blog/listing', ['locale' => 'id', 'data' => [], 'seo' => ['title' => 'Semua tulisan']])->assertSessionHasNoErrors();
     put('/admin/cms/collections/blog/listing', ['locale' => 'en', 'data' => [], 'seo' => ['title' => str_repeat('a', 300)]])->assertSessionHasErrors('seo.title');
-    get('/admin/cms/collections/blog/listing')->assertInertia(fn ($page) => $page->where('seo.title', 'All our posts')->missing('values.seo'));
+    get('/admin/cms/collections/blog/listing/edit')->assertInertia(fn ($page) => $page->where('seo.title', 'All our posts')->missing('values.seo'));
 
     get('/blog')->assertOk()
         ->assertSee('<title>All our posts | Acme</title>', false)

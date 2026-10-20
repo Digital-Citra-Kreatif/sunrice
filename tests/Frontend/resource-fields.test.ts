@@ -23,14 +23,14 @@ test('keeps only safe link addresses in rich text', () => {
 test('a relation field searches its resource\'s options route', async () => {
     const { optionsUrl } = await loadAdminModule<{ optionsUrl: (r: string, f: string, q: string) => string }>('components/resources/relation-select.tsx');
 
-    assert.equal(optionsUrl('catalog', 'tags', ' sa '), '/admin/resources/catalog/options/tags?q=sa');
-    assert.equal(optionsUrl('catalog', 'tags', ''), '/admin/resources/catalog/options/tags');
+    assert.equal(optionsUrl('shop/catalog', 'tags', ' sa '), '/admin/shop/catalog/options/tags?q=sa');
+    assert.equal(optionsUrl('catalog', 'tags', ''), '/admin/catalog/options/tags');
 });
 
 test('renders a relation field\'s chosen records, and the rich text editor as a placeholder until its code loads', async () => {
     const { RelationSelect } = await loadAdminModule<{ RelationSelect: ComponentType<any> }>('components/resources/relation-select.tsx');
-    const { ResourceKeyContext } = await loadAdminModule<{ ResourceKeyContext: any }>('components/resources/resource-context.ts');
-    const one = render(ResourceKeyContext, { value: 'catalog' }, createElement(RelationSelect, {
+    const { ResourcePathContext } = await loadAdminModule<{ ResourcePathContext: any }>('components/resources/resource-context.ts');
+    const one = render(ResourcePathContext, { value: 'catalog' }, createElement(RelationSelect, {
         id: 'field-category', field: 'category', multiple: false, value: 3, selected: [{ value: 3, label: 'Tools' }],
         required: false, disabled: false, invalid: false, onChange: () => undefined,
     }));

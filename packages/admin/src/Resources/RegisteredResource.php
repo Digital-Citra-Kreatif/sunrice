@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Resources;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Tables\Table;
 
@@ -37,6 +38,38 @@ final class RegisteredResource
     public function key(): string
     {
         return $this->class::key();
+    }
+
+    /** Its route names' area: "products", or "shop.products" for a plugin's (sunrice.admin.shop.products.index). */
+    public function routeArea(): string
+    {
+        return str_replace('/', '.', $this->path());
+    }
+
+    /** The full name of one of its routes: "sunrice.admin.shop.products.edit". */
+    public function routeName(string $action): string
+    {
+        return "sunrice.admin.{$this->routeArea()}.{$action}";
+    }
+
+    /** The attribute in its records' addresses: Resource::recordKey(), else the primary key. */
+    public function recordKey(): string
+    {
+        return $this->class::recordKey() ?? $this->class::newRecord()->getKeyName();
+    }
+
+    /** A record's value in its addresses. */
+    public function recordKeyOf(Model $record): string
+    {
+        $value = $record->getAttribute($this->recordKey());
+
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    /** Whether its model goes to the trash when deleted (SoftDeletes): the list then has a trash. */
+    public function softDeletes(): bool
+    {
+        return in_array(SoftDeletes::class, class_uses_recursive($this->class::model()), true);
     }
 
     public function form(): Form

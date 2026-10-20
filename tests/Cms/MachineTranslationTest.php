@@ -202,14 +202,14 @@ it('translates from the main language in the editor, when a service is set up', 
     get(entryEditUrl($entry, 'id'))->assertInertia(fn (Assert $page) => $page->where('machineTranslate', $id->id));
 
     // Translators may not edit the main language.
-    post("/admin/cms/entries/{$this->coffee->id}/translate")->assertForbidden();
-    post("/admin/cms/entries/{$id->id}/translate", ['version' => $id->version + 1])->assertSessionHasErrors('version');
-    post("/admin/cms/entries/{$id->id}/translate", ['version' => $id->version])->assertRedirect()->assertSessionHas('success');
+    post("/admin/cms/entries/{$this->coffee->entry_id}/translations/{$this->coffee->locale}/translate")->assertForbidden();
+    post("/admin/cms/entries/{$id->entry_id}/translations/id/translate", ['version' => $id->version + 1])->assertSessionHasErrors('version');
+    post("/admin/cms/entries/{$id->entry_id}/translations/id/translate", ['version' => $id->version])->assertRedirect()->assertSessionHas('success');
     expect($id->fresh()?->draft_data['intro'])->toBe('ID: Strong');
 
     config(['sunrice-cms.translation.driver' => null]);
     get(entryEditUrl($entry, 'id'))->assertInertia(fn (Assert $page) => $page->where('machineTranslate', null));
-    post("/admin/cms/entries/{$id->id}/translate")->assertNotFound();
+    post("/admin/cms/entries/{$id->entry_id}/translations/id/translate")->assertNotFound();
 });
 
 it('machine-translates with the cms_translate_entry tool', function () {

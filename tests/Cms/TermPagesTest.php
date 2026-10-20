@@ -63,7 +63,7 @@ it('tries the more specific pattern first, collections before taxonomies', funct
 
 it('edits a term\'s page per language, and checks the template', function () {
     app(SaveTerm::class)->handle($this->topics, ['title' => 'Berita', 'locale' => 'id'], $this->news);
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
 
     get(termEditUrl($this->news->id, 'id'))->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Terms/Edit', shouldExist: false)->where('translated', true)->where('term.title', 'Berita'));
@@ -93,16 +93,16 @@ it('locks a term\'s page for those who manage its taxonomy', function () {
     postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertForbidden();
 
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.tags.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.tags.view', 'cms.terms.tags.create', 'cms.terms.tags.update', 'cms.terms.tags.delete'));
     postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertForbidden();
 
-    $rina = adminUser(Panel::ACCESS, 'cms.terms.topics.manage');
+    $rina = adminUser(Panel::ACCESS, 'cms.terms.topics.view', 'cms.terms.topics.create', 'cms.terms.topics.update', 'cms.terms.topics.delete');
     actingAs($rina);
     postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertJson(['status' => 'ok']);
     postJson('/admin/locks/cms.term/999', ['editor' => 'tab-a', 'locale' => 'en'])->assertForbidden();
 
     // Someone else opening it meanwhile is told who's editing.
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-b', 'locale' => 'en'])->assertJson(['status' => 'locked']);
     postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-b', 'locale' => 'id'])->assertJson(['status' => 'ok']);
 });

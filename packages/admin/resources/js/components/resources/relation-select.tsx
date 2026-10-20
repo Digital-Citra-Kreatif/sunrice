@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { adminUrl } from '@/lib/admin-url';
 import { fetchJson, withQuery } from '@/lib/fetch-json';
 import { cn } from '@/lib/utils';
-import { ResourceKeyContext } from './resource-context';
+import { ResourcePathContext } from './resource-context';
 
 export type RelationKey = string | number;
 
@@ -17,13 +17,13 @@ export interface RelationOption {
 }
 
 /** The address a relation field searches (ResourceController::options). */
-export function optionsUrl(resource: string, field: string, query: string): string {
-    return withQuery(adminUrl(`resources/${resource}/options/${field}`), { q: query.trim() });
+export function optionsUrl(path: string, field: string, query: string): string {
+    return withQuery(adminUrl(`${path}/options/${field}`), { q: query.trim() });
 }
 
 /** Options as the person types (debounced), from the resource's options route. */
 function useRelationSearch(field: string, open: boolean) {
-    const resource = React.useContext(ResourceKeyContext);
+    const resource = React.useContext(ResourcePathContext);
     const [query, setQuery] = React.useState('');
     const [options, setOptions] = React.useState<RelationOption[]>([]);
     const [loading, setLoading] = React.useState(false);

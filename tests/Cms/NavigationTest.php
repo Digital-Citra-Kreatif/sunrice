@@ -30,12 +30,12 @@ function sidebarOf(mixed $user): array
 }
 
 it('lists each collection under Content and each taxonomy under Taxonomies', function () {
-    $sidebar = sidebarOf(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.terms.manage', 'cms.globals.view'));
+    $sidebar = sidebarOf(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete', 'cms.globals.view'));
 
     expect(array_slice($sidebar['Content'], 0, 3))->toBe([
         ['key' => 'cms-collection-articles', 'label' => 'Artikel', 'url' => 'cms/collections/articles/entries', 'icon' => 'newspaper'],
         ['key' => 'cms-collection-pages', 'label' => 'Pages', 'url' => 'cms/collections/pages/entries', 'icon' => 'file-text'],
-        ['key' => 'cms-globals', 'label' => 'Globals', 'url' => 'cms/globals', 'icon' => 'globe'],
+        ['key' => 'resources.globals', 'label' => 'Globals', 'url' => 'cms/globals', 'icon' => 'globe'],
     ])->and($sidebar['Taxonomies'])->toBe([
         ['key' => 'cms-taxonomy-categories', 'label' => 'Kategori', 'url' => 'cms/taxonomies/categories/terms', 'icon' => 'tag'],
     ])->and(array_search('Taxonomies', array_keys($sidebar), true))->toBe(array_search('Content', array_keys($sidebar), true) + 1);
@@ -47,7 +47,7 @@ it('lists each collection under Content and each taxonomy under Taxonomies', fun
 });
 
 it('edits entries and terms under their collection and taxonomy, and redirects the old addresses', function () {
-    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.terms.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     $entry = app(CreateEntry::class)->handle($this->articles, ['title' => 'Hello'])->entry_id;
     $term = app(SaveTerm::class)->handle($this->categories, ['title' => 'News'])->id;
 

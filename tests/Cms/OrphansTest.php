@@ -85,13 +85,13 @@ it('refuses to purge what is not deleted', function () {
 it('restores deleted collections and taxonomies from their lists', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.delete', 'cms.taxonomies.view', 'cms.taxonomies.delete'));
 
-    get('/admin/cms/collections?filters[trashed]=only')->assertInertia(fn (Assert $page) => $page
-        ->where('rows.data.0.id', $this->news->id)->where('rows.data.0.actions', ['restore']));
-    post("/admin/cms/collections/{$this->news->id}/actions/restore")->assertSessionHas('success', 'Restored.');
+    get('/admin/cms/collections?status=trashed')->assertInertia(fn (Assert $page) => $page
+        ->where('can.trash', true)->where('query.status', 'trashed')->where('rows.data.0.key', 'news')->has('rows.data', 1));
+    post("/admin/cms/collections/{$this->news->handle}/restore")->assertSessionHas('success', 'News restored.');
     expect($this->news->fresh()->trashed())->toBeFalse()
         ->and(Entry::query()->where('collection_id', $this->news->id)->count())->toBe(1);
 
-    post("/admin/cms/taxonomies/{$this->tags->id}/actions/restore")->assertSessionHas('success', 'Restored.');
+    post('/admin/cms/taxonomies/bulk', ['action' => 'restore', 'ids' => [$this->tags->id]])->assertSessionHas('success', '1 restored.');
     expect($this->tags->fresh()->trashed())->toBeFalse();
 });
 
@@ -99,6 +99,6 @@ it('refuses to restore a collection whose address another one took', function ()
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.delete'));
     Collection::query()->create(['handle' => 'posts', 'title' => 'Posts', 'route' => '/news/{slug}']);
 
-    post("/admin/cms/collections/{$this->news->id}/actions/restore")->assertSessionHas('error', fn (string $message) => str_contains($message, '/news/{slug}'));
+    post("/admin/cms/collections/{$this->news->handle}/restore")->assertSessionHas('error', fn (string $message) => str_contains($message, '/news/{slug}'));
     expect($this->news->fresh()->trashed())->toBeTrue();
 });

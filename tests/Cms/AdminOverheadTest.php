@@ -44,7 +44,7 @@ function adminQueries(Closure $run): int
 }
 
 it('keeps to a query budget per admin page', function () {
-    actingAs(adminUser(Panel::ACCESS, 'cms.entries.blog.view', 'cms.terms.tags.manage', 'cms.submissions.contact.view'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.blog.view', 'cms.terms.tags.view', 'cms.terms.tags.create', 'cms.terms.tags.update', 'cms.terms.tags.delete', 'cms.submissions.contact.view'));
     get('/admin')->assertOk(); // warms the caches
 
     expect(adminQueries(fn () => get('/admin')->assertOk()))->toBeLessThanOrEqual(4)
@@ -59,8 +59,8 @@ it('forgets the cached handles and permissions when a collection, taxonomy or fo
     $news = Collection::query()->create(['handle' => 'news', 'title' => 'News']);
     Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics']);
     Form::query()->create(['handle' => 'apply', 'title' => 'Apply']);
-    $user = adminUser(Panel::ACCESS, 'cms.entries.news.view', 'cms.terms.topics.manage', 'cms.submissions.apply.view');
-    expect(Access::entries($user, 'view'))->toBeTrue()->and(Access::terms($user))->toBeTrue()->and(Access::submissions($user, 'view'))->toBeTrue()
+    $user = adminUser(Panel::ACCESS, 'cms.entries.news.view', 'cms.terms.topics.view', 'cms.terms.topics.create', 'cms.terms.topics.update', 'cms.terms.topics.delete', 'cms.submissions.apply.view');
+    expect(Access::entries($user, 'view'))->toBeTrue()->and(Access::terms($user, 'view'))->toBeTrue()->and(Access::submissions($user, 'view'))->toBeTrue()
         ->and(collect(ScopedPermissions::all())->firstWhere('name', 'cms.entries.news.view')?->group)->toBe('Entries: News');
 
     $news->update(['title' => 'Headlines']);
