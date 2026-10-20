@@ -41,7 +41,7 @@ final class SecuritySettings extends Settings
         return $form->schema([
             Section::make('Signing in')->schema([
                 Toggle::make('twoFactor')->label('Two-factor login')
-                    ->help('After the password, everyone also types a 6-digit code we email them. Make sure the app can send email first: without it, nobody can log in (php artisan sunrice:two-factor off turns it off again).'),
+                    ->help('Everyone also enters a 6-digit code sent by email. Check email works first, or nobody can sign in (undo: php artisan sunrice:two-factor off).'),
             ]),
             Section::make('Security alerts')->schema([
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')
@@ -53,7 +53,7 @@ final class SecuritySettings extends Settings
                             $fail('Write one email address per line.');
                         }
                     }])
-                    ->help('One per line, e.g. whoever looks after the server.'),
+                    ->help('One per line.'),
             ]),
         ]);
     }

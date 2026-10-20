@@ -105,7 +105,7 @@ class UserResource extends Resource
                 TextInput::make('name')->required(),
                 TextInput::make('email')->email()->required()->unique(),
                 Password::make('password')->required()->span(2)
-                    ->help('When editing, leave it empty to keep the current password.'),
+                    ->help('When editing: leave empty to keep it.'),
             ]),
             Section::make('Roles')->description('What this person can do in the panel.')->schema([
                 static::rolesField(),

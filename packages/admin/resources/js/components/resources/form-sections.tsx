@@ -51,7 +51,7 @@ export function FormSections({ sections, data, errors, storageKey, onChange }: P
                                     {input}
                                 </>
                             )}
-                            {field.help && <p className="mt-1 text-sm text-muted-foreground">{field.help}</p>}
+                            {field.help && <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">{field.help}</p>}
                             <InputError message={error} />
                         </div>
                     );

@@ -199,3 +199,13 @@ it('lists each term with its entry count, and the taxonomy\'s collections and se
         ->where('taxonomy.collections', [['title' => 'Blog', 'url' => url('/admin/cms/collections/blog/entries')]])
         ->where('taxonomy.settings', url("/admin/cms/taxonomies/{$this->tags->id}/edit")));
 });
+
+it('explains a template setting with the files tried in order when it is empty', function () {
+    expect(Sunrice\Cms\Admin\TemplateHelp::text('cms.topic', ['cms.taxonomy-{handle}', 'cms.term']))->toBe(implode("\n", [
+        'A Blade view: cms.topic is resources/views/cms/topic.blade.php.',
+        'Empty: the first that exists of',
+        '1. resources/views/cms/taxonomy-{handle}.blade.php',
+        '2. resources/views/cms/term.blade.php',
+        '3. the built-in template',
+    ]));
+});
