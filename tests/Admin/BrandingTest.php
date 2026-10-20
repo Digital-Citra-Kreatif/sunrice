@@ -169,7 +169,7 @@ it('never prints stored values that are not a known font or a colour', function 
     get('/admin/login')->assertOk()
         ->assertDontSee('<script>alert(1)</script>', false)
         ->assertDontSee('--primary:', false)
-        ->assertSee('family=inter', false);
+        ->assertSee('family=instrument-sans', false);
 
     brand(['name' => '</title><script>alert(1)</script>']);
     get('/admin/login')->assertOk()
