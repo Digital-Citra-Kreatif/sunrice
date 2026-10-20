@@ -16,6 +16,7 @@ use Sunrice\Cms\Content;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Redirect;
 use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\actingAs;
@@ -115,8 +116,36 @@ it('previews drafts through a signed link only', function () {
     $draft = sitePost($this->blog, 'Not yet', ['intro' => 'Draft intro'], publish: false);
     $url = URL::temporarySignedRoute('sunrice.cms.preview', now()->addMinutes(30), ['translation' => $draft->id]);
 
-    get($url)->assertOk()->assertSee('Draft intro')->assertSee('Preview of the draft')->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+    get($url)->assertOk()->assertSee('Draft intro')->assertSee('Preview of the draft')
+        ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertHeader('Cache-Control', 'no-store, private');
     get("/cms-preview/{$draft->id}")->assertForbidden();
+});
+
+it('keeps the query string when redirecting', function () {
+    Redirect::query()->create(['from_path' => '/old', 'to_url' => '/new', 'status' => 301]);
+    Redirect::query()->create(['from_path' => '/older', 'to_url' => 'https://example.com/?from=older', 'status' => 302]);
+
+    get('/old?utm_source=mail&x=1')->assertRedirect('/new?utm_source=mail&x=1')->assertStatus(301);
+    get('/old')->assertRedirect('/new');
+    get('/older?x=1')->assertRedirect('https://example.com/?from=older&x=1');
+});
+
+it('speaks the address\'s language before anything is looked up, and drops the main language\'s prefix', function () {
+    $hello = sitePost($this->blog, 'Hello');
+    Route::get('/en/custom', fn () => 'the app has its own page here');
+    app('router')->getRoutes()->refreshNameLookups();
+
+    get('/id/blog/nothing-here')->assertNotFound();
+    expect(app()->getLocale())->toBe('id');
+    get('/blog/nothing-here')->assertNotFound();
+    expect(app()->getLocale())->toBe('en');
+    get('/id/search?q=x')->assertOk();
+    expect(app()->getLocale())->toBe('id');
+
+    get('/en/blog/hello?x=1')->assertRedirect('/blog/hello?x=1')->assertStatus(301);
+    get('/en')->assertRedirect('/');
+    get('/en/custom')->assertOk()->assertSee('the app has its own page here');
+    expect($hello->url())->toBe(url('/blog/hello'));
 });
 
 it('gives the editor the preview and live links', function () {

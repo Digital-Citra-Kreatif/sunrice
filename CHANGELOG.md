@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Docs: headers for the public media disk at the web server (`X-Content-Type-Options: nosniff`, `Content-Disposition: attachment` for non-image types), in `docs/admin/media.md`.
+- Moderator and form notifications go as one email per address (`PostComment`, `SubmitForm`), and `SafeUrl::isSafe()` refuses protocol-relative addresses (`//host`).
+- The site's locale is set from the address before anything is looked up (`Site\SetSiteLocale`, on the CMS's routes only), so 404s, redirects and search are in that language; the main language's own prefix (`/en/about`) redirects (301) to the plain address. `Site::locale()`.
+- Previews send `Cache-Control: no-store, private`.
+- Redirects keep the request's query string.
+- `Globals::get()` reads the current language when none is given, as `Cms::global()` does (**it read the main one before**).
+- Listing, term and search pages past the first carry the page number in their canonical and `hreflang` URLs and `Cms::localeUrls()`; `Seo::forTerm()` and `forListing()` take a page number (null: the page shown).
+- Comments: a guest is trusted after an approved comment only with the same name, email and address hash (an email alone no longer does), and a guest's reply emails are turned on only when a moderator sees the comment or the comment that earned their trust asked too (`PostComment`).
+- An entry's or term's own template must be under `sunrice-cms.site.template_prefixes` (`['cms.']`), others stored are ignored, and only `cms.entries.update` (not `update-own`) may set an entry's (`SaveEntrySettings::template()`, `allowed()`).
 - Menus link to term pages (`term_id`) and listing pages (`collection_id`) too (migration `000016`; Term and Listing in the menu editor), and each link says whether it's the page shown (`active`) or leads to it (`active_trail`). **Menu links have two new keys.**
 - Scoped permissions: entries per collection (`cms.entries.{collection}.{view,create,update,publish,delete}`), terms per taxonomy (`cms.terms.{taxonomy}.manage`) and submissions per form (`cms.submissions.{form}.{view,delete}`), created and deleted with them; `cms.entries.update-own`, `.delete-own` and `.translate`. Lists, menus, editors, bulk actions, edit locks and AI tools follow them (`Support\Access`). The default roles `author` and `translator`. The panel's `permissionsUsing()` and `flushPermissions()` (`@api`) for permissions that depend on data.
 - `sunrice:install` (config, migrations, assets, storage link, permissions, `--roles`, a super admin) and default roles: `$panel->defaultRole()` (`@api`), `SeedRoles`, `sunrice:roles`; the panel's `administrator` and the CMS's `editor`. See `docs/admin/permissions.md`.
