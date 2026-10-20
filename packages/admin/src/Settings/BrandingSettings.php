@@ -63,6 +63,12 @@ final class BrandingSettings extends Settings
     /** A media id (an image); without one the sidebar shows the name's first letter. */
     public ?int $logo = null;
 
+    /**
+     * A media id (an image: ICO, PNG, SVG…) for the browser tab; without
+     * one a square-ish logo, else the name's first letter on the colour.
+     */
+    public ?int $favicon = null;
+
     /** A key of FONTS; empty: the `sunrice-admin.font` config. */
     public string $font = '';
 
@@ -109,6 +115,8 @@ final class BrandingSettings extends Settings
                     ->help('The typeface of the admin. Empty: the default font.'),
                 TextInput::make('color')->label('Brand colour')->color()->placeholder('#1e66f5')
                     ->help('Buttons, the active menu item and focus rings. Text on it turns black or white, whichever reads better. Empty: neutral.'),
+                MediaPicker::make('favicon')->label('Browser icon')->images()
+                    ->help('The icon in browser tabs and bookmarks: a square ICO, PNG or SVG. Empty: a square logo, else the name\'s first letter on the brand colour.'),
             ]),
             Section::make('Sign-in page')->description('Texts left empty keep the built-in wording.')->columns(2)->schema([
                 Select::make('loginLayout')->label('Layout')->options(self::LOGIN_LAYOUTS)->required(),

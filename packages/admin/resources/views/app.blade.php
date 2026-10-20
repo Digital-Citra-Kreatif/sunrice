@@ -7,6 +7,11 @@
     <meta name="robots" content="noindex, nofollow">
     @php($sunriceBranding = \Sunrice\Admin\Support\Branding::make())
     <title inertia>{{ $sunriceBranding->name() }}</title>
+    @php($sunriceIcon = $sunriceBranding->icon())
+    <link rel="icon" href="{{ $sunriceIcon['href'] }}" type="{{ $sunriceIcon['type'] }}">
+    @if ($sunriceIcon['apple'])
+        <link rel="apple-touch-icon" href="{{ $sunriceIcon['apple'] }}">
+    @endif
     {{-- The saved appearance, before paint, so dark mode doesn't flash light. --}}
     <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
         (function () {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Support;
 
+use Illuminate\Support\Collection;
 use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
@@ -11,8 +12,9 @@ use Sunrice\Admin\Settings\BrandingSettings;
 
 /**
  * The panel's branding as shown: Settings → Branding with the panel's own
- * values for what's left empty. Used by the admin layout (font and
- * colour) and the shared page data.
+ * values for what's left empty. Used by the admin layout (font, colour
+ * and browser icon) and the shared page data. Panel::brandName() is the
+ * public way to read the name.
  *
  * @internal
  */
@@ -20,7 +22,13 @@ final class Branding
 {
     public const SYSTEM_FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 
+    /** The lettermark icon's background without a brand colour: the neutral palette's primary. */
+    public const NEUTRAL = '#2a2622';
+
     private const HEX = '/^#[0-9a-f]{6}$/';
+
+    /** @var Collection<int, Media>|null the chosen images by id, loaded once */
+    private ?Collection $media = null;
 
     public function __construct(private Panel $panel, private BrandingSettings $settings) {}
 
@@ -153,20 +161,66 @@ final class Branding
     }
 
     /**
-     * For the frontend (`sunrice.branding`); runs one query for the logo
-     * and sign-in image, and only when one is set.
+     * The browser icon: the chosen favicon, else the logo when it is
+     * square-ish (or an SVG), else the lettermark (`lettermarkSvg()`).
+     * `apple` is a square raster image for home screens, when there is
+     * one. Runs at most one query, shared with toArray().
+     *
+     * @return array{href: string, type: string, apple: string|null}
+     */
+    public function icon(): array
+    {
+        $favicon = $this->image($this->settings->favicon);
+        $logo = $this->image($this->settings->logo);
+        // An SVG without known dimensions is taken at its word.
+        $squareLogo = $logo !== null && (self::squareish($logo) || (self::isSvg($logo) && ($logo->width === null || $logo->height === null))) ? $logo : null;
+        $icon = $favicon ?? $squareLogo;
+        $apple = null;
+        foreach ([$favicon, $squareLogo] as $candidate) {
+            if ($candidate !== null && $candidate->isResizable() && self::squareish($candidate)) {
+                $apple = $candidate->url();
+                break;
+            }
+        }
+
+        if ($icon === null) {
+            return ['href' => route('sunrice.admin.branding.icon', ['v' => $this->lettermarkVersion()]), 'type' => 'image/svg+xml', 'apple' => $apple];
+        }
+
+        return ['href' => $icon->url(), 'type' => $icon->mime_type, 'apple' => $apple];
+    }
+
+    /**
+     * The lettermark as a square SVG: the name's first letter on the brand
+     * colour (or the neutral one). Holds nothing else.
+     */
+    public function lettermarkSvg(): string
+    {
+        $color = $this->color() ?? self::NEUTRAL;
+        $on = self::readableOn($color);
+        $letter = htmlspecialchars($this->lettermark(), ENT_XML1 | ENT_QUOTES, 'UTF-8');
+
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+            ."<rect width=\"64\" height=\"64\" rx=\"14\" fill=\"{$color}\"/>"
+            ."<text x=\"32\" y=\"33\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif\" font-size=\"38\" font-weight=\"600\" fill=\"{$on}\">{$letter}</text>"
+            .'</svg>';
+    }
+
+    /** Changes with the lettermark's letter and colour, so its URL does too. */
+    public function lettermarkVersion(): string
+    {
+        return substr(sha1($this->lettermark().'|'.($this->color() ?? '')), 0, 8);
+    }
+
+    /**
+     * For the frontend (`sunrice.branding`); runs one query for the logo,
+     * sign-in image and browser icon, and only when one is set.
      *
      * @return array{name: string, tagline: string, logo: string|null, lettermark: string, color: string|null, login: array{layout: string, eyebrow: string, headline: string, text: string, footer: string, image: string|null}}
      */
     public function toArray(): array
     {
-        $ids = array_values(array_filter([$this->settings->logo, $this->settings->loginImage], fn (?int $id) => $id !== null));
-        $media = $ids === [] ? collect() : Media::query()->whereIn('id', $ids)->get()->keyBy('id');
-        $url = function (?int $id) use ($media): ?string {
-            $file = $id === null ? null : $media->get($id);
-
-            return $file instanceof Media && $file->isImage() ? $file->url() : null;
-        };
+        $url = fn (?int $id): ?string => $this->image($id)?->url();
         $text = fn (string $value, string $key): string => trim($value) !== '' ? trim($value) : BrandingSettings::LOGIN_DEFAULTS[$key];
 
         return [
@@ -184,6 +238,36 @@ final class Branding
                 'image' => $url($this->settings->loginImage),
             ],
         ];
+    }
+
+    /** The chosen image with this id, if it is (still) an image in the library. */
+    private function image(?int $id): ?Media
+    {
+        if ($id === null) {
+            return null;
+        }
+        if ($this->media === null) {
+            $ids = array_values(array_filter([$this->settings->logo, $this->settings->loginImage, $this->settings->favicon], fn (?int $id) => $id !== null));
+            $this->media = Media::query()->whereIn('id', $ids)->get()->keyBy('id');
+        }
+        $file = $this->media->get($id);
+
+        return $file instanceof Media && $file->isImage() ? $file : null;
+    }
+
+    /** Width and height within a quarter of each other. */
+    private static function squareish(Media $media): bool
+    {
+        if ($media->width === null || $media->height === null || $media->width <= 0 || $media->height <= 0) {
+            return false;
+        }
+
+        return max($media->width, $media->height) / min($media->width, $media->height) <= 1.25;
+    }
+
+    private static function isSvg(Media $media): bool
+    {
+        return in_array($media->mime_type, ['image/svg+xml', 'image/svg'], true);
     }
 
     private static function variables(string $color): string

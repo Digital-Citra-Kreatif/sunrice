@@ -11,6 +11,7 @@ Your own **Light**, **Dark** or **System** appearance is chosen in the user menu
 | **Panel name** | The sidebar, the sign-in page, browser tabs and this guide | The name your developer gave the panel |
 | **Tagline** | Under the name in the sidebar, and above the sign-in form | Nothing |
 | **Logo** | The sidebar and the sign-in page; pick an image from the media library | The name's first letter on the brand colour |
+| **Browser icon** | The small picture in browser tabs and bookmarks; a square ICO, PNG or SVG from the media library | A square logo, else the name's first letter on the brand colour |
 | **Font** | Every page of the panel; choose one of the listed typefaces, or **System** for your computer's own | The panel's usual typeface (Inter) |
 | **Brand colour** | Main buttons, the current menu item, focus outlines | Neutral grey |
 

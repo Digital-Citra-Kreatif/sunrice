@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
 use Sunrice\Admin\Ai\PanelServer;
 use Sunrice\Admin\Http\Controllers\Auth\LoginController;
+use Sunrice\Admin\Http\Controllers\BrandingIconController;
 use Sunrice\Admin\Http\Controllers\MissingPageController;
 use Sunrice\Admin\Http\Middleware\Authenticate;
 use Sunrice\Admin\Http\Middleware\AuthenticateAiToken;
@@ -35,8 +36,9 @@ final class PanelRoutes
         return ['web', PanelSecurityHeaders::class, HandleInertiaRequests::class, RecordRefusedPages::class, ...$panel->getMiddleware()];
     }
 
-    /** Route names reachable without Panel::ACCESS: the guest pages and logout. */
+    /** Route names reachable without Panel::ACCESS: the guest pages, logout and the lettermark icon. */
     public const PUBLIC_ROUTES = [
+        'sunrice.admin.branding.icon',
         'sunrice.admin.login', 'sunrice.admin.login.store', 'sunrice.admin.login.code', 'sunrice.admin.login.code.verify', 'sunrice.admin.login.code.resend',
         'sunrice.admin.password.request', 'sunrice.admin.password.email',
         'sunrice.admin.password.reset', 'sunrice.admin.password.update', 'sunrice.admin.logout',
@@ -82,6 +84,12 @@ final class PanelRoutes
                 ->middleware([AuthenticateAiToken::class, 'throttle:sunrice-ai'])
                 ->name('sunrice.ai.mcp');
         }
+
+        // The lettermark browser icon: the sign-in page shows it too, so no sign-in; no
+        // session or cookies either, so it can be cached. Only the name's initial and the colour.
+        Route::middleware(PanelSecurityHeaders::class)->prefix($panel->getPath())->group(function (): void {
+            Route::get('branding/icon.svg', BrandingIconController::class)->name('sunrice.admin.branding.icon');
+        });
 
         Route::middleware(self::middleware($panel))
             ->prefix($panel->getPath())
