@@ -107,7 +107,7 @@ class UserResource extends Resource
                 Password::make('password')->required()->span(2)
                     ->help('When editing, leave it empty to keep the current password.'),
             ]),
-            Section::make('Roles')->description('What the user may do in the panel. You can give out roles with less access than yours, and together they must leave the user with less than yours.')->schema([
+            Section::make('Roles')->description('What this person can do in the panel.')->schema([
                 static::rolesField(),
             ]),
         ]);
@@ -304,7 +304,7 @@ class UserResource extends Resource
 
                 return static::roles()
                     ->filter(fn (Model $role) => $actor instanceof Model && $rank->canManageRole($actor, $role))
-                    ->mapWithKeys(fn (Model $role) => [static::name($role) => static::name($role)])
+                    ->mapWithKeys(fn (Model $role) => [static::name($role) => Str::headline(static::name($role))])
                     ->all();
             })
             ->loadUsing(fn (Model $user) => array_map(static::name(...), [...static::rolesOf($user)]))
@@ -338,7 +338,7 @@ class UserResource extends Resource
 
                 return $user !== null && $current instanceof Model && $user->is($current);
             })
-            ->help('Nobody can change their own roles.');
+            ->help('You can give roles with less access than your own. Nobody can change their own roles.');
     }
 
     /**

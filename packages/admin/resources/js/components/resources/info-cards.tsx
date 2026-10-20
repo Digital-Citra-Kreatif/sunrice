@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, router } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -26,37 +26,54 @@ function Block({ block }: { block: InfoBlock }) {
             );
         case 'rows':
             return (
-                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                <dl className="flex flex-col divide-y divide-border/60 text-sm">
                     {block.rows.map((row) => (
-                        <React.Fragment key={row.label}>
-                            <dt className="text-muted-foreground">{row.label}</dt>
-                            <dd className="min-w-0 break-words tabular-nums">{row.type === 'datetime' ? formatDateTime(row.value) : row.value}</dd>
-                        </React.Fragment>
+                        <div key={row.label} className="flex items-baseline justify-between gap-4 py-2 first:pt-0 last:pb-0">
+                            <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
+                            <dd className="min-w-0 text-right break-words tabular-nums">{row.type === 'datetime' ? formatDateTime(row.value) : row.value}</dd>
+                        </div>
                     ))}
                 </dl>
             );
         case 'list':
-            return (
-                <div className="flex flex-col gap-2">
-                    <h3 className="text-sm font-medium">{block.heading}</h3>
-                    {block.items.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">{block.empty}</p>
-                    ) : (
-                        <ul className="divide-y rounded-md border text-sm">
-                            {block.items.map((item, i) => (
-                                <li key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-3 py-2">
-                                    <Badge variant="secondary">{item.label}</Badge>
-                                    {item.at && <span className="text-muted-foreground tabular-nums">{formatDateTime(item.at)}</span>}
-                                    {item.meta && <span className="text-muted-foreground">{item.meta}</span>}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            );
+            return <EventList heading={block.heading} empty={block.empty} items={block.items} />;
         default:
             return null;
     }
+}
+
+const SHOWN = 5;
+
+/** A list of events: what and when on one line, its details under it; the first few, then "Show more". */
+function EventList({ heading, empty, items }: { heading: string; empty: string; items: { label: string; meta: string | null; at: string | null }[] }) {
+    const [all, setAll] = React.useState(false);
+    const shown = all ? items : items.slice(0, SHOWN);
+
+    return (
+        <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{heading}</h3>
+            {items.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{empty}</p>
+            ) : (
+                <ul className="flex flex-col divide-y divide-border/60 text-sm">
+                    {shown.map((item, i) => (
+                        <li key={i} className="flex flex-col gap-0.5 py-2 first:pt-0">
+                            <div className="flex items-baseline justify-between gap-3">
+                                <span className="font-medium">{item.label}</span>
+                                {item.at && <time dateTime={item.at} className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatDateTime(item.at)}</time>}
+                            </div>
+                            {item.meta && <span className="text-xs break-words text-muted-foreground">{item.meta}</span>}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {items.length > SHOWN && (
+                <button type="button" className="self-start text-xs font-medium text-muted-foreground hover:text-foreground" onClick={() => setAll(!all)}>
+                    {all ? 'Show fewer' : `Show ${items.length - SHOWN} more`}
+                </button>
+            )}
+        </div>
+    );
 }
 
 /** Cards of read-only information, as `Sunrice\Admin\Support\Card` describes them. */
@@ -82,14 +99,16 @@ export function InfoCards({ cards, className }: { cards: InfoCard[]; className?:
                     <CardContent className="flex flex-col gap-4">
                         {card.blocks.map((block, j) => <Block key={j} block={block} />)}
                         {card.buttons.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="grid gap-2">
                                 {card.buttons.map((button) => (
-                                    <Button key={button.url} type="button" variant="outline" size="sm" disabled={busy} onClick={() => press(button)}>{button.label}</Button>
+                                    <Button key={button.url} type="button" variant="outline" size="sm" className="w-full" disabled={busy} onClick={() => press(button)}>{button.label}</Button>
                                 ))}
                             </div>
                         )}
                         {card.links.map((link) => (
-                            <Link key={link.url} href={link.url} className="text-sm text-muted-foreground underline-offset-4 hover:underline">{link.label}</Link>
+                            <Link key={link.url} href={link.url} className="inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline">
+                                {link.label}<ArrowRight className="size-3.5" />
+                            </Link>
                         ))}
                     </CardContent>
                 </Card>

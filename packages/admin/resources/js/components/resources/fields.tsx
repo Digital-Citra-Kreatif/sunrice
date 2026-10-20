@@ -121,7 +121,7 @@ function CheckboxList({ id, options, value, disabled, onChange }: {
             {[...groups].map(([group, items]) => (
                 <fieldset key={group} className="grid gap-2">
                     {group !== '' && <legend className="mb-1 text-sm font-medium">{group}</legend>}
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
                         {items.map((option) => {
                             const optionId = `${id}-${option.value}`;
                             return (

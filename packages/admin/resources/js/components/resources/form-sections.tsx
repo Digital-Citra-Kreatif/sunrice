@@ -28,6 +28,8 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
             <CardContent className={cn('grid gap-5', gridColumns[section.columns])}>
                 {section.fields.map((field) => {
                     const error = errors[field.name];
+                    // A section's only field named like the section: the card's title says it already.
+                    const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
                     const input = <FieldInput field={field} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
 
                     return (
@@ -39,14 +41,16 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
                                 </div>
                             ) : (
                                 <>
-                                    <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>
-                                        {field.label}
-                                        {field.required && <span className="text-destructive" aria-hidden>*</span>}
-                                    </Label>
+                                    {label === null ? <span id={`field-${field.name}-label`} className="sr-only">{field.label}</span> : (
+                                        <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>
+                                            {label}
+                                            {field.required && <span className="text-destructive" aria-hidden>*</span>}
+                                        </Label>
+                                    )}
                                     {input}
                                 </>
                             )}
-                            {field.help && <p className="text-sm text-muted-foreground">{field.help}</p>}
+                            {field.help && <p className="mt-1 text-sm text-muted-foreground">{field.help}</p>}
                             <InputError message={error} />
                         </div>
                     );
