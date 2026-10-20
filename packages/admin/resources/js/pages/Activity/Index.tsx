@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, History, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, History, Search, Trash2, X } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
+import { useConfirm } from '@/components/resources/confirm';
+import type { FieldInfo } from '@/components/resources/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { queryParams } from '@/lib/query-params';
 
 interface Row {
     id: number;
@@ -33,6 +36,8 @@ interface Query {
     search: string;
     source: string | null;
     type: string | null;
+    action: string | null;
+    perPage: number;
     subject: string | null;
     user: string | null;
     from: string | null;
@@ -42,29 +47,50 @@ interface Query {
 interface Props {
     query: Query;
     types: { value: string; label: string }[];
+    actions: string[];
     sources: string[];
+    perPageOptions: number[];
+    defaultPerPage: number;
+    /** Set when the user may prune (sunrice.activity.prune): the configured days to keep. */
+    prune: { keepDays: number | null } | null;
     rows: { data: Row[]; total: number; currentPage: number; lastPage: number; prevUrl: string | null; nextUrl: string | null };
 }
 
 const ALL = '__all';
+
 const SOURCE_LABELS: Record<string, string> = { admin: 'Admin', ai: 'AI agent', system: 'System', security: 'Security' };
 
 /** Who changed what, newest first. */
-export default function ActivityIndex({ query, types, sources, rows }: Props) {
+export default function ActivityIndex({ query, types, actions, sources, perPageOptions, defaultPerPage, prune, rows }: Props) {
     useBreadcrumbs([{ label: 'Activity log' }]);
     const [search, setSearch] = React.useState(query.search);
+    const [confirm, confirmDialog] = useConfirm();
     const base = adminUrl('activity');
 
     const visit = (changes: Partial<Query>) => {
         const next: Query = { ...query, ...changes };
-        const params = Object.fromEntries(Object.entries(next).filter(([, value]) => value !== null && value !== ''));
-        router.get(base, params, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(base, queryParams(next, { perPage: defaultPerPage }, { perPage: 'per_page' }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const pruneLog = () => {
+        const days: FieldInfo = {
+            kind: 'field', type: 'number', name: 'days', label: 'Keep the last … days', required: true, disabled: false,
+            help: 'Older lines are deleted for good. Pruning is itself recorded, and alerts are sent.', placeholder: null, span: 1,
+            default: prune?.keepDays ?? 365, min: 1,
+        };
+        confirm('Delete old activity log lines?', (values) => new Promise<boolean>((resolve) => router.post(`${base}/prune`, { days: values.days }, {
+            preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
+        })), true, [days]);
     };
 
     return (
         <div className="flex flex-col gap-4">
             <Head title="Activity log" />
-            <PageHeader title="Activity log" />
+            {confirmDialog}
+            <PageHeader
+                title="Activity log"
+                actions={prune && <Button variant="outline" onClick={pruneLog}><Trash2 />Prune…</Button>}
+            />
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-64" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
@@ -84,6 +110,13 @@ export default function ActivityIndex({ query, types, sources, rows }: Props) {
                     <SelectContent>
                         <SelectItem value={ALL}>Everything</SelectItem>
                         {types.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select value={query.action ?? ALL} onValueChange={(value) => visit({ action: value === ALL ? null : value })}>
+                    <SelectTrigger aria-label="Action" className="w-44"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL}>Any action</SelectItem>
+                        {actions.map((action) => <SelectItem key={action} value={action}>{action}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Input type="date" aria-label="From" className="w-40" value={query.from ?? ''} onChange={(e) => visit({ from: e.target.value || null })} />
@@ -107,7 +140,7 @@ export default function ActivityIndex({ query, types, sources, rows }: Props) {
                     </TableHeader>
                     <TableBody>
                         {rows.data.length === 0 && (
-                            <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Nothing recorded{query.search || query.source || query.type || query.from || query.to ? ' that matches' : ' yet'}.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Nothing recorded{query.search || query.source || query.type || query.action || query.from || query.to ? ' that matches' : ' yet'}.</TableCell></TableRow>
                         )}
                         {rows.data.map((row, i) => (
                             <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties}>
@@ -142,8 +175,14 @@ export default function ActivityIndex({ query, types, sources, rows }: Props) {
                 </Table>
             </Card>
 
-            {rows.lastPage > 1 && (
-                <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+            {rows.total > (perPageOptions[0] ?? 25) && (
+                <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-muted-foreground">
+                    <Select value={String(query.perPage)} onValueChange={(value) => visit({ perPage: Number(value) })}>
+                        <SelectTrigger aria-label="Lines per page" className="h-8 w-32"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            {perPageOptions.map((n) => <SelectItem key={n} value={String(n)}>{n} per page</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                     <span>Page {rows.currentPage} of {rows.lastPage} · {rows.total} lines</span>
                     <Button variant="outline" size="icon" className="size-8" disabled={!rows.prevUrl} asChild={!!rows.prevUrl} aria-label="Previous page">
                         {rows.prevUrl ? <Link href={rows.prevUrl} preserveScroll><ChevronLeft /></Link> : <ChevronLeft />}

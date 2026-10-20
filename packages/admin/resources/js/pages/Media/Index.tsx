@@ -30,13 +30,15 @@ interface Props {
     media: { data: MediaItem[]; total: number; currentPage: number; lastPage: number; prevUrl: string | null; nextUrl: string | null };
     can: { upload: boolean; update: boolean; delete: boolean };
     upload: { maxKb: number; accept: string };
+    /** The public disk's storage link is missing (php artisan storage:link). */
+    storageLinkMissing?: boolean;
 }
 
 const ALL = '__all';
 const TOP = '__top';
 const TYPES = [{ value: 'image', label: 'Images' }, { value: 'video', label: 'Videos' }, { value: 'audio', label: 'Audio' }, { value: 'document', label: 'Documents' }];
 
-export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload }: Props) {
+export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false }: Props) {
     const base = adminUrl('media');
     useBreadcrumbs(path.length === 0 ? [{ label: 'Media' }] : [{ label: 'Media', href: base }, ...path.map((f, i) => (i === path.length - 1 ? { label: f.name } : { label: f.name, href: `${base}?folder=${f.id}` }))]);
     const [confirm, confirmDialog] = useConfirm();
@@ -99,6 +101,13 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                     </>
                 }
             />
+
+            {storageLinkMissing && (
+                <div role="alert" className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                    <p className="font-medium">Files can't be shown: the storage link is missing.</p>
+                    <p className="text-muted-foreground">Run <code className="rounded bg-muted px-1">php artisan storage:link</code> on the server, so the public disk's files are served from <code className="rounded bg-muted px-1">public/storage</code>.</p>
+                </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-72" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>

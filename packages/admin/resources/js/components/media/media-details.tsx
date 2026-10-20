@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { adminUrl } from '@/lib/admin-url';
+import { copyText } from '@/lib/clipboard';
 import { fetchJson } from '@/lib/fetch-json';
 import { formatBytes, mediaKind } from './format';
 import type { MediaItem, MediaUsageInfo } from './types';
@@ -59,10 +60,10 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
         form.put(url, { preserveScroll: true, preserveState: true });
     };
     const replace = (file: File | undefined) => file && router.post(`${url}/replace`, { file }, { forceFormData: true, preserveScroll: true, preserveState: true });
-    const copy = async () => {
-        await navigator.clipboard.writeText(new URL(item.url, window.location.href).toString());
-        toast.success('Link copied.');
-    };
+    const copy = () =>
+        copyText(new URL(item.url, window.location.href).toString())
+            .then(() => toast.success('Link copied.'))
+            .catch(() => toast.error('Couldn\'t copy the link.'));
 
     return (
         <>

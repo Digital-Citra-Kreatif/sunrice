@@ -87,6 +87,8 @@ final class MediaController
                 'update' => $user->can('sunrice.media.update'),
                 'delete' => $user->can('sunrice.media.delete'),
             ],
+            // The public disk's link (php artisan storage:link) is missing: files can't be shown.
+            'storageLinkMissing' => $user->can('sunrice.media.upload') && MediaConfig::storageLinkMissing(),
             'upload' => [
                 'maxKb' => MediaConfig::maxKilobytes(),
                 'accept' => implode(',', array_map(fn (string $ext) => ".{$ext}", MediaConfig::allowedExtensions())),
@@ -282,7 +284,7 @@ final class MediaController
             'height' => $media->height,
             'folderId' => $media->folder_id,
             'url' => $media->url(),
-            'thumbnail' => $media->isImage() ? $media->url('thumbnail') : null,
+            'thumbnail' => $media->isImage() ? $media->thumbnail() : null,
             'createdAt' => $media->created_at?->toIso8601String(),
             'trashed' => $media->deleted_at !== null,
             // With withCount('usages'): how many places use it.

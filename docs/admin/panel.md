@@ -123,6 +123,10 @@ The page arrives with the widgets' definitions and paints at once; `data` runs a
 
 `$panel->routes(fn () => ...)` adds routes for signed-in users who may open the panel (the `sunrice.access` permission), under the panel's path and named `sunrice.admin.…`. Give each one its own permission as well (`->middleware('can:shop.orders.view')`, or a middleware of yours that decides): the panel's tests assert that every `sunrice.admin.*` route is behind sign-in and panel access, and the CMS's that each of its routes names a permission or content check. Plugin pages in React are explained in [Admin pages in React](frontend.md).
 
+### Error pages
+
+Under the panel's path, a 403, 404, 419 (the page expired) or 500 is the panel's own **Error** page, inside the admin layout for someone signed in, and the right status code. That covers `abort(403)`, a refused policy, a record that isn't found and an address the panel doesn't know (the panel's fallback route `sunrice.admin.missing`, after every other route; guests go to the login page). Requests that want JSON still get JSON, a 500 with `APP_DEBUG=true` keeps the framework's page with the stack trace, and pages outside the panel's path are left to the app. A refused page is still a `page refused` security event. The page name `Error` belongs to the panel.
+
 ## Shared page data
 
 `$panel->share($key, fn () => ...)` adds data every admin page receives. The closure runs per request, only when a page is rendered, so it can be expensive without slowing anything else.

@@ -22,6 +22,7 @@ use Sunrice\Admin\Resources\RegisteredResource;
 use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\BrandingSettings;
+use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Users\RoleResource;
@@ -52,7 +53,7 @@ final class Panel
     private const RESERVED_SHARED = ['sunrice', 'auth', 'navigation', 'flash', 'errors'];
 
     /** Page folders of the panel's own React pages; plugin bundles use others. */
-    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/'];
+    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/', 'Error'];
 
     private string $path = 'admin';
 
@@ -653,20 +654,25 @@ final class Panel
         $declared = $this->permissions;
         $this->permissions = [];
         $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
-        $this->permissions(Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'));
-        // Settings → Branding and Security (two-factor login), in every panel.
-        foreach ([BrandingSettings::key(), SecuritySettings::key()] as $own) {
-            if (isset($this->settings[$own])) {
-                throw new PanelMisconfigured("The settings key \"{$own}\" belongs to the panel: give {$this->settings[$own]->class} another key.");
+        $this->permissions(
+            Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'),
+            Permission::make('sunrice.activity.prune', 'Delete old activity log lines', 'Panel'),
+        );
+        // Settings → Branding, Security (two-factor login) and Mail (how mail goes, a test email), in every panel.
+        foreach ([BrandingSettings::class, SecuritySettings::class, MailSettings::class] as $own) {
+            if (isset($this->settings[$own::key()])) {
+                throw new PanelMisconfigured("The settings key \"{$own::key()}\" belongs to the panel: give {$this->settings[$own::key()]->class} another key.");
             }
         }
         $this->permissions(
             Permission::make('sunrice.settings.branding', 'Edit branding settings', 'Settings'),
             Permission::make('sunrice.settings.security', 'Edit security settings', 'Settings'),
+            Permission::make('sunrice.settings.mail', 'See mail settings and send test emails', 'Settings'),
         );
         $this->settings = [
             BrandingSettings::key() => new RegisteredSettings(BrandingSettings::class, 'sunrice.settings.branding'),
             SecuritySettings::key() => new RegisteredSettings(SecuritySettings::class, 'sunrice.settings.security'),
+            MailSettings::key() => new RegisteredSettings(MailSettings::class, 'sunrice.settings.mail'),
             ...$this->settings,
         ];
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')

@@ -109,6 +109,31 @@ Override `newRecord()` to prepare the record the create form fills (`$record->te
 
 **Only fields in the form are written.** Anything else a request sends (an `id`, a timestamp, an attribute that isn't on the form) is ignored, so the model doesn't need `$fillable` for the panel.
 
+## Cards beside the form
+
+`aside(Model $record, Authorizable $user)` returns read-only cards shown beside a record's edit form (not on the create form), for whoever may update it: its status, history, related records. Nothing by default. It runs once per edit page, so load what the cards need there, without a query per item. The Users screen shows its Security card this way.
+
+```php
+use Sunrice\Admin\Support\Card;
+
+public static function aside(Model $record, Authorizable $user): array
+{
+    return [
+        Card::make('Orders')
+            ->description('What this customer bought.')
+            ->notice('This customer is blocked.', Card::DANGER, 'Since the chargeback in May.') // or Card::INFO, Card::WARNING
+            ->rows(['Orders' => $record->orders()->count(), 'Last order' => $record->last_order_at]) // null leaves a row out
+            ->list('Latest', $record->orders()->latest()->limit(5)->get()->map(fn (Order $o) => [
+                'label' => '#'.$o->number, 'meta' => $o->status, 'at' => $o->created_at,
+            ]), empty: 'No orders yet.')
+            ->link('All orders', route('shop.orders.index', ['customer' => $record->id]))
+            ->button('Send a reminder', "/admin/customers/{$record->id}/actions/remind", 'Send them a reminder?'),
+    ];
+}
+```
+
+Text is escaped, and times (in rows and list items) are shown in the viewer's own date format. A button POSTs to its URL (after the question, when given): point it at a row action (`…/actions/{key}`) or a route of your own, which checks its own permission.
+
 ## Lists
 
 - `Column::make('name')`, or a relationship's attribute `Column::make('category.name')` (eager loaded; for a to-many relationship, `Column::make('tags.name')` lists the values). `->sortable()` (the model's own attributes), `->searchable()`, `->badge()`, `->boolean()`, `->date('d/m/Y')`, `->label()`.
@@ -145,6 +170,13 @@ An action can ask for something in its dialog with `->form(Field ...)`: the fiel
 Action::make('reject')->ability('update')
     ->form(Select::make('reason')->options(['stock' => 'Out of stock', 'fraud' => 'Suspected fraud'])->required())
     ->handle(fn (Order $order, array $input) => $order->reject($input['reason'])),
+```
+
+For a model with a trash (`SoftDeletes`), `->trashed()` makes an action for records in the trash only, such as a Restore: it finds them though the resource's query leaves them out, and isn't offered (or run) for anything else. List them with a filter:
+
+```php
+->filters([Filter::make('trashed')->label('Deleted')->options(['only' => 'Deleted'])->query(fn (Builder $q) => $q->onlyTrashed())])
+->actions([Action::make('restore')->trashed()->ability('delete')->handle(fn (Note $note) => $note->restore() ? 'Restored.' : null)])
 ```
 
 A row action with the key `delete` replaces the built-in Delete in the row's menu (the Users screen does this to ask what happens to the user's content). Deleting itself, from the row, the edit page or in bulk, goes through the resource's `deleteRecord($record)`: override it to delete through an action of your own, or throw `ActionFailed` to refuse with a message (the Roles screen refuses while users still have the role).

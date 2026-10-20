@@ -138,3 +138,20 @@ it('loads the panel font, or the one configured instead', function () {
         ->assertDontSee('fonts.bunny.net')
         ->assertSee('html:root{--sunrice-font:"Instrument Sans";}', false);
 });
+
+it('gives each flash message an id, so the same text twice shows twice', function () {
+    usePanel();
+    signIn();
+
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('flash', ['id' => null, 'success' => null, 'error' => null]));
+
+    $ids = [];
+    foreach ([1, 2] as $_) {
+        session()->flash('success', 'Saved.');
+        get('/admin')->assertInertia(function (Assert $page) use (&$ids) {
+            $page->where('flash.success', 'Saved.')->where('flash.error', null);
+            $ids[] = $page->toArray()['props']['flash']['id'];
+        });
+    }
+    expect($ids[0])->toBeString()->not->toBe($ids[1]);
+});

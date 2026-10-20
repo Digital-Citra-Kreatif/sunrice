@@ -143,5 +143,9 @@ it('serves the homepage at /, in each language, and redirects its own address', 
     get('/')->assertOk()->assertSee('Welcome');
     get('/welcome')->assertRedirect(url('/'))->assertStatus(301);
     expect($home->mainTranslation()?->url())->toBe(url('/'));
-    get('/id')->assertNotFound(); // not translated
+    // Not translated: the main language's, unless that's turned off.
+    get('/id')->assertOk()->assertSee('Welcome');
+    get('/id/welcome')->assertRedirect(url('/id'));
+    config(['sunrice-cms.site.fallback' => false]);
+    get('/id')->assertNotFound();
 });

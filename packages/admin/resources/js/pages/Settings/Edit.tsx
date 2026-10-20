@@ -5,7 +5,8 @@ import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
 import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
-import type { SectionInfo } from '@/components/resources/types';
+import { InfoCards } from '@/components/resources/info-cards';
+import type { InfoCard, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
@@ -18,6 +19,8 @@ interface Props {
     values: Record<string, FieldValue>;
     /** Secret fields: whether a value is saved (the form never shows it). */
     secrets: Record<string, boolean>;
+    /** Read-only cards under the form (Settings::cards()). */
+    cards?: InfoCard[];
 }
 
 /** Settings: the sections the user may edit, and the current one's form. */
@@ -26,7 +29,7 @@ export default function SettingsEdit(props: Props) {
     return <SettingsForm key={props.section.key} {...props} />;
 }
 
-function SettingsForm({ section, sections, form: schema, values, secrets }: Props) {
+function SettingsForm({ section, sections, form: schema, values, secrets, cards = [] }: Props) {
     useBreadcrumbs([{ label: 'Settings', href: adminUrl('settings') }, { label: section.label }]);
     const form = useForm<Record<string, FieldValue>>(values);
 
@@ -54,6 +57,8 @@ function SettingsForm({ section, sections, form: schema, values, secrets }: Prop
         save();
     };
     useUnsavedChanges(form.isDirty, save);
+    // A section of cards only (Settings → Mail) has nothing to save.
+    const editable = schema.some((s) => s.fields.length > 0);
 
     return (
         <div className="flex flex-col gap-6 lg:flex-row">
@@ -72,14 +77,15 @@ function SettingsForm({ section, sections, form: schema, values, secrets }: Prop
                 <PageHeader
                     title={section.label}
                     description={section.description}
-                    actions={
+                    actions={editable && (
                         <Button type="submit" disabled={form.processing}>
                             {form.processing && <LoaderCircle className="animate-spin" />}
                             Save
                         </Button>
-                    }
+                    )}
                 />
-                <FormSections sections={shown} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
+                {editable && <FormSections sections={shown} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />}
+                <InfoCards cards={cards} />
             </form>
         </div>
     );

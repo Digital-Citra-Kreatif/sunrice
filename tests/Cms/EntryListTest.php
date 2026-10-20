@@ -127,7 +127,7 @@ it('lists another language\'s translations', function () {
         ->and(listed('locale=id'))->toBe(['Teh'])
         ->and(listed('locale=fr'))->toBe(['Mug', 'Tea']);
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('entries.data.1.locales', [['code' => 'en', 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'main' => false, 'status' => 'draft', 'outdated' => false]])
+        ->where('entries.data.1.locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'draft', 'outdated' => false]])
         ->where('filters.locales', ['en', 'id']));
 });
 

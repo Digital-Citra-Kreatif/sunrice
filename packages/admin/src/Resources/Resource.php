@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Tables\Table;
+use Sunrice\Admin\Support\Card;
 
 /**
  * Admin screens for an Eloquent model, described in PHP: a list with
@@ -130,6 +131,18 @@ abstract class Resource
     public static function can(Authorizable $user, string $ability, ?Model $record = null): bool
     {
         return true;
+    }
+
+    /**
+     * Read-only cards beside the edit form of `$record`, shown to `$user`
+     * (who may update it): status, history, related records. Nothing by
+     * default. Called once per edit page; load what the cards need here.
+     *
+     * @return list<Card>
+     */
+    public static function aside(Model $record, Authorizable $user): array
+    {
+        return [];
     }
 
     /** A record's name in headings and messages. */

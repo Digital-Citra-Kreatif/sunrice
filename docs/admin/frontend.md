@@ -60,6 +60,10 @@ definePlugin({ pages: { 'Shop/Orders/Index': OrdersIndex } });
 
 Pages get the admin layout (sidebar and header). Set `Component.bare = true` for a page without it.
 
+The header's breadcrumbs are what the page declares with `useBreadcrumbs()`; a page that declares none gets the navigation item whose address is the longest prefix of the page's (with its parent, for a submenu link), so `/admin/shop/orders/12` under an *Orders* item shows *Orders*.
+
+Messages flashed as `success` or `error` (`back()->with('success', 'Saved.')`) become toasts. Each one shown carries an `id` in the page's `flash` data (`{ id, success, error }`, `id` null without a message), so the same text twice shows twice.
+
 ## 3. Registering the bundle
 
 Publish the built file to `public/` (for example with `$this->publishes([...], 'shop-assets')`) and tell the panel which pages it provides:

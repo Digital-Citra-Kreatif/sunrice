@@ -4,7 +4,7 @@ A **taxonomy** groups entries: categories, tags, topics. Its **terms** ("News", 
 
 ## Setting up
 
-Under **Structure → Taxonomies** (permissions `cms.taxonomies.view`, `.create`, `.update`, `.delete`): a title, a handle that can't change later, whether terms nest, and the collections whose entries it groups. Deleting a taxonomy keeps its terms, out of sight.
+Under **Structure → Taxonomies** (permissions `cms.taxonomies.view`, `.create`, `.update`, `.delete`): a title, a handle that can't change later, whether terms nest, and the collections whose entries it groups. Deleting a taxonomy keeps its terms, out of sight: the list's **Deleted** filter and **Restore** bring it back, and `sunrice:orphans --purge` deletes it for good ([leftovers](structure.md#leftovers)).
 
 Under **Content → Terms** (`cms.terms.manage`): add, rename, nest, reorder and trash a taxonomy's terms, in each language (see [Trash](#trash)). A term not yet translated shows the main language's title. Terms are dragged into order by their handle among the terms of their level, each taking the terms under it along (moving a term to another parent is **Rename** → *Under*).
 
@@ -35,5 +35,5 @@ Term pages and entries share URL patterns: the most specific matching pattern de
 
 ## Trash
 
-Deleting a term moves it, and the terms under it, to the trash (`TrashTerm`): off the site, out of pickers and entries. In the terms list's **Trash**, restore it (`RestoreTerm`; under a parent still in the trash it goes to the top level) or delete it for good (`DeleteTerm`; terms under it move up, entries lose it).
+Deleting a term moves it, and the terms under it, to the trash (`TrashTerm`): off the site, out of pickers and entries. In the terms list's **Trash**, restore it (`RestoreTerm`; under a parent still in the trash it goes to the top level) or delete it for good (`DeleteTerm`; terms under it move up, entries lose it). A term other content points at (`Term::referencedBy()`, see [references](structure.md#references)) is named in the confirmation, and `DeleteTerm` refuses it unless `force` is passed.
 

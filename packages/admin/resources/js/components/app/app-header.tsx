@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
@@ -7,12 +7,18 @@ import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useBreadcrumbOverride } from '@/components/app/breadcrumbs';
 import { setCommandPaletteOpen } from '@/components/app/command-palette';
+import { adminUrl } from '@/lib/admin-url';
+import { navigationCrumbs } from '@/lib/nav-match';
+import type { SharedProps } from '@/types';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
-/** The bar above each page: the sidebar toggle and the page's breadcrumbs (useBreadcrumbs). */
+/** The bar above each page: the sidebar toggle and the page's breadcrumbs (useBreadcrumbs, or the matching navigation item). */
 export function AppHeader() {
-    const crumbs = useBreadcrumbOverride() ?? [];
+    const page = usePage<SharedProps>();
+    const declared = useBreadcrumbOverride();
+    const fallback = React.useMemo(() => navigationCrumbs(page.props.navigation ?? [], page.url, adminUrl), [page.props.navigation, page.url]);
+    const crumbs = declared ?? fallback;
 
     return (
         <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/70 px-5 backdrop-blur-md md:px-8 lg:px-10">

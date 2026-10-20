@@ -12,7 +12,7 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `title` | The name editors see. |
 | `blueprint` | A blueprint's handle, or none. Changing it keeps entries' data: values of fields the new blueprint lacks stay stored, out of sight, and come back with the field. A blueprint can't be deleted while a collection uses it. |
 | `dated` | Entries show a date and list newest first. |
-| `route` | The entries' URL, like `/blog/{slug}`; none: no pages. See [the site](site.md). |
+| `route` | The entries' URL, like `/blog/{slug}` or `/projects/{project}/{slug}`; none: no pages. See [the site](site.md). |
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
 | `listing_route` | The URL of a page listing the entries, like `/blog`; none: no listing page. See [the site](site.md#listing-pages). |
 | `listing_blueprint`, `per_page` | The listing page's own fields (an intro…), edited from the entries list, and how many entries it shows per page (10). `SaveListing` saves the fields (and the listing page's own SEO, `$seo`) per language and, given the `version` the editor opened (`CollectionListing::$version`), refuses a save over someone else's newer one. |
@@ -26,7 +26,7 @@ use Sunrice\Cms\Actions\Collections\SaveCollection;
 $articles = app(SaveCollection::class)->handle(['handle' => 'articles', 'title' => 'Articles', 'blueprint' => 'article', 'dated' => true]);
 ```
 
-Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave the admin and the site.
+Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave the admin and the site. The list's **Deleted** filter shows deleted collections with a **Restore** action, and `sunrice:orphans --purge` deletes them for good, freeing their handles ([leftovers](structure.md#leftovers)). To rename a field without losing its values, use `sunrice:rename-field` ([renaming a field](structure.md#renaming-a-field)).
 
 ## Editing entries
 
@@ -41,10 +41,11 @@ Editors write entries under **Content → Entries**: a list per collection (see 
 | `cms.entries.delete` | Move entries to the trash, restore them and delete them for good, also several at once. |
 | `cms.entries.update-own`, `.delete-own` | The same, for entries they created, in collections they may view. |
 | `cms.entries.translate` | Save drafts of entries' other languages (not the main one), in collections they may view. |
+| `cms.entries.view-drafts` | While signed in, see on the site that a live page has unpublished changes, and open them (`?draft`), in collections they may view. See [draft viewing](site.md#draft-viewing). |
 
 Each of the first five also comes for one collection: `cms.entries.blog.publish` publishes only in Blog. They're created with the collection (and deleted with it), and the role editor shows them under "Entries: Blog". The same goes for terms (`cms.terms.{taxonomy}.manage`) and form submissions (`cms.submissions.{form}.view`, `.delete`). People see only the collections, taxonomies and forms they may work in. In code: `Sunrice\Cms\Support\Access::entries($user, 'publish', $collection, $entry, $locale)`.
 
-`sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
+`sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing, sees drafts on the site) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
 
 In the editor:
 
@@ -86,7 +87,29 @@ Tick entries to publish, unpublish or trash them together (in the trash: restore
 
 ## Languages
 
-The languages content is written in are set in `config/sunrice-cms.php` (or `SUNRICE_LOCALES=id,en`), the first being the main one. Without either, it's the app's locale. `Sunrice\Cms\Support\Locales::all()` and `::default()` read them.
+The languages content is written in are set in **Settings → Languages** (`Sunrice\Cms\Settings\LocaleSettings`, permission `cms.settings.locales`): one per line, its code and its name, the main one first:
+
+```
+en: English
+id: Bahasa Indonesia
+```
+
+Until they're saved there, `config/sunrice-cms.php` decides: `locales` (or `SUNRICE_LOCALES=id,en`), the first being the main one, and `locale_names` (`['id' => 'Bahasa Indonesia']`; others are named in English when PHP's intl extension is installed, else by their code). Without either, it's the app's locale. The main language's addresses are plain (`/about`), the others' start with their code (`/id/about`).
+
+Codes are as Laravel's `app.locale` uses them (`en`, `id`, `pt_BR`). The settings refuse an empty list, codes listed twice, and changing or dropping the main language while content is written in it: [switch it](#switching-the-main-language) instead. Dropping another language hides its content without deleting it.
+
+```php
+use Sunrice\Cms\Support\Locales;
+
+Locales::all();        // ['en', 'id']
+Locales::default();    // 'en', the main one
+Locales::names();      // ['en' => 'English', 'id' => 'Bahasa Indonesia']
+Locales::name('id');   // 'Bahasa Indonesia'
+Locales::prefix('id'); // '/id' ('' for the main one)
+Locales::current();    // the page's language
+```
+
+The editor's language bar and the entries list name each language as set.
 
 Each language of an entry is a translation of its own: its own title, slug, draft, status, publish date and revisions. With more than one language, the editor shows a bar of them:
 
@@ -94,7 +117,26 @@ Each language of an entry is a translation of its own: its own title, slug, draf
 - **Removing one** (`cms.entries.delete`, or `DeleteTranslation`) deletes that translation and its revisions. The main translation can't be removed: trash the entry instead.
 - **Outdated** shows on a language (in the bar, in the list's language badges, and to AI tools as `outdated` and `outdated_languages`) when the main translation changed after it was translated: each translation keeps the main one's `version` from when it was created, saved or published (`main_version`), and `$translation->isOutdated()` compares. Saving or publishing the translation clears it.
 
-Fields are **translated** or **shared**. A field's *Per language* setting in the blueprint decides; left to the type, text fields (text, textarea, rich text, links, groups, repeaters, flexible) are translated and the others (numbers, toggles, selects, dates, media) shared. Shared fields belong to the main translation: other languages show its values, read-only, and templates get them from it (`$translation->values()`). A price changed in the main language is the price in every language. Other languages store only their translated fields (`CreateTranslation` and `SaveDraft` leave the shared ones out; `$translation->ownData()`), and `$translation->completeData()` gives the stored fields with the main translation's shared ones, live or in the draft, which site search text and revisions follow. Shared fields nested inside a translated group, repeater or block aren't shared: a translated field is translated whole.
+Fields are **translated** or **shared**. A field's *Per language* setting in the blueprint decides; left to the type, text fields (text, textarea, rich text, links, groups, repeaters, flexible) are translated and the others (numbers, toggles, selects, dates, media) shared. Shared fields belong to the main translation: other languages show its values, read-only, and templates get them from it (`$translation->values()`). A price changed in the main language is the price in every language. Other languages store only their translated fields (`CreateTranslation` and `SaveDraft` leave the shared ones out; `$translation->ownData()`), and `$translation->completeData()` gives the stored fields with the main translation's shared ones, live or in the draft, which site search text and revisions follow.
+
+Shared fields inside a translated group, repeater or flexible block are shared too, row by row: another language's rows and blocks have their own text, and take the shared values (a dish's price, a quote's rating) from the main language's row or block with the same id (`_id` for rows, `id` for blocks; a group's by its handle). The editor shows them read-only with the main language's values. A row or block only that language has (added after it was copied) keeps its own. `Schema::withShared($data, $main)` and `withoutShared()` do the matching; `completeData()` and `ownData()` use them.
+
+## Switching the main language
+
+Once there's content, the main language is changed with a command, which moves what's stored so nothing is lost:
+
+```bash
+php artisan sunrice:switch-main-language id --dry-run       # what would change
+php artisan sunrice:switch-main-language id --copy-missing  # back up the database first
+```
+
+- **Entries** (live and draft), **terms**, **globals** and **listing pages**: the shared values move from the old main language to the new one, which holds them from then on (in rows and blocks too); the old main language keeps only its text, and every language shows what it showed before.
+- Entries and terms without a translation in the new main language stop the switch, unless `--copy-missing`, which gives them a copy of the old main language's (published as it was).
+- **Menu labels** the new main language left empty take the old one's.
+- **Addresses**: the new main language's lose their prefix (`/id/about` → `/about`, and `/id/…` redirects there) and the old one's get it (`/about` → `/en/about`). Redirects are rewritten to match, and the old main language's pages and terms redirect (301) from their old addresses, where the new main language has no page of its own, without chains.
+- **Settings → Languages** lists the new main language first. The command reports what it moved.
+
+In code: `Sunrice\Cms\Actions\Settings\SwitchMainLanguage`, `report($to)` (counts, changing nothing) and `handle($to, copyMissing: true)`, which throws a `ValidationException` for a language that isn't a content language or is the main one already, or for content left without it.
 
 ## Drafts and publishing
 
@@ -139,7 +181,11 @@ Every publish keeps a `Revision` (title, slug, fields and who published it); the
 
 ## Trash
 
-`TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms. `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
+`TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms; one that other content points at is refused unless `force` is passed (see [references](structure.md#references)). `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
+
+## References
+
+Every save records which entries and terms an entry's fields point at, and the editor's sidebar lists what points at this one under **Used by**; trashing a used entry says where it's used, and `ForceDeleteEntry` refuses it unless `force` is passed. See [references](structure.md#references).
 
 Every action is written to the [activity log](../admin/activity.md): created, duplicated, updated (with the fields that changed), published, unpublished, reverted, trashed, restored and deleted.
 
