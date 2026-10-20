@@ -55,7 +55,7 @@ It renames the field in the definition and moves the values stored under the old
 - terms' pages, global sets' values, listing pages and form submissions;
 - a fieldset's fields wherever the fieldset is included or used as a kind of flexible block, in every blueprint that reaches it.
 
-References and search text are rebuilt for what changed, and the records' versions count up, so an editor who had one open is asked to reload before saving. The new handle must be a valid one (lowercase letters, digits and underscores), not taken on that level and, at the top level, not one content keeps for itself (`title`, `slug`…). In code:
+References and search text are rebuilt for what changed, and the records' versions count up, so an editor who had one open is asked to reload before saving. The new handle must be a valid one (lowercase letters, digits and underscores), not taken on that level (for a fieldset's field, also not in any blueprint or fieldset that includes the fieldset, through other includes too, at the level its fields land on; the refusal names it) and, at the top level, not one content keeps for itself (`title`, `slug`…). In code:
 
 ```php
 use Sunrice\Cms\Actions\Blueprints\RenameFieldHandle;

@@ -11,6 +11,7 @@ use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\Actions\Terms\SaveTermContent;
+use Sunrice\Cms\Fields\Fieldsets;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\ContentReference;
@@ -113,4 +114,58 @@ it('renames from the command, with a dry run first', function () {
 
     artisan('sunrice:rename-field', ['definition' => 'page', 'old' => 'hero.heading', 'new' => 'Bad'])->assertFailed();
     artisan('sunrice:rename-field', ['definition' => 'nope', 'old' => 'a', 'new' => 'b'])->assertFailed();
+});
+
+it('refuses a handle a blueprint including the fieldset already has where it is included', function () {
+    Fieldset::query()->create(['handle' => 'meta', 'title' => 'Meta', 'fields' => [['handle' => 'title', 'type' => 'text']]]);
+    Blueprint::query()->create(['handle' => 'article', 'title' => 'Article', 'fields' => [
+        ['handle' => 'meta', 'type' => 'fieldset', 'config' => ['fieldset' => 'meta']],
+        ['handle' => 'name', 'type' => 'text'],
+    ]]);
+    $meta = Fieldset::query()->where('handle', 'meta')->firstOrFail();
+
+    expect(fn () => app(RenameFieldHandle::class)->handle($meta, 'title', 'name'))
+        ->toThrow(ValidationException::class, 'The blueprint "article" includes the fieldset "meta" and already has a field "name".');
+    expect($meta->fresh()->fields[0]['handle'])->toBe('title');
+    artisan('sunrice:rename-field', ['definition' => 'fieldset:meta', 'old' => 'title', 'new' => 'name'])
+        ->expectsOutputToContain('"article"')->assertFailed();
+});
+
+it('finds the collision through nested includes, at the level they expand into', function () {
+    Fieldset::query()->create(['handle' => 'meta', 'title' => 'Meta', 'fields' => [['handle' => 'title', 'type' => 'text']]]);
+    Fieldset::query()->create(['handle' => 'wrap', 'title' => 'Wrap', 'fields' => [
+        ['handle' => 'box', 'type' => 'group', 'fields' => [['handle' => 'meta', 'type' => 'fieldset', 'config' => ['fieldset' => 'meta']]]],
+    ]]);
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
+        ['handle' => 'name', 'type' => 'text'],
+        ['handle' => 'wrap', 'type' => 'fieldset', 'config' => ['fieldset' => 'wrap']],
+    ]]);
+    $meta = Fieldset::query()->where('handle', 'meta')->firstOrFail();
+
+    // "post" has "name" at the top, where "meta" doesn't land: fine so far.
+    expect(app(RenameFieldHandle::class)->handle($meta, 'title', 'name', dryRun: true))->toBeArray();
+
+    // "wrap" gets a "name" next to where "meta" lands: refused, naming a blueprint that has it there.
+    $wrap = Fieldset::query()->where('handle', 'wrap')->firstOrFail();
+    $wrap->fields = [['handle' => 'box', 'type' => 'group', 'fields' => [
+        ['handle' => 'meta', 'type' => 'fieldset', 'config' => ['fieldset' => 'meta']],
+        ['handle' => 'name', 'type' => 'text'],
+    ]]];
+    $wrap->save();
+    app(Fieldsets::class)->flush();
+
+    expect(fn () => app(RenameFieldHandle::class)->handle($meta, 'title', 'name'))
+        ->toThrow(ValidationException::class, 'The blueprint "post" includes the fieldset "meta" and already has a field "name" in "box".');
+});
+
+it('ignores fieldsets used as blocks and includes at other levels', function () {
+    Fieldset::query()->create(['handle' => 'meta', 'title' => 'Meta', 'fields' => [['handle' => 'title', 'type' => 'text']]]);
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
+        ['handle' => 'name', 'type' => 'text'],
+        ['handle' => 'extra', 'type' => 'group', 'fields' => [['handle' => 'meta', 'type' => 'fieldset', 'config' => ['fieldset' => 'meta']]]],
+        ['handle' => 'blocks', 'type' => 'flexible', 'config' => ['blocks' => ['meta']]],
+    ]]);
+
+    app(RenameFieldHandle::class)->handle(Fieldset::query()->where('handle', 'meta')->firstOrFail(), 'title', 'name');
+    expect(Fieldset::query()->where('handle', 'meta')->firstOrFail()->fields[0]['handle'])->toBe('name');
 });
