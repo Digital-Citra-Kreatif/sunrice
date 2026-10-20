@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: a translation other than the main one no longer keeps stale copies of the shared fields: `CreateTranslation` and `SaveDraft` store only the translated fields, and `search_text`, revisions and `EntryTranslation::completeData()` (new, with `ownData()`) read the shared ones from the main translation, whose publish refreshes the others' search text.
 - Fixed: two saves can no longer take the same slug at once. `EntryInput::taken()` locks the rows it finds (`lockForUpdate()`), `CreateEntry`, `SaveDraft`, `PublishEntry` and `CreateTranslation` check and write in one transaction (`EntryInput::write()`), and a unique-index violation on the slug becomes a validation error on `slug`.
 - Fixed: the editor no longer runs out of stack on a blueprint whose flexible blocks use their own fieldset (or each other) as a kind of block. `Schema::toAdmin()` sends blocks within blocks `Schema::MAX_DEPTH` levels deep and deeper blocks without fields; `Schema::make()` and `Schema::children()` take the depth, `Schema::depth()` tells it.
 - Menus link to term pages (`term_id`) and listing pages (`collection_id`) too (migration `000016`; Term and Listing in the menu editor), and each link says whether it's the page shown (`active`) or leads to it (`active_trail`). **Menu links have two new keys.**
