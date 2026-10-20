@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -9,6 +10,7 @@ use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\AiToken;
+use Sunrice\Admin\Ai\TokenScope;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
@@ -140,6 +142,27 @@ it('keeps read-only tokens to reading, even for super admins', function () {
     expect($info['read_only_token'])->toBeTrue()
         ->and(collect($info['permissions'])->pluck('name')->all())->not->toContain('shop.products.update', 'sunrice.users.update')->toContain('sunrice.users.view')
         ->and(collect($info['resources'])->firstWhere('key', 'users')['can'])->toBe(['view']);
+});
+
+it('refuses a read-only token every ability but viewing, also ones the panel doesn\'t know', function () {
+    // A plugin's policy abilities, never registered as permissions.
+    Gate::define('shop.orders.view', fn () => true);
+    Gate::define('shop.orders.refund', fn () => true);
+    Gate::define('publish', fn () => true);
+    $this->rina->assignRole('super-admin');
+    actingAs($this->rina);
+    expect(Gate::allows('shop.orders.refund'))->toBeTrue()->and(Gate::allows('publish'))->toBeTrue();
+
+    [$token] = AiToken::issue((string) $this->rina->id, 'Reader', readOnly: true);
+    app(TokenScope::class)->token = $token;
+    expect(Gate::allows('shop.orders.view'))->toBeTrue()
+        ->and(Gate::allows('viewAny'))->toBeTrue()
+        ->and(Gate::allows(Panel::ACCESS))->toBeTrue()
+        ->and(Gate::allows('sunrice.ai.connect'))->toBeTrue()
+        ->and(Gate::allows('shop.orders.refund'))->toBeFalse()
+        ->and(Gate::allows('publish'))->toBeFalse()
+        ->and(Gate::allows('shop.products.update'))->toBeFalse()
+        ->and(Gate::allows('sunrice.users.view'))->toBeTrue();
 });
 
 it('records a token used from a new address, alerts, and lets admins revoke a user\'s tokens', function () {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Read-only AI tokens refuse every ability but `view`, `viewAny`, `*.view`, `sunrice.access` and `sunrice.ai.connect`, so a plugin's own policy abilities (`publish`, `refund`) no longer pass (`TokenScope::refuses()` takes the ability only).
 - AI access tokens need `sunrice.access` as well as `sunrice.ai.connect`; **Sign out everywhere** and **Lock account** (`AccountGuard::signOutEverywhere()`) revoke the account's tokens (`tokens revoked`); and a new token expires after 90 days unless **Never** or another time is chosen (`AiAccessController` reads a missing `expires_in_days` as 90).
 - Menus link to term pages (`term_id`) and listing pages (`collection_id`) too (migration `000016`; Term and Listing in the menu editor), and each link says whether it's the page shown (`active`) or leads to it (`active_trail`). **Menu links have two new keys.**
 - Scoped permissions: entries per collection (`cms.entries.{collection}.{view,create,update,publish,delete}`), terms per taxonomy (`cms.terms.{taxonomy}.manage`) and submissions per form (`cms.submissions.{form}.{view,delete}`), created and deleted with them; `cms.entries.update-own`, `.delete-own` and `.translate`. Lists, menus, editors, bulk actions, edit locks and AI tools follow them (`Support\Access`). The default roles `author` and `translator`. The panel's `permissionsUsing()` and `flushPermissions()` (`@api`) for permissions that depend on data.

@@ -16,7 +16,7 @@ Revoke a token on the same page. Administrators revoke all of a user's tokens on
 
 ## What an agent can do
 
-Exactly what its user can, and no more: every tool checks the user's permissions. With a **read-only** token it can only view: it sees only read-only tools, and every permission but viewing is refused, for super admins too.
+Exactly what its user can, and no more: every tool checks the user's permissions. With a **read-only** token it can only view: it sees only read-only tools, and every ability but viewing is refused, for super admins too. Only `view`, `viewAny`, permissions ending in `.view`, `sunrice.access` and `sunrice.ai.connect` pass; anything else, including a policy ability the panel doesn't know (`publish`, `refund`), is refused.
 
 - Changes show in the [activity log](activity.md) under the user, with the source **AI agent** and the token's name.
 - A token works only while its owner may open the panel (`sunrice.access`) and connect agents, and isn't locked. **Sign out everywhere** and **Lock account** on Users [revoke the account's tokens](security.md#when-an-account-may-be-in-the-wrong-hands) (`tokens revoked`), so agents stop with the sessions; expired and revoked tokens stop too.
