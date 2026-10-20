@@ -363,6 +363,17 @@ Each database searches its own way, with the index of migration `000017`: MySQL 
 
 In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perPage: 20, locale: 'id')`. Field text is kept when an entry is published (`search_text`, its first 20,000 characters).
 
+## The site's words
+
+What the CMS's own views say to visitors (the plain pages' **Newer** and **Older**, the search page, comments, the forms' **Send**, the reply emails, and the messages after posting) are translation keys, `sunrice-cms::site.*`, in English and Indonesian, shown in the page's language. To change them or add a language, put your own lines in `lang/vendor/sunrice-cms/{locale}/site.php` (only the keys you change):
+
+```php
+// lang/vendor/sunrice-cms/id/site.php
+return ['comments' => ['post' => 'Kirim']];
+```
+
+Laravel's own lines (`pagination`, `validation`, `auth`, `passwords`, and the pagination view's words) come in English only; the CMS brings Indonesian ones, used for each file the app has none of: your `lang/id/validation.php` always wins, as do the lines in `lang/id.json`. Form and comment errors, and paginator links, are then in Indonesian on Indonesian pages.
+
 ## Previews
 
 The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex` and `Cache-Control: no-store, private`, so no cache keeps a draft. Save first to see changes.

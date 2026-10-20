@@ -80,14 +80,55 @@ Tick entries to publish, unpublish or trash them together (in the trash: restore
 
 ## Languages
 
-The languages content is written in are set in `config/sunrice-cms.php` (or `SUNRICE_LOCALES=id,en`), the first being the main one. Without either, it's the app's locale. `Sunrice\Cms\Support\Locales::all()` and `::default()` read them.
+The languages content is written in are set in **Settings → Languages** (`Sunrice\Cms\Settings\LocaleSettings`, permission `cms.settings.locales`): one per line, its code and its name, the main one first:
+
+```
+en: English
+id: Bahasa Indonesia
+```
+
+Until they're saved there, `config/sunrice-cms.php` decides: `locales` (or `SUNRICE_LOCALES=id,en`), the first being the main one, and `locale_names` (`['id' => 'Bahasa Indonesia']`; others are named in English when PHP's intl extension is installed, else by their code). Without either, it's the app's locale. The main language's addresses are plain (`/about`), the others' start with their code (`/id/about`).
+
+Codes are as Laravel's `app.locale` uses them (`en`, `id`, `pt_BR`). The settings refuse an empty list, codes listed twice, and changing or dropping the main language while content is written in it: [switch it](#switching-the-main-language) instead. Dropping another language hides its content without deleting it.
+
+```php
+use Sunrice\Cms\Support\Locales;
+
+Locales::all();        // ['en', 'id']
+Locales::default();    // 'en', the main one
+Locales::names();      // ['en' => 'English', 'id' => 'Bahasa Indonesia']
+Locales::name('id');   // 'Bahasa Indonesia'
+Locales::prefix('id'); // '/id' ('' for the main one)
+Locales::current();    // the page's language
+```
+
+The editor's language bar and the entries list name each language as set.
 
 Each language of an entry is a translation of its own: its own title, slug, draft, status, publish date and revisions. With more than one language, the editor shows a bar of them:
 
 - **Adding a language** (`cms.entries.create`, or `CreateTranslation`) makes a draft copied from the main translation, to translate and publish on its own.
 - **Removing one** (`cms.entries.delete`, or `DeleteTranslation`) deletes that translation and its revisions. The main translation can't be removed: trash the entry instead.
 
-Fields are **translated** or **shared**. A field's *Per language* setting in the blueprint decides; left to the type, text fields (text, textarea, rich text, links, groups, repeaters, flexible) are translated and the others (numbers, toggles, selects, dates, media) shared. Shared fields belong to the main translation: other languages show its values, read-only, and templates get them from it (`$translation->values()`). A price changed in the main language is the price in every language. Other languages store only their translated fields (`CreateTranslation` and `SaveDraft` leave the shared ones out; `$translation->ownData()`), and `$translation->completeData()` gives the stored fields with the main translation's shared ones, live or in the draft, which site search text and revisions follow. Shared fields nested inside a translated group, repeater or block aren't shared: a translated field is translated whole.
+Fields are **translated** or **shared**. A field's *Per language* setting in the blueprint decides; left to the type, text fields (text, textarea, rich text, links, groups, repeaters, flexible) are translated and the others (numbers, toggles, selects, dates, media) shared. Shared fields belong to the main translation: other languages show its values, read-only, and templates get them from it (`$translation->values()`). A price changed in the main language is the price in every language. Other languages store only their translated fields (`CreateTranslation` and `SaveDraft` leave the shared ones out; `$translation->ownData()`), and `$translation->completeData()` gives the stored fields with the main translation's shared ones, live or in the draft, which site search text and revisions follow.
+
+Shared fields inside a translated group, repeater or flexible block are shared too, row by row: another language's rows and blocks have their own text, and take the shared values (a dish's price, a quote's rating) from the main language's row or block with the same id (`_id` for rows, `id` for blocks; a group's by its handle). The editor shows them read-only with the main language's values. A row or block only that language has (added after it was copied) keeps its own. `Schema::withShared($data, $main)` and `withoutShared()` do the matching; `completeData()` and `ownData()` use them.
+
+## Switching the main language
+
+Once there's content, the main language is changed with a command, which moves what's stored so nothing is lost:
+
+```bash
+php artisan sunrice:switch-main-language id --dry-run       # what would change
+php artisan sunrice:switch-main-language id --copy-missing  # back up the database first
+```
+
+- **Entries** (live and draft), **terms**, **globals** and **listing pages**: the shared values move from the old main language to the new one, which holds them from then on (in rows and blocks too); the old main language keeps only its text, and every language shows what it showed before.
+- Entries and terms without a translation in the new main language stop the switch, unless `--copy-missing`, which gives them a copy of the old main language's (published as it was).
+- **Menu labels** the new main language left empty take the old one's.
+- **Addresses**: the new main language's lose their prefix (`/id/about` → `/about`, and `/id/…` redirects there) and the old one's get it (`/about` → `/en/about`). Redirects are rewritten to match, and the old main language's pages and terms redirect (301) from their old addresses, where the new main language has no page of its own, without chains.
+- **Settings → Languages** lists the new main language first. The command reports what it moved.
+
+In code: `Sunrice\Cms\Actions\Settings\SwitchMainLanguage`, `report($to)` (counts, changing nothing) and `handle($to, copyMissing: true)`, which throws a `ValidationException` for a language that isn't a content language or is the main one already, or for content left without it.
 
 ## Drafts and publishing
 

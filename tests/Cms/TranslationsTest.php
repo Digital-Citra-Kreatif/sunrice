@@ -15,6 +15,7 @@ use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Revision;
 
 use function Pest\Laravel\actingAs;
@@ -111,7 +112,7 @@ it('edits each language in the editor', function () {
 
     get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('entry.locale', 'en')->where('entry.isMain', true)->where('shared', [])
-        ->where('locales', [['code' => 'en', 'main' => true, 'status' => 'draft'], ['code' => 'id', 'main' => false, 'status' => null]]));
+        ->where('locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft'], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => null]]));
     get("/admin/cms/entries/{$entry->id}/edit?locale=id")->assertNotFound();
 
     post("/admin/cms/entries/{$entry->id}/translations", ['locale' => 'id'])->assertRedirect("/admin/cms/entries/{$entry->id}/edit?locale=id");
@@ -125,8 +126,64 @@ it('edits each language in the editor', function () {
         ->and($this->main->fresh()?->status)->toBe('draft');
 
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('entries.data.0.locales.1', ['code' => 'id', 'main' => false, 'status' => 'published']));
+        ->where('entries.data.0.locales.1', ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'published']));
 
     delete("/admin/cms/entries/{$entry->id}/translations/id")->assertRedirect("/admin/cms/entries/{$entry->id}/edit");
     delete("/admin/cms/entries/{$entry->id}/translations/en")->assertSessionHasErrors('locale');
+});
+
+it('shares the shared fields inside translated groups, rows and blocks with the main language', function () {
+    Fieldset::query()->create(['handle' => 'quote', 'title' => 'Quote', 'fields' => [
+        ['handle' => 'text', 'type' => 'text'],
+        ['handle' => 'stars', 'type' => 'number'],
+    ]]);
+    Blueprint::query()->create(['handle' => 'menu', 'title' => 'Menu', 'fields' => [
+        ['handle' => 'hero', 'type' => 'group', 'fields' => [['handle' => 'title', 'type' => 'text'], ['handle' => 'dark', 'type' => 'toggle']]],
+        ['handle' => 'dishes', 'type' => 'repeater', 'fields' => [['handle' => 'name', 'type' => 'text'], ['handle' => 'price', 'type' => 'number']]],
+        ['handle' => 'blocks', 'type' => 'flexible', 'config' => ['blocks' => ['quote']]],
+    ]]);
+    $menus = Collection::query()->create(['handle' => 'menus', 'title' => 'Menus', 'blueprint' => 'menu']);
+    $main = app(CreateEntry::class)->handle($menus, ['title' => 'Lunch', 'data' => [
+        'hero' => ['title' => 'Lunch', 'dark' => true],
+        'dishes' => [['_id' => 'r1', 'name' => 'Soup', 'price' => 5]],
+        'blocks' => [['id' => 'b1', 'type' => 'quote', 'values' => ['text' => 'Great', 'stars' => 5]]],
+    ]]);
+
+    $id = app(CreateTranslation::class)->handle($main->entry, 'id');
+    expect($id->draft_data['hero'])->toBe(['title' => 'Lunch'])
+        ->and($id->draft_data['dishes'][0])->not->toHaveKey('price')
+        ->and($id->draft_data['blocks'][0]['values'])->toBe(['text' => 'Great']);
+
+    // Shared values sent from another language are dropped; a row only it has keeps its own.
+    app(SaveDraft::class)->handle($id, ['data' => [
+        'hero' => ['title' => 'Makan siang', 'dark' => false],
+        'dishes' => [['_id' => 'r1', 'name' => 'Sup', 'price' => 99], ['_id' => 'r2', 'name' => 'Teh', 'price' => 2]],
+        'blocks' => [['id' => 'b1', 'type' => 'quote', 'values' => ['text' => 'Enak', 'stars' => 1]]],
+    ]]);
+    $id = $id->fresh() ?? $id;
+    expect($id->draft_data['hero'])->toBe(['title' => 'Makan siang'])
+        ->and($id->draft_data['dishes'][0])->not->toHaveKey('price')
+        ->and($id->draft_data['dishes'][1]['price'])->toBe(2)
+        ->and($id->draft_data['blocks'][0]['values'])->toBe(['text' => 'Enak']);
+
+    // The main language's changes show in the other's rows and blocks, matched by id.
+    app(SaveDraft::class)->handle($main->fresh() ?? $main, ['data' => [
+        'hero' => ['title' => 'Lunch', 'dark' => false],
+        'dishes' => [['_id' => 'r1', 'name' => 'Soup', 'price' => 6]],
+        'blocks' => [['id' => 'b1', 'type' => 'quote', 'values' => ['text' => 'Great', 'stars' => 4]]],
+    ]]);
+    $complete = ($id->fresh() ?? $id)->completeData(draft: true);
+    expect($complete['hero'])->toBe(['title' => 'Makan siang', 'dark' => false])
+        ->and($complete['dishes'][0]['name'])->toBe('Sup')->and($complete['dishes'][0]['price'])->toBe(6)
+        ->and($complete['dishes'][1]['price'])->toBe(2)
+        ->and($complete['blocks'][0]['values'])->toBe(['text' => 'Enak', 'stars' => 4]);
+
+    // The editor shows them read-only, with the main language's values.
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
+    get("/admin/cms/entries/{$main->entry_id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page
+        ->where('fields.0.fields.1.shared', true)->missing('fields.0.fields.0.shared')
+        ->where('fields.1.fields.1.shared', true)
+        ->where('fields.2.blocks.0.fields.1.shared', true)
+        ->where('values.data.dishes.0.price', 6));
 });
