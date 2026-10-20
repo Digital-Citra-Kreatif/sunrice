@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Sunrice\Admin\Help\HelpPages;
 use Sunrice\Admin\Http\Controllers\ActivityController;
 use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Http\Controllers\EditLocksController;
+use Sunrice\Admin\Http\Controllers\HelpController;
 use Sunrice\Admin\Http\Controllers\PreferencesController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
 use Sunrice\Admin\Preferences\Preferences;
@@ -38,3 +40,9 @@ Route::delete('kept-edits/{kept}', [EditLocksController::class, 'destroy'])->nam
 // The signed-in user's own preferences (useTablePreferences); nobody else's.
 Route::get('preferences/{key}', [PreferencesController::class, 'show'])->name('preferences.show')->where('key', Preferences::KEY_PATTERN);
 Route::put('preferences/{key}', [PreferencesController::class, 'update'])->name('preferences.update')->where('key', Preferences::KEY_PATTERN);
+
+// Help: the developer docs and the user guide (Panel::docs(), Panel::guide()); each checks its permission.
+Route::get('docs/{page?}', [HelpController::class, 'docs'])->middleware('can:sunrice.docs.view')->name('docs.show')->where('page', HelpPages::PAGE_PATTERN);
+Route::get('guide/images/{section}/{file}', [HelpController::class, 'image'])->middleware('can:sunrice.guide.view')->name('guide.image')
+    ->where(['section' => '[a-z0-9-]+', 'file' => HelpController::IMAGE_PATTERN]);
+Route::get('guide/{page?}', [HelpController::class, 'guide'])->middleware('can:sunrice.guide.view')->name('guide.show')->where('page', HelpPages::PAGE_PATTERN);

@@ -411,43 +411,55 @@
     }
 }
 
-/* Developer docs: rendered Markdown. */
+/* Help pages (Docs and Guide): rendered Markdown, set for reading. */
 .sunrice-docs {
     font-size: 0.9375rem;
-    line-height: 1.7;
+    line-height: 1.75;
+    color: color-mix(in oklab, var(--foreground) 88%, transparent);
 }
 .sunrice-docs > :first-child { margin-top: 0; }
+.sunrice-docs > :is(p, ul, ol, blockquote, aside, h2, h3, h4, dl) { max-width: 46rem; }
+.sunrice-docs :is(h1, h2, h3, h4) { color: var(--foreground); text-wrap: balance; }
 .sunrice-docs h1 { font-size: 1.75rem; font-weight: 500; letter-spacing: -0.03em; line-height: 1.25; margin: 0 0 1rem; }
-.sunrice-docs h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; margin: 2.25rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border); scroll-margin-top: 1.5rem; }
-.sunrice-docs h3 { font-size: 1.0625rem; font-weight: 600; margin: 1.75rem 0 0.5rem; scroll-margin-top: 1.5rem; }
-.sunrice-docs p, .sunrice-docs ul, .sunrice-docs ol, .sunrice-docs pre, .sunrice-docs table, .sunrice-docs blockquote { margin: 0 0 1rem; }
+.sunrice-docs h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.35; margin: 2.75rem 0 0.75rem; scroll-margin-top: 5.5rem; }
+.sunrice-docs h3 { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.01em; margin: 2rem 0 0.5rem; scroll-margin-top: 5.5rem; }
+.sunrice-docs h4 { font-size: 0.9375rem; font-weight: 600; margin: 1.5rem 0 0.4rem; }
+.sunrice-docs :is(h2, h3):target { color: var(--primary); }
+.sunrice-docs p, .sunrice-docs ul, .sunrice-docs ol, .sunrice-docs pre, .sunrice-docs table, .sunrice-docs blockquote, .sunrice-docs dl { margin: 0 0 1rem; }
 .sunrice-docs ul { list-style: disc; padding-left: 1.25rem; }
 .sunrice-docs ol { list-style: decimal; padding-left: 1.25rem; }
-.sunrice-docs li { margin: 0.25rem 0; }
+.sunrice-docs li { margin: 0.3rem 0; padding-left: 0.15rem; }
+.sunrice-docs li::marker { color: var(--muted-foreground); }
 .sunrice-docs li > p { margin: 0; }
-.sunrice-docs a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
-.sunrice-docs a.heading-permalink { margin-left: 0.4rem; color: var(--muted-foreground); text-decoration: none; opacity: 0; transition: opacity 120ms; }
-.sunrice-docs :is(h2, h3):hover a.heading-permalink { opacity: 1; }
-.sunrice-docs code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; background: var(--muted); border-radius: 0.3rem; padding: 0.1rem 0.3rem; }
-.sunrice-docs pre { background: var(--muted); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.85rem 1rem; overflow-x: auto; font-size: 0.8125rem; line-height: 1.6; }
-.sunrice-docs pre code { background: none; padding: 0; font-size: inherit; }
-.sunrice-docs table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.875rem; }
-.sunrice-docs th, .sunrice-docs td { border: 1px solid var(--border); padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; }
-.sunrice-docs th { background: var(--muted); font-weight: 600; }
-.sunrice-docs blockquote { border-left: 3px solid var(--border); padding-left: 1rem; color: var(--muted-foreground); }
-.sunrice-docs hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+.sunrice-docs strong { font-weight: 600; color: var(--foreground); }
+.sunrice-docs dt { font-weight: 600; color: var(--foreground); }
+.sunrice-docs dd { margin: 0 0 0.75rem 1rem; }
+.sunrice-docs a { color: var(--primary); text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--primary) 35%, transparent); text-underline-offset: 3px; transition: text-decoration-color 150ms var(--ease-out-quart); }
+.sunrice-docs a:hover { text-decoration-color: currentColor; }
+.sunrice-docs code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.84em; background: var(--muted); border: 1px solid color-mix(in oklab, var(--border) 70%, transparent); border-radius: calc(var(--radius) - 0.3rem); padding: 0.08rem 0.32rem; color: var(--foreground); }
+.sunrice-docs kbd { font-family: inherit; font-size: 0.8em; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 0.3rem; padding: 0.05rem 0.35rem; background: var(--background); }
+.sunrice-docs pre { background: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.9rem 1.1rem; overflow-x: auto; font-size: 0.8125rem; line-height: 1.65; }
+.sunrice-docs pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+.sunrice-docs table { display: block; max-width: 100%; overflow-x: auto; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem; line-height: 1.55; }
+.sunrice-docs th, .sunrice-docs td { border-bottom: 1px solid var(--border); padding: 0.5rem 0.8rem; text-align: left; vertical-align: top; }
+.sunrice-docs :is(th, td) + :is(th, td) { border-left: 1px solid var(--border); }
+.sunrice-docs tr:last-child td { border-bottom: 0; }
+.sunrice-docs th { background: color-mix(in oklab, var(--muted) 70%, transparent); font-weight: 600; color: var(--foreground); }
+.sunrice-docs blockquote { border-left: 3px solid color-mix(in oklab, var(--primary) 40%, var(--border)); padding: 0.1rem 0 0.1rem 1rem; color: var(--muted-foreground); }
+.sunrice-docs hr { border: 0; border-top: 1px solid var(--border); margin: 2.5rem 0; }
 .sunrice-docs td:first-child code { white-space: nowrap; }
-.sunrice-docs a.sunrice-shot { display: block; margin: 0.25rem 0 1.25rem; text-decoration: none; }
-.sunrice-docs a.sunrice-shot img { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 0.6rem; box-shadow: 0 6px 24px -14px rgb(0 0 0 / 0.35); transition: box-shadow 150ms; }
-.sunrice-docs a.sunrice-shot:hover img { box-shadow: 0 10px 30px -14px rgb(0 0 0 / 0.5); }
+.sunrice-docs a.sunrice-shot { display: block; margin: 0.5rem 0 1.5rem; text-decoration: none; }
+.sunrice-docs a.sunrice-shot img { display: block; max-width: 100%; height: auto; border-radius: var(--radius); box-shadow: var(--shadow-card); transition: box-shadow 200ms var(--ease-out-quart); }
+.sunrice-docs a.sunrice-shot:hover img { box-shadow: var(--shadow-pop); }
 .sunrice-docs li > a.sunrice-shot { margin: 0.6rem 0 0.9rem; }
 
 /* Callouts: "> [!TIP]" and friends. Technical notes look like code, so
    readers who don't touch code can tell them apart and skip them. */
 .sunrice-docs .sunrice-callout {
     --callout: var(--primary);
-    margin: 0 0 1rem;
-    padding: 0.75rem 1rem;
+    max-width: 46rem;
+    margin: 0 0 1.25rem;
+    padding: 0.8rem 1.1rem;
     border: 1px solid color-mix(in oklab, var(--callout) 30%, transparent);
     border-left-width: 3px;
     border-radius: 0.5rem;
@@ -467,10 +479,12 @@
 }
 .sunrice-docs .sunrice-callout-tip { --callout: oklch(0.6 0.13 155); }
 .sunrice-docs .sunrice-callout-note { --callout: oklch(0.6 0.13 245); }
+.sunrice-docs .sunrice-callout-important { --callout: oklch(0.6 0.15 300); }
 .sunrice-docs .sunrice-callout-warning { --callout: oklch(0.68 0.15 70); }
+.sunrice-docs .sunrice-callout-caution { --callout: oklch(0.6 0.19 27); }
 .sunrice-docs .sunrice-callout-tip .sunrice-callout-title::before { content: "✓"; }
 .sunrice-docs .sunrice-callout-note .sunrice-callout-title::before { content: "i"; font-family: ui-serif, Georgia, serif; font-style: italic; font-weight: 700; }
-.sunrice-docs .sunrice-callout-warning .sunrice-callout-title::before { content: "!"; font-weight: 800; }
+.sunrice-docs :is(.sunrice-callout-warning, .sunrice-callout-caution, .sunrice-callout-important) .sunrice-callout-title::before { content: "!"; font-weight: 800; }
 .sunrice-docs .sunrice-callout-technical {
     --callout: oklch(0.58 0.16 290);
     background: color-mix(in oklab, var(--muted) 85%, transparent);

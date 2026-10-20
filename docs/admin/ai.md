@@ -104,7 +104,7 @@ $panel->tools(ListOrders::class, RefundOrder::class)
 $panel->docs('Shop', dirname(__DIR__).'/docs');   // pages "shop/orders", "shop/refunds" …
 ```
 
-The section's key is the title's slug; a page's title is its first heading. A directory that doesn't exist is skipped.
+The section's key is the title's slug; a page's title is its first heading. A directory that doesn't exist is skipped. The same pages are on the panel's **Help → Developer docs** page (see [Help pages](panel.md#help-pages)).
 
 ## Settings
 

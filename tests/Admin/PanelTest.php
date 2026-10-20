@@ -75,7 +75,7 @@ it('makes plugins prefix their permissions with their id', function () {
     $ok = Panel::make()->userResource(null)->roleResource(null)->mediaLibrary(false)->aiAccess(false)
         ->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(Permission::make('shop.orders.view', 'View orders', 'Shop'))));
     $ok->boot();
-    expect(array_keys($ok->getPermissions()))->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.activity.prune', 'sunrice.settings.branding', 'sunrice.settings.security', 'sunrice.settings.mail', 'shop.orders.view']);
+    expect(array_keys($ok->getPermissions()))->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.activity.prune', 'sunrice.settings.branding', 'sunrice.settings.security', 'sunrice.settings.mail', 'sunrice.guide.view', 'sunrice.docs.view', 'shop.orders.view']);
 
     $panel = Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->permissions(Permission::make('cms.entries.edit', 'Edit entries'))));
     expect(fn () => $panel->boot())->toThrow(PanelMisconfigured::class, 'start with its id ("shop.…")');

@@ -53,7 +53,7 @@ final class Panel
     private const RESERVED_SHARED = ['sunrice', 'auth', 'navigation', 'flash', 'errors'];
 
     /** Page folders of the panel's own React pages; plugin bundles use others. */
-    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/', 'Error'];
+    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/', 'Help/', 'Error'];
 
     private string $path = 'admin';
 
@@ -110,8 +110,11 @@ final class Panel
     /** @var list<string> */
     private array $aiInstructions = [];
 
-    /** @var array<string, array{title: string, directory: string}> developer docs for AI agents, keyed by the title's slug */
+    /** @var array<string, array{title: string, directory: string}> developer docs (Help → Docs, AI agents), keyed by the title's slug */
     private array $docs = [];
+
+    /** @var array<string, array{title: string, directory: string}> end-user guides (Help → Guide), keyed by the title's slug */
+    private array $guides = [];
 
     /** @var array<string, Closure(string, string, Authorizable): bool> */
     private array $lockables = [];
@@ -129,7 +132,7 @@ final class Panel
     private ?string $roleResource = RoleResource::class;
 
     /** URL segments the panel uses itself; resources can't take them. */
-    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai'];
+    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai', 'docs', 'guide'];
 
     /** The plugin whose register() is running, if any: it owns what is declared meanwhile. */
     private ?Plugin $registering = null;
@@ -586,10 +589,11 @@ final class Panel
     }
 
     /**
-     * Developer documentation AI agents may read with read_docs: the
-     * Markdown files (`*.md`) of a directory, under a title. Pages are
-     * named "{slug of the title}/{file name}" ("cms/collections"). The
-     * panel registers its own as "Panel"; a missing directory is skipped.
+     * Developer documentation: the Markdown files (`*.md`) of a directory,
+     * under a title, shown on Help → Docs ("sunrice.docs.view") and read by
+     * AI agents with read_docs. Pages are named "{slug of the title}/{file
+     * name}" ("cms/collections"). The panel registers its own as "Panel";
+     * a missing directory is skipped.
      *
      *     $panel->docs('Shop', dirname(__DIR__).'/docs');
      */
@@ -604,6 +608,33 @@ final class Panel
             throw new PanelMisconfigured("Two docs are called \"{$title}\"{$this->owner()}.");
         }
         $this->docs[$key] = ['title' => $title, 'directory' => rtrim($directory, '/')];
+
+        return $this;
+    }
+
+    /**
+     * A user guide for the people who work in the panel, shown on Help →
+     * Guide ("sunrice.guide.view"): a directory with a folder of Markdown
+     * files per language ("en/entries.md", "id/entries.md") and an
+     * "images" folder they share (`![Menu](images/menu.webp)`). Pages are
+     * named "{slug of the title}/{file name}"; a leading number orders them
+     * ("01-welcome.md" is "welcome"), and "{panel}" reads as the panel's
+     * name. The panel registers its own as "Panel"; a missing directory
+     * is skipped.
+     *
+     *     $panel->guide('Shop', dirname(__DIR__).'/guide');
+     */
+    public function guide(string $title, string $directory): self
+    {
+        $this->assertRegistering();
+        $key = Str::slug($title);
+        if ($key === '') {
+            throw new PanelMisconfigured("The guide \"{$title}\" needs a title with letters or numbers.");
+        }
+        if (isset($this->guides[$key])) {
+            throw new PanelMisconfigured("Two guides are called \"{$title}\"{$this->owner()}.");
+        }
+        $this->guides[$key] = ['title' => $title, 'directory' => rtrim($directory, '/')];
 
         return $this;
     }
@@ -684,11 +715,16 @@ final class Panel
                 Permission::make('sunrice.ai.error-log', 'Let AI agents read the error log', 'AI access'),
                 Permission::make('sunrice.ai.run-commands', 'Let AI agents run allowed commands', 'AI access'),
             );
-            // The panel's developer docs (this repository's docs/admin), for read_docs.
-            $this->docs('Panel', dirname(__DIR__, 3).'/docs/admin');
             $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')
                 ->group('Administration')->sort(970)->permission('sunrice.ai.connect'));
         }
+        // Help: the developer docs (this repository's docs/admin) and the user guide (packages/admin/guide).
+        $this->permissions(
+            Permission::make('sunrice.guide.view', 'Read the user guide', 'Help'),
+            Permission::make('sunrice.docs.view', 'Read the developer docs', 'Help'),
+        );
+        $this->docs('Panel', dirname(__DIR__, 3).'/docs/admin');
+        $this->guide('Panel', dirname(__DIR__).'/guide');
         if ($this->mediaLibrary) {
             $this->permissions(
                 Permission::make('sunrice.media.view', 'View media', 'Media'),
@@ -743,6 +779,14 @@ final class Panel
                     return false;
                 }));
         }
+        $guides = $this->guides;
+        $docs = $this->docs;
+        $this->navigation(
+            NavigationItem::make('help-guide')->label('Guide')->url('guide')->icon('life-buoy')->group('Help')->sort(990)
+                ->permission('sunrice.guide.view')->visible(fn (): bool => self::hasPages($guides, localized: true)),
+            NavigationItem::make('help-docs')->label('Developer docs')->url('docs')->icon('book-open')->group('Help')->sort(995)
+                ->permission('sunrice.docs.view')->visible(fn (): bool => self::hasPages($docs)),
+        );
         $this->validate();
 
         $this->booted = true;
@@ -845,6 +889,12 @@ final class Panel
         return $this->docs;
     }
 
+    /** @return array<string, array{title: string, directory: string}> keyed by the title's slug */
+    public function getGuides(): array
+    {
+        return $this->guides;
+    }
+
     /** @return list<string> */
     public function getAiInstructions(): array
     {
@@ -901,10 +951,15 @@ final class Panel
         return [...$this->permissions, ...$this->resolvedPermissions];
     }
 
-    /** @return array<string, list<string>> role name => permission names or patterns */
+    /**
+     * Every role that opens the panel may read the guide too.
+     *
+     * @return array<string, list<string>> role name => permission names or patterns
+     */
     public function getDefaultRoles(): array
     {
-        return $this->defaultRoles;
+        return array_map(fn (array $patterns): array => Str::is($patterns, self::ACCESS) && ! Str::is($patterns, 'sunrice.guide.view')
+            ? [...$patterns, 'sunrice.guide.view'] : $patterns, $this->defaultRoles);
     }
 
     /** @return array<string, Closure(): mixed> */
@@ -990,6 +1045,22 @@ final class Panel
     }
 
     // Internals -------------------------------------------------------------
+
+    /**
+     * Whether any of these directories holds a page (in a language folder for guides).
+     *
+     * @param  array<string, array{title: string, directory: string}>  $directories
+     */
+    private static function hasPages(array $directories, bool $localized = false): bool
+    {
+        foreach ($directories as ['directory' => $directory]) {
+            if ((glob($directory.($localized ? '/*/*.md' : '/*.md')) ?: []) !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /** @return array{key: string, label: string, url: string, icon: string} */
     private static function link(NavigationItem $item): array

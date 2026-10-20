@@ -127,6 +127,28 @@ The page arrives with the widgets' definitions and paints at once; `data` runs a
 
 Under the panel's path, a 403, 404, 419 (the page expired) or 500 is the panel's own **Error** page, inside the admin layout for someone signed in, and the right status code. That covers `abort(403)`, a refused policy, a record that isn't found and an address the panel doesn't know (the panel's fallback route `sunrice.admin.missing`, after every other route; guests go to the login page). Requests that want JSON still get JSON, a 500 with `APP_DEBUG=true` keeps the framework's page with the stack trace, and pages outside the panel's path are left to the app. A refused page is still a `page refused` security event. The page name `Error` belongs to the panel.
 
+## Help pages
+
+The sidebar's **Help** group has two reading pages, each shown when there is something to read:
+
+- **Guide** (`GET admin/guide/{page?}`, route `sunrice.admin.guide.show`, permission `sunrice.guide.view`): how to work in the panel, for editors and site managers, in their language.
+- **Developer docs** (`GET admin/docs/{page?}`, route `sunrice.admin.docs.show`, permission `sunrice.docs.view`): how the panel and its plugins work, for developers.
+
+Each is Markdown files from directories the panel and its plugins register, one sidebar section per directory, rendered on the server to HTML that is sanitised before it's sent (GitHub-flavoured Markdown; raw HTML is shown as text, scripts and unsafe links never pass). Pages get an **On this page** list of their `##` and `###` headings and links to the previous and next page.
+
+```php
+$panel->docs('Shop', dirname(__DIR__).'/docs');     // docs/orders.md → "shop/orders"
+$panel->guide('Shop', dirname(__DIR__).'/guide');   // guide/en/orders.md, guide/id/orders.md → "shop/orders"
+```
+
+- A page is named `{slug of the title}/{file name}` and titled by its first `# ` heading. The panel registers its own as "Panel" (`docs/admin` and `packages/admin/guide`), the CMS as "CMS" (docs) and "Website" (guide). A directory that doesn't exist is skipped; two registrations with one title are a `PanelMisconfigured`.
+- **Guides** hold a folder per language (`en`, `id`, …). The reader picks the language with the switch at the top (`?lang=id`), and the choice is kept in the session; before that it's the app's locale or the browser's. A page missing in that language is shown in English, with a note. A leading number orders the files (`01-welcome.md` is the page `welcome`). `{panel}` reads as the panel's branded name (Settings → Branding).
+- **Links** between pages are written as relative Markdown links (`[Menus](menus.md#links)`, `../admin/panel.md`) and open the page in the panel; `docs:cms/site` and `guide:website/entries` link the other set, shown as links only to readers who may open it. Links to files that aren't help pages keep only their text.
+- **Images** for a guide go in its `images` folder, shared by the languages (`![The menu editor](images/menus.webp)`), and are served by `GET admin/guide/images/{section}/{file}` (`sunrice.admin.guide.image`, `sunrice.guide.view`): only `webp`, `png`, `jpg`, `gif` and `avif` files directly in that folder. Other images are left out.
+- **Callouts**: a blockquote starting `[!TIP]`, `[!NOTE]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]` or `[!TECHNICAL]` (labelled "For developers") is a labelled box.
+
+Every [default role](permissions.md#default-roles) that opens the panel (`sunrice.access`) also gets `sunrice.guide.view`; give `sunrice.docs.view` to whoever builds the site (the `administrator` role has it). The developer docs are also what AI agents read with `read_docs` ([AI access](ai.md#docs-for-agents)). The URL segments `docs` and `guide`, and the page folder `Help/`, belong to the panel.
+
 ## Shared page data
 
 `$panel->share($key, fn () => ...)` adds data every admin page receives. The closure runs per request, only when a page is rendered, so it can be expensive without slowing anything else.

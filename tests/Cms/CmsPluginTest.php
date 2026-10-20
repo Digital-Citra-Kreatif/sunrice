@@ -25,6 +25,15 @@ it('is a panel plugin', function () {
         ->and(array_keys($panel->getUserContent()))->toBe(['media', 'cms.entries', 'cms.comments']);
 });
 
+it('registers its developer docs and its user guide for the Help pages', function () {
+    $panel = Panel::make()->plugin(CmsPlugin::make());
+    $panel->boot();
+    $root = dirname(__DIR__, 2);
+
+    expect($panel->getDocs()['cms']['directory'])->toBe($root.'/docs/cms')
+        ->and($panel->getGuides()['website'])->toBe(['title' => 'Website', 'directory' => $root.'/packages/cms/guide']);
+});
+
 it('reassigns, keeps or trashes a deleted user\'s entries and comments', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     app(SyncPermissions::class)->handle();
