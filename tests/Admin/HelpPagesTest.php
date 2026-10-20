@@ -105,9 +105,9 @@ it('renders a guide page as sanitised HTML with its headings and the panel\'s na
         ->where('language', 'en')
         ->where('languages', [['code' => 'en', 'label' => 'English'], ['code' => 'id', 'label' => 'Bahasa Indonesia']])
         ->where('shownIn', null)
-        ->where('previous', fn ($previous) => $previous === null || str_starts_with($previous['page'], 'panel/'))
+        ->where('previous', fn ($previous) => $previous['page'] === 'panel/activity-log')
         ->where('next', ['page' => 'shop/refunds', 'title' => 'Refunds'])
-        ->where('sections', fn ($sections) => collect($sections)->last()['key'] === 'shop'
+        ->where('sections', fn ($sections) => collect($sections)->pluck('key')->all() === ['panel', 'shop']
             && collect($sections)->last()['pages'] === [['page' => 'shop/orders', 'title' => 'Orders in Acme'], ['page' => 'shop/refunds', 'title' => 'Refunds']])
         ->where('html', function (string $html): bool {
             expect($html)
@@ -168,7 +168,7 @@ it('opens the first page and answers 404 for unknown pages', function () {
     helpPanel();
     actingAs(adminUser(Panel::ACCESS, 'sunrice.guide.view', 'sunrice.docs.view'));
 
-    get('/admin/guide')->assertInertia(fn (Assert $page) => $page->where('page', fn (string $first) => str_starts_with($first, 'panel/') || $first === 'shop/orders'));
+    get('/admin/guide')->assertInertia(fn (Assert $page) => $page->where('page', 'panel/welcome'));
     get('/admin/docs')->assertInertia(fn (Assert $page) => $page->component('Help/Docs', false)->where('page', fn (string $first) => str_starts_with($first, 'panel/')));
     get('/admin/guide/shop/missing')->assertNotFound();
     get('/admin/guide/nope/orders')->assertNotFound();
@@ -208,4 +208,19 @@ it('serves guide images from the images folder only', function () {
     get('/admin/guide/images/shop/..%2Fsecret.png')->assertNotFound();
     get('/admin/guide/images/shop/orders.php')->assertNotFound();
     get('/admin/guide/images/nope/orders.png')->assertNotFound();
+});
+it('ships the panel\'s own guide in English and Indonesian', function () {
+    helpPanel();
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.guide.view'));
+
+    $english = glob(dirname(__DIR__, 2).'/packages/admin/guide/en/*.md') ?: [];
+    $indonesian = glob(dirname(__DIR__, 2).'/packages/admin/guide/id/*.md') ?: [];
+    expect($english)->not->toBeEmpty()
+        ->and(array_map(basename(...), $indonesian))->toBe(array_map(basename(...), $english));
+
+    foreach ($english as $file) {
+        $page = 'panel/'.preg_replace('/^\d+-/', '', basename($file, '.md'));
+        get("/admin/guide/{$page}?lang=en")->assertOk();
+        get("/admin/guide/{$page}?lang=id")->assertOk()->assertInertia(fn (Assert $p) => $p->where('shownIn', null));
+    }
 });
