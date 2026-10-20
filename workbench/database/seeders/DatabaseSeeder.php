@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workbench\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Workbench\App\Models\Product;
 use Workbench\App\Models\User;
@@ -27,5 +28,8 @@ class DatabaseSeeder extends Seeder
                 'released_on' => fake()->optional()->date(),
             ]);
         }
+
+        // The CMS's demo site: pages, a blog, topics, a menu, globals, a form.
+        Artisan::call('sunrice:demo-content');
     }
 }

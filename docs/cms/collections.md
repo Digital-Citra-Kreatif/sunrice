@@ -26,7 +26,7 @@ use Sunrice\Cms\Actions\Collections\SaveCollection;
 $articles = app(SaveCollection::class)->handle(['handle' => 'articles', 'title' => 'Articles', 'blueprint' => 'article', 'dated' => true]);
 ```
 
-Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave the admin and the site.
+Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave the admin and the site. The list's **Deleted** filter shows deleted collections with a **Restore** action, and `sunrice:orphans --purge` deletes them for good, freeing their handles ([leftovers](structure.md#leftovers)). To rename a field without losing its values, use `sunrice:rename-field` ([renaming a field](structure.md#renaming-a-field)).
 
 ## Editing entries
 
@@ -132,7 +132,11 @@ Every publish keeps a `Revision` (title, slug, fields and who published it); the
 
 ## Trash
 
-`TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms. `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
+`TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms; one that other content points at is refused unless `force` is passed (see [references](structure.md#references)). `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
+
+## References
+
+Every save records which entries and terms an entry's fields point at, and the editor's sidebar lists what points at this one under **Used by**; trashing a used entry says where it's used, and `ForceDeleteEntry` refuses it unless `force` is passed. See [references](structure.md#references).
 
 Every action is written to the [activity log](../admin/activity.md): created, duplicated, updated (with the fields that changed), published, unpublished, reverted, trashed, restored and deleted.
 

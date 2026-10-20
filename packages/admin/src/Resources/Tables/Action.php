@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Resources\Tables;
 
 use Closure;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -51,6 +52,8 @@ final class Action
 
     /** @var (Closure(Model): bool)|null */
     private ?Closure $visible = null;
+
+    private bool $trashed = false;
 
     /** @var list<Field> */
     private array $fields = [];
@@ -126,7 +129,29 @@ final class Action
 
     public function isVisibleFor(Model $record): bool
     {
+        if ($this->trashed && ! (in_array(SoftDeletes::class, class_uses_recursive($record), true) && method_exists($record, 'trashed') && $record->trashed() === true)) {
+            return false;
+        }
+
         return $this->visible === null || ($this->visible)($record) === true;
+    }
+
+    /**
+     * For records in the trash (soft-deleted) only, such as a Restore: the
+     * action finds them though the resource's query leaves them out, and
+     * is offered for nothing else. List them with a filter:
+     * Filter::make('trashed')->options(['only' => 'Deleted'])->query(fn ($q) => $q->onlyTrashed()).
+     */
+    public function trashed(bool $trashed = true): self
+    {
+        $this->trashed = $trashed;
+
+        return $this;
+    }
+
+    public function isForTrashed(): bool
+    {
+        return $this->trashed;
     }
 
     /**
