@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: the editor no longer runs out of stack on a blueprint whose flexible blocks use their own fieldset (or each other) as a kind of block. `Schema::toAdmin()` sends blocks within blocks `Schema::MAX_DEPTH` levels deep and deeper blocks without fields; `Schema::make()` and `Schema::children()` take the depth, `Schema::depth()` tells it.
 - Menus link to term pages (`term_id`) and listing pages (`collection_id`) too (migration `000016`; Term and Listing in the menu editor), and each link says whether it's the page shown (`active`) or leads to it (`active_trail`). **Menu links have two new keys.**
 - Scoped permissions: entries per collection (`cms.entries.{collection}.{view,create,update,publish,delete}`), terms per taxonomy (`cms.terms.{taxonomy}.manage`) and submissions per form (`cms.submissions.{form}.{view,delete}`), created and deleted with them; `cms.entries.update-own`, `.delete-own` and `.translate`. Lists, menus, editors, bulk actions, edit locks and AI tools follow them (`Support\Access`). The default roles `author` and `translator`. The panel's `permissionsUsing()` and `flushPermissions()` (`@api`) for permissions that depend on data.
 - `sunrice:install` (config, migrations, assets, storage link, permissions, `--roles`, a super admin) and default roles: `$panel->defaultRole()` (`@api`), `SeedRoles`, `sunrice:roles`; the panel's `administrator` and the CMS's `editor`. See `docs/admin/permissions.md`.

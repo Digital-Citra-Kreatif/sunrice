@@ -216,6 +216,29 @@ it('stops expanding fieldsets that include each other', function () {
     expect($handles)->toBe(['from_a', 'from_b', 'a']);
 });
 
+it('sends the editor blocks that use their own fieldset only so deep', function () {
+    // A section may hold sections; a card may hold sections too.
+    Fieldset::query()->create(['handle' => 'section', 'title' => 'Section', 'fields' => [
+        ['handle' => 'heading', 'type' => 'text'],
+        ['handle' => 'columns', 'type' => 'group', 'fields' => [['handle' => 'content', 'type' => 'flexible', 'config' => ['blocks' => ['section', 'card']]]]],
+    ]]);
+    Fieldset::query()->create(['handle' => 'card', 'title' => 'Card', 'fields' => [['handle' => 'inner', 'type' => 'flexible', 'config' => ['blocks' => ['section']]]]]);
+    $schema = Schema::make([Field::make('sections', 'flexible', ['blocks' => ['section']])]);
+
+    $admin = $schema->toAdmin();
+    $depth = 0;
+    for ($block = $admin[0]['blocks'][0]; $block['fields'] !== []; $block = $block['fields'][1]['fields'][0]['blocks'][0]) {
+        expect($block)->toMatchArray(['type' => 'section', 'label' => 'Section'])
+            ->and($block['fields'][0]['handle'])->toBe('heading');
+        $depth++;
+    }
+    expect($depth)->toBe(Schema::MAX_DEPTH)
+        ->and($block)->toBe(['type' => 'section', 'label' => 'Section', 'fields' => []])
+        // Content still validates and stores as deep as it goes.
+        ->and(fieldErrors($schema, ['sections' => [['type' => 'section', 'values' => ['columns' => ['content' => [['type' => 'card', 'values' => ['inner' => [['type' => 'nope']]]]]]]]]]))
+        ->toHaveKey('data.sections.0.values.columns.content.0.values.inner.0.type');
+});
+
 it('says which fields are translatable', function () {
     $schema = Schema::make([Field::make('title', 'text'), Field::make('price', 'number'), new Field('sku', 'text', translatable: false)]);
 

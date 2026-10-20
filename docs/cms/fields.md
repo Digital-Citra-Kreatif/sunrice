@@ -64,7 +64,7 @@ Every repeater row gets a stable `_id`, an optional `_key` and a `_hidden` switc
 {{ $entry->get('features')->byKey('pricing')['title'] }}
 ```
 
-A block's values are readable as properties (`$block->heading`) or keys (`$block['heading']`). A block whose fieldset was deleted keeps its values; it can't be deleted while used.
+A block's values are readable as properties (`$block->heading`) or keys (`$block['heading']`). A block whose fieldset was deleted keeps its values; it can't be deleted while used. A fieldset may use itself (or one that uses it) as a kind of block, for sections within sections: the editor offers blocks within blocks `Schema::MAX_DEPTH` (5) levels deep, and stored content nests as deep as it goes.
 
 ### Fieldsets
 
