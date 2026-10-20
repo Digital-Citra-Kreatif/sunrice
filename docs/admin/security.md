@@ -16,7 +16,8 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `password reset requested`, `password reset` | The "Forgot password?" form (also for emails without an account) and a completed reset. |
 | `upload blocked` | A script, executable or web page, or an SVG that could run code, uploaded to the media library. |
 | `exported` | A resource's CSV export (exports can carry personal data out of the panel). |
-| `roles changed`, `permissions changed` | A user's roles or a role's permissions changed, with what was added and removed. |
+| `roles changed`, `permissions changed` | A user's roles or a role's permissions changed, with what was added and removed (`added` and `removed` lists in the properties, and a note). |
+| `page refused` | A signed-in person was refused a panel page (403), at most `security.alerts.forbidden` times per account in 10 minutes. |
 | `two-factor turned on`, `two-factor turned off` | [Two-factor login](auth.md#two-factor-login) was switched, in Settings → Security or from the console. |
 | `token created`, `token revoked`, `tokens revoked`, `token used from new IP` | [AI access](ai.md) tokens. |
 | `signed out everywhere`, `account locked by admin`, `account unlocked` | An administrator acted on an account (see below). |
@@ -56,17 +57,20 @@ When something may be a break-in, the panel emails super admins, users with the 
 | --- | --- |
 | An account was locked after wrong passwords | `account locked` |
 | One address is trying many accounts | Too many wrong passwords from one IP (password spraying). |
-| A powerful account signed in from a new address | Someone who can manage users or roles (or a super admin) signed in from an IP they hadn't used. |
+| A powerful account signed in from a new address | Someone with a privileged permission (or a super admin) signed in from an IP they hadn't used. |
 | An account signed in after a long time | The first login in `dormant_days` (90). |
-| Someone was given power over users or roles | A user got the super admin role or permissions to manage users or roles, or such a role. |
+| Someone was given privileged access / A role was given privileged access | A user got the super admin role, a privileged permission or a role that has one (read from the event's `added` list). |
 | A dangerous upload was blocked | `upload blocked` |
 | A new AI access token was created | `token created` |
 | An AI access token was used from a new address | `token used from new IP` |
 | Two-factor login was turned off | `two-factor turned off` |
+| Someone keeps opening pages they may not see | `forbidden` (15) panel pages refused (`page refused`) to one signed-in account within 10 minutes. |
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
-| Many things deleted in a short time | `mass_deletes` (20) deletes or trashes by one person or AI agent within 10 minutes. |
+| Many things deleted in a short time | `mass_deletes` (20) deletes, trashes or unpublishes by one person or AI agent within 10 minutes. |
 
-The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. They need your app's mail settings; with a queue for mail they're sent like any other email.
+**Privileged permissions** are the panel's `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.connect` and `sunrice.activity.*`, plus what plugins register with `$panel->privilegedPermissions()` (the CMS: `cms.settings.code` and `cms.blueprints.manage`); `Panel::isPrivilegedPermission()` tells.
+
+The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. Each recipient's mail is queued (`Mail::queue()`), so set up a queue worker or the `sync` driver; they need your app's mail settings.
 
 Plugins raise their own (the CMS does when site code snippets change) with `SecurityAlerts::raise()`: a rule name, a key (the same rule and key alert once per cooldown), a headline, what happened, what to do and optional details:
 

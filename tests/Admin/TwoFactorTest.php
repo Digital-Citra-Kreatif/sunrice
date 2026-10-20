@@ -147,7 +147,7 @@ it('is a setting, guarded, and turning it off is a security alert', function () 
 
     expect(app(SecuritySettings::class)->twoFactor)->toBeFalse()
         ->and(Activity::query()->where('action', 'two-factor turned off')->sole()->user_id)->toEqual($editor->id);
-    Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline === 'Two-factor login was turned off');
+    Mail::assertQueued(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline === 'Two-factor login was turned off');
 });
 
 it('switches from the console', function () {

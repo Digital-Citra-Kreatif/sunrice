@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Repeated refusals: a panel page refused (403) to someone signed in is a `page refused` security event (at most `security.alerts.forbidden`, 15, per account in 10 minutes), and reaching that many sends the alert *Someone keeps opening pages they may not see*.
+- The `mass_deletes` alert also counts `unpublished` activity (`SecurityAlerts::DESTRUCTIVE_ACTIONS`).
+- Security alert mails are queued, one per recipient (`Mail::queue()`), instead of sent during the request.
+- Privileged permissions: `$panel->privilegedPermissions(...$names)` (`@api`, patterns allowed), `Panel::getPrivilegedPermissions()` and `isPrivilegedPermission()`. The panel's are `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.connect` and `sunrice.activity.*`; the CMS adds `cms.settings.code` and `cms.blueprints.manage`. The "powerful account" and "gained power" alerts use them (**`SecurityAlerts::PRIVILEGED_PERMISSIONS` is gone**, and the alerts are now called *Someone / A role was given privileged access*).
+- `roles changed` and `permissions changed` security events carry `added` and `removed` lists in their properties; `SecurityAlerts` reads them instead of parsing the note.
 - Deleting a user: `Sunrice\Admin\Actions\Users\DeleteUser` (`@api`: `reassign` to an heir, `keep` without an owner, or `delete`), `$panel->userContent($key, $label, $count, $handle)` (`@api`) for what users own (the panel registers uploads; the CMS entries and comments, `Sunrice\Cms\Actions\Users\ReleaseUserContent`), and the Users screen's row Delete asks which. Their AI tokens, lock state and kept edits go too. See `docs/admin/users.md`.
 - Resources: `Action::form(Field ...)` shows fields in the action's dialog and gives the validated input to the handler's second argument; a row action keyed `delete` replaces the built-in Delete; `Resource::deleteRecord($record)` is how a resource deletes (override it, or throw `ActionFailed` to refuse).
 - A role still given to users can't be deleted (`RoleResource::deleteRecord()` refuses with a message).
