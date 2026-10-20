@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Media\Media;
+use Sunrice\Admin\Media\MediaUsage;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\BulkEntries;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
@@ -13,6 +15,7 @@ use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\TrashEntry;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
+use Sunrice\Cms\Actions\References\RebuildReferences;
 use Sunrice\Cms\Actions\Terms\DeleteTerm;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\Actions\Terms\SaveTermContent;
@@ -154,4 +157,74 @@ it('forgets what a deleted entry or term pointed at', function () {
     app(DeleteTerm::class)->handle($this->news->fresh());
 
     expect($this->about->referencedBy())->toHaveCount(0);
+});
+
+/** Content in every kind of source, then its references lost (as before migration 000019). */
+function referencesLost(object $test): array
+{
+    app(SaveTermContent::class)->handle($test->news, ['data' => ['feature' => $test->about->id]]);
+    Blueprint::query()->create(['handle' => 'footer', 'title' => 'Footer', 'fields' => [['handle' => 'legal', 'type' => 'entries', 'config' => ['collections' => ['pages']]]]]);
+    $footer = GlobalSet::query()->create(['handle' => 'footer', 'title' => 'Footer', 'blueprint' => 'footer']);
+    app(SaveGlobals::class)->handle($footer, ['legal' => $test->about->id]);
+    $home = refPage($test->pages, 'Home', ['related' => [$test->about->id], 'topics' => [$test->news->id]]);
+    app(PublishEntry::class)->handle($home->translations->first());
+    $old = refPage($test->pages, 'Old', ['related' => [$test->about->id]]);
+    app(TrashEntry::class)->handle($old);
+
+    $rows = fn (): array => ContentReference::query()->orderBy('source_type')->orderBy('source_id')->orderBy('field')
+        ->get(['source_type', 'source_id', 'locale', 'target_type', 'target_id', 'field'])->toArray();
+    $before = $rows();
+    expect($before)->toHaveCount(5);
+    ContentReference::query()->delete();
+
+    return [$before, $rows];
+}
+
+it('rebuilds every reference with sunrice:references, in a query budget', function () {
+    [$before, $rows] = referencesLost($this);
+    foreach (range(1, 12) as $i) {
+        refPage($this->pages, "Page {$i}");
+    }
+    ContentReference::query()->delete();
+    DB::enableQueryLog();
+    $this->artisan('sunrice:references', ['--dry-run' => true])
+        ->expectsOutputToContain('Dry run')->assertSuccessful();
+    expect($rows())->toBe([]);
+    $reads = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_starts_with(strtolower($q['query']), 'select'));
+    // Per kind: its definitions, a chunk of sources (and their entries or terms), each blueprint once; then the check below. Not per source.
+    expect($reads->count())->toBeLessThanOrEqual(12);
+    DB::disableQueryLog();
+
+    $this->artisan('sunrice:references')
+        ->expectsOutputToContain('Rebuilt 5 references')->assertSuccessful();
+    expect($rows())->toBe($before);
+});
+
+it('backfills references when migrating', function () {
+    [$before, $rows] = referencesLost($this);
+    $migration = require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_02_01_000022_backfill_sunrice_references.php';
+    $migration->up();
+
+    expect($rows())->toBe($before);
+});
+
+it('counts what it would rebuild, media usages rebuilt too', function () {
+    Blueprint::query()->where('handle', 'page')->first()?->forceFill(['fields' => [
+        ['handle' => 'related', 'type' => 'entries', 'config' => ['collections' => ['pages'], 'multiple' => true]],
+        ['handle' => 'cover', 'type' => 'media'],
+    ]])->save();
+    $image = Media::query()->create(['disk' => 'public', 'path' => 'media/a.jpg', 'filename' => 'a.jpg', 'mime_type' => 'image/jpeg', 'size' => 1]);
+    refPage($this->pages->fresh(), 'Home', ['related' => [$this->about->id], 'cover' => $image->id]);
+    expect(MediaUsage::query()->where('media_id', $image->id)->count())->toBe(1);
+    MediaUsage::query()->delete();
+    ContentReference::query()->delete();
+
+    $counts = app(RebuildReferences::class)->handle(dryRun: true);
+    expect($counts)->toBe(['entries' => 2, 'terms' => 1, 'globals' => 0, 'references' => 1])
+        ->and(ContentReference::query()->count())->toBe(0)
+        ->and(MediaUsage::query()->count())->toBe(0);
+
+    app(RebuildReferences::class)->handle();
+    expect(ContentReference::query()->count())->toBe(1)
+        ->and(MediaUsage::query()->where('media_id', $image->id)->where('type', 'cms.entry')->count())->toBe(1);
 });
