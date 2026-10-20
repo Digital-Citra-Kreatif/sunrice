@@ -6,7 +6,7 @@ The panel's settings for developers live in `config/sunrice-admin.php` (key `sun
 php artisan vendor:publish --tag=sunrice-admin-config
 ```
 
-(`sunrice:install` publishes it when you don't have it yet.) What editors change in the panel itself (the branding, two-factor login) is in **Settings**, not here: see [Settings](settings.md). The panel's path, guard and name are set on the panel in your [panel provider](panel.md), and mail the Laravel way in `.env` ([Mail](mail.md)). The CMS has its own file: see [CMS configuration](../cms/configuration.md).
+(`sunrice:install` publishes it when you don't have it yet.) What editors change in the panel itself (the branding, two-factor login) is in **Settings**, not here: see [Settings](settings.md). The panel's path, guard and name are set on the panel in your [panel provider](panel.md), and mail the Laravel way in `.env` ([Mail](mail.md)). The CMS has its own file: see [CMS configuration](../../cms/docs/configuration.md).
 
 A dash in the *Env* column means the key has no environment variable: change it in the published file.
 

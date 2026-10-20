@@ -723,12 +723,12 @@ final class Panel
             $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')
                 ->group('Administration')->sort(970)->permission('sunrice.ai.connect'));
         }
-        // Help: the developer docs (this repository's docs/admin) and the user guide (packages/admin/guide).
+        // Help: the developer docs and the user guide, shipped with the package (docs/, guide/).
         $this->permissions(
             Permission::make('sunrice.guide.view', 'Read the user guide', 'Help'),
             Permission::make('sunrice.docs.view', 'Read the developer docs', 'Help'),
         );
-        $this->docs('Panel', dirname(__DIR__, 3).'/docs/admin');
+        $this->docs('Panel', dirname(__DIR__).'/docs');
         $this->guide('Panel', dirname(__DIR__).'/guide');
         if ($this->mediaLibrary) {
             $this->permissions(

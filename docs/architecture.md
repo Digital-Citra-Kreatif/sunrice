@@ -29,7 +29,7 @@ These are checked by the architecture tests in `tests/Arch`.
 
 ## The panel and plugins
 
-The app configures one panel in a provider (details in `docs/admin/panel.md`). Every package that adds to the
+The app configures one panel in a provider (details in `packages/admin/docs/panel.md`). Every package that adds to the
 admin is a plugin:
 
 ```php

@@ -6,7 +6,7 @@ The CMS's settings for developers live in `config/sunrice-cms.php` (key `sunrice
 php artisan vendor:publish --tag=sunrice-cms-config
 ```
 
-What editors change in the panel (the homepage, site name and SEO defaults, languages, site code, comments) is in **Settings**: Settings → Site, Languages, Site code and Comments override or complete what's here where they overlap (the languages, `noindex`). The panel's own file is described in [the panel's configuration](../admin/configuration.md).
+What editors change in the panel (the homepage, site name and SEO defaults, languages, site code, comments) is in **Settings**: Settings → Site, Languages, Site code and Comments override or complete what's here where they overlap (the languages, `noindex`). The panel's own file is described in [the panel's configuration](../../admin/docs/configuration.md).
 
 A dash in the *Env* column means the key has no environment variable: change it in the published file.
 

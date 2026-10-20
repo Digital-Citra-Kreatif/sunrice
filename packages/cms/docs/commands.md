@@ -1,6 +1,6 @@
 # Commands
 
-The CMS's Artisan commands. The panel's own (installing, roles and permissions, accounts, AI tokens, media, assets, the activity log) are in [the panel's commands](../admin/commands.md).
+The CMS's Artisan commands. The panel's own (installing, roles and permissions, accounts, AI tokens, media, assets, the activity log) are in [the panel's commands](../../admin/docs/commands.md).
 
 | Command | What it does |
 | --- | --- |
@@ -17,4 +17,4 @@ The CMS also schedules Laravel's `model:prune` daily for old form submissions an
 
 ## Panel commands
 
-See [the panel's commands](../admin/commands.md): `sunrice:install`, `sunrice:make-admin`, `sunrice:sync-permissions`, `sunrice:roles`, `sunrice:two-factor`, `sunrice:unlock`, `sunrice:ai-token`, `mcp:start sunrice`, `sunrice:media-sizes`, `sunrice:optimize-images`, `sunrice:assets` and `sunrice:activity-prune`.
+See [the panel's commands](../../admin/docs/commands.md): `sunrice:install`, `sunrice:make-admin`, `sunrice:sync-permissions`, `sunrice:roles`, `sunrice:two-factor`, `sunrice:unlock`, `sunrice:ai-token`, `mcp:start sunrice`, `sunrice:media-sizes`, `sunrice:optimize-images`, `sunrice:assets` and `sunrice:activity-prune`.

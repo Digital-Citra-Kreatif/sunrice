@@ -1,6 +1,6 @@
 # AI tools for content
 
-With the CMS, AI agents connected to the panel ([AI access](../admin/ai.md)) can write and manage content as well, as the token's user and with that user's permissions. Every change goes through the same actions as the screens: the same validation, drafts and revisions, and the activity log, marked **AI agent**.
+With the CMS, AI agents connected to the panel ([AI access](../../admin/docs/ai.md)) can write and manage content as well, as the token's user and with that user's permissions. Every change goes through the same actions as the screens: the same validation, drafts and revisions, and the activity log, marked **AI agent**.
 
 | Tool | Permission | |
 | --- | --- | --- |
@@ -38,6 +38,6 @@ Writing templates is off unless the site turns it on, and then only for super ad
 ],
 ```
 
-The CMS registers its docs (`docs/cms`) for `read_docs` ("cms/site", "cms/fields" …). Its command `sunrice:publish-scheduled` can be added to the panel's `sunrice-admin.ai.commands` for `run_command`.
+The CMS registers its docs (the `docs` folder it ships) for `read_docs` ("cms/site", "cms/fields" …). Its command `sunrice:publish-scheduled` can be added to the panel's `sunrice-admin.ai.commands` for `run_command`.
 
 Collections, taxonomies, global sets, menus, redirects and forms themselves are resources, reached with the panel's `list_records`, `get_record` and `save_record`. Media for media fields comes from `list_media`.

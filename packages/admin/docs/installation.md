@@ -73,7 +73,7 @@ It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the m
 
 Sign in at `/admin`.
 
-The CMS's config is published separately when you want to change it: `php artisan vendor:publish --tag=sunrice-cms-config`. Its starter templates for the site: `php artisan vendor:publish --tag=sunrice-cms-templates` (see [the site](../cms/site.md#starter-templates)).
+The CMS's config is published separately when you want to change it: `php artisan vendor:publish --tag=sunrice-cms-config`. Its starter templates for the site: `php artisan vendor:publish --tag=sunrice-cms-templates` (see [the site](../../cms/docs/site.md#starter-templates)).
 
 ## On the server
 
@@ -126,4 +126,4 @@ php artisan view:clear            # compiled views of components that changed
 php artisan queue:restart         # workers pick up the new code
 ```
 
-Then read [Upgrading](../upgrading.md) for the changes that need something from you, and the `CHANGELOG.md` for everything else. Run `migrate` after every update: new versions add migrations, and the permission sync that follows it creates the permissions new features need.
+Then read [Upgrading](../../../docs/upgrading.md) for the changes that need something from you, and the `CHANGELOG.md` for everything else. Run `migrate` after every update: new versions add migrations, and the permission sync that follows it creates the permissions new features need.

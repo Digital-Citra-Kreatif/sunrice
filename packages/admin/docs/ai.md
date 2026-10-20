@@ -51,7 +51,7 @@ It works as the user whose email is in `sunrice-admin.ai.local_user` (`SUNRICE_A
 | `update_media` | Change a file's title, alt text or caption (`sunrice.media.update`). |
 | `manage_media` | Folders (list, create, rename, delete), move files, trash and restore (`sunrice.media.delete`), where a file is used, and delete a trashed file for good: refused while content uses it unless `force` (agents are told to ask). |
 | `get_activity` | The activity log, including what the agent itself did. |
-| `read_docs` | The developer docs: the panel's (`docs/admin`), and those plugins register with `$panel->docs()` (the CMS: `docs/cms`). Pages are `section/page` (`panel/resources`); nothing outside those directories can be read. |
+| `read_docs` | The developer docs: the panel's (its package's `docs` folder), and those plugins register with `$panel->docs()` (the CMS: its `docs` folder). Pages are `section/page` (`panel/resources`); nothing outside those directories can be read. |
 | `read_error_log` | Recent errors from the Laravel log (the last 2 MB of the three newest `*.log` files), grouped with a count and first and last time, the exception, file and line, the top of the trace, and passwords, tokens and keys masked. Needs `sunrice.ai.error-log` ("Let AI agents read the error log"); config `ai.error_log` turns it off, `ai.log_path` points elsewhere. |
 | `run_command` | One of the artisan commands in `ai.commands`, with options checked against the command (and the list, when given); the output comes back, and an activity line records the command and its option names. Needs `sunrice.ai.run-commands`. |
 

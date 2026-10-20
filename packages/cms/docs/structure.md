@@ -27,7 +27,7 @@ app(DeleteTerm::class)->handle($term, force: true);
 
 The editors ask first and then force; bulk deletes skip entries in use. An entry that only points at itself doesn't count. Content saved before references were recorded (migration `000019`) is picked up the next time it's saved.
 
-Media files are tracked by the panel's `MediaUsages` instead ([media](../admin/media.md)).
+Media files are tracked by the panel's `MediaUsages` instead ([media](../../admin/docs/media.md)).
 
 ## Renaming a field
 

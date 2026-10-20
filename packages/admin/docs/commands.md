@@ -1,6 +1,6 @@
 # Commands
 
-The panel's Artisan commands. The CMS has its own: see [CMS commands](../cms/commands.md).
+The panel's Artisan commands. The CMS has its own: see [CMS commands](../../cms/docs/commands.md).
 
 | Command | What it does |
 | --- | --- |
@@ -19,7 +19,7 @@ The panel's Artisan commands. The CMS has its own: see [CMS commands](../cms/com
 
 ## Scheduled
 
-With Laravel's scheduler running (`* * * * * php artisan schedule:run`), the panel runs `sunrice:activity-prune` and `model:prune` for kept edits ([edit locks](locks.md)) daily. The CMS adds its own (see [CMS commands](../cms/commands.md)).
+With Laravel's scheduler running (`* * * * * php artisan schedule:run`), the panel runs `sunrice:activity-prune` and `model:prune` for kept edits ([edit locks](locks.md)) daily. The CMS adds its own (see [CMS commands](../../cms/docs/commands.md)).
 
 ## Allowed for AI agents
 

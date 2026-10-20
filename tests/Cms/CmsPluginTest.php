@@ -30,7 +30,7 @@ it('registers its developer docs and its user guide for the Help pages', functio
     $panel->boot();
     $root = dirname(__DIR__, 2);
 
-    expect($panel->getDocs()['cms']['directory'])->toBe($root.'/docs/cms')
+    expect($panel->getDocs()['cms']['directory'])->toBe($root.'/packages/cms/docs')
         ->and($panel->getGuides()['website'])->toBe(['title' => 'Website', 'directory' => $root.'/packages/cms/guide']);
 });
 
