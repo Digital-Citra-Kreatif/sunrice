@@ -51,11 +51,10 @@ export function DatePicker({ id, value, onChange, withTime = false, disabled = f
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
-                    mode="single"
-                    selected={date ?? undefined}
+                    selected={date}
                     defaultMonth={date ?? undefined}
                     onSelect={(picked) => {
-                        onChange(formatDateValue(picked ?? null, time, withTime));
+                        onChange(formatDateValue(picked, time, withTime));
                         if (!withTime) setOpen(false);
                     }}
                 />
