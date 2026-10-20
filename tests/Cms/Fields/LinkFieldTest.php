@@ -102,3 +102,13 @@ it('offers the collections setting and sends it to the editor', function () {
     expect(array_map(fn (Field $setting): string => $setting->handle, $type->settings()))->toBe(['collections'])
         ->and($type->toAdmin($field, Schema::make([$field])))->toMatchArray(['collections' => ['news'], 'type' => 'link']);
 });
+
+it('links an untranslated entry at the page\'s language\'s address', function () {
+    $story = linkTarget($this->news, 'Story');
+    $schema = Schema::make([Field::make('cta', 'link')]);
+    $data = $schema->normalize(['cta' => ['type' => 'entry', 'entry_id' => $story->entry_id]]);
+
+    expect($schema->hydrate($data, new HydrationContext('id'))['cta'])->toMatchArray(['url' => url('/id/news/story'), 'title' => 'Story']);
+    config(['sunrice-cms.site.fallback' => false]);
+    expect($schema->hydrate($data, new HydrationContext('id'))['cta']['url'])->toBe(url('/news/story'));
+});

@@ -14,6 +14,16 @@ Set a collection's URL under Structure → Collections: a path with `{slug}` onc
 
 `$translation->url()` gives an entry's address (null without a route).
 
+### Untranslated pages
+
+An entry that isn't live in a language other than the main one (no translation there, or one still a draft or scheduled) shows its main language's content at that language's address, with the main language's slug: `/id/blog/hello`. The same goes for term pages without a translation and for the homepage (`/id`). On such a page:
+
+- the app's locale and `$locale` are the address's language, so the layout's own words are in it; templates get `$fallback = true` (and `Cms::page()->fallback`), to say "Not translated yet" if you like;
+- `<x-sunrice-cms::seo />` gives the main language's page as the canonical URL and no `hreflang` links, and the main page's `hreflang` links leave the language out; the sitemap lists only the main page;
+- menus, entry links and `Cms::localeUrls()` link it in that language, so visitors stay in it; site search in that language doesn't find it (only what's translated).
+
+A translation's own slug works once it's live, and the main language's slug then no longer does in that language. Turn this off with `sunrice-cms.site.fallback` (`SUNRICE_FALLBACK=false`): untranslated pages are then 404s in other languages, and menus and links go to the main language's page.
+
 ### Related entries in the URL
 
 A collection's URL may also hold the slug of an entry its entries link to: put the handle of a single-value **Entries** field of its blueprint in braces, `/projects/{project}/{slug}`. The URL is checked when the collection is saved (each `{field}` must be an Entries field without *Several entries*).
@@ -45,6 +55,7 @@ Views get:
 | `$collection` | the `Collection` |
 | `$locale` | the language; the app's locale is set to it too |
 | `$preview` | whether this is a preview of the draft |
+| `$fallback` | whether this is the main language's content in another language ([untranslated pages](#untranslated-pages)) |
 
 Rich text is cleaned when it's saved, so print it as is: `{!! $values['body'] !!}`. Print everything else escaped: `{{ $values['intro'] }}`.
 
@@ -118,8 +129,8 @@ Code there runs in every visitor's browser, so give the permission only to peopl
 ```
 
 - `Cms::bodyClass($extra)`: what the page is, for CSS and scripts. Entries: `page-entry collection-{handle} entry-{id} entry-{slug}`, with `home`, `has-parent parent-{id}` and `is-preview` when they apply; listing pages: `page-listing collection-{handle}`; term pages: `page-term taxonomy-{handle} term-{id} term-{slug}`; pages past the first: `paged paged-{n}`; always `template-{view} lang-{locale}`, and `logged-in` for people signed in to the panel. On your app's own pages: `lang-{locale}` and your extras.
-- `Cms::localeUrls()`: the page shown in each language it's live in, in the order of `sunrice-cms.locales`, for a language switcher (none on your app's own pages).
-- `Cms::page()`: the page shown (`Sunrice\Cms\Site\Page`: `type`, `locale`, `view`, `entry`, `collection`, `term`, `preview`, `home`, `pageNumber`), or null.
+- `Cms::localeUrls()`: the page shown in each language it's live in (and, with the [main-language fallback](#untranslated-pages), the others), in the order of `sunrice-cms.locales`, for a language switcher (none on your app's own pages).
+- `Cms::page()`: the page shown (`Sunrice\Cms\Site\Page`: `type`, `locale`, `view`, `entry`, `collection`, `term`, `preview`, `home`, `pageNumber`, `fallback`), or null.
 
 ## Redirects
 

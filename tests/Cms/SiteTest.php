@@ -183,3 +183,52 @@ it('queries live entries for templates', function () {
         ->and(Content::entries('blog')->whereSlug('newer')->first()?->title)->toBe('Newer')
         ->and(Content::entries('blog')->paginate(1)->total())->toBe(2);
 });
+
+it('serves the main language where an entry isn\'t translated, at that language\'s address', function () {
+    $hello = sitePost($this->blog, 'Hello', ['intro' => 'In English']);
+    $draft = app(CreateTranslation::class)->handle($hello->entry, 'id');
+    app(SaveDraft::class)->handle($draft, ['title' => 'Halo', 'slug' => 'halo']);
+
+    // A translation that isn't live doesn't count, nor does its slug.
+    get('/id/blog/hello')->assertOk()->assertSee('<html lang="id">', false)->assertSee('<h1>Hello</h1>', false)->assertSee('In English')
+        ->assertSee('lang-id', false);
+    expect(app()->getLocale())->toBe('id')
+        ->and(Content::page()?->fallback)->toBeTrue()
+        ->and(Content::localeUrls())->toBe(['en' => url('/blog/hello'), 'id' => url('/id/blog/hello')]);
+    get('/id/blog/halo')->assertNotFound();
+
+    app(PublishEntry::class)->handle($draft->refresh());
+    get('/id/blog/halo')->assertOk()->assertSee('<h1>Halo</h1>', false);
+    get('/id/blog/hello')->assertNotFound();
+});
+
+it('gives templates $fallback, and answers 404 with the fallback off', function () {
+    sitePost($this->blog, 'Hello');
+    config(['sunrice-cms.site.fallback' => false]);
+
+    get('/id/blog/hello')->assertNotFound();
+    expect(Content::page())->toBeNull();
+
+    config(['sunrice-cms.site.fallback' => true]);
+    get('/id/blog/hello')->assertOk()->assertViewHas('fallback', true)->assertViewHas('locale', 'id');
+    get('/blog/hello')->assertOk()->assertViewHas('fallback', false);
+});
+
+it('serves an untranslated term\'s page in the main language too', function () {
+    $tags = Taxonomy::query()->firstOrFail();
+    $tags->update(['route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+
+    get('/id/tags/news')->assertOk()->assertViewHas('fallback', true)->assertViewHas('locale', 'id');
+    expect(Content::localeUrls())->toBe(['en' => url('/tags/news'), 'id' => url('/id/tags/news')]);
+
+    app(SaveTerm::class)->handle($tags, ['title' => 'Berita', 'locale' => 'id'], $news);
+    get('/id/tags/news')->assertNotFound();
+    get('/id/tags/berita')->assertOk()->assertViewHas('fallback', false);
+});
+
+it('leaves pages shown in the main language out of the search in another', function () {
+    sitePost($this->blog, 'Coffee beans');
+
+    get('/id/search?q=coffee')->assertOk()->assertDontSee(url('/id/blog/coffee-beans'))->assertDontSee(url('/blog/coffee-beans'));
+});
