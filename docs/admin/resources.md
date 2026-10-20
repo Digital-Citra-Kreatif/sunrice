@@ -81,7 +81,7 @@ public static function query(): Builder
 
 | Field | Stored as | Options |
 | --- | --- | --- |
-| `TextInput` | string | `->email()`, `->url()`, `->maxLength(…)` (255) |
+| `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |
