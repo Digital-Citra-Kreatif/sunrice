@@ -1,1 +1,0 @@
-import{W as r,u as t,j as e,H as n,P as u}from"./app-v29nbBvS.js";function i(){const{auth:a,sunrice:s}=r().props;return t([{label:"Dashboard"}]),e.jsxs(e.Fragment,{children:[e.jsx(n,{title:"Dashboard"}),e.jsx(u,{title:`Welcome${a.user?.name?`, ${a.user.name}`:""}`,description:`This is the ${s.brand} admin panel.`})]})}export{i as default};
