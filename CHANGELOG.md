@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Site search uses a full-text index (migration `000017`): MySQL and MariaDB `MATCH … AGAINST`, Postgres a GIN index with `plainto_tsquery`, SQLite the LIKE scan as before. `search_text` keeps 20,000 characters (was 60,000). A limit for everyone together (`sunrice-cms.search.per_minute_global`, 300) besides the one per visitor, and results cached for a minute (`SiteCache::remember()` takes a `$ttl`).
 - Menus link to term pages (`term_id`) and listing pages (`collection_id`) too (migration `000016`; Term and Listing in the menu editor), and each link says whether it's the page shown (`active`) or leads to it (`active_trail`). **Menu links have two new keys.**
 - Scoped permissions: entries per collection (`cms.entries.{collection}.{view,create,update,publish,delete}`), terms per taxonomy (`cms.terms.{taxonomy}.manage`) and submissions per form (`cms.submissions.{form}.{view,delete}`), created and deleted with them; `cms.entries.update-own`, `.delete-own` and `.translate`. Lists, menus, editors, bulk actions, edit locks and AI tools follow them (`Support\Access`). The default roles `author` and `translator`. The panel's `permissionsUsing()` and `flushPermissions()` (`@api`) for permissions that depend on data.
 - `sunrice:install` (config, migrations, assets, storage link, permissions, `--roles`, a super admin) and default roles: `$panel->defaultRole()` (`@api`), `SeedRoles`, `sunrice:roles`; the panel's `administrator` and the CMS's `editor`. See `docs/admin/permissions.md`.

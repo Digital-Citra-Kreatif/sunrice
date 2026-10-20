@@ -36,6 +36,7 @@ With several servers, use a shared store (redis, memcached, database). Cache you
 
 ```php
 app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:bestsellers', fn () => $ids);
+app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:stock', fn () => $stock, ttl: 60); // seconds, instead of cache.ttl
 ```
 
 ## Whole pages
