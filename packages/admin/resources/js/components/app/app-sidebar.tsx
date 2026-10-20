@@ -11,18 +11,17 @@ import { NavUser } from '@/components/app/nav-user';
 import { navIcon } from '@/components/app/nav-icon';
 import { adminUrl } from '@/lib/admin-url';
 import { FOLDED_KEY, parseFolded, withFolded } from '@/lib/folded-groups';
+import { matchNavigation } from '@/lib/nav-match';
 import type { NavItem, SharedProps } from '@/types';
 
-/** Whether the current URL is this link's page or one below it. */
-function isCurrent(currentPath: string, url: string): boolean {
-    const href = adminUrl(url);
-    return currentPath === href || (url !== '' && currentPath.startsWith(`${href}/`));
-}
 
 export function AppSidebar() {
     const { navigation, sunrice } = usePage<SharedProps>().props;
     const path = usePage().url.split('?')[0] ?? '';
     const { isMobile, setOpenMobile } = useSidebar();
+    // Only the closest link is current: cms/collections/blog/… is Blog's, not Collections'.
+    const match = matchNavigation(navigation, path, adminUrl);
+    const isCurrent = (url: string) => match !== null && match.link.url === url;
 
     // On phones the sidebar is a flyout: close it when a visit starts.
     React.useEffect(() => {
@@ -32,11 +31,11 @@ export function AppSidebar() {
 
     const item = (entry: NavItem) => {
         const Icon = navIcon(entry.icon);
-        const open = entry.children.some((child) => isCurrent(path, child.url));
+        const open = entry.children.some((child) => isCurrent(child.url));
         if (entry.children.length === 0) {
             return (
                 <SidebarMenuItem key={entry.key}>
-                    <SidebarMenuButton asChild isActive={isCurrent(path, entry.url)} tooltip={entry.label}>
+                    <SidebarMenuButton asChild isActive={isCurrent(entry.url)} tooltip={entry.label}>
                         <Link href={adminUrl(entry.url)} prefetch><Icon /><span>{entry.label}</span></Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -47,7 +46,7 @@ export function AppSidebar() {
             <Collapsible key={entry.key} asChild defaultOpen={open} className="group/submenu">
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={entry.label} isActive={isCurrent(path, entry.url) && !open}>
+                        <SidebarMenuButton tooltip={entry.label} isActive={isCurrent(entry.url) && !open}>
                             <Icon />
                             <span>{entry.label}</span>
                             <ChevronRight className="ml-auto transition-transform group-data-[state=open]/submenu:rotate-90" />
@@ -94,7 +93,7 @@ export function AppSidebar() {
 
                 {navigation.map((group) => group.group ? (
                     <NavGroup key={group.group} label={group.group}
-                        current={group.items.some((entry) => isCurrent(path, entry.url) || entry.children.some((child) => isCurrent(path, child.url)))}>
+                        current={group.items.some((entry) => isCurrent(entry.url) || entry.children.some((child) => isCurrent(child.url)))}>
                         {group.items.map(item)}
                     </NavGroup>
                 ) : (

@@ -29,6 +29,8 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- The entry editor switches language with short codes (EN · ID), a green dot for live and amber for outdated, the full name and status on hover; a missing language is a dashed **+ ID**.
+- The sidebar marks only the closest link as current (an entry under `cms/collections/blog/…` is Blog's, not Collections').
 - AI access starts with **Connect an agent**: the server URL, the Claude Code command and the JSON config, each with a Copy button (and a fallback on plain-http hosts), named after the panel's brand, with `YOUR_TOKEN` until a token is created; then the tokens.
 - A plugin's resources live under the plugin's id: the CMS's structure pages are `/admin/cms/collections`, `/admin/cms/taxonomies`, `/admin/cms/forms`, `/admin/cms/global-sets`, `/admin/cms/redirects` and `/admin/cms/menu-settings` (was `/admin/collections` …). `Resource::path()` (`@api`) gives a resource another address than its key; route names and permissions are unchanged. The Submissions page's `createForm` is a full path.
 - Handles are filled in from the title while creating (`TextInput::slugFrom()`, `@api`), and a menu's or global set's handle stays on its edit form, read-only, instead of disappearing. The blueprint builder keeps typed handles to lowercase letters, numbers and underscores, and a bad handle says what's allowed instead of "The fields.0.handle field format is invalid". Menu settings link to the menu's links (Content → Menus).
