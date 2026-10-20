@@ -79,7 +79,7 @@ it('saves the parent and template from the editor, and renders the entry\'s own 
     View::addLocation(__DIR__.'/Fixtures/views');
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
 
-    get("/admin/cms/entries/{$team->id}/edit")->assertInertia(fn (Assert $page) => $page->where('settings', ['parentId' => null, 'template' => null, 'commentsClosed' => false]));
+    get("/admin/cms/entries/{$team->id}/edit")->assertInertia(fn (Assert $page) => $page->where('settings', ['parentId' => null, 'template' => null, 'commentsClosed' => false, 'blueprint' => 'page']));
     put("/admin/cms/entries/{$team->id}/settings", ['parent_id' => $about->id, 'template' => 'Bad Name!'])->assertSessionHasErrors('template');
     put("/admin/cms/entries/{$team->id}/settings", ['parent_id' => $about->id, 'template' => 'cms.special'])->assertSessionHasNoErrors();
 
@@ -121,6 +121,14 @@ it('serves listing pages with their fields, paginated, in each language', functi
     put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Semua berita']])->assertSessionHasNoErrors();
     get('/id/articles')->assertSee('Semua berita');
     get('/admin/cms/collections/pages/listing')->assertNotFound();
+
+    // A save over someone else's newer one is refused.
+    get('/admin/cms/collections/articles/listing?locale=id')->assertInertia(fn (Assert $page) => $page->where('version', 1));
+    put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Berita'], 'version' => 1])->assertSessionHasNoErrors();
+    put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Stale'], 'version' => 1])->assertSessionHasErrors('version');
+    expect(fn () => app(SaveListing::class)->handle($articles, ['intro' => 'Stale'], 'id', 1))->toThrow(ValidationException::class, 'Someone else saved')
+        ->and($articles->listings()->where('locale', 'id')->firstOrFail()->only(['version']))->toBe(['version' => 2]);
+    get('/id/articles')->assertSee('Berita');
 });
 
 it('serves the homepage at /, in each language, and redirects its own address', function () {
@@ -135,5 +143,9 @@ it('serves the homepage at /, in each language, and redirects its own address', 
     get('/')->assertOk()->assertSee('Welcome');
     get('/welcome')->assertRedirect(url('/'))->assertStatus(301);
     expect($home->mainTranslation()?->url())->toBe(url('/'));
-    get('/id')->assertNotFound(); // not translated
+    // Not translated: the main language's, unless that's turned off.
+    get('/id')->assertOk()->assertSee('Welcome');
+    get('/id/welcome')->assertRedirect(url('/id'));
+    config(['sunrice-cms.site.fallback' => false]);
+    get('/id')->assertNotFound();
 });

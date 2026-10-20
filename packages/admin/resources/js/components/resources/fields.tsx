@@ -1,3 +1,5 @@
+import { DatePicker } from '@/components/app/date-picker';
+import { RichTextEditor } from '@/components/app/rich-text';
 import { MediaPickerInput } from '@/components/media/media-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -5,9 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { isHexColor, readableOn } from '@/lib/branding';
+import { RelationSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
 
-export type FieldValue = string | number | boolean | string[] | number[] | null;
+export type FieldValue = string | number | boolean | string[] | number[] | (string | number)[] | null;
 
 export interface CheckboxOption {
     value: string;
@@ -64,10 +68,24 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
                 </Select>
             );
         }
+        case 'belongs_to':
+        case 'belongs_to_many': {
+            const multiple = field.type === 'belongs_to_many';
+            const keys = Array.isArray(value) ? value : [];
+            return <RelationSelect id={id} field={field.name} multiple={multiple} required={field.required} disabled={disabled} invalid={invalid}
+                placeholder={field.placeholder ?? undefined} selected={(field.selected as RelationOption[] | undefined) ?? []}
+                value={multiple ? keys : (typeof value === 'string' || typeof value === 'number' ? value : null)} onChange={onChange} />;
+        }
+        case 'richtext':
+            return <RichTextEditor id={id} labelledBy={`${id}-label`} invalid={invalid} disabled={disabled} images={field.images !== false}
+                value={typeof value === 'string' ? value : ''} onChange={onChange} />;
         case 'date':
-            return <Input {...common} type={field.withTime ? 'datetime-local' : 'date'}
-                value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)} />;
+            return <DatePicker id={id} disabled={disabled} invalid={invalid} required={field.required === true} withTime={field.withTime === true}
+                placeholder={field.placeholder ?? undefined} value={value === null ? null : String(value)} onChange={onChange} />;
         default:
+            if (field.inputType === 'color') {
+                return <ColorInput common={common} value={typeof value === 'string' ? value : ''} onChange={onChange} />;
+            }
             return <Input {...common} type={String(field.inputType ?? 'text')} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
     }
@@ -110,6 +128,31 @@ function CheckboxList({ id, options, value, disabled, onChange }: {
                     </div>
                 </fieldset>
             ))}
+        </div>
+    );
+}
+
+/** A #rrggbb colour: a picker and the code, with a sample of the text that goes on it. Empty means none. */
+function ColorInput({ common, value, onChange }: {
+    common: { id: string; disabled: boolean; 'aria-invalid': boolean; required?: boolean; placeholder?: string };
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    const valid = isHexColor(value);
+
+    return (
+        <div className="flex items-center gap-2">
+            {/* The swatch is ours (the native one shows black when empty); the picker sits invisibly on top. */}
+            <span className="relative size-10 shrink-0 overflow-hidden rounded-lg border border-input bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out-quart focus-within:border-ring/70 focus-within:ring-4 focus-within:ring-ring-glow hover:border-ring/45"
+                style={{ background: valid ? value : 'linear-gradient(to top right, transparent calc(50% - 0.75px), var(--border) 50%, transparent calc(50% + 0.75px)), var(--card)' }}>
+                <input type="color" aria-label="Pick a colour" disabled={common.disabled} value={valid ? value.toLowerCase() : '#000000'}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed" />
+            </span>
+            <Input {...common} type="text" maxLength={7} spellCheck={false} className="font-mono" value={value} onChange={(e) => onChange(e.target.value.trim())} />
+            {valid && (
+                <span aria-hidden="true" className="flex h-10 shrink-0 items-center rounded-lg px-3 text-sm font-medium shadow-xs" style={{ background: value, color: readableOn(value) }}>Aa</span>
+            )}
         </div>
     );
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
@@ -11,6 +12,7 @@ use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
 use Sunrice\Tests\Admin\Fixtures\MailSettings;
 use Sunrice\Tests\Admin\Fixtures\Product;
@@ -66,13 +68,13 @@ it('records users\' roles and passwords as changed, and settings', function () {
     Role::findOrCreate('editor', 'web');
     actingAs($this->admin);
 
-    put("/admin/users/{$user->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-new-password', 'password_confirmation' => 'a-new-password', 'roles' => ['editor']])->assertSessionHasNoErrors();
-    put('/admin/settings/mail', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
+    put("/admin/users/{$user->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-new-password', 'roles' => ['editor']])->assertSessionHasNoErrors();
+    put('/admin/settings/outbox', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
 
     expect(activityLines())->toBe([
         ['security', 'Rina', 'roles changed', 'account', 'Dewi', null],
         ['admin', 'Rina', 'updated', 'users', 'Dewi', ['password', 'roles']],
-        ['admin', 'Rina', 'updated', 'settings', 'Mail settings', ['from']],
+        ['admin', 'Rina', 'updated', 'settings', 'Outbox settings', ['from']],
     ]);
 });
 
@@ -108,10 +110,25 @@ it('merges updates to the same thing in one request, and records sources', funct
         ->and(Activity::query()->latest('id')->first())->source->toBe('ai')->via->toBe('Claude Desktop')->user_name->toBe('Rina')->subject_id->toBe('7');
 });
 
+it('merges by an id each request gets, so a worker\'s next request never continues the last one\'s lines', function () {
+    actingAs($this->admin);
+    $log = app(ActivityLog::class);
+    $product = Product::query()->create(['name' => 'Pan', 'sku' => 'P-1', 'price' => 5]);
+
+    $log->updated('products', $product, 'Pan', ['name']);
+    expect(request()->attributes->get(ActivityLog::REQUEST_ID))->toBeString();
+
+    // The same request object again, as a reused one in a long-running worker: a fresh id, no merging.
+    request()->attributes->remove(ActivityLog::REQUEST_ID);
+    $log->updated('products', $product, 'Pan', ['price']);
+
+    expect(Activity::query()->where('action', 'updated')->count())->toBe(2);
+});
+
 it('shows the log to those allowed, with filters and links', function () {
     actingAs($this->admin);
     post('/admin/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft']);
-    put('/admin/settings/mail', ['from' => 'hello@example.com']);
+    put('/admin/settings/outbox', ['from' => 'hello@example.com']);
     $product = Product::query()->sole();
     app(ActivityLog::class)->withSource('ai', 'Claude', fn () => app(ActivityLog::class)->record('noted', 'products', $product, 'Kettle'));
 
@@ -119,14 +136,14 @@ it('shows the log to those allowed, with filters and links', function () {
         ->component('Activity/Index', shouldExist: false)
         ->where('rows.total', 3)
         ->where('rows.data.0.via', 'Claude')
-        ->where('rows.data.1.url', '/admin/settings/mail')
+        ->where('rows.data.1.url', '/admin/settings/outbox')
         ->where('rows.data.2.url', "/admin/products/{$product->id}/edit")
         ->where('rows.data.2.typeLabel', 'Product')
         ->where('types', [['value' => 'products', 'label' => 'Product'], ['value' => 'settings', 'label' => 'Settings']]));
 
     get('/admin/activity?source=ai')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
     get("/admin/activity?type=products&subject={$product->id}")->assertInertia(fn (Assert $page) => $page->where('rows.total', 2));
-    get('/admin/activity?search=mail')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
+    get('/admin/activity?search=outbox')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
     get("/admin/activity?user={$this->admin->id}&from=".now()->toDateString())->assertInertia(fn (Assert $page) => $page->where('rows.total', 3));
     get('/admin/activity?to='.now()->subDay()->toDateString())->assertInertia(fn (Assert $page) => $page->where('rows.total', 0));
     get('/admin/activity?source=nope')->assertSessionHasErrors('source');
@@ -147,4 +164,48 @@ it('prunes old lines, daily with the scheduler', function () {
 
     $events = collect(app(Schedule::class)->events())->map(fn ($e) => $e->command)->implode(' ');
     expect($events)->toContain('sunrice:activity-prune');
+});
+
+it('filters by action and pages by the chosen size', function () {
+    actingAs($this->admin);
+    foreach (range(1, 30) as $i) {
+        app(ActivityLog::class)->record($i % 3 === 0 ? 'deleted' : 'created', 'products', $i, "Product {$i}");
+    }
+
+    get('/admin/activity?action=deleted')->assertInertia(fn (Assert $page) => $page
+        ->where('rows.total', 10)
+        ->where('query.action', 'deleted')
+        ->where('actions', fn ($actions) => collect($actions)->contains('deleted') && collect($actions)->contains('created'))
+        ->where('query.perPage', 50)
+        ->where('perPageOptions', [25, 50, 100, 200]));
+    get('/admin/activity?per_page=25')->assertInertia(fn (Assert $page) => $page->where('query.perPage', 25)->where('rows.lastPage', 2)->has('rows.data', 25));
+    get('/admin/activity?per_page=7')->assertSessionHasErrors('per_page');
+});
+
+it('prunes old lines from the panel, with a permission, a security event and an alert', function () {
+    Mail::fake();
+    config(['sunrice-admin.security.alerts.emails' => ['security@example.com']]);
+    app(ActivityLog::class)->record('created', 'products', 1, 'Old');
+    app(ActivityLog::class)->record('created', 'products', 2, 'New');
+    Activity::query()->where('subject_label', 'Old')->update(['created_at' => now()->subDays(40)]);
+
+    $viewer = User::query()->create(['name' => 'Viewer', 'email' => 'viewer@example.com', 'password' => 'x']);
+    $viewer->givePermissionTo([Panel::ACCESS, 'sunrice.activity.view']);
+    actingAs($viewer);
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page->where('prune', null));
+    post('/admin/activity/prune', ['days' => 30])->assertForbidden();
+
+    actingAs($this->admin);
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page->where('prune', ['keepDays' => 365]));
+    post('/admin/activity/prune', ['days' => 0])->assertSessionHasErrors('days');
+    post('/admin/activity/prune', ['days' => 30])->assertSessionHas('success', 'Deleted 1 activity log line.');
+
+    expect(Activity::query()->where('subject_label', 'Old')->exists())->toBeFalse()
+        ->and(Activity::query()->where('subject_label', 'New')->exists())->toBeTrue();
+    $event = Activity::query()->where('action', 'log pruned')->sole();
+    expect($event->source)->toBe('security')
+        ->and($event->subject_id)->toBe((string) $this->admin->id)
+        ->and($event->properties['note'])->toBe('1 line older than 30 days');
+    Mail::assertQueued(SecurityAlert::class, fn ($mail) => $mail->headline === 'The activity log was pruned');
+    expect(app(Panel::class)->getPermissions())->toHaveKey('sunrice.activity.prune');
 });

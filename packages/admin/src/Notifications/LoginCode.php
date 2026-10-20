@@ -31,6 +31,7 @@ final class LoginCode extends Notification
             ->line('Type this code to finish logging in to the admin panel:')
             ->line("**{$this->code}**")
             ->line('It works for '.TwoFactorLogin::LIFETIME_MINUTES.' minutes.')
-            ->line('If you didn\'t just log in, change your password: someone else knows it.');
+            ->line('If you didn\'t just log in, change your password: someone else knows it.')
+            ->salutation("Regards,  \n{$this->brand}");
     }
 }

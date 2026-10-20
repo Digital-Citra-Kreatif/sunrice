@@ -6,79 +6,111 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Design tokens. Warm neutrals with one accent used sparingly; the CMS and
+ * plugin stylesheets read these variables, so a change here reaches every
+ * page (see packages/admin/docs/frontend.md, "Design language").
+ */
 :root {
-    --background: oklch(0.978 0 0);
-    --foreground: oklch(0.24 0 0);
-    --card: oklch(1 0 0);
+    --background: oklch(0.985 0.004 80);
+    --foreground: oklch(0.26 0.01 60);
+    --card: oklch(0.998 0.002 80);
     --card-foreground: var(--foreground);
-    --popover: oklch(1 0 0);
+    --popover: oklch(0.998 0.002 80);
     --popover-foreground: var(--foreground);
-    --primary: oklch(0.29 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.945 0 0);
-    --secondary-foreground: oklch(0.36 0 0);
-    --muted: oklch(0.956 0 0);
-    --muted-foreground: oklch(0.51 0 0);
-    --accent: oklch(0.94 0 0);
-    --accent-foreground: oklch(0.36 0 0);
+    --primary: oklch(0.29 0.01 60);
+    --primary-foreground: oklch(0.985 0.004 80);
+    --secondary: oklch(0.945 0.005 80);
+    --secondary-foreground: oklch(0.36 0.01 60);
+    --muted: oklch(0.956 0.005 80);
+    --muted-foreground: oklch(0.5 0.01 60);
+    --accent: oklch(0.94 0.006 80);
+    --accent-foreground: oklch(0.36 0.01 60);
+    /* Selected and active rows, the current nav item. */
+    --accent-tint: color-mix(in oklch, var(--primary) 7%, transparent);
     --destructive: oklch(0.577 0.245 27.325);
     --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0.919 0 0);
-    --input: oklch(0.88 0 0);
-    --ring: oklch(0.56 0 0);
-    --radius: 0.5rem;
-    --sidebar: oklch(0.964 0 0);
-    --sidebar-foreground: oklch(0.39 0 0);
+    --border: oklch(0.92 0.006 75);
+    --input: oklch(0.88 0.006 75);
+    --ring: oklch(0.56 0.01 60);
+    /* The soft glow around a focused control. */
+    --ring-glow: color-mix(in oklch, var(--ring) 16%, transparent);
+    /* Translucent chrome over a blurred backdrop (header, sidebar, toasts). */
+    --surface-glass: color-mix(in oklch, var(--card) 72%, transparent);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.964 0.005 80);
+    --sidebar-foreground: oklch(0.39 0.01 60);
     --sidebar-primary: var(--primary);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.917 0 0);
-    --sidebar-accent-foreground: oklch(0.34 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0.004 80);
+    --sidebar-accent: oklch(0.917 0.006 80);
+    --sidebar-accent-foreground: oklch(0.34 0.01 60);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
-    --hero: oklch(0.93 0 0);
-    --hero-foreground: oklch(0.29 0 0);
-    --orb: oklch(0.76 0 0);
-    --orb-highlight: oklch(0.99 0 0);
-    --orb-shadow: oklch(0.38 0 0);
+    --hero: oklch(0.93 0.008 80);
+    --hero-foreground: oklch(0.29 0.01 60);
+    --orb: oklch(0.76 0.01 70);
+    --orb-highlight: oklch(0.99 0.004 80);
+    --orb-shadow: oklch(0.38 0.01 60);
+    /* Two-layer shadows, a hairline and a soft spread: shadow-card and shadow-pop. */
+    --sunrice-shadow-card: 0 0 0 1px color-mix(in oklch, var(--foreground) 5%, transparent), 0 8px 24px -12px color-mix(in oklch, var(--foreground) 16%, transparent);
+    --sunrice-shadow-pop: 0 0 0 1px color-mix(in oklch, var(--foreground) 7%, transparent), 0 6px 16px -8px color-mix(in oklch, var(--foreground) 18%, transparent), 0 24px 50px -24px color-mix(in oklch, var(--foreground) 24%, transparent);
 }
 
 .dark {
-    --background: oklch(0.175 0 0);
-    --foreground: oklch(0.94 0 0);
-    --card: oklch(0.215 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.235 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.87 0 0);
-    --primary-foreground: oklch(0.22 0 0);
-    --secondary: oklch(0.274 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.274 0 0);
-    --muted-foreground: oklch(0.72 0 0);
-    --accent: oklch(0.3 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --background: oklch(0.17 0.008 260);
+    --foreground: oklch(0.94 0.004 80);
+    --card: oklch(0.205 0.008 260);
+    --card-foreground: oklch(0.985 0.002 80);
+    --popover: oklch(0.225 0.008 260);
+    --popover-foreground: oklch(0.985 0.002 80);
+    --primary: oklch(0.87 0.005 80);
+    --primary-foreground: oklch(0.2 0.008 260);
+    --secondary: oklch(0.27 0.008 260);
+    --secondary-foreground: oklch(0.985 0.002 80);
+    --muted: oklch(0.27 0.008 260);
+    --muted-foreground: oklch(0.72 0.006 80);
+    --accent: oklch(0.29 0.008 260);
+    --accent-foreground: oklch(0.985 0.002 80);
+    --accent-tint: color-mix(in oklch, var(--primary) 10%, transparent);
     --destructive: oklch(0.66 0.19 25.723);
     --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0.32 0 0);
-    --input: oklch(0.38 0 0);
-    --ring: oklch(0.73 0 0);
-    --sidebar: oklch(0.19 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
+    --border: oklch(0.3 0.008 260);
+    --input: oklch(0.36 0.008 260);
+    --ring: oklch(0.72 0.006 80);
+    --ring-glow: color-mix(in oklch, var(--ring) 22%, transparent);
+    --surface-glass: color-mix(in oklch, var(--card) 72%, transparent);
+    --sidebar: oklch(0.185 0.008 260);
+    --sidebar-foreground: oklch(0.985 0.002 80);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
-    --sidebar-accent: oklch(0.3 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.29 0.008 260);
+    --sidebar-accent-foreground: oklch(0.985 0.002 80);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
-    --hero: oklch(0.285 0 0);
-    --hero-foreground: oklch(0.94 0 0);
-    --orb: oklch(0.55 0 0);
-    --orb-highlight: oklch(0.8 0 0);
-    --orb-shadow: oklch(0.2 0 0);
+    --hero: oklch(0.275 0.01 260);
+    --hero-foreground: oklch(0.94 0.004 80);
+    --orb: oklch(0.55 0.01 260);
+    --orb-highlight: oklch(0.8 0.006 80);
+    --orb-shadow: oklch(0.2 0.008 260);
+    --sunrice-shadow-card: 0 0 0 1px rgb(255 255 255 / 0.05), 0 8px 24px -12px rgb(0 0 0 / 0.55);
+    --sunrice-shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.07), 0 6px 16px -8px rgb(0 0 0 / 0.5), 0 24px 50px -24px rgb(0 0 0 / 0.7);
+}
+
+/* Motion and depth: quick, eased out, settling with a touch of overshoot. */
+@theme {
+    --ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-spring: linear(
+        0, 0.004 0.5%, 0.019 1.3%, 0.046 2.3%, 0.082 3.3%, 0.126 4.5%, 0.214 6.6%, 0.398 10.3%, 0.615 14.2%, 0.776 17.3%,
+        0.908 20.4%, 0.979 22.6%, 1.029 24.8%, 1.055 26.7%, 1.07 28.3%, 1.078 30%, 1.079 31.3%, 1.074 33%, 1.055 36.6%,
+        1.025 42.5%, 1 48.4%, 0.988 54.4%, 0.985 59.9%, 0.987 66.9%, 0.997 80.1%, 1.001 90.6%, 1
+    );
+    /* Through a variable: Tailwind would otherwise rewrite the colours. */
+    --shadow-card: var(--sunrice-shadow-card);
+    --shadow-pop: var(--sunrice-shadow-pop);
 }
 
 @theme inline {
-    --font-sans: var(--sunrice-font, 'Instrument Sans'), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-sans: var(--sunrice-font, 'Inter'), -apple-system, 'SF Pro Text', system-ui, sans-serif;
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
@@ -108,6 +140,9 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-accent-tint: var(--accent-tint);
+    --color-ring-glow: var(--ring-glow);
+    --color-surface-glass: var(--surface-glass);
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
@@ -127,14 +162,86 @@
 }
 
 .sunrice-page-enter {
-    animation: sunrice-page-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: sunrice-page-enter 240ms var(--ease-out-quart) backwards;
+}
+
+/* Rows and tiles arrive one after another: style="--i: index" on each, capped at twelve. */
+@keyframes sunrice-row-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.sunrice-row-in {
+    animation: sunrice-row-in 320ms var(--ease-out-quart) backwards;
+    animation-delay: calc(min(var(--i, 0), 11) * 28ms);
+}
+
+/* Placeholders sweep while the page loads. */
+/* A scrolling list fades out at an edge with more past it (hooks/use-scroll-fade.ts). */
+.sunrice-scroll-fade-x,
+.sunrice-scroll-fade-y {
+    --sunrice-fade-start: 0px;
+    --sunrice-fade-end: 0px;
+}
+.sunrice-scroll-fade-y[data-fade-start="true"] {
+    --sunrice-fade-start: 1.5rem;
+}
+.sunrice-scroll-fade-y[data-fade-end="true"] {
+    --sunrice-fade-end: 1.5rem;
+}
+.sunrice-scroll-fade-x[data-fade-start="true"] {
+    --sunrice-fade-start: 3rem;
+}
+.sunrice-scroll-fade-x[data-fade-end="true"] {
+    --sunrice-fade-end: 3rem;
+}
+.sunrice-scroll-fade-x {
+    mask-image: linear-gradient(to right, transparent, #000 var(--sunrice-fade-start), #000 calc(100% - var(--sunrice-fade-end)), transparent);
+}
+.sunrice-scroll-fade-y {
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--sunrice-fade-start), #000 calc(100% - var(--sunrice-fade-end)), transparent);
+}
+
+@keyframes sunrice-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+.sunrice-shimmer {
+    background-image: linear-gradient(100deg, var(--accent) 35%, color-mix(in oklch, var(--card) 70%, var(--accent)) 50%, var(--accent) 65%);
+    background-size: 200% 100%;
+    animation: sunrice-shimmer 1.6s linear infinite;
+}
+
+/* Page to page: the old page fades as the new one rises (document.startViewTransition). */
+@supports (view-transition-name: root) {
+    ::view-transition-old(root) {
+        animation: 120ms var(--ease-out-quart) both sunrice-vt-out;
+    }
+
+    ::view-transition-new(root) {
+        animation: 220ms var(--ease-out-quart) both sunrice-vt-in;
+    }
+
+    /* The transition carries the page in; the page's own entrance would double it. */
+    html:active-view-transition .sunrice-page-enter {
+        animation: none;
+    }
+}
+
+@keyframes sunrice-vt-out {
+    to { opacity: 0; }
+}
+
+@keyframes sunrice-vt-in {
+    from { opacity: 0; transform: translateY(6px); }
 }
 
 .sunrice-card-content {
     display: grid;
     grid-template-rows: 1fr;
     opacity: 1;
-    transition: grid-template-rows 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+    transition: grid-template-rows 240ms var(--ease-out-quart), opacity 180ms ease;
 }
 
 .sunrice-card-content[data-state="closed"] {
@@ -149,7 +256,9 @@
 
     body {
         @apply bg-background text-foreground;
-        font-feature-settings: 'ss01' on;
+        /* Inter's open digits and single-storey a, and its contextual alternates. */
+        font-feature-settings: 'cv11', 'ss01', 'calt';
+        text-rendering: optimizeLegibility;
     }
 
     ::selection {
@@ -216,53 +325,16 @@
         box-shadow: inset -10px -15px 25px color-mix(in oklch, var(--orb-shadow) 15%, transparent), 0 25px 40px -20px color-mix(in oklch, var(--orb-shadow) 35%, transparent);
     }
 
-    [data-slot='sidebar-menu-button'][data-active='true'] {
-        box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--sidebar-accent-foreground) 8%, transparent);
+    /* The current nav item: the accent tint and a hairline that settle into place. */
+    [data-slot='sidebar-menu-button'],
+    [data-slot='sidebar-menu-sub-button'] {
+        transition: background-color 150ms var(--ease-out-quart), color 150ms var(--ease-out-quart), box-shadow 200ms var(--ease-out-quart);
     }
 
-    /* Help pages. */
-    .help-article {
-        line-height: 1.7;
-    }
-    .help-article > * + * {
-        margin-top: 0.9em;
-    }
-    .help-article h1 {
-        font-size: 1.6rem;
-        font-weight: 500;
-        letter-spacing: -0.02em;
-        line-height: 1.2;
-    }
-    .help-article h2 {
-        margin-top: 1.6em;
-        font-size: 1.2rem;
-        font-weight: 600;
-    }
-    .help-article :is(ul, ol) {
-        padding-left: 1.25rem;
-    }
-    .help-article ul {
-        list-style: disc;
-    }
-    .help-article ol {
-        list-style: decimal;
-    }
-    .help-article li + li {
-        margin-top: 0.3em;
-    }
-    .help-article a {
-        color: var(--primary);
-        text-decoration: underline;
-        text-underline-offset: 3px;
-    }
-    .help-article code {
-        border-radius: 0.25rem;
-        background: var(--muted);
-        padding: 0.1em 0.35em;
-        font-size: 0.9em;
-    }
-    .help-article strong {
-        font-weight: 600;
+    [data-slot='sidebar-menu-button'][data-active='true'],
+    [data-slot='sidebar-menu-sub-button'][data-active='true'] {
+        background-color: var(--accent-tint);
+        box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--sidebar-accent-foreground) 10%, transparent);
     }
 
     .sunrice-prose .ProseMirror {
@@ -321,52 +393,98 @@
     }
 }
 
+/*
+ * Reduced motion: nothing travels. Pages, rows and overlays appear in place
+ * (fades stay), placeholders stop sweeping, and colour and opacity
+ * transitions survive so controls still answer the pointer.
+ */
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
+    .sunrice-page-enter,
+    .sunrice-row-in,
+    .sunrice-shimmer,
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none;
+    }
+
+    .sunrice-card-content {
+        transition: none;
+    }
+
+    /* tw-animate-css: keep the fade, drop the zoom and the slide. */
+    .animate-in,
+    .animate-out {
+        --tw-enter-scale: 1;
+        --tw-enter-translate-x: 0;
+        --tw-enter-translate-y: 0;
+        --tw-exit-scale: 1;
+        --tw-exit-translate-x: 0;
+        --tw-exit-translate-y: 0;
+        animation-duration: 120ms;
+    }
+
+    [data-slot='sidebar-gap'],
+    [data-slot='sidebar-container'],
+    [data-slot='switch-thumb'],
+    [data-slot='checkbox-indicator'] > svg {
+        transition-duration: 0.01ms;
+        animation-duration: 0.01ms;
+    }
+
+    html {
+        scroll-behavior: auto;
     }
 }
 
-/* Developer docs: rendered Markdown. */
+/* Help pages (Docs and Guide): rendered Markdown, set for reading. */
 .sunrice-docs {
     font-size: 0.9375rem;
-    line-height: 1.7;
+    line-height: 1.75;
+    color: color-mix(in oklab, var(--foreground) 88%, transparent);
 }
 .sunrice-docs > :first-child { margin-top: 0; }
+.sunrice-docs > :is(p, ul, ol, blockquote, aside, h2, h3, h4, dl) { max-width: 46rem; }
+.sunrice-docs :is(h1, h2, h3, h4) { color: var(--foreground); text-wrap: balance; }
 .sunrice-docs h1 { font-size: 1.75rem; font-weight: 500; letter-spacing: -0.03em; line-height: 1.25; margin: 0 0 1rem; }
-.sunrice-docs h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; margin: 2.25rem 0 0.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border); scroll-margin-top: 1.5rem; }
-.sunrice-docs h3 { font-size: 1.0625rem; font-weight: 600; margin: 1.75rem 0 0.5rem; scroll-margin-top: 1.5rem; }
-.sunrice-docs p, .sunrice-docs ul, .sunrice-docs ol, .sunrice-docs pre, .sunrice-docs table, .sunrice-docs blockquote { margin: 0 0 1rem; }
+.sunrice-docs h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.35; margin: 2.75rem 0 0.75rem; scroll-margin-top: 5.5rem; }
+.sunrice-docs h3 { font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.01em; margin: 2rem 0 0.5rem; scroll-margin-top: 5.5rem; }
+.sunrice-docs h4 { font-size: 0.9375rem; font-weight: 600; margin: 1.5rem 0 0.4rem; }
+.sunrice-docs :is(h2, h3):target { color: var(--primary); }
+.sunrice-docs p, .sunrice-docs ul, .sunrice-docs ol, .sunrice-docs pre, .sunrice-docs table, .sunrice-docs blockquote, .sunrice-docs dl { margin: 0 0 1rem; }
 .sunrice-docs ul { list-style: disc; padding-left: 1.25rem; }
 .sunrice-docs ol { list-style: decimal; padding-left: 1.25rem; }
-.sunrice-docs li { margin: 0.25rem 0; }
+.sunrice-docs li { margin: 0.3rem 0; padding-left: 0.15rem; }
+.sunrice-docs li::marker { color: var(--muted-foreground); }
 .sunrice-docs li > p { margin: 0; }
-.sunrice-docs a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
-.sunrice-docs a.heading-permalink { margin-left: 0.4rem; color: var(--muted-foreground); text-decoration: none; opacity: 0; transition: opacity 120ms; }
-.sunrice-docs :is(h2, h3):hover a.heading-permalink { opacity: 1; }
-.sunrice-docs code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; background: var(--muted); border-radius: 0.3rem; padding: 0.1rem 0.3rem; }
-.sunrice-docs pre { background: var(--muted); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.85rem 1rem; overflow-x: auto; font-size: 0.8125rem; line-height: 1.6; }
-.sunrice-docs pre code { background: none; padding: 0; font-size: inherit; }
-.sunrice-docs table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.875rem; }
-.sunrice-docs th, .sunrice-docs td { border: 1px solid var(--border); padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; }
-.sunrice-docs th { background: var(--muted); font-weight: 600; }
-.sunrice-docs blockquote { border-left: 3px solid var(--border); padding-left: 1rem; color: var(--muted-foreground); }
-.sunrice-docs hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+.sunrice-docs strong { font-weight: 600; color: var(--foreground); }
+.sunrice-docs dt { font-weight: 600; color: var(--foreground); }
+.sunrice-docs dd { margin: 0 0 0.75rem 1rem; }
+.sunrice-docs a { color: var(--primary); text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--primary) 35%, transparent); text-underline-offset: 3px; transition: text-decoration-color 150ms var(--ease-out-quart); }
+.sunrice-docs a:hover { text-decoration-color: currentColor; }
+.sunrice-docs code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.84em; background: var(--muted); border: 1px solid color-mix(in oklab, var(--border) 70%, transparent); border-radius: calc(var(--radius) - 0.3rem); padding: 0.08rem 0.32rem; color: var(--foreground); }
+.sunrice-docs kbd { font-family: inherit; font-size: 0.8em; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 0.3rem; padding: 0.05rem 0.35rem; background: var(--background); }
+.sunrice-docs pre { background: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.9rem 1.1rem; overflow-x: auto; font-size: 0.8125rem; line-height: 1.65; }
+.sunrice-docs pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+.sunrice-docs table { display: block; max-width: 100%; overflow-x: auto; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem; line-height: 1.55; }
+.sunrice-docs th, .sunrice-docs td { border-bottom: 1px solid var(--border); padding: 0.5rem 0.8rem; text-align: left; vertical-align: top; }
+.sunrice-docs :is(th, td) + :is(th, td) { border-left: 1px solid var(--border); }
+.sunrice-docs tr:last-child td { border-bottom: 0; }
+.sunrice-docs th { background: color-mix(in oklab, var(--muted) 70%, transparent); font-weight: 600; color: var(--foreground); }
+.sunrice-docs blockquote { border-left: 3px solid color-mix(in oklab, var(--primary) 40%, var(--border)); padding: 0.1rem 0 0.1rem 1rem; color: var(--muted-foreground); }
+.sunrice-docs hr { border: 0; border-top: 1px solid var(--border); margin: 2.5rem 0; }
 .sunrice-docs td:first-child code { white-space: nowrap; }
-.sunrice-docs a.sunrice-shot { display: block; margin: 0.25rem 0 1.25rem; text-decoration: none; }
-.sunrice-docs a.sunrice-shot img { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 0.6rem; box-shadow: 0 6px 24px -14px rgb(0 0 0 / 0.35); transition: box-shadow 150ms; }
-.sunrice-docs a.sunrice-shot:hover img { box-shadow: 0 10px 30px -14px rgb(0 0 0 / 0.5); }
+.sunrice-docs a.sunrice-shot { display: block; margin: 0.5rem 0 1.5rem; text-decoration: none; }
+.sunrice-docs a.sunrice-shot img { display: block; max-width: 100%; height: auto; border-radius: var(--radius); box-shadow: var(--shadow-card); transition: box-shadow 200ms var(--ease-out-quart); }
+.sunrice-docs a.sunrice-shot:hover img { box-shadow: var(--shadow-pop); }
 .sunrice-docs li > a.sunrice-shot { margin: 0.6rem 0 0.9rem; }
 
 /* Callouts: "> [!TIP]" and friends. Technical notes look like code, so
    readers who don't touch code can tell them apart and skip them. */
 .sunrice-docs .sunrice-callout {
     --callout: var(--primary);
-    margin: 0 0 1rem;
-    padding: 0.75rem 1rem;
+    max-width: 46rem;
+    margin: 0 0 1.25rem;
+    padding: 0.8rem 1.1rem;
     border: 1px solid color-mix(in oklab, var(--callout) 30%, transparent);
     border-left-width: 3px;
     border-radius: 0.5rem;
@@ -386,10 +504,12 @@
 }
 .sunrice-docs .sunrice-callout-tip { --callout: oklch(0.6 0.13 155); }
 .sunrice-docs .sunrice-callout-note { --callout: oklch(0.6 0.13 245); }
+.sunrice-docs .sunrice-callout-important { --callout: oklch(0.6 0.15 300); }
 .sunrice-docs .sunrice-callout-warning { --callout: oklch(0.68 0.15 70); }
+.sunrice-docs .sunrice-callout-caution { --callout: oklch(0.6 0.19 27); }
 .sunrice-docs .sunrice-callout-tip .sunrice-callout-title::before { content: "✓"; }
 .sunrice-docs .sunrice-callout-note .sunrice-callout-title::before { content: "i"; font-family: ui-serif, Georgia, serif; font-style: italic; font-weight: 700; }
-.sunrice-docs .sunrice-callout-warning .sunrice-callout-title::before { content: "!"; font-weight: 800; }
+.sunrice-docs :is(.sunrice-callout-warning, .sunrice-callout-caution, .sunrice-callout-important) .sunrice-callout-title::before { content: "!"; font-weight: 800; }
 .sunrice-docs .sunrice-callout-technical {
     --callout: oklch(0.58 0.16 290);
     background: color-mix(in oklab, var(--muted) 85%, transparent);
@@ -404,3 +524,29 @@
 }
 .sunrice-docs .sunrice-callout-technical .sunrice-callout-title::before { content: "</>"; }
 .sunrice-docs .sunrice-callout-technical code { background: var(--background); }
+
+/* The rich text editor's editing area (components/app/rich-text-editor.tsx). */
+@layer components {
+    .sunrice-prose {
+        min-height: 10rem;
+        padding: 0.75rem 1rem;
+        outline: none;
+        line-height: 1.6;
+    }
+    .sunrice-prose > * + * { margin-top: 0.75em; }
+    .sunrice-prose h2 { font-size: 1.375rem; font-weight: 600; line-height: 1.3; margin-top: 1.25em; }
+    .sunrice-prose h3 { font-size: 1.125rem; font-weight: 600; margin-top: 1em; }
+    .sunrice-prose h4 { font-weight: 600; }
+    .sunrice-prose ul { list-style: disc; padding-left: 1.5rem; }
+    .sunrice-prose ol { list-style: decimal; padding-left: 1.5rem; }
+    .sunrice-prose li > p { margin: 0; }
+    .sunrice-prose blockquote { border-left: 3px solid var(--border); padding-left: 1rem; color: var(--muted-foreground); }
+    .sunrice-prose a { color: var(--primary); text-decoration: underline; }
+    .sunrice-prose code { font-family: ui-monospace, monospace; font-size: 0.9em; background: var(--muted); padding: 0.1em 0.3em; border-radius: 0.25rem; }
+    .sunrice-prose pre { background: var(--muted); padding: 0.75rem 1rem; border-radius: var(--radius); overflow-x: auto; }
+    .sunrice-prose pre code { background: none; padding: 0; }
+    .sunrice-prose hr { border: 0; border-top: 1px solid var(--border); }
+    .sunrice-prose img { max-width: 100%; height: auto; border-radius: calc(var(--radius) - 2px); }
+    .sunrice-prose img.ProseMirror-selectednode { outline: 2px solid var(--ring); }
+    .sunrice-prose p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--muted-foreground); float: left; height: 0; pointer-events: none; }
+}

@@ -47,6 +47,11 @@ final class SaveRecord
         }
         /** @var array<string, mixed> $validated */
         $validated = Validator::make($input, $rules, [], $attributes)->validate();
+        foreach ($fields as $field) {
+            if (array_key_exists($field->name, $validated)) {
+                $validated[$field->name] = $field->dehydrate($validated[$field->name]);
+            }
+        }
 
         // Only declared fields are written, whatever else the request sends.
         $present = array_values(array_filter($fields, fn (Field $field) => array_key_exists($field->name, $validated) || $field instanceof Toggle));

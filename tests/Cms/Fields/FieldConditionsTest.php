@@ -50,6 +50,19 @@ it('asks nothing of a hidden field, also inside groups', function () {
         ->toThrow(ValidationException::class);
 });
 
+it('keeps a hidden field\'s value, still checked', function () {
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
+        ['handle' => 'layout', 'type' => 'text'],
+        ['handle' => 'video_url', 'type' => 'text', 'required' => true, 'validation' => ['url'], 'condition' => ['field' => 'layout', 'operator' => 'equals', 'value' => 'video']],
+    ]]);
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post']);
+
+    $entry = app(CreateEntry::class)->handle($blog, ['title' => 'Post', 'data' => ['layout' => 'image', 'video_url' => 'https://example.com/v']]);
+    expect($entry->draft_data['video_url'])->toBe('https://example.com/v');
+    expect(fn () => app(CreateEntry::class)->handle($blog, ['title' => 'Other', 'data' => ['layout' => 'image', 'video_url' => 'not a url']]))
+        ->toThrow(ValidationException::class);
+});
+
 it('checks conditions in blueprints', function () {
     $save = fn (array $condition) => app(SaveBlueprint::class)->handle(['handle' => 'x'.uniqid(), 'title' => 'X', 'fields' => [
         ['handle' => 'layout', 'type' => 'text'],

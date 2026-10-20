@@ -1,6 +1,5 @@
 import { InputError } from '@/components/app/input-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { FieldInput, type FieldValue } from './fields';
@@ -32,15 +31,15 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
                     const input = <FieldInput field={field} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
 
                     return (
-                        <div key={field.name} className={cn('grid content-start gap-2', spans[Math.min(field.span, section.columns)])}>
+                        <div key={field.name} className={cn('grid min-w-0 grid-cols-1 content-start gap-2', spans[Math.min(field.span, section.columns)])}>
                             {field.type === 'toggle' ? (
                                 <div className="flex items-center gap-3">
                                     {input}
-                                    <Label htmlFor={`field-${field.name}`}>{field.label}</Label>
+                                    <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>{field.label}</Label>
                                 </div>
                             ) : (
                                 <>
-                                    <Label htmlFor={`field-${field.name}`}>
+                                    <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>
                                         {field.label}
                                         {field.required && <span className="text-destructive" aria-hidden>*</span>}
                                     </Label>
@@ -49,14 +48,6 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
                             )}
                             {field.help && <p className="text-sm text-muted-foreground">{field.help}</p>}
                             <InputError message={error} />
-                            {field.type === 'password' && field.confirmed === true && (
-                                <>
-                                    <Label htmlFor={`field-${field.name}_confirmation`} className="mt-2">Type it again</Label>
-                                    <Input id={`field-${field.name}_confirmation`} type="password" autoComplete="new-password" disabled={field.disabled === true}
-                                        value={typeof data[`${field.name}_confirmation`] === 'string' ? String(data[`${field.name}_confirmation`]) : ''}
-                                        onChange={(event) => onChange(`${field.name}_confirmation`, event.target.value)} />
-                                </>
-                            )}
                         </div>
                     );
                 })}

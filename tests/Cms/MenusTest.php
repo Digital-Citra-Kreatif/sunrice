@@ -19,6 +19,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -150,4 +151,34 @@ it('marks the page shown and the links leading to it', function () {
 
     $this->app->instance('request', Request::create('/contact'));
     expect(app(Menus::class)->get('main')[1]['active'])->toBeTrue();
+});
+
+it('links untranslated pages at the language\'s address, or the main page with the fallback off', function () {
+    $about = page('About');
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    app(SaveMenu::class)->handle($this->main, [['entry_id' => $about->entry_id], ['term_id' => $news->id]]);
+
+    expect(array_map(fn (array $item) => [$item['label'], $item['url']], app(Menus::class)->get('main', 'id')))->toBe([
+        ['About', url('/id/about')],
+        ['News', url('/id/tags/news')],
+    ]);
+
+    config(['sunrice-cms.site.fallback' => false]);
+    app(Menus::class)->flush();
+    app(SiteCache::class)->changed('test');
+    expect(array_column(app(Menus::class)->get('main', 'id'), 'url'))->toBe([url('/about'), url('/tags/news')]);
+});
+
+it('labels the menus resource apart from the menu editor in the sidebar', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
+
+    get('/admin/cms/menus')->assertOk()->assertInertia(function (Assert $page) {
+        $items = collect($page->toArray()['props']['navigation'])->pluck('items')->flatten(1)->keyBy('key');
+
+        expect($items['cms-menus']['label'])->toBe('Menus')
+            ->and($items['resources.menus']['label'])->toBe('Menu settings');
+    });
+    expect(app(Panel::class)->getPermissions()['cms.menus.view']->label)->toBe('View Menus');
 });

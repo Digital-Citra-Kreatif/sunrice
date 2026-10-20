@@ -1,15 +1,16 @@
 import * as React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowDown, ArrowLeft, ArrowUp, IndentDecrease, IndentIncrease, Link2, List, LoaderCircle, Plus, Tag, Trash2 } from 'lucide-react';
+import { IndentDecrease, IndentIncrease, Link2, List, LoaderCircle, Plus, Tag, Trash2 } from 'lucide-react';
 import { adminUrl } from '@sunrice/admin-sdk';
 import {
-    Badge, Button, Card, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Label,
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue, useBreadcrumbs, useUnsavedChanges,
+    Badge, Button, Card, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Label, PageHeader,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SortableHandle, SortableList, useBreadcrumbs, useUnsavedChanges,
 } from '@sunrice/admin-sdk/ui';
 import { EntriesPicker } from '@/components/EntriesPicker.tsx';
 import { FieldError } from '@/components/FieldInput.tsx';
 import { localeName } from '@/lib/entries.ts';
-import { type FlatItem, flatten, indent, type MenuNode, moveItem, newItem, outdent, removeItem, toTree } from '@/lib/menu.ts';
+import { type FlatItem, flatten, indent, type MenuNode, newItem, outdent, removeItem, toTree } from '@/lib/menu.ts';
+import { childIndexes, reorderLevel } from '@/lib/tree.ts';
 import { isSafeUrl, pickerQuery } from '@/lib/values.ts';
 
 interface Props {
@@ -49,42 +50,22 @@ export default function MenuEdit({ menu, items: initial, locales, limits, terms,
     };
     useUnsavedChanges(dirty, can.update ? persist : undefined);
 
-    return (
-        <form onSubmit={save} className="cms:flex cms:max-w-4xl cms:flex-col cms:gap-6">
-            <Head title={menu.title} />
-            <div className="cms:flex cms:flex-wrap cms:items-center cms:justify-between cms:gap-4">
-                <div className="cms:flex cms:min-w-0 cms:items-center cms:gap-3">
-                    <Button variant="outline" size="icon" className="cms:size-8 cms:shrink-0" asChild>
-                        <Link href={adminUrl('cms/menus')} aria-label="Back to menus"><ArrowLeft /></Link>
-                    </Button>
-                    <h1 className="cms:truncate cms:text-2xl cms:font-medium cms:tracking-tight">{menu.title}</h1>
-                    {dirty && <span className="cms:text-sm cms:text-muted-foreground">Unsaved changes</span>}
-                </div>
-                {can.update && (
-                    <div className="cms:flex cms:gap-2">
-                        <Button type="button" variant="outline" disabled={items.length >= limits.items} onClick={() => setAdding('entry')}><Plus /> Entry</Button>
-                        {terms.length > 0 && <Button type="button" variant="outline" disabled={items.length >= limits.items} onClick={() => setAdding('term')}><Tag /> Term</Button>}
-                        {listings.length > 0 && <Button type="button" variant="outline" disabled={items.length >= limits.items} onClick={() => setAdding('listing')}><List /> Listing</Button>}
-                        <Button type="button" variant="outline" disabled={items.length >= limits.items} onClick={() => setAdding('url')}><Link2 /> Link</Button>
-                        <Button type="submit" disabled={form.processing}>{form.processing && <LoaderCircle className="cms:animate-spin" />} Save</Button>
-                    </div>
-                )}
-            </div>
-            <FieldError message={errors.items} />
-            {Object.keys(errors).some((key) => key.startsWith('items.')) && (
-                <p role="alert" className="cms:text-sm cms:text-destructive">Some links need fixing: {Object.values(errors).filter(Boolean)[0]}</p>
-            )}
-
-            <Card className="cms:py-0">
-                <ul className="cms:divide-y">
-                    {items.length === 0 && <li className="cms:p-6 cms:text-center cms:text-muted-foreground">No links yet. Add an entry or a link.</li>}
-                    {items.map((item, index) => (
-                        <li key={item.key} className="cms:flex cms:flex-col cms:gap-2 cms:p-3" style={{ paddingLeft: `${0.75 + item.depth * 2}rem` }}>
+    /** The items directly under the one at `parent` (-1: the top), dragged into order among themselves, each with its own children. */
+    const level = (parent: number): React.ReactNode => (
+        <SortableList items={childIndexes(items, parent)} getId={(index) => items[index]!.key} disabled={!can.update}
+            onReorder={(order) => change(reorderLevel(items, parent, order))} className={parent < 0 ? 'cms:gap-1' : 'cms:mt-1 cms:gap-1 cms:pl-6'}>
+            {(index, { handle, isOverlay }) => {
+                const item = items[index]!;
+                return (
+                    <div className={`cms:rounded-lg cms:border cms:bg-card ${isOverlay ? '' : 'cms:border-border/70'}`}>
+                        <div className="cms:flex cms:items-start cms:gap-2 cms:p-2">
+                            {can.update && <div className="cms:flex cms:h-10 cms:shrink-0 cms:items-center"><SortableHandle {...handle} label={`Move ${item.labels[main] || item.target?.title || item.url || 'link'}`} /></div>}
+                            <div className="cms:flex cms:min-w-0 cms:flex-1 cms:flex-col cms:gap-2">
                             <div className="cms:flex cms:flex-wrap cms:items-center cms:gap-2">
-                                <Input aria-label={`Label (${localeName(main)})`} className="cms:max-w-xs" disabled={!can.update}
+                                <Input aria-label={`Label (${localeName(main)})`} className="cms:w-full cms:sm:max-w-xs" disabled={!can.update}
                                     placeholder={item.target?.title ?? 'Label'} value={item.labels[main] ?? ''}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => update(index, { labels: { ...item.labels, [main]: e.target.value } })} />
-                                <span className="cms:min-w-0 cms:flex-1 cms:truncate cms:text-sm cms:text-muted-foreground">
+                                <span className="cms:min-w-32 cms:flex-1 cms:truncate cms:text-sm cms:text-muted-foreground">
                                     {item.url !== null
                                         ? item.url
                                         : <>{item.target ? `${item.target.kind}: ${item.target.title}` : 'Gone'} {(!item.target || !item.target.live) && <Badge variant="outline">Not on the site</Badge>}</>}
@@ -96,8 +77,6 @@ export default function MenuEdit({ menu, items: initial, locales, limits, terms,
                                         </label>
                                         <Button type="button" variant="ghost" size="icon" className="cms:size-8" aria-label="Out a level" disabled={item.depth === 0} onClick={() => change(outdent(items, index))}><IndentDecrease /></Button>
                                         <Button type="button" variant="ghost" size="icon" className="cms:size-8" aria-label="In a level" onClick={() => change(indent(items, index, limits.depth))}><IndentIncrease /></Button>
-                                        <Button type="button" variant="ghost" size="icon" className="cms:size-8" aria-label="Move up" onClick={() => change(moveItem(items, index, -1))}><ArrowUp /></Button>
-                                        <Button type="button" variant="ghost" size="icon" className="cms:size-8" aria-label="Move down" onClick={() => change(moveItem(items, index, 1))}><ArrowDown /></Button>
                                         <Button type="button" variant="ghost" size="icon" className="cms:size-8 cms:text-destructive" aria-label="Remove, with what's under it" onClick={() => change(removeItem(items, index))}><Trash2 /></Button>
                                     </div>
                                 )}
@@ -105,15 +84,46 @@ export default function MenuEdit({ menu, items: initial, locales, limits, terms,
                             {locales.length > 1 && (
                                 <div className="cms:flex cms:flex-wrap cms:gap-2">
                                     {locales.slice(1).map((code) => (
-                                        <Input key={code} aria-label={`Label (${localeName(code)})`} className="cms:max-w-xs" disabled={!can.update}
+                                        <Input key={code} aria-label={`Label (${localeName(code)})`} className="cms:w-full cms:sm:max-w-xs" disabled={!can.update}
                                             placeholder={`${localeName(code)}: as ${localeName(main)}`} value={item.labels[code] ?? ''}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => update(index, { labels: { ...item.labels, [code]: e.target.value } })} />
                                     ))}
                                 </div>
                             )}
-                        </li>
-                    ))}
-                </ul>
+                            </div>
+                        </div>
+                        {!isOverlay && childIndexes(items, index).length > 0 && <div className="cms:px-2 cms:pb-2">{level(index)}</div>}
+                    </div>
+                );
+            }}
+        </SortableList>
+    );
+
+    return (
+        <form onSubmit={save} className="cms:flex cms:max-w-4xl cms:flex-col cms:gap-6">
+            <Head title={menu.title} />
+            <PageHeader
+                title={menu.title}
+                back={{ href: adminUrl('cms/menus'), label: 'Back to menus' }}
+                actions={can.update && (
+                    <>
+                        <Button type="button" variant="outline" disabled={items.length >= limits.items} onClick={() => setAdding('entry')}><Plus /> Entry</Button>
+                        {terms.length > 0 && <Button type="button" variant="outline" disabled={items.length >= limits.items} onClick={() => setAdding('term')}><Tag /> Term</Button>}
+                        {listings.length > 0 && <Button type="button" variant="outline" disabled={items.length >= limits.items} onClick={() => setAdding('listing')}><List /> Listing</Button>}
+                        <Button type="button" variant="outline" disabled={items.length >= limits.items} onClick={() => setAdding('url')}><Link2 /> Link</Button>
+                        <Button type="submit" disabled={form.processing}>{form.processing && <LoaderCircle className="cms:animate-spin" />} Save</Button>
+                    </>
+                )}
+            >
+                {dirty && <span className="cms:text-sm cms:text-muted-foreground">Unsaved changes</span>}
+            </PageHeader>
+            <FieldError message={errors.items} />
+            {Object.keys(errors).some((key) => key.startsWith('items.')) && (
+                <p role="alert" className="cms:text-sm cms:text-destructive">Some links need fixing: {Object.values(errors).filter(Boolean)[0]}</p>
+            )}
+
+            <Card className="cms:p-2">
+                {items.length === 0 ? <p className="cms:p-4 cms:text-center cms:text-muted-foreground">No links yet. Add an entry or a link.</p> : level(-1)}
             </Card>
 
             <AddDialog kind={adding} terms={terms} listings={listings} onClose={() => setAdding(null)} onAdd={(item) => { change([...items, item]); setAdding(null); }} main={main} />

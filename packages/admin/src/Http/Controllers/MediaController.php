@@ -25,6 +25,7 @@ use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\MediaFolder;
 use Sunrice\Admin\Media\MediaUsages;
+use Sunrice\Admin\Support\Like;
 
 /**
  * The Media page: browse, upload, edit, move, trash and restore. Each
@@ -59,8 +60,8 @@ final class MediaController
         $media = ($trash ? Media::onlyTrashed() : Media::query())
             ->when(! $everywhere, fn (Builder $q) => $q->where('folder_id', $current?->id))
             ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
-                ->whereLike('title', '%'.self::escapeLike($search).'%')
-                ->orWhereLike('filename', '%'.self::escapeLike($search).'%')))
+                ->whereLike('title', '%'.Like::escape($search).'%')
+                ->orWhereLike('filename', '%'.Like::escape($search).'%')))
             ->when($type !== null, fn (Builder $q) => Media::whereTypes($q, [(string) $type]))
             ->withCount('usages')
             ->orderByDesc('id')
@@ -86,6 +87,8 @@ final class MediaController
                 'update' => $user->can('sunrice.media.update'),
                 'delete' => $user->can('sunrice.media.delete'),
             ],
+            // The public disk's link (php artisan storage:link) is missing: files can't be shown.
+            'storageLinkMissing' => $user->can('sunrice.media.upload') && MediaConfig::storageLinkMissing(),
             'upload' => [
                 'maxKb' => MediaConfig::maxKilobytes(),
                 'accept' => implode(',', array_map(fn (string $ext) => ".{$ext}", MediaConfig::allowedExtensions())),
@@ -129,8 +132,8 @@ final class MediaController
         $page = Media::query()
             ->when($search === '', fn (Builder $q) => $q->where('folder_id', $current?->id))
             ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
-                ->whereLike('title', '%'.self::escapeLike($search).'%')
-                ->orWhereLike('filename', '%'.self::escapeLike($search).'%')))
+                ->whereLike('title', '%'.Like::escape($search).'%')
+                ->orWhereLike('filename', '%'.Like::escape($search).'%')))
             ->tap(fn (Builder $q) => Media::whereTypes($q, $input['types'] ?? []))
             ->orderByDesc('id')
             ->paginate(30);
@@ -149,12 +152,26 @@ final class MediaController
     public function store(Request $request, UploadMedia $upload): RedirectResponse|JsonResponse
     {
         $user = $this->authorize($request, 'upload');
-        $request->validate(['file' => ['required', 'file'], 'folder_id' => ['nullable', 'integer', Rule::exists(MediaFolder::class, 'id')]]);
+        /** @var array{title?: string|null, alt?: string|null} $details */
+        $details = $request->validate([
+            'file' => ['required', 'file'],
+            'folder_id' => ['nullable', 'integer', Rule::exists(MediaFolder::class, 'id')],
+            // Optional, sent with the file: a title other than the file's name, and alternative text.
+            'title' => ['nullable', 'string', 'max:250'],
+            'alt' => ['nullable', 'string', 'max:250'],
+        ]);
         $file = $request->file('file');
         abort_unless($file instanceof UploadedFile, 422);
         $folder = $request->integer('folder_id') ?: null;
+        $title = trim($details['title'] ?? '');
+        $alt = trim($details['alt'] ?? '');
 
-        $media = $upload->handle($file, ['folder_id' => $folder, 'uploaded_by' => self::userId($request)]);
+        $media = $upload->handle($file, [
+            'folder_id' => $folder,
+            'title' => $title === '' ? null : $title,
+            'alt' => $alt === '' ? null : $alt,
+            'uploaded_by' => self::userId($request),
+        ]);
 
         // The media picker uploads with fetch() and wants the new media back.
         if ($request->expectsJson() && ! $request->hasHeader('X-Inertia')) {
@@ -267,17 +284,12 @@ final class MediaController
             'height' => $media->height,
             'folderId' => $media->folder_id,
             'url' => $media->url(),
-            'thumbnail' => $media->isImage() ? $media->url('thumbnail') : null,
+            'thumbnail' => $media->isImage() ? $media->thumbnail() : null,
             'createdAt' => $media->created_at?->toIso8601String(),
             'trashed' => $media->deleted_at !== null,
             // With withCount('usages'): how many places use it.
             'usages' => $media->getAttribute('usages_count'),
         ];
-    }
-
-    private static function escapeLike(string $value): string
-    {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     /**

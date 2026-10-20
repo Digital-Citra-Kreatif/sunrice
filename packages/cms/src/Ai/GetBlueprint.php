@@ -9,12 +9,12 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use Sunrice\Cms\Fields\FieldTypes;
 use Sunrice\Cms\Models\Blueprint;
+use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Fieldset;
 
 #[IsReadOnly]
-#[Description('Without "handle": the blueprints and fieldsets (handle, title) and the field types there are. With one: its fields as stored (handle, type, label, required, translatable, config, fields). "kind": "fieldset" for a fieldset.')]
+#[Description('Without "handle": the blueprints (the fields of collections, taxonomies, global sets, forms and listing pages) or, with "kind": "fieldset", the fieldsets (reusable groups of fields, also blocks). With one: its title and field definitions as saved, to change and send back whole to cms_save_blueprint. cms_field_types lists the field types and their settings.')]
 final class GetBlueprint extends CmsTool
 {
     protected string $name = 'cms_get_blueprint';
@@ -22,29 +22,37 @@ final class GetBlueprint extends CmsTool
     public function handle(Request $request): Response
     {
         if (! $this->can('cms.blueprints.manage')) {
-            return $this->denied('see blueprints');
+            return $this->denied('manage blueprints');
         }
-        $model = $request->get('kind') === 'fieldset' ? Fieldset::class : Blueprint::class;
+        $fieldset = $request->get('kind') === 'fieldset';
+        $class = $fieldset ? Fieldset::class : Blueprint::class;
         $handle = $request->get('handle');
-        if (! is_string($handle) || $handle === '') {
-            return $this->json([
-                'blueprints' => Blueprint::query()->orderBy('title')->get(['handle', 'title'])->toArray(),
-                'fieldsets' => Fieldset::query()->orderBy('title')->get(['handle', 'title'])->toArray(),
-                'field_types' => array_keys(app(FieldTypes::class)->all()),
-            ]);
+        if ((! is_string($handle) || $handle === '') && $fieldset) {
+            return $this->json(['fieldsets' => Fieldset::query()->orderBy('title')->get()
+                ->map(fn (Fieldset $f): array => ['handle' => $f->handle, 'title' => $f->title, 'fields' => count($f->fields)])->all()]);
         }
-        $record = $model::query()->where('handle', $handle)->first();
+        if (! is_string($handle) || $handle === '') {
+            $usedBy = [];
+            foreach (Collection::query()->whereNotNull('blueprint')->orderBy('handle')->get(['handle', 'blueprint']) as $collection) {
+                $usedBy[(string) $collection->blueprint][] = $collection->handle;
+            }
 
-        return $record === null ? Response::error("No such {$this->kind($request)}.") : $this->json(['handle' => $record->handle, 'title' => $record->title, 'fields' => $record->fields]);
-    }
+            return $this->json(['blueprints' => Blueprint::query()->orderBy('title')->get()
+                ->map(fn (Blueprint $b): array => ['handle' => $b->handle, 'title' => $b->title, 'fields' => count($b->fields), 'collections' => $usedBy[$b->handle] ?? []])->all()]);
+        }
+        $model = $class::query()->where('handle', $handle)->first();
+        if ($model === null) {
+            return Response::error('No such '.($fieldset ? 'fieldset' : 'blueprint').'. Leave out "handle" to list them.');
+        }
 
-    private function kind(Request $request): string
-    {
-        return $request->get('kind') === 'fieldset' ? 'fieldset' : 'blueprint';
+        return $this->json(['kind' => $fieldset ? 'fieldset' : 'blueprint', 'handle' => $model->handle, 'title' => $model->title, 'fields' => $model->fields]);
     }
 
     public function schema(JsonSchema $schema): array
     {
-        return ['handle' => $schema->string(), 'kind' => $schema->string()->enum(['blueprint', 'fieldset'])];
+        return [
+            'kind' => $schema->string()->enum(['blueprint', 'fieldset'])->description('Blueprint when left out.'),
+            'handle' => $schema->string(),
+        ];
     }
 }

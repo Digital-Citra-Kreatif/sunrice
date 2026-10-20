@@ -9,37 +9,45 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Sunrice\Cms\Actions\Forms\DeleteSubmission;
+use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\Submission;
 use Sunrice\Cms\Support\Access;
 
-#[Description('Delete form submissions for good, by "ids" (cms_list_submissions lists them), with their files. Ask the user first: it can\'t be undone.')]
+#[Description('Delete form submissions for good, with the files sent with them (spam, or someone asking for their data to be removed): the form\'s handle and the submission ids (cms_list_submissions). Ask the user first.')]
 final class DeleteSubmissions extends CmsTool
 {
     protected string $name = 'cms_delete_submissions';
 
     public function handle(Request $request): Response
     {
-        $ids = $request->get('ids');
-        if (! is_array($ids) || $ids === []) {
-            return Response::error('Give "ids", a list of submission ids.');
+        /** @var array{form: string, ids: list<int>} $args */
+        $args = $request->validate([
+            'form' => ['required', 'string'],
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => ['integer'],
+        ]);
+        $form = Form::query()->where('handle', $args['form'])->first();
+        if ($form === null || ! Access::submissions($this->user(), 'view', $form)) {
+            return Response::error('No such form. cms_list_submissions lists them.');
         }
-        $deleted = 0;
-        $refused = 0;
-        foreach (Submission::query()->with('form')->whereKey(array_filter($ids, is_numeric(...)))->limit(200)->get() as $submission) {
-            if (! Access::submissions($this->user(), 'delete', $submission->form)) {
-                $refused++;
-
-                continue;
-            }
+        if (! Access::submissions($this->user(), 'delete', $form)) {
+            return $this->denied('delete submissions of '.$form->title);
+        }
+        $submissions = $form->submissions()->whereKey($args['ids'])->get();
+        foreach ($submissions as $submission) {
+            $submission->setRelation('form', $form);
             app(DeleteSubmission::class)->handle($submission);
-            $deleted++;
         }
+        $deleted = $submissions->map(fn (Submission $s): int => $s->id)->all();
 
-        return $deleted === 0 && $refused > 0 ? $this->denied('delete these submissions') : $this->json(['deleted' => $deleted, 'not_allowed' => $refused]);
+        return $this->json(['deleted' => $deleted, 'not_found' => array_values(array_diff($args['ids'], $deleted))]);
     }
 
     public function schema(JsonSchema $schema): array
     {
-        return ['ids' => $schema->array()->items($schema->integer())->required()];
+        return [
+            'form' => $schema->string()->required(),
+            'ids' => $schema->array()->items($schema->integer())->required(),
+        ];
     }
 }

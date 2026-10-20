@@ -6,42 +6,38 @@ namespace Sunrice\Cms\Translation;
 
 use Closure;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
+use Sunrice\Cms\Actions\Entries\EntryInput;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\Actions\Terms\SaveTermContent;
-use Sunrice\Cms\Fields\Field;
-use Sunrice\Cms\Fields\Schema;
 use Sunrice\Cms\Models\Entry;
+use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\GlobalSet;
-use Sunrice\Cms\Models\Menu;
+use Sunrice\Cms\Models\MenuItem;
 use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Support\Seo;
 use Throwable;
 
 /**
- * Machine-translates content from one language into another, through the
- * same actions editors use, so it's validated and sanitised like their
- * input:
+ * Machine-translates content from one language into another with a
+ * Translator. Only what isn't translated yet (missing, empty, or still
+ * the source's text) unless `$force`.
  *
- * - entries: into the translation's draft (created when missing); what
- *   the site shows changes only when someone publishes it;
- * - terms, globals and menu labels: saved as they are (they have no drafts).
+ * - Entries: into the translation's draft, through SaveDraft (validated,
+ *   rich text cleaned), never published; a missing translation is added
+ *   first (CreateTranslation). Editors check it, then publish.
+ * - Terms (title, fields and SEO), globals and menu labels: saved as they
+ *   are, through SaveTerm, SaveTermContent and SaveGlobals.
  *
- * Only what isn't translated yet is sent: a value that's empty or still
- * the same as in the source language. With $force everything is.
- *
- * @internal
+ * @api
  */
 final class ContentTranslator
 {
-    /** @var Closure(string): void|null */
-    private ?Closure $report = null;
-
-    /** Strings the last translate() wrote in. */
-    private int $written = 0;
+    private ?Closure $reporter = null;
 
     public function __construct(
         private readonly Translator $translator,
@@ -49,22 +45,28 @@ final class ContentTranslator
         private readonly string $to,
         private readonly bool $force = false,
         private readonly bool $dryRun = false,
-        public readonly TranslationStats $stats = new TranslationStats,
+        private readonly TranslationStats $stats = new TranslationStats,
     ) {}
 
-    /** @param Closure(string): void $report */
-    public function onProgress(Closure $report): self
+    /** @param Closure(string): void $reporter told what happens, a line at a time */
+    public function onProgress(Closure $reporter): self
     {
-        $this->report = $report;
+        $this->reporter = $reporter;
 
         return $this;
     }
 
-    /** @param list<string> $collections handles to limit to (none: all) */
+    public function stats(): TranslationStats
+    {
+        return $this->stats;
+    }
+
+    /** @param list<string> $collections handles to keep to (none: all) */
     public function entries(array $collections = []): void
     {
-        Entry::query()->with(['translations', 'collection'])
-            ->whereHas('collection', fn ($query) => $query->when($collections !== [], fn ($query) => $query->whereIn('handle', $collections)))
+        Entry::query()->whereHas('translations', fn ($q) => $q->where('locale', $this->from))
+            ->whereHas('collection', fn ($q) => $collections === [] ? $q : $q->whereIn('handle', $collections))
+            ->with(['translations', 'collection'])
             ->chunkById(50, function ($entries): void {
                 foreach ($entries as $entry) {
                     $this->entry($entry);
@@ -72,296 +74,225 @@ final class ContentTranslator
             });
     }
 
-    public function entry(Entry $entry): void
+    /** Translate one entry into its translation's draft (added when missing); null when nothing was written. */
+    public function entry(Entry $entry): ?EntryTranslation
     {
         $source = $entry->translation($this->from);
-        if ($source === null) {
-            return;
+        if ($source === null || $entry->trashed()) {
+            return null;
         }
-        // What was published, else the draft of an entry never published.
-        $title = $source->isPublished() && $source->title !== null ? $source->title : $source->draft_title;
-        $data = $source->isPublished() ? $source->data ?? [] : $source->draft_data;
+        $schema = $entry->schema();
         $target = $entry->translation($this->to);
+        $label = $entry->collection->title.' “'.$source->draft_title.'”';
+        $sourceSeo = is_array($source->draft_data[Seo::KEY] ?? null) ? $source->draft_data[Seo::KEY] : [];
         $targetData = $target->draft_data ?? [];
-        $schema = $entry->collection->schema();
+        $targetSeo = is_array($targetData[Seo::KEY] ?? null) ? $targetData[Seo::KEY] : [];
 
-        $items = ['title' => self::item($title, $target?->draft_title)]
-            + $this->fieldItems($schema, $data, $targetData)
-            + $this->seoItems($data, $targetData);
-        $label = $entry->collection->title.' “'.$title.'”';
-        $translated = $this->translate($items, $label);
-        if ($translated === null) {
-            return;
+        [$data, $fieldStrings] = TranslatableStrings::pairs($schema, $targetData, $source->completeData(draft: true));
+        $work = ['title' => $target->draft_title ?? $source->draft_title, 'data' => $data, 'seo' => $targetSeo + $sourceSeo];
+        $strings = ['title' => ['source' => $source->draft_title, 'current' => $target?->draft_title, 'rich' => false]];
+        foreach ($fieldStrings as $path => $string) {
+            $strings["data.{$path}"] = $string;
+        }
+        foreach (['title', 'description'] as $key) {
+            if (is_string($sourceSeo[$key] ?? null) && trim($sourceSeo[$key]) !== '') {
+                $strings["seo.{$key}"] = ['source' => $sourceSeo[$key], 'current' => is_string($targetSeo[$key] ?? null) ? $targetSeo[$key] : null, 'rich' => false];
+            }
         }
 
+        $work = $this->translateInto($work, $strings, $label);
+        if ($work === null) {
+            return null;
+        }
         try {
-            $created = $target === null;
             $target ??= app(CreateTranslation::class)->handle($entry, $this->to);
-            $input = ['data' => $this->fieldValues($translated), 'version' => $target->version];
-            if (isset($translated['title']) && is_string($translated['title'])) {
-                $input['title'] = $translated['title'];
-                // A slug still copied from the source follows the new title.
-                if ($created || $target->draft_slug === $source->draft_slug || $target->draft_slug === $source->slug) {
-                    $input['slug'] = '';
-                }
+            $input = ['title' => $work['title'], 'data' => $work['data'], 'version' => $target->version];
+            if ($work['seo'] !== []) {
+                $input[Seo::KEY] = $work['seo'];
             }
-            if ($seo = $this->seoValues($translated, $target->draft_data)) {
-                $input[Seo::KEY] = $seo;
+            // Still the source's slug: one from the translated title.
+            if ($target->draft_slug === $source->draft_slug && is_string($work['title']) && $work['title'] !== $source->draft_title) {
+                $input['slug'] = self::freeSlug(Str::slug($work['title']), $target);
             }
-            app(SaveDraft::class)->handle($target, $input);
+
+            return app(SaveDraft::class)->handle($target, $input);
         } catch (ValidationException $e) {
-            $this->failed($label, $e->validator->errors()->first());
+            $this->failed($label, implode(' ', $e->validator->errors()->all()));
+
+            return null;
         }
     }
 
     public function terms(): void
     {
-        Term::query()->with(['translations', 'taxonomy'])->whereHas('taxonomy')->chunkById(100, function ($terms): void {
-            foreach ($terms as $term) {
-                $source = $term->translations->firstWhere('locale', $this->from);
-                if ($source === null) {
-                    continue;
-                }
-                $target = $term->translations->firstWhere('locale', $this->to);
-                $targetData = $target->data ?? [];
-                $data = $source->data ?? [];
-                $items = ['title' => self::item($source->title, $target?->title)]
-                    + $this->fieldItems($term->taxonomy->schema(), $data, $targetData)
-                    + $this->seoItems($data, $targetData);
-                $label = $term->taxonomy->title.' “'.$source->title.'”';
-                $translated = $this->translate($items, $label);
-                if ($translated === null) {
-                    continue;
-                }
-
-                try {
-                    if ($target === null || isset($translated['title'])) {
-                        $title = $translated['title'] ?? $source->title;
-                        app(SaveTerm::class)->handle($term->taxonomy, ['title' => $title, 'locale' => $this->to] + ($target !== null ? ['slug' => $target->slug] : []), $term);
+        Term::query()->whereHas('translations', fn ($q) => $q->where('locale', $this->from))->with(['translations', 'taxonomy'])
+            ->chunkById(100, function ($terms): void {
+                foreach ($terms as $term) {
+                    $source = $term->translations->firstWhere('locale', $this->from);
+                    if ($source === null) {
+                        continue;
                     }
-                    $content = ['data' => $this->fieldValues($translated)];
-                    if ($seo = $this->seoValues($translated, $targetData)) {
-                        $content[Seo::KEY] = $seo;
+                    $target = $term->translations->firstWhere('locale', $this->to);
+                    $sourceData = $source->data ?? [];
+                    $sourceSeo = is_array($sourceData[Seo::KEY] ?? null) ? $sourceData[Seo::KEY] : [];
+                    $targetData = $target->data ?? [];
+                    $targetSeo = is_array($targetData[Seo::KEY] ?? null) ? $targetData[Seo::KEY] : [];
+                    [$data, $fieldStrings] = TranslatableStrings::pairs($term->taxonomy->schema(), $targetData, $sourceData);
+                    $strings = ['title' => ['source' => $source->title, 'current' => $target?->title, 'rich' => false]];
+                    foreach ($fieldStrings as $path => $string) {
+                        $strings["data.{$path}"] = $string;
                     }
-                    if ($content['data'] !== [] || isset($content[Seo::KEY])) {
-                        app(SaveTermContent::class)->handle($term->fresh() ?? $term, $content, $this->to);
+                    if (is_string($sourceSeo['description'] ?? null) && trim($sourceSeo['description']) !== '') {
+                        $strings['seo.description'] = ['source' => $sourceSeo['description'], 'current' => is_string($targetSeo['description'] ?? null) ? $targetSeo['description'] : null, 'rich' => false];
                     }
-                } catch (ValidationException $e) {
-                    $this->failed($label, $e->validator->errors()->first());
+                    $label = $term->taxonomy->title.' “'.$source->title.'”';
+                    $work = $this->translateInto(['title' => $target->title ?? $source->title, 'data' => $data, 'seo' => $targetSeo + $sourceSeo], $strings, $label);
+                    if ($work === null) {
+                        continue;
+                    }
+                    try {
+                        if ($target === null || $work['title'] !== $target->title) {
+                            app(SaveTerm::class)->handle($term->taxonomy, ['title' => $work['title'], 'locale' => $this->to], $term);
+                        }
+                        $content = ['data' => $work['data']];
+                        if ($work['seo'] !== []) {
+                            $content[Seo::KEY] = $work['seo'];
+                        }
+                        app(SaveTermContent::class)->handle($term, $content, $this->to);
+                    } catch (ValidationException $e) {
+                        $this->failed($label, implode(' ', $e->validator->errors()->all()));
+                    }
                 }
-            }
-        });
+            });
     }
 
     public function globals(): void
     {
-        GlobalSet::query()->with('values')->get()->each(function (GlobalSet $set): void {
+        foreach (GlobalSet::query()->with('values')->get() as $set) {
             $source = $set->values->firstWhere('locale', $this->from);
             if ($source === null) {
-                return;
+                continue;
+            }
+            $target = $set->values->firstWhere('locale', $this->to);
+            [$data, $fieldStrings] = TranslatableStrings::pairs($set->schema(), $target->data ?? [], $source->data);
+            $strings = [];
+            foreach ($fieldStrings as $path => $string) {
+                $strings["data.{$path}"] = $string;
             }
             $label = 'Globals “'.$set->title.'”';
-            $items = $this->fieldItems($set->schema(), $source->data, $set->values->firstWhere('locale', $this->to)->data ?? []);
-            $translated = $this->translate($items, $label);
-            if ($translated === null) {
-                return;
+            $work = $this->translateInto(['data' => $data], $strings, $label);
+            if ($work === null || ! is_array($work['data'])) {
+                continue;
             }
-
             try {
-                app(SaveGlobals::class)->handle($set, $this->fieldValues($translated), $this->to);
+                app(SaveGlobals::class)->handle($set, $work['data'], $this->to);
             } catch (ValidationException $e) {
-                $this->failed($label, $e->validator->errors()->first());
+                $this->failed($label, implode(' ', $e->validator->errors()->all()));
             }
-        });
+        }
     }
 
     public function menus(): void
     {
-        Menu::query()->with('items')->get()->each(function (Menu $menu): void {
-            $labels = [];
-            foreach ($menu->items as $item) {
-                $label = $item->labels[$this->from] ?? null;
-                if (is_string($label) && trim($label) !== '') {
-                    $labels["i{$item->id}"] = self::item($label, $item->labels[$this->to] ?? null);
+        foreach (MenuItem::query()->get()->groupBy('menu_id') as $items) {
+            $strings = [];
+            $work = [];
+            foreach ($items as $item) {
+                $label = $item->labels[$this->from] ?? '';
+                if ($label !== '') {
+                    $strings["i{$item->id}"] = ['source' => $label, 'current' => $item->labels[$this->to] ?? null, 'rich' => false];
+                    $work["i{$item->id}"] = $item->labels[$this->to] ?? $label;
                 }
             }
-            $translated = $this->translate($labels, 'Menu “'.$menu->title.'”');
-            foreach ($menu->items as $item) {
-                $label = $translated["i{$item->id}"] ?? null;
-                if (is_string($label) && $label !== '') {
-                    $item->forceFill(['labels' => [...$item->labels, $this->to => $label]])->save();
+            $work = $this->translateInto($work, $strings, 'Menu labels');
+            if ($work === null) {
+                continue;
+            }
+            foreach ($items as $item) {
+                $label = $work["i{$item->id}"] ?? null;
+                if (is_string($label) && $label !== '' && $label !== ($item->labels[$this->to] ?? null)) {
+                    $item->labels = [...$item->labels, $this->to => $label];
+                    $item->save();
                 }
             }
-        });
-    }
-
-    /**
-     * A plain value to translate as a whole.
-     *
-     * @return array{source: mixed, target: mixed, strings: array<string, array{text: string, rich: bool}>}
-     */
-    private static function item(string $source, ?string $target): array
-    {
-        return ['source' => $source, 'target' => $target, 'strings' => trim($source) === '' ? [] : ['' => ['text' => $source, 'rich' => false]]];
-    }
-
-    /**
-     * The fields that differ per language, keyed "data.<handle>".
-     *
-     * @param  array<mixed>  $data
-     * @param  array<mixed>  $target
-     * @return array<string, array{source: mixed, target: mixed, strings: array<string, array{text: string, rich: bool}>}>
-     */
-    private function fieldItems(Schema $schema, array $data, array $target): array
-    {
-        $items = [];
-        foreach (array_filter($schema->fields(), fn (Field $field): bool => $schema->isTranslatable($field)) as $field) {
-            $value = $data[$field->handle] ?? null;
-            $items["data.{$field->handle}"] = ['source' => $value, 'target' => $target[$field->handle] ?? null, 'strings' => TranslatableText::of($field, $value)];
         }
-
-        return $items;
     }
 
     /**
-     * The SEO title and description, keyed "seo.<key>".
+     * Translate the strings not translated yet (all with $force) and return
+     * $work with them written in; null when nothing was.
      *
-     * @param  array<mixed>  $data
-     * @param  array<mixed>  $target
-     * @return array<string, array{source: mixed, target: mixed, strings: array<string, array{text: string, rich: bool}>}>
+     * @param  array<array-key, mixed>  $work
+     * @param  array<string, array{source: string, current: string|null, rich: bool}>  $strings
+     * @return array<array-key, mixed>|null
      */
-    private function seoItems(array $data, array $target): array
-    {
-        $items = [];
-        foreach (['title', 'description'] as $key) {
-            $value = Arr::get($data, Seo::KEY.'.'.$key);
-            $theirs = Arr::get($target, Seo::KEY.'.'.$key);
-            if (is_string($value)) {
-                $items["seo.{$key}"] = self::item($value, is_string($theirs) ? $theirs : null);
-            }
-        }
-
-        return $items;
-    }
-
-    /**
-     * @param  array<string, mixed>  $translated
-     * @return array<string, mixed>
-     */
-    private function fieldValues(array $translated): array
-    {
-        $values = [];
-        foreach ($translated as $key => $value) {
-            if (str_starts_with($key, 'data.')) {
-                $values[substr($key, 5)] = $value;
-            }
-        }
-
-        return $values;
-    }
-
-    /**
-     * The target's SEO with the translated title and description, or null when neither was.
-     *
-     * @param  array<string, mixed>  $translated
-     * @param  array<mixed>  $target
-     * @return array<mixed>|null
-     */
-    private function seoValues(array $translated, array $target): ?array
-    {
-        if (! isset($translated['seo.title']) && ! isset($translated['seo.description'])) {
-            return null;
-        }
-        $seo = is_array($target[Seo::KEY] ?? null) ? $target[Seo::KEY] : [];
-        foreach (['title', 'description'] as $key) {
-            if (isset($translated["seo.{$key}"])) {
-                $seo[$key] = $translated["seo.{$key}"];
-            }
-        }
-
-        return $seo;
-    }
-
-    /**
-     * Sends the strings of the items not translated yet and returns those
-     * items' values with the translations written in (null: nothing to save).
-     *
-     * @param  array<string, array{source: mixed, target: mixed, strings: array<string, array{text: string, rich: bool}>}>  $items
-     * @return array<string, mixed>|null
-     */
-    private function translate(array $items, string $label): ?array
+    private function translateInto(array $work, array $strings, string $label): ?array
     {
         $pending = [];
-        foreach ($items as $key => $item) {
-            if ($item['strings'] === []) {
-                continue;
-            }
-            $target = $item['target'];
-            if (! $this->force && $target !== null && $target !== '' && $target != $item['source']) {
-                $this->stats->skipped += count($item['strings']);
+        foreach ($strings as $path => $string) {
+            $current = $string['current'];
+            if (! $this->force && $current !== null && trim($current) !== '' && $current !== $string['source']) {
+                $this->stats->skipped++;
 
                 continue;
             }
-            foreach ($item['strings'] as $path => $string) {
-                $pending["{$key}|{$path}"] = $string['text'];
-            }
+            $pending[$path] = $string['source'];
         }
         if ($pending === []) {
             return null;
         }
         if ($this->dryRun) {
             $this->stats->pending += count($pending);
-            $this->say("{$label}: ".count($pending).' to translate');
+            $this->report("{$label}: ".count($pending).' to translate');
 
             return null;
         }
 
         try {
-            $answer = $this->translator->translate($pending, $this->from, $this->to, $label);
+            $translated = $this->translator->translate($pending, $this->from, $this->to, $label);
         } catch (Throwable $e) {
             $this->stats->failed += count($pending);
-            $this->say("{$label}: failed ({$e->getMessage()})");
+            $this->failed($label, $e->getMessage());
 
             return null;
         }
-
-        $values = [];
         $written = 0;
-        foreach ($pending as $id => $text) {
-            [$key, $path] = explode('|', $id, 2);
-            if (! isset($answer[$id])) {
+        foreach (array_keys($pending) as $path) {
+            if (! isset($translated[$path])) {
                 $this->stats->failed++;
 
                 continue;
             }
-            $value = $values[$key] ?? $items[$key]['source'];
-            if ($path === '') {
-                $value = $answer[$id];
-            } elseif (is_array($value)) {
-                Arr::set($value, $path, $answer[$id]);
-            }
-            $values[$key] = $value;
+            Arr::set($work, $path, $translated[$path]);
             $written++;
         }
         $this->stats->translated += $written;
-        $this->written = $written;
-        $this->say("{$label}: {$written} translated");
+        $this->report("{$label}: {$written} translated");
 
-        return $values === [] ? null : $values;
+        return $written > 0 ? $work : null;
     }
 
-    /** The translations of the last translate() couldn't be saved. */
-    private function failed(string $label, ?string $reason): void
+    private static function freeSlug(string $slug, EntryTranslation $target): string
     {
-        $this->stats->translated -= $this->written;
-        $this->stats->failed += $this->written;
-        $this->say("{$label}: not saved ({$reason})");
+        $slug = $slug !== '' ? $slug : $target->draft_slug;
+        $candidate = $slug;
+        for ($i = 2; EntryInput::taken($candidate, $target->collection_id, $target->locale, $target->id); $i++) {
+            $candidate = "{$slug}-{$i}";
+        }
+
+        return $candidate;
     }
 
-    private function say(string $line): void
+    private function failed(string $label, string $message): void
     {
-        if ($this->report !== null) {
-            ($this->report)($line);
+        $this->stats->errors[] = "{$label}: {$message}";
+        $this->report("{$label}: failed ({$message})");
+    }
+
+    private function report(string $line): void
+    {
+        if ($this->reporter !== null) {
+            ($this->reporter)($line);
         }
     }
 }

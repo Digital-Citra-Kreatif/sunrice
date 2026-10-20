@@ -2,8 +2,10 @@ import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import { Cell } from '@/components/resources/cell';
 import { useConfirm } from '@/components/resources/confirm';
+import { DateRangeFilter } from '@/components/resources/date-range-filter';
 import type { ActionInfo, ColumnInfo, FilterInfo, ResourceInfo, Row } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -13,8 +15,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { toggleColumn, type TablePreferences } from '@/lib/table-preferences';
+import { useTablePreferences } from '@/lib/use-table-preferences';
 
 interface Props {
     resource: ResourceInfo;
@@ -36,26 +41,23 @@ interface Props {
         nextUrl: string | null;
     };
     perPageOptions: number[];
-    /** The columns this person hid (kept for them). */
-    hidden: string[];
+    /** The user's saved columns and page size for this table. */
+    preferences: TablePreferences & { key: string };
 }
 
 const ALL = '__all';
 
-export default function ResourceIndex({ resource, columns: allColumns, filters, rowActions, bulkActions, can, query, rows, perPageOptions, hidden: savedHidden }: Props) {
+export default function ResourceIndex({ resource, columns: allColumns, filters, rowActions, bulkActions, can, query, rows, perPageOptions, preferences: initialPreferences }: Props) {
     useBreadcrumbs([{ label: resource.label }]);
     const [confirm, confirmDialog] = useConfirm();
     const [search, setSearch] = React.useState(query.search);
     const [selected, setSelected] = React.useState<(string | number)[]>([]);
     const base = adminUrl(resource.key);
-    const [hidden, setHidden] = React.useState(savedHidden);
-    const columns = allColumns.filter((column) => !hidden.includes(column.name));
-
-    const toggleColumn = (name: string, show: boolean) => {
-        const next = show ? hidden.filter((other) => other !== name) : [...hidden, name];
-        setHidden(next);
-        router.put(`${base}/columns`, { hidden: next }, { preserveState: true, preserveScroll: true, only: ['hidden'] });
-    };
+    const loading = useListLoading(base);
+    const { preferences, setColumns, setPerPage } = useTablePreferences(initialPreferences.key, initialPreferences);
+    // The first column (the record's link) is always shown.
+    const visible = preferences.columns ?? allColumns.map((column) => column.name);
+    const columns = allColumns.filter((column, index) => index === 0 || visible.includes(column.name));
 
     React.useEffect(() => setSelected([]), [rows.data]);
 
@@ -83,7 +85,14 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
     };
 
     const runRowAction = (row: Row, action: ActionInfo) =>
-        confirm(action.confirm, () => router.post(`${base}/${row.id}/actions/${action.key}`, {}, { preserveScroll: true }), action.destructive);
+        confirm(action.confirm, (values) => action.fields.length === 0
+            ? router.post(`${base}/${row.id}/actions/${action.key}`, {}, { preserveScroll: true })
+            // With fields, the dialog stays open until the action is accepted.
+            : new Promise<boolean>((resolve) => router.post(`${base}/${row.id}/actions/${action.key}`, values, {
+                preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
+            })), action.destructive, action.fields);
+    // A row action keyed "delete" replaces the built-in Delete in the row's menu.
+    const customDelete = rowActions.some((action) => action.key === 'delete');
     const deleteRow = (row: Row) =>
         confirm(`Delete ${row.title}? This can't be undone.`, () => router.delete(`${base}/${row.id}`, { preserveScroll: true }), true);
     const runBulk = (action: ActionInfo) =>
@@ -105,28 +114,37 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
             <Head title={resource.label} />
             {confirmDialog}
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-2xl font-medium tracking-tight">{resource.label}</h1>
-                <div className="flex items-center gap-2">
-                    {can.export && (
-                        <Button variant="outline" asChild>
-                            <a href={exportUrl()}><Download /> Export</a>
-                        </Button>
-                    )}
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={`${base}/create`}><Plus /> New {resource.singularLabel.toLowerCase()}</Link>
-                        </Button>
-                    )}
-                </div>
-            </div>
+            <PageHeader
+                title={resource.label}
+                actions={
+                    <>
+                        {can.export && (
+                            <Button variant="outline" asChild>
+                                <a href={exportUrl()}><Download /> Export</a>
+                            </Button>
+                        )}
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={`${base}/create`}><Plus /> New {resource.singularLabel.toLowerCase()}</Link>
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
             <div className="flex flex-wrap items-center gap-2">
                 <div className="relative w-full max-w-xs">
                     <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input className="pl-9" placeholder="Search…" aria-label="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
-                {filters.map((filter) => (
+                {filters.map((filter) => filter.type === 'date_range' ? (
+                    <DateRangeFilter key={filter.name} filter={filter} value={query.filters[filter.name]} onChange={(value) => {
+                        const next = { ...query.filters };
+                        if (value === '') delete next[filter.name];
+                        else next[filter.name] = value;
+                        visit({ filters: next });
+                    }} />
+                ) : (
                     <Select
                         key={filter.name}
                         value={query.filters[filter.name] ?? ALL}
@@ -147,15 +165,14 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                 {allColumns.length > 1 && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline"><Columns3 /> Columns</Button>
+                            <Button variant="outline" className="ml-auto"><Columns3 /> Columns</Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
+                        <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Show columns</DropdownMenuLabel>
-                            {allColumns.map((column) => (
-                                <DropdownMenuCheckboxItem key={column.name} checked={!hidden.includes(column.name)}
-                                    disabled={!hidden.includes(column.name) && columns.length === 1}
+                            {allColumns.slice(1).map((column) => (
+                                <DropdownMenuCheckboxItem key={column.name} checked={visible.includes(column.name)}
                                     onSelect={(event) => event.preventDefault()}
-                                    onCheckedChange={(checked) => toggleColumn(column.name, checked === true)}>
+                                    onCheckedChange={() => void setColumns(toggleColumn(visible, column.name, allColumns.map((c) => c.name)))}>
                                     {column.label}
                                 </DropdownMenuCheckboxItem>
                             ))}
@@ -163,7 +180,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                     </DropdownMenu>
                 )}
                 {selected.length > 0 && bulkActions.length > 0 && (
-                    <div className="ml-auto flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">{selected.length} selected</span>
                         {bulkActions.map((action) => (
                             <Button key={action.key} variant={action.destructive ? 'destructive' : 'outline'} onClick={() => runBulk(action)}>{action.label}</Button>
@@ -199,8 +216,15 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {rows.data.map((row) => (
-                            <TableRow key={row.id}>
+                        {loading && Array.from({ length: Math.max(rows.data.length, 3) }, (_, i) => (
+                            <TableRow key={`skeleton-${i}`} className="sunrice-row-in hover:bg-transparent" style={{ '--i': i } as React.CSSProperties} aria-hidden="true">
+                                {bulkActions.length > 0 && <TableCell><Skeleton className="size-4" /></TableCell>}
+                                {columns.map((column) => <TableCell key={column.name}><Skeleton className="h-4 w-[60%] max-w-48" /></TableCell>)}
+                                {hasRowMenu && <TableCell />}
+                            </TableRow>
+                        ))}
+                        {!loading && rows.data.map((row, i) => (
+                            <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties} data-state={selected.includes(row.id) ? 'selected' : undefined}>
                                 {bulkActions.length > 0 && (
                                     <TableCell>
                                         <Checkbox aria-label={`Select ${row.title}`} checked={selected.includes(row.id)}
@@ -227,12 +251,16 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     {row.can.update && <DropdownMenuItem asChild><Link href={`${base}/${row.id}/edit`}>Edit</Link></DropdownMenuItem>}
-                                                    {rowActions.filter((action) => row.actions.includes(action.key)).map((action) => (
+                                                    {rowActions.filter((action) => row.actions.includes(action.key)).map((action) => action.url ? (
+                                                        <DropdownMenuItem key={action.key} asChild>
+                                                            <a href={row.urls[action.key]} {...(action.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{action.label}</a>
+                                                        </DropdownMenuItem>
+                                                    ) : (
                                                         <DropdownMenuItem key={action.key} variant={action.destructive ? 'destructive' : 'default'} onSelect={() => runRowAction(row, action)}>
                                                             {action.label}
                                                         </DropdownMenuItem>
                                                     ))}
-                                                    {row.can.delete && (
+                                                    {row.can.delete && !customDelete && (
                                                         <>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem variant="destructive" onSelect={() => deleteRow(row)}>Delete</DropdownMenuItem>
@@ -245,7 +273,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                 )}
                             </TableRow>
                         ))}
-                        {rows.data.length === 0 && (
+                        {!loading && rows.data.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={columns.length + 2} className="h-24 text-center text-muted-foreground">
                                     {query.search || Object.keys(query.filters).length ? 'Nothing matches.' : `No ${resource.label.toLowerCase()} yet.`}
@@ -259,8 +287,8 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                     <div className="flex items-center gap-4">
                         <span>{rows.total === 0 ? 'No rows' : `${rows.from}–${rows.to} of ${rows.total}`}</span>
                         {rows.total > perPageOptions[0]! && (
-                            <Select value={String(rows.perPage)} onValueChange={(value) => visit({ per_page: Number(value) })}>
-                                <SelectTrigger className="h-8 w-28" aria-label="Rows per page"><SelectValue /></SelectTrigger>
+                            <Select value={String(rows.perPage)} onValueChange={(value) => { void setPerPage(Number(value)); visit({ per_page: Number(value) }); }}>
+                                <SelectTrigger className="h-8 w-auto" aria-label="Rows per page"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {perPageOptions.map((option) => <SelectItem key={option} value={String(option)}>{option} per page</SelectItem>)}
                                 </SelectContent>
@@ -278,6 +306,31 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
             </Card>
         </div>
     );
+}
+
+/**
+ * Whether a visit to this list is in flight (search, filters, sorting, paging),
+ * after a short grace period so a quick answer never flashes placeholders.
+ */
+function useListLoading(base: string): boolean {
+    const [loading, setLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        let timer: number | undefined;
+        const offStart = router.on('start', (event) => {
+            const visit = event.detail.visit;
+            if (visit.method !== 'get' || !visit.url.href.startsWith(base)) return;
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => setLoading(true), 150);
+        });
+        const offFinish = router.on('finish', () => {
+            window.clearTimeout(timer);
+            setLoading(false);
+        });
+        return () => { window.clearTimeout(timer); offStart(); offFinish(); };
+    }, [base]);
+
+    return loading;
 }
 
 function PageLink({ url, label, children }: { url: string | null; label: string; children: React.ReactNode }) {

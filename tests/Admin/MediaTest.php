@@ -11,6 +11,7 @@ use Sunrice\Admin\Actions\Media\ReplaceMedia;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Media\Jobs\GenerateImageSizes;
 use Sunrice\Admin\Media\Media;
+use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\SafeSvg;
 
 use function Pest\Laravel\artisan;
@@ -165,10 +166,48 @@ it('makes sizes on the queue when asked, and again from the console', function (
     expect(Storage::disk('public')->allFiles())->toEqualCanonicalizing($media->fresh()->files());
 });
 
+it('makes sizes on the queue by default, unless jobs would run in the request anyway', function () {
+    expect(config('sunrice-admin.media.queue'))->toBeNull()->and(config('queue.default'))->toBe('sync')->and(MediaConfig::queue())->toBeFalse();
+    $now = upload(UploadedFile::fake()->image('now.jpg', 900, 600));
+    expect(array_keys($now->sizes))->toEqualCanonicalizing(['thumbnail', 'medium', 'large']); // MySQL's JSON keeps keys in an order of its own
+
+    config(['queue.default' => 'redis']);
+    expect(MediaConfig::queue())->toBeTrue();
+    Queue::fake();
+    $later = upload(UploadedFile::fake()->image('later.jpg', 900, 600));
+    expect($later->sizes)->toBe([])->and($later->url('thumbnail'))->toBe($later->url()); // the original, until the job ran
+    Queue::assertPushed(GenerateImageSizes::class, fn (GenerateImageSizes $job) => $job->mediaId === $later->id);
+
+    config(['sunrice-admin.media.queue' => false]);
+    expect(MediaConfig::queue())->toBeFalse();
+    config(['sunrice-admin.media.queue' => null, 'queue.connections.redis.driver' => 'null']);
+    expect(MediaConfig::queue())->toBeFalse();
+});
+
 it('keeps only the original of images it can\'t read or that are too large', function () {
     $broken = upload(UploadedFile::fake()->createWithContent('broken.jpg', 'not really a jpeg'));
     expect($broken->sizes)->toBe([]);
 
     config(['sunrice-admin.media.max_pixels' => 1000]);
     expect(upload(UploadedFile::fake()->image('big.png', 100, 100))->sizes)->toBe([]);
+});
+
+it('gives a thumbnail and a srcset from the sizes an image has', function () {
+    $media = upload(UploadedFile::fake()->image('wide.jpg', 2400, 1200));
+    expect($media->sizes)->toHaveKeys(['thumbnail', 'medium', 'large'])
+        ->and($media->thumbnail())->toBe($media->url('thumbnail'))
+        ->and($media->srcset())->toBe($media->url('medium').' 800w, '.$media->url('large').' 1600w, '.$media->url().' 2400w')
+        ->and($media->srcset('thumbnail', 'medium'))->toBe($media->url('thumbnail').' 300w, '.$media->url('medium').' 800w, '.$media->url().' 2400w');
+
+    // A small image: sizes as wide as the original are left out.
+    $small = upload(UploadedFile::fake()->image('small.jpg', 640, 480));
+    expect($small->srcset())->toBe($small->url().' 640w');
+
+    // Without a thumbnail size, the smallest size; without sizes, the original.
+    $small->forceFill(['sizes' => ['large' => $small->sizes['large'], 'medium' => $small->sizes['medium']]]);
+    config(['sunrice-admin.media.image_sizes' => ['medium' => [400, null, 'fit'], 'large' => [1600, null, 'fit']]]);
+    expect($small->thumbnail())->toBe($small->url('medium'));
+    $small->forceFill(['sizes' => []]);
+    expect($small->thumbnail())->toBe($small->url())
+        ->and(upload(UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf'))->srcset())->toBe('');
 });

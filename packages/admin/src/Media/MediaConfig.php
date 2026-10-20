@@ -52,6 +52,27 @@ final class MediaConfig
         return $php > 0 ? min($configured, $php) : $configured;
     }
 
+    /**
+     * Whether the media disk is served through a link from config
+     * `filesystems.links` (php artisan storage:link) that doesn't exist:
+     * its files' URLs then lead nowhere. One file check.
+     */
+    public static function storageLinkMissing(): bool
+    {
+        $root = config('filesystems.disks.'.self::disk().'.root');
+        $links = config('filesystems.links');
+        if (config('filesystems.disks.'.self::disk().'.driver') !== 'local' || ! is_string($root) || ! is_array($links)) {
+            return false;
+        }
+        foreach ($links as $link => $target) {
+            if (is_string($link) && is_string($target) && rtrim($target, '/\\') === rtrim($root, '/\\')) {
+                return ! file_exists($link);
+            }
+        }
+
+        return false;
+    }
+
     /** @return list<string> */
     public static function allowedExtensions(): array
     {
@@ -82,9 +103,17 @@ final class MediaConfig
         return $result;
     }
 
+    /** Make image sizes on the queue: as `media.queue` says, or (null) whenever jobs don't run in the request anyway. */
     public static function queue(): bool
     {
-        return config('sunrice-admin.media.queue') === true;
+        $queue = config('sunrice-admin.media.queue');
+        if (is_bool($queue)) {
+            return $queue;
+        }
+        $connection = config('queue.default');
+        $driver = is_string($connection) ? config("queue.connections.{$connection}.driver") : null;
+
+        return is_string($driver) && ! in_array($driver, ['sync', 'null'], true);
     }
 
     public static function maxPixels(): int

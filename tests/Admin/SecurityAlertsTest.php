@@ -9,20 +9,27 @@ use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
+use Sunrice\Admin\Security\SecuritySettings;
+use Sunrice\Tests\Admin\Fixtures\TestPlugin;
 use Workbench\App\Models\User;
 
 use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 use function Pest\Laravel\post;
 use function Pest\Laravel\put;
 
 beforeEach(function () {
     Mail::fake();
     Storage::fake('public');
-    usePanel(fn (Panel $panel) => $panel->brand('Acme'));
+    usePanel(fn (Panel $panel) => $panel->brand('Acme')->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p
+        ->permissions(Permission::make('shop.payouts.manage', 'Manage payouts', 'Shop'), Permission::make('shop.orders.view', 'View orders', 'Shop'))
+        ->privilegedPermissions('shop.payouts.*'))));
     app(SyncPermissions::class)->handle();
     config(['sunrice-admin.security.alerts.emails' => ['security@example.com']]);
     $this->admin = User::query()->create(['name' => 'Admin', 'email' => 'admin@example.com', 'password' => 'secret-password'])->assignRole('super-admin');
@@ -30,25 +37,26 @@ beforeEach(function () {
     $this->rina = User::query()->create(['name' => 'Rina', 'email' => 'rina@example.com', 'password' => 'secret-password'])->assignRole('member');
 });
 
-/** The headlines of the alerts sent, in order. */
+/** The headlines of the alerts queued, in order. */
 function alertsSent(): array
 {
-    return Mail::sent(SecurityAlert::class)->map(fn (SecurityAlert $mail) => $mail->headline)->unique()->values()->all();
+    return Mail::queued(SecurityAlert::class)->map(fn (SecurityAlert $mail) => $mail->headline)->unique()->values()->all();
 }
 
-it('emails super admins and the listed addresses when an account is locked, once per cooldown', function () {
+it('queues a mail to super admins and the listed addresses when an account is locked, once per cooldown', function () {
     config(['sunrice-admin.auth.throttle' => ['attempts' => 50, 'per_ip' => 50, 'per_account' => 2, 'account_lock_seconds' => 900]]);
     foreach (range(1, 4) as $i) {
         post('/admin/login', ['email' => 'rina@example.com', 'password' => 'wrong']);
     }
 
-    expect(alertsSent())->toBe(['An account was locked after wrong passwords', 'Your account was locked']);
-    Mail::assertSent(SecurityAlert::class, 3); // two alerts, and the owner's notice
-    Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->hasTo('admin@example.com'));
-    Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->hasTo('security@example.com'));
+    expect(alertsSent())->toBe(['An account was locked after wrong passwords']);
+    Mail::assertNothingSent();
+    Mail::assertQueued(SecurityAlert::class, 2);
+    Mail::assertQueued(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->hasTo('admin@example.com'));
+    Mail::assertQueued(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->hasTo('security@example.com'));
     expect(Activity::query()->where('action', 'alert sent')->sole()->properties['note'])->toBe('account-locked to 2 people');
 
-    $mail = Mail::sent(SecurityAlert::class)->first();
+    $mail = Mail::queued(SecurityAlert::class)->first();
     expect($mail->envelope()->subject)->toBe('[Acme] Security: An account was locked after wrong passwords')
         ->and($mail->render())->toContain('Rina')->toContain('What to do:')->toContain('/admin/activity?source=security');
 });
@@ -82,21 +90,45 @@ it('alerts when a powerful account signs in from a new address, or anyone after 
     expect(alertsSent())->toContain('An account signed in after a long time');
 });
 
-it('alerts when someone gains power over users or roles, not for other roles', function () {
-    Role::findOrCreate('editor', 'web');
+it('alerts when someone gains a privileged permission, reading what was added from the event', function () {
+    // Role names that would break a free-text note: the lists are structured.
+    $tricky = Role::findOrCreate('editors; writers, too', 'web');
     actingAs($this->admin);
-    put("/admin/users/{$this->rina->id}", ['name' => 'Rina', 'email' => 'rina@example.com', 'roles' => ['member', 'editor']]);
-    expect(alertsSent())->toBe([]);
+    put("/admin/users/{$this->rina->id}", ['name' => 'Rina', 'email' => 'rina@example.com', 'roles' => ['member', $tricky->name]])->assertSessionHasNoErrors();
+    expect(alertsSent())->toBe([])
+        ->and(Activity::query()->where('action', 'roles changed')->sole()->properties)->toMatchArray(['added' => [$tricky->name], 'removed' => [], 'note' => "added: {$tricky->name}"]);
 
     put("/admin/users/{$this->rina->id}", ['name' => 'Rina', 'email' => 'rina@example.com', 'roles' => ['member', 'super-admin']]);
-    expect(alertsSent())->toBe(['Someone was given power over users or roles']);
+    expect(alertsSent())->toBe(['Someone was given privileged access']);
+    expect(Activity::query()->where('action', 'roles changed')->latest('id')->first()->properties)->toMatchArray(['added' => ['super-admin'], 'removed' => [$tricky->name]]);
 
     $member = Role::findByName('member', 'web');
     put("/admin/roles/{$member->id}", ['name' => 'member', 'permissions' => [Panel::ACCESS, 'sunrice.roles.update']]);
-    expect(alertsSent())->toContain('A role was given power over users or roles');
+    expect(alertsSent())->toContain('A role was given privileged access')
+        ->and(Activity::query()->where('action', 'permissions changed')->sole()->properties)->toMatchArray(['added' => ['sunrice.roles.update'], 'removed' => []]);
 });
 
-it('alerts on dangerous uploads, and bursts of exports or deletes', function () {
+it('treats settings, AI access, the activity log and what plugins register as privileged', function () {
+    $panel = app(Panel::class);
+    expect($panel->getPrivilegedPermissions())->toBe(['sunrice.users.*', 'sunrice.roles.*', 'sunrice.settings.*', 'sunrice.ai.*', 'sunrice.activity.*', 'shop.payouts.*'])
+        ->and($panel->isPrivilegedPermission('sunrice.settings.security'))->toBeTrue()
+        ->and($panel->isPrivilegedPermission('shop.payouts.manage'))->toBeTrue()
+        ->and($panel->isPrivilegedPermission('shop.orders.view'))->toBeFalse()
+        ->and($panel->isPrivilegedPermission('sunrice.media.upload'))->toBeFalse();
+
+    actingAs($this->admin);
+    $member = Role::findByName('member', 'web');
+    put("/admin/roles/{$member->id}", ['name' => 'member', 'permissions' => [Panel::ACCESS, 'shop.orders.view']]);
+    expect(alertsSent())->toBe([]);
+    put("/admin/roles/{$member->id}", ['name' => 'member', 'permissions' => [Panel::ACCESS, 'shop.orders.view', 'sunrice.settings.security']]);
+    expect(alertsSent())->toBe(['A role was given privileged access']);
+
+    // A plugin's names start with its id.
+    expect(fn () => Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->privilegedPermissions('sunrice.users.create')))->boot())
+        ->toThrow(PanelMisconfigured::class, 'start with its id');
+});
+
+it('alerts on dangerous uploads, and bursts of exports, deletes and unpublishes', function () {
     config(['sunrice-admin.security.alerts.exports' => 2, 'sunrice-admin.security.alerts.mass_deletes' => 3]);
     actingAs($this->admin);
     post('/admin/media', ['file' => UploadedFile::fake()->createWithContent('shell.php', '<?php')]);
@@ -105,18 +137,40 @@ it('alerts on dangerous uploads, and bursts of exports or deletes', function () 
     $security->record('exported', $this->admin, null, ['note' => 'Users (CSV)']);
     $security->record('exported', $this->admin, null, ['note' => 'Users (CSV)']);
 
-    foreach (range(1, 3) as $i) {
-        app(ActivityLog::class)->record('deleted', 'products', $i, "Product {$i}");
-    }
+    app(ActivityLog::class)->record('deleted', 'products', 1, 'Product 1');
+    app(ActivityLog::class)->record('trashed', 'products', 2, 'Product 2');
+    expect(alertsSent())->toBe(['A dangerous upload was blocked', 'Many exports in a short time']);
+    app(ActivityLog::class)->record('unpublished', 'entry', 3, 'Post 3');
 
     expect(alertsSent())->toBe(['A dangerous upload was blocked', 'Many exports in a short time', 'Many things deleted in a short time']);
+});
+
+it('records pages refused to a signed-in person, and alerts when it keeps happening', function () {
+    config(['sunrice-admin.security.alerts.forbidden' => 3]);
+    actingAs($this->rina);
+    foreach (range(1, 5) as $i) {
+        get('/admin/users')->assertForbidden();
+    }
+
+    // At most the limit is recorded per 10 minutes, and reaching it alerts once.
+    $refused = Activity::query()->where('action', 'page refused')->get();
+    expect($refused)->toHaveCount(3)
+        ->and($refused->first()->subject_id)->toBe((string) $this->rina->id)
+        ->and($refused->first()->properties['note'])->toBe('/admin/users')
+        ->and(alertsSent())->toBe(['Someone keeps opening pages they may not see']);
+    Mail::assertQueued(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline !== 'Someone keeps opening pages they may not see' || str_contains($mail->what, 'Rina was refused 3 admin pages'));
+
+    // Guests aren't recorded: they're sent to the login page anyway.
+    auth()->logout();
+    get('/admin/users')->assertRedirect();
+    expect(Activity::query()->where('action', 'page refused')->count())->toBe(3);
 });
 
 it('sends nothing when alerts are off, and includes users with the listed roles', function () {
     $team = User::query()->create(['name' => 'Ops', 'email' => 'ops@example.com', 'password' => 'x'])->assignRole(Role::findOrCreate('security-team', 'web'));
     config(['sunrice-admin.security.alerts.roles' => ['security-team']]);
     app(SecurityLog::class)->record('upload blocked', $this->rina, null, ['note' => 'x.php']);
-    Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->hasTo($team->email));
+    Mail::assertQueued(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->hasTo($team->email));
 
     config(['sunrice-admin.security.alerts.enabled' => false]);
     app(SecurityLog::class)->record('account locked', $this->admin);
@@ -132,5 +186,20 @@ it('raises a plugin\'s own alert, once per rule and key in the cooldown, and non
     $alerts->raise('shop-other', '1', 'Not sent', 'Off.', 'Off.');
 
     expect(alertsSent())->toBe(['The payout account was changed', 'Another shop\'s payout account was changed']);
-    expect(Mail::sent(SecurityAlert::class)->first()->render())->toContain('Ana changed where payouts go.')->toContain('Change it back');
+    expect(Mail::queued(SecurityAlert::class)->first()->render())->toContain('Ana changed where payouts go.')->toContain('Change it back');
+});
+
+it('sends alerts to the roles and addresses chosen in Settings → Security', function () {
+    Role::findOrCreate('ops', 'web');
+    User::query()->create(['name' => 'Ops', 'email' => 'ops@example.com', 'password' => 'secret-password'])->assignRole('ops');
+    actingAs($this->admin);
+    put('/admin/settings/security', ['twoFactor' => false, 'alertRoles' => ['ops'], 'alertEmails' => "night@example.com\nday@example.com"])->assertSessionHasNoErrors();
+    put('/admin/settings/security', ['twoFactor' => false, 'alertRoles' => [], 'alertEmails' => 'not an address'])->assertSessionHasErrors('alertEmails');
+    expect(app(SecuritySettings::class)->alertRoles)->toBe(['ops']);
+
+    config(['sunrice-admin.security.alerts.mass_deletes' => 1]);
+    app(ActivityLog::class)->record('deleted', 'product', null, 'Mug');
+
+    $to = Mail::queued(SecurityAlert::class)->flatMap(fn (SecurityAlert $mail) => array_column($mail->to, 'address'))->all();
+    expect($to)->toContain('admin@example.com', 'ops@example.com', 'night@example.com', 'day@example.com', 'security@example.com');
 });

@@ -10,6 +10,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\RestoreEntry;
@@ -77,6 +78,23 @@ it('keeps slugs unique per collection and language, trashed entries included', f
     expect(app(CreateEntry::class)->handle($pages, ['title' => 'Hello world'])->draft_slug)->toBe('hello-world');
 });
 
+it('refuses a slug another save took between the check and the write', function () {
+    $mine = article(['slug' => 'hello']);
+    $theirs = article(['title' => 'Hello too', 'slug' => 'hello-2']);
+    // Their draft gets the slug and is published just as mine is written: the lock can't hold them off on SQLite.
+    $raced = false;
+    EntryTranslation::saving(function (EntryTranslation $saving) use ($theirs, &$raced): void {
+        if (! $raced && $saving->draft_slug === 'hello') {
+            $raced = true;
+            DB::table('sunrice_entry_translations')->where('id', $theirs->id)->update(['slug' => 'hello', 'status' => 'published', 'published_at' => now()]);
+        }
+    });
+
+    expect(fn () => app(PublishEntry::class)->handle($mine))->toThrow(ValidationException::class, 'This slug is already used')
+        ->and($mine->fresh()?->status)->toBe('draft')
+        ->and(Revision::query()->count())->toBe(0);
+});
+
 it('doesn\'t store fields the blueprint doesn\'t have', function () {
     expect(article(['data' => ['intro' => 'Hi', 'secret' => 'x']])->draft_data)->not->toHaveKey('secret');
 });
@@ -84,14 +102,16 @@ it('doesn\'t store fields the blueprint doesn\'t have', function () {
 it('saves drafts without touching the live version', function () {
     $translation = app(PublishEntry::class)->handle(article());
     // A later request: the log merges edits into a line written in the same one.
-    app()->instance('request', request()->duplicate());
+    $later = request()->duplicate();
+    $later->attributes->remove(ActivityLog::REQUEST_ID);
+    app()->instance('request', $later);
     app(SaveDraft::class)->handle($translation, ['title' => 'Hello again', 'data' => ['featured' => true]]);
 
     expect($translation->title)->toBe('Hello world')
         ->and($translation->draft_title)->toBe('Hello again')
         ->and($translation->draft_data)->toEqual(['intro' => 'Hi', 'featured' => true, 'day' => null])
         ->and($translation->data['featured'])->toBeFalse()
-        ->and($translation->version)->toBe(2)
+        ->and($translation->version)->toBe(3) // created 1, published 2, saved 3
         ->and($translation->hasUnpublishedChanges())->toBeTrue()
         ->and(Activity::query()->latest('id')->first()?->properties)->toMatchArray(['changed' => ['title', 'featured']]);
 });
@@ -103,6 +123,14 @@ it('refuses a save over a newer one', function () {
 
     expect(fn () => app(SaveDraft::class)->handle($stale, ['title' => 'Theirs', 'version' => 1]))->toThrow(ValidationException::class, 'Someone else saved')
         ->and($translation->fresh()?->draft_title)->toBe('Mine');
+});
+
+it('counts the version up on publish, so an editor opened before can\'t save over it unknowingly', function () {
+    $translation = article();
+    app(PublishEntry::class)->handle($translation);
+
+    expect($translation->fresh()?->version)->toBe(2)
+        ->and(fn () => app(SaveDraft::class)->handle($translation->fresh() ?? $translation, ['title' => 'Stale', 'version' => 1]))->toThrow(ValidationException::class, 'Someone else saved');
 });
 
 it('does nothing when nothing changed', function () {
@@ -173,7 +201,7 @@ it('restores a revision into the draft', function () {
 
     expect($translation->draft_title)->toBe('Hello world')
         ->and($translation->draft_slug)->toBe('hello-world')
-        ->and($translation->version)->toBe(3)
+        ->and($translation->version)->toBe(4) // created 1, published 2, saved 3, restored 4
         ->and(Activity::query()->latest('id')->first()?->action)->toBe('reverted');
 });
 

@@ -7,26 +7,27 @@ namespace Sunrice\Admin;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
-use Sunrice\Admin\Activity\Activity;
-use Sunrice\Admin\Ai\DeveloperTools;
 use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Assets\PluginBundle;
-use Sunrice\Admin\Branding\BrandingSettings;
 use Sunrice\Admin\Contracts\Plugin;
-use Sunrice\Admin\Dashboard\DashboardCard;
+use Sunrice\Admin\Dashboard\PanelWidgets;
+use Sunrice\Admin\Dashboard\Widget;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
-use Sunrice\Admin\Help\HelpSection;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Resources\RegisteredResource;
 use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Security\SecuritySettings;
+use Sunrice\Admin\Settings\BrandingSettings;
+use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
-use Sunrice\Admin\Users\OwnedContent;
+use Sunrice\Admin\Support\Branding;
 use Sunrice\Admin\Users\RoleResource;
+use Sunrice\Admin\Users\UserContent;
 use Sunrice\Admin\Users\UserResource;
 
 /**
@@ -53,7 +54,7 @@ final class Panel
     private const RESERVED_SHARED = ['sunrice', 'auth', 'navigation', 'flash', 'errors'];
 
     /** Page folders of the panel's own React pages; plugin bundles use others. */
-    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Email/', 'Help/', 'Security/', 'Resources/'];
+    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/', 'Help/', 'Error'];
 
     private string $path = 'admin';
 
@@ -70,17 +71,11 @@ final class Panel
     /** @var array<string, NavigationItem> */
     private array $navigation = [];
 
-    /** @var array<string, DashboardCard> */
-    private array $dashboardCards = [];
-
-    /** @var array<string, OwnedContent> */
-    private array $ownedContent = [];
-
-    /** @var array<string, HelpSection> */
-    private array $help = [];
-
     /** @var array<string, Permission> */
     private array $permissions = [];
+
+    /** @var array<string, Widget> keyed by the widget's key */
+    private array $widgets = [];
 
     /** @var array<string, list<string>> role name => permission names or patterns */
     private array $defaultRoles = ['administrator' => ['*']];
@@ -116,8 +111,20 @@ final class Panel
     /** @var list<string> */
     private array $aiInstructions = [];
 
+    /** @var array<string, array{title: string, directory: string}> developer docs (Help → Docs, AI agents), keyed by the title's slug */
+    private array $docs = [];
+
+    /** @var array<string, array{title: string, directory: string}> end-user guides (Help → Guide), keyed by the title's slug */
+    private array $guides = [];
+
     /** @var array<string, Closure(string, string, Authorizable): bool> */
     private array $lockables = [];
+
+    /** @var array<string, UserContent> keyed by its key */
+    private array $userContent = [];
+
+    /** @var list<string> permission names or patterns ("sunrice.users.*") that give power worth alerting about */
+    private array $privilegedPermissions = [];
 
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
@@ -126,7 +133,7 @@ final class Panel
     private ?string $roleResource = RoleResource::class;
 
     /** URL segments the panel uses itself; resources can't take them. */
-    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'email', 'help', 'security', 'profile', 'ai'];
+    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai', 'resources', 'docs', 'guide'];
 
     /** The plugin whose register() is running, if any: it owns what is declared meanwhile. */
     private ?Plugin $registering = null;
@@ -162,7 +169,10 @@ final class Panel
         return $this;
     }
 
-    /** The name shown in the sidebar, the login page and emails. */
+    /**
+     * The panel's own name: the default for Settings → Branding's name.
+     * Read the name people see with brandName().
+     */
     public function brand(string $brand): self
     {
         $this->assertConfigurable();
@@ -232,93 +242,6 @@ final class Panel
     }
 
     /**
-     * Pages of the panel's Help (Markdown files), under a heading.
-     *
-     * @throws PanelMisconfigured for a key used twice
-     */
-    public function help(HelpSection ...$sections): self
-    {
-        $this->assertRegistering();
-        foreach ($sections as $section) {
-            if (isset($this->help[$section->key])) {
-                throw new PanelMisconfigured("Two help sections have the key \"{$section->key}\"{$this->owner()}.");
-            }
-            $this->help[$section->key] = $section;
-        }
-
-        return $this;
-    }
-
-    /** @return list<HelpSection> in order */
-    public function getHelp(): array
-    {
-        $sections = array_values($this->help);
-        usort($sections, fn (HelpSection $a, HelpSection $b): int => [$a->sort, $a->title] <=> [$b->sort, $b->title]);
-
-        return $sections;
-    }
-
-    /**
-     * What people own in a plugin: the user page counts it, and deleting a
-     * user hands it to whoever deletes them.
-     *
-     * @throws PanelMisconfigured for a key used twice
-     */
-    public function ownedContent(OwnedContent ...$items): self
-    {
-        $this->assertRegistering();
-        foreach ($items as $item) {
-            if (isset($this->ownedContent[$item->key])) {
-                throw new PanelMisconfigured("Two owned content kinds have the key \"{$item->key}\"{$this->owner()}.");
-            }
-            $this->ownedContent[$item->key] = $item;
-        }
-
-        return $this;
-    }
-
-    /** @return array<string, OwnedContent> */
-    public function getOwnedContent(): array
-    {
-        return $this->ownedContent;
-    }
-
-    /**
-     * Cards on the dashboard. Each says who sees it (permission(),
-     * visible() or everyone()).
-     *
-     * @throws PanelMisconfigured for a key used twice or a card nobody guards
-     */
-    public function dashboardCards(DashboardCard ...$cards): self
-    {
-        $this->assertRegistering();
-        foreach ($cards as $card) {
-            if (isset($this->dashboardCards[$card->key])) {
-                throw new PanelMisconfigured("Two dashboard cards have the key \"{$card->key}\"{$this->owner()}.");
-            }
-            if (! $card->isGuarded()) {
-                throw new PanelMisconfigured("The dashboard card \"{$card->key}\"{$this->owner()} says nobody may see it: give it a permission(), visible() or everyone().");
-            }
-            $this->dashboardCards[$card->key] = $card;
-        }
-
-        return $this;
-    }
-
-    /**
-     * The dashboard cards the user may see, in order.
-     *
-     * @return list<DashboardCard>
-     */
-    public function dashboardCardsFor(Authorizable $user): array
-    {
-        $cards = array_values(array_filter($this->dashboardCards, fn (DashboardCard $card): bool => $card->isVisibleTo($user)));
-        usort($cards, fn (DashboardCard $a, DashboardCard $b): int => [$a->getSort(), $a->getTitle()] <=> [$b->getSort(), $b->getTitle()]);
-
-        return $cards;
-    }
-
-    /**
      * AI access (on by default): the AI access page, where users with
      * "sunrice.ai.connect" create tokens, and the MCP endpoint
      * (`sunrice-admin.ai.path`) AI agents connect to.
@@ -359,6 +282,35 @@ final class Panel
                 throw new PanelMisconfigured("Two navigation items have the key \"{$item->key}\"{$this->owner()}.");
             }
             $this->navigation[$item->key] = $item;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Tiles on the dashboard (see Sunrice\Admin\Dashboard\Widget). A
+     * plugin's keys start with its id and a dot ("shop.orders"); the app's
+     * may not use a plugin's id.
+     */
+    public function widgets(Widget ...$widgets): self
+    {
+        $this->assertRegistering();
+        $owner = $this->registering?->id();
+        foreach ($widgets as $widget) {
+            $prefix = explode('.', $widget->key)[0];
+            if ($owner !== null && ! str_starts_with($widget->key, $owner.'.')) {
+                throw new PanelMisconfigured("The plugin \"{$owner}\" registered the widget \"{$widget->key}\": a plugin's widget keys start with its id (\"{$owner}.…\").");
+            }
+            if ($owner === null && isset($this->plugins[$prefix])) {
+                throw new PanelMisconfigured("The widget \"{$widget->key}\" uses the prefix of the plugin \"{$prefix}\".");
+            }
+            if (isset($this->widgets[$widget->key])) {
+                throw new PanelMisconfigured("Two widgets have the key \"{$widget->key}\"{$this->owner()}.");
+            }
+            if (! $widget->hasData()) {
+                throw new PanelMisconfigured("The widget \"{$widget->key}\" has no data: give it ->data(fn (Authorizable \$user) => [...]).");
+            }
+            $this->widgets[$widget->key] = $widget->inGroup($owner === null ? 'widgets' : "widgets-{$owner}");
         }
 
         return $this;
@@ -469,9 +421,10 @@ final class Panel
 
     /**
      * Admin screens for models (see Resource). Each gets a sidebar item,
-     * routes under the panel ("/admin/products") and four permissions,
-     * prefixed with the registering plugin's id ("shop.products.view") or,
-     * when the app registers it, the resource's key ("products.view").
+     * routes under the panel ("/admin/products") and four permissions (a
+     * fifth, ".export", when its table is exportable), prefixed with the
+     * registering plugin's id ("shop.products.view") or, when the app
+     * registers it, the resource's key ("products.view").
      *
      * @param  class-string<Resources\Resource>  ...$classes
      */
@@ -573,11 +526,120 @@ final class Panel
         return $this;
     }
 
+    /**
+     * Something users own, so deleting a user (Sunrice\Admin\Actions\Users\DeleteUser)
+     * can give it to someone else, keep it without an owner or delete it:
+     * a key (a plugin's start with its id), a label for the dialog
+     * ("orders"), how to count a user's, and what to do with it. `$mode`
+     * is "reassign" (with `$heir`), "keep" or "delete".
+     *
+     *     $panel->userContent('shop.orders', 'orders',
+     *         fn (Model $user): int => Order::query()->where('user_id', $user->getKey())->count(),
+     *         fn (Model $user, string $mode, ?Model $heir) => Order::query()->where('user_id', $user->getKey())
+     *             ->update(['user_id' => $heir?->getKey()]));
+     *
+     * @param  Closure(Model): int  $count
+     * @param  Closure(Model, string, ?Model): void  $handle
+     */
+    public function userContent(string $key, string $label, Closure $count, Closure $handle): self
+    {
+        $this->assertRegistering();
+        if (preg_match('/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/', $key) !== 1) {
+            throw new PanelMisconfigured("The user content key \"{$key}\": use lowercase letters, numbers, dots and dashes.");
+        }
+        $owner = $this->registering?->id();
+        if ($owner !== null && ! str_starts_with($key, $owner.'.')) {
+            throw new PanelMisconfigured("The plugin \"{$owner}\" registered the user content \"{$key}\": a plugin's keys start with its id (\"{$owner}.…\").");
+        }
+        if (isset($this->userContent[$key])) {
+            throw new PanelMisconfigured("The user content \"{$key}\" is registered twice{$this->owner()}.");
+        }
+        $this->userContent[$key] = new UserContent($key, $label, $count, $handle);
+
+        return $this;
+    }
+
+    /**
+     * Permissions that give power worth an email alert when someone gets
+     * them (see Sunrice\Admin\Security\SecurityAlerts): names, or patterns
+     * with `*`. The panel's own are managing users, roles and settings,
+     * connecting AI agents and reading the activity log. A plugin's start
+     * with its id.
+     *
+     *     $panel->privilegedPermissions('shop.settings.*', 'shop.payouts.manage');
+     */
+    public function privilegedPermissions(string ...$names): self
+    {
+        $this->assertRegistering();
+        $owner = $this->registering?->id();
+        foreach ($names as $name) {
+            if ($owner !== null && ! str_starts_with($name, $owner.'.')) {
+                throw new PanelMisconfigured("The plugin \"{$owner}\" marked the permission \"{$name}\" as privileged: a plugin's permissions start with its id (\"{$owner}.…\").");
+            }
+            if (! in_array($name, $this->privilegedPermissions, true)) {
+                $this->privilegedPermissions[] = $name;
+            }
+        }
+
+        return $this;
+    }
+
     /** More instructions for AI agents: how to work with what you added. */
     public function aiInstructions(string $markdown): self
     {
         $this->assertRegistering();
         $this->aiInstructions[] = trim($markdown);
+
+        return $this;
+    }
+
+    /**
+     * Developer documentation: the Markdown files (`*.md`) of a directory,
+     * under a title, shown on Help → Docs ("sunrice.docs.view") and read by
+     * AI agents with read_docs. Pages are named "{slug of the title}/{file
+     * name}" ("cms/collections"). The panel registers its own as "Panel";
+     * a missing directory is skipped.
+     *
+     *     $panel->docs('Shop', dirname(__DIR__).'/docs');
+     */
+    public function docs(string $title, string $directory): self
+    {
+        $this->assertRegistering();
+        $key = Str::slug($title);
+        if ($key === '') {
+            throw new PanelMisconfigured("The docs \"{$title}\" need a title with letters or numbers.");
+        }
+        if (isset($this->docs[$key])) {
+            throw new PanelMisconfigured("Two docs are called \"{$title}\"{$this->owner()}.");
+        }
+        $this->docs[$key] = ['title' => $title, 'directory' => rtrim($directory, '/')];
+
+        return $this;
+    }
+
+    /**
+     * A user guide for the people who work in the panel, shown on Help →
+     * Guide ("sunrice.guide.view"): a directory with a folder of Markdown
+     * files per language ("en/entries.md", "id/entries.md") and an
+     * "images" folder they share (`![Menu](images/menu.webp)`). Pages are
+     * named "{slug of the title}/{file name}"; a leading number orders them
+     * ("01-welcome.md" is "welcome"), and "{panel}" reads as the panel's
+     * name. The panel registers its own as "Panel"; a missing directory
+     * is skipped.
+     *
+     *     $panel->guide('Shop', dirname(__DIR__).'/guide');
+     */
+    public function guide(string $title, string $directory): self
+    {
+        $this->assertRegistering();
+        $key = Str::slug($title);
+        if ($key === '') {
+            throw new PanelMisconfigured("The guide \"{$title}\" needs a title with letters or numbers.");
+        }
+        if (isset($this->guides[$key])) {
+            throw new PanelMisconfigured("Two guides are called \"{$title}\"{$this->owner()}.");
+        }
+        $this->guides[$key] = ['title' => $title, 'directory' => rtrim($directory, '/')];
 
         return $this;
     }
@@ -628,48 +690,46 @@ final class Panel
         $declared = $this->permissions;
         $this->permissions = [];
         $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
-        $this->permissions(Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'));
-        $this->permissions(Permission::make('sunrice.activity.prune', 'Delete old activity log lines', 'Panel'));
-        // Settings → Security (two-factor login) and Branding, in every panel.
-        $own = [];
-        foreach ([SecuritySettings::class => 'Edit security settings', BrandingSettings::class => 'Edit branding'] as $class => $label) {
-            if (isset($this->settings[$class::key()])) {
-                throw new PanelMisconfigured("The settings key \"{$class::key()}\" belongs to the panel: give {$this->settings[$class::key()]->class} another key.");
+        $this->permissions(
+            Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'),
+            Permission::make('sunrice.activity.prune', 'Delete old activity log lines', 'Panel'),
+        );
+        // Settings → Branding, Security (two-factor login) and Mail (how mail goes, a test email), in every panel.
+        foreach ([BrandingSettings::class, SecuritySettings::class, MailSettings::class] as $own) {
+            if (isset($this->settings[$own::key()])) {
+                throw new PanelMisconfigured("The settings key \"{$own::key()}\" belongs to the panel: give {$this->settings[$own::key()]->class} another key.");
             }
-            $this->permissions(Permission::make("sunrice.settings.{$class::key()}", $label, 'Settings'));
-            $own[$class::key()] = new RegisteredSettings($class, "sunrice.settings.{$class::key()}");
         }
-        $this->settings = [...$own, ...$this->settings];
+        $this->permissions(
+            Permission::make('sunrice.settings.branding', 'Edit branding settings', 'Settings'),
+            Permission::make('sunrice.settings.security', 'Edit security settings', 'Settings'),
+            Permission::make('sunrice.settings.mail', 'See mail settings and send test emails', 'Settings'),
+        );
+        $this->settings = [
+            BrandingSettings::key() => new RegisteredSettings(BrandingSettings::class, 'sunrice.settings.branding'),
+            SecuritySettings::key() => new RegisteredSettings(SecuritySettings::class, 'sunrice.settings.security'),
+            MailSettings::key() => new RegisteredSettings(MailSettings::class, 'sunrice.settings.mail'),
+            ...$this->settings,
+        ];
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
             ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
-        $this->permissions(Permission::make('sunrice.email.test', 'See how email is sent and send a test', 'Panel'));
-        $this->navigation(NavigationItem::make('email')->label('Email')->url('email')->icon('mail')
-            ->group('Administration')->sort(965)->permission('sunrice.email.test'));
-        $this->ownedContent(OwnedContent::make('media')->label('files', 'file')
-            ->count(fn (Model $user): int => Media::query()->withTrashed()->where('uploaded_by', self::key($user))->count())
-            ->handOver(function (Model $from, Model $to): void {
-                Media::query()->withTrashed()->where('uploaded_by', self::key($from))->update(['uploaded_by' => self::key($to)]);
-            }));
-        $this->help(HelpSection::make('panel', 'Using the panel', dirname(__DIR__).'/guide', 10));
-        $this->dashboardCards(DashboardCard::make('activity')->title('Recent activity')->sort(900)->permission('sunrice.activity.view')
-            ->list(fn (): array => Activity::query()->latest('id')->limit(6)->get()->map(fn (Activity $activity): array => [
-                'title' => trim(($activity->user_name ?? 'Someone').' '.$activity->action.' '.($activity->subject_label ?? $activity->subject_type)),
-                'meta' => $activity->created_at?->diffForHumans(),
-            ])->all())
-            ->empty('Nothing has happened yet.')->link('Activity log', 'activity'));
+        $this->widgets(PanelWidgets::activity());
         if ($this->aiAccess) {
-            $this->permissions(Permission::make('sunrice.ai.connect', 'Connect AI agents', 'AI access'));
+            $this->permissions(
+                Permission::make('sunrice.ai.connect', 'Connect AI agents', 'AI access'),
+                Permission::make('sunrice.ai.error-log', 'Let AI agents read the error log', 'AI access'),
+                Permission::make('sunrice.ai.run-commands', 'Let AI agents run allowed commands', 'AI access'),
+            );
             $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')
                 ->group('Administration')->sort(970)->permission('sunrice.ai.connect'));
-            if (DeveloperTools::enabled()) {
-                $this->permissions(
-                    Permission::make('sunrice.views.view', 'Read the app\'s views (AI agents)', 'Developer tools'),
-                    Permission::make('sunrice.views.update', 'Change the app\'s views (AI agents)', 'Developer tools'),
-                    Permission::make('sunrice.commands.run', 'Run allowed console commands (AI agents)', 'Developer tools'),
-                    Permission::make('sunrice.logs.view', 'Read the error log (AI agents)', 'Developer tools'),
-                );
-            }
         }
+        // Help: the developer docs and the user guide, shipped with the package (docs/, guide/).
+        $this->permissions(
+            Permission::make('sunrice.guide.view', 'Read the user guide', 'Help'),
+            Permission::make('sunrice.docs.view', 'Read the developer docs', 'Help'),
+        );
+        $this->docs('Panel', dirname(__DIR__).'/docs');
+        $this->guide('Panel', dirname(__DIR__).'/guide');
         if ($this->mediaLibrary) {
             $this->permissions(
                 Permission::make('sunrice.media.view', 'View media', 'Media'),
@@ -678,7 +738,16 @@ final class Panel
                 Permission::make('sunrice.media.delete', 'Delete media', 'Media'),
             );
             $this->navigation(NavigationItem::make('media')->label('Media')->url('media')->icon('image')->sort(50)->permission('sunrice.media.view'));
+            $this->widgets(PanelWidgets::media());
+            // Deleting a user: their uploads move to the heir or stay without an uploader (other content may use them).
+            $this->userContent('media', 'uploads',
+                fn (Model $user): int => Media::query()->where('uploaded_by', self::id($user))->count(),
+                function (Model $user, string $mode, ?Model $heir): void {
+                    Media::withTrashed()->where('uploaded_by', self::id($user))->update(['uploaded_by' => $heir === null ? null : self::id($heir)]);
+                });
         }
+        // Getting one of these is an email alert (SecurityAlerts); plugins add theirs.
+        $this->privilegedPermissions('sunrice.users.*', 'sunrice.roles.*', 'sunrice.settings.*', 'sunrice.ai.*', 'sunrice.activity.*');
         if ($this->userResource !== null) {
             $this->registerResource($this->userResource, self::CORE.'.users');
         }
@@ -715,6 +784,14 @@ final class Panel
                     return false;
                 }));
         }
+        $guides = $this->guides;
+        $docs = $this->docs;
+        $this->navigation(
+            NavigationItem::make('help-guide')->label('Guide')->url('guide')->icon('life-buoy')->group('Help')->sort(990)
+                ->permission('sunrice.guide.view')->visible(fn (): bool => self::hasPages($guides, localized: true)),
+            NavigationItem::make('help-docs')->label('Developer docs')->url('docs')->icon('book-open')->group('Help')->sort(995)
+                ->permission('sunrice.docs.view')->visible(fn (): bool => self::hasPages($docs)),
+        );
         $this->validate();
 
         $this->booted = true;
@@ -751,9 +828,20 @@ final class Panel
         return $model;
     }
 
+    /** The name given with brand(); what people see is brandName(). */
     public function getBrand(): string
     {
         return $this->brand;
+    }
+
+    /**
+     * The name people see in the sidebar, browser tabs, emails and the AI
+     * server: Settings → Branding's name, else brand(). Reads the settings
+     * (one cached query per request for all sections).
+     */
+    public function brandName(): string
+    {
+        return (new Branding($this, app(BrandingSettings::class)))->name();
     }
 
     /** @return list<string> */
@@ -777,6 +865,50 @@ final class Panel
     public function getLockables(): array
     {
         return $this->lockables;
+    }
+
+    /** @return array<string, UserContent> keyed by its key */
+    public function getUserContent(): array
+    {
+        return $this->userContent;
+    }
+
+    /** @return list<string> names or patterns */
+    public function getPrivilegedPermissions(): array
+    {
+        return $this->privilegedPermissions;
+    }
+
+    /** Whether getting this permission is worth an alert (see privilegedPermissions()). */
+    public function isPrivilegedPermission(string $name): bool
+    {
+        foreach ($this->privilegedPermissions as $pattern) {
+            if (Str::is($pattern, $name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** A user's key as it is stored in the panel's tables. */
+    private static function id(Model $user): string
+    {
+        $key = $user->getKey();
+
+        return is_scalar($key) ? (string) $key : '';
+    }
+
+    /** @return array<string, array{title: string, directory: string}> keyed by the title's slug */
+    public function getDocs(): array
+    {
+        return $this->docs;
+    }
+
+    /** @return array<string, array{title: string, directory: string}> keyed by the title's slug */
+    public function getGuides(): array
+    {
+        return $this->guides;
     }
 
     /** @return list<string> */
@@ -835,10 +967,15 @@ final class Panel
         return [...$this->permissions, ...$this->resolvedPermissions];
     }
 
-    /** @return array<string, list<string>> role name => permission names or patterns */
+    /**
+     * Every role that opens the panel may read the guide too.
+     *
+     * @return array<string, list<string>> role name => permission names or patterns
+     */
     public function getDefaultRoles(): array
     {
-        return $this->defaultRoles;
+        return array_map(fn (array $patterns): array => Str::is($patterns, self::ACCESS) && ! Str::is($patterns, 'sunrice.guide.view')
+            ? [...$patterns, 'sunrice.guide.view'] : $patterns, $this->defaultRoles);
     }
 
     /** @return array<string, Closure(): mixed> */
@@ -903,7 +1040,43 @@ final class Panel
         return array_values($groups);
     }
 
+    /** @return array<string, Widget> keyed by key */
+    public function getWidgets(): array
+    {
+        return $this->widgets;
+    }
+
+    /**
+     * The dashboard's widgets this user may see, by sort, then in the
+     * order they were registered. Their data isn't resolved.
+     *
+     * @return list<Widget>
+     */
+    public function widgetsFor(Authorizable $user): array
+    {
+        $visible = array_values(array_filter($this->widgets, fn (Widget $widget): bool => $widget->isVisibleTo($user)));
+        usort($visible, fn (Widget $a, Widget $b): int => $a->getSort() <=> $b->getSort());
+
+        return $visible;
+    }
+
     // Internals -------------------------------------------------------------
+
+    /**
+     * Whether any of these directories holds a page (in a language folder for guides).
+     *
+     * @param  array<string, array{title: string, directory: string}>  $directories
+     */
+    private static function hasPages(array $directories, bool $localized = false): bool
+    {
+        foreach ($directories as ['directory' => $directory]) {
+            if ((glob($directory.($localized ? '/*/*.md' : '/*.md')) ?: []) !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /** @return array{key: string, label: string, url: string, icon: string} */
     private static function link(NavigationItem $item): array
@@ -976,8 +1149,13 @@ final class Panel
             Permission::make("{$prefix}.update", "Edit {$label}", $label),
             Permission::make("{$prefix}.delete", "Delete {$label}", $label),
         );
+        // "<prefix>.export" for a resource whose table is ->exportable(); worked out when
+        // permissions are needed, so the table isn't built at boot.
+        $this->permissionResolvers[] = ['owner' => $this->registering?->id(), 'resolve' => fn (): array => $resource->table()->isExportable()
+            ? [Permission::make("{$prefix}.export", "Export {$label}", $label)]
+            : []];
         $this->navigation(
-            NavigationItem::make("resources.{$key}")->label($label)->url($key)->icon($class::navigationIcon())
+            NavigationItem::make("resources.{$key}")->label($class::navigationLabel())->url($key)->icon($class::navigationIcon())
                 ->group($class::navigationGroup())->sort($class::navigationSort())->visible($resource->visibleTo()),
         );
     }
@@ -1025,13 +1203,5 @@ final class Panel
     private function owner(): string
     {
         return $this->registering === null ? '' : " (by the plugin \"{$this->registering->id()}\")";
-    }
-
-    /** A record's key as a string. */
-    private static function key(Model $model): string
-    {
-        $key = $model->getKey();
-
-        return is_scalar($key) ? (string) $key : '';
     }
 }

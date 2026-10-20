@@ -12,19 +12,24 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Translation\Translator;
 use Illuminate\View\Compilers\BladeCompiler;
 use RuntimeException;
 use Spatie\Honeypot\ProtectAgainstSpam;
 use Spatie\ResponseCache\CacheProfiles\CacheAllSuccessfulGetRequests;
+use Spatie\ResponseCache\Hasher\DefaultHasher;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
+use Spatie\ResponseCache\Replacers\CsrfTokenReplacer;
 use Spatie\ResponseCache\Serializers\JsonSerializer;
 use Sunrice\Admin\Events\SettingsSaved;
+use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Media\MediaUsages;
 use Sunrice\Cms\Fields\Fieldsets;
 use Sunrice\Cms\Fields\FieldTypes;
 use Sunrice\Cms\Fields\Types;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\GlobalValue;
+use Sunrice\Cms\Models\TermTranslation;
 
 /**
  * Boots the CMS. The CMS is added to a panel as a plugin (CmsPlugin);
@@ -35,9 +40,6 @@ use Sunrice\Cms\Models\GlobalValue;
  */
 final class CmsServiceProvider extends ServiceProvider
 {
-    /** The plain page templates, published as resources/views/cms/*. */
-    private const TEMPLATES = ['entry', 'listing', 'term', 'search'];
-
     public function register(): void
     {
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-cms.php', 'sunrice-cms');
@@ -65,21 +67,33 @@ final class CmsServiceProvider extends ServiceProvider
         $this->app->scoped(Menus::class);
         $this->app->scoped(Site\Site::class);
         $this->app->scoped(Support\SiteCache::class);
+        // Read by Locales all the time: once per request.
+        $this->app->scoped(Settings\LocaleSettings::class);
         $this->app->singleton(Site\PageCache::class);
+        $this->app->singleton(Site\SiteHooks::class);
     }
 
     public function boot(): void
     {
         $this->loadMigrationsFrom(dirname(__DIR__).'/database/migrations');
         $this->loadViewsFrom(dirname(__DIR__).'/resources/views', 'sunrice-cms');
-        // The site's words in other languages; the app's lang/{locale}.json wins.
-        $this->loadJsonTranslationsFrom(dirname(__DIR__).'/lang');
-        // <x-sunrice-cms::entries> and <x-sunrice-cms::terms> (the others are anonymous views).
+        // What visitors read (sunrice-cms::site.*), and Indonesian for Laravel's own lines the app hasn't got.
+        $this->loadTranslationsFrom(dirname(__DIR__).'/resources/lang', 'sunrice-cms');
+        $this->callAfterResolving('translator', function (mixed $translator): void {
+            if ($translator instanceof Translator) {
+                Support\CoreTranslations::register($translator);
+            }
+        });
+        // The class components (seo and code are anonymous views).
         $this->callAfterResolving('blade.compiler', function (BladeCompiler $blade): void {
             $blade->component(View\Components\Entries::class, 'sunrice-cms::entries');
             $blade->component(View\Components\Terms::class, 'sunrice-cms::terms');
             $blade->component(View\Components\Search::class, 'sunrice-cms::search');
+            $blade->component(View\Components\EntryFilter::class, 'sunrice-cms::entry-filter');
+            $blade->component(View\Components\Form::class, 'sunrice-cms::form');
             $blade->component(View\Components\Comments::class, 'sunrice-cms::comments');
+            // <body @bodyClass> or <body @bodyClass('dark')>: the whole class="…" attribute.
+            $blade->directive('bodyClass', fn (string $extra): string => '<?php echo \'class="\'.e(\Sunrice\Cms\Content::bodyClass('.($extra === '' ? '[]' : $extra).')).\'"\'; ?>');
         });
         if (! class_exists('Cms')) {
             AliasLoader::getInstance()->alias('Cms', Content::class);
@@ -88,11 +102,20 @@ final class CmsServiceProvider extends ServiceProvider
         EntryTranslation::saved(fn (EntryTranslation $translation) => Support\MediaUsage::entry($translation));
         EntryTranslation::deleted(fn (EntryTranslation $translation) => app(MediaUsages::class)->forget('cms.entry', (string) $translation->entry_id, $translation->locale));
         GlobalValue::saved(fn (GlobalValue $value) => Support\MediaUsage::global($value));
+        // Which entries and terms content points at (Support\References), kept on every save.
+        EntryTranslation::saved(fn (EntryTranslation $translation) => Support\References::entry($translation));
+        EntryTranslation::deleted(fn (EntryTranslation $translation) => Support\References::forget(Models\ContentReference::ENTRY, $translation->entry_id, $translation->locale));
+        TermTranslation::saved(fn (TermTranslation $translation) => Support\References::term($translation));
+        GlobalValue::saved(fn (GlobalValue $value) => Support\References::global($value));
         $this->pageCache();
         // A collection, taxonomy or form came or went: so do its permissions.
         foreach ([Models\Collection::class, Models\Taxonomy::class, Models\Form::class] as $class) {
-            foreach (['created', 'forceDeleted', 'deleted', 'restored'] as $event) {
+            foreach (['created', 'forceDeleted', 'deleted'] as $event) {
                 Event::listen("eloquent.{$event}: {$class}", fn () => Support\ScopedPermissions::sync());
+            }
+            // Changed or restored: the cached handles and permission labels.
+            foreach (['updated', 'restored'] as $event) {
+                Event::listen("eloquent.{$event}: {$class}", fn () => Support\ScopedPermissions::flush());
             }
         }
         // Changes to what the site shows clear its caches.
@@ -101,6 +124,14 @@ final class CmsServiceProvider extends ServiceProvider
         Event::listen(SettingsSaved::class, function (SettingsSaved $event): void {
             if ($event->section === Settings\SiteSettings::key() && app()->resolved(Site\Site::class)) {
                 app(Site\Site::class)->flush();
+            }
+        });
+        // Other languages: every address may have changed.
+        Event::listen(SettingsSaved::class, function (SettingsSaved $event): void {
+            if ($event->section === Settings\LocaleSettings::key()) {
+                app()->forgetInstance(Settings\LocaleSettings::class);
+                app()->forgetInstance(Site\Site::class);
+                app(Support\SiteCache::class)->changed('languages');
             }
         });
         // Code on every page is a way in: changing it is a security event, and alerts.
@@ -122,19 +153,22 @@ final class CmsServiceProvider extends ServiceProvider
             $this->siteRoutes();
         }
         if ($this->app->runningInConsole()) {
-            $this->commands([Console\PublishScheduledCommand::class, Console\TranslateCommand::class, Console\SwitchMainLanguageCommand::class, Console\OrphansCommand::class, Console\RenameFieldCommand::class, Console\DemoContentCommand::class, Console\ImportStructureCommand::class]);
+            $this->commands([
+                Console\PublishScheduledCommand::class, Console\RenameFieldCommand::class, Console\ExportStructureCommand::class, Console\ImportStructureCommand::class,
+                Console\OrphansCommand::class, Console\ReferencesCommand::class, Console\DemoContentCommand::class, Console\SwitchMainLanguageCommand::class, Console\TranslateCommand::class,
+            ]);
             $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
                 $schedule->command('sunrice:publish-scheduled')->everyMinute()->withoutOverlapping();
                 // Old form submissions and their files (sunrice-cms.forms.prune_after_days).
                 $schedule->command('model:prune', ['--model' => [Models\Submission::class, Models\Comment::class]])->daily();
             });
             $this->publishes([dirname(__DIR__).'/config/sunrice-cms.php' => config_path('sunrice-cms.php')], 'sunrice-cms-config');
-            // Starter templates: the plain pages, to make the site's own.
-            $views = dirname(__DIR__).'/resources/views';
-            $this->publishes(array_combine(
-                array_map(fn (string $page): string => "{$views}/{$page}.blade.php", self::TEMPLATES),
-                array_map(fn (string $page): string => resource_path("views/cms/{$page}.blade.php"), self::TEMPLATES),
-            ), 'sunrice-cms-templates');
+            // Starter templates for the site, to edit freely: layout, pages, partials, error pages and a stylesheet.
+            $this->publishes([
+                dirname(__DIR__).'/stubs/templates' => resource_path('views/cms'),
+                dirname(__DIR__).'/stubs/errors' => resource_path('views/errors'),
+                dirname(__DIR__).'/stubs/public/site.css' => public_path('cms/site.css'),
+            ], 'sunrice-cms-templates');
             // Also "laravel-assets", which Laravel apps publish on every composer update.
             $this->publishes([dirname(__DIR__).'/dist' => public_path(CmsPlugin::ASSETS)], ['sunrice-cms-assets', 'laravel-assets']);
         }
@@ -156,6 +190,14 @@ final class CmsServiceProvider extends ServiceProvider
         if (config('responsecache.serializer', JsonSerializer::class) === JsonSerializer::class) {
             config(['responsecache.serializer' => Site\PageCacheSerializer::class]);
         }
+        if (config('responsecache.hasher', DefaultHasher::class) === DefaultHasher::class) {
+            config(['responsecache.hasher' => Site\PageCacheHasher::class]);
+        }
+        // A kept page is served to every visitor: without the replacer, they'd all get the first one's CSRF token and no form would work.
+        $replacers = config('responsecache.replacers', []);
+        if (Site\PageCache::enabled() && (! is_array($replacers) || ! in_array(CsrfTokenReplacer::class, $replacers, true))) {
+            throw new PanelMisconfigured('sunrice-cms.cache.pages needs '.CsrfTokenReplacer::class.' in responsecache.replacers (config/responsecache.php): kept pages must give each visitor their own CSRF token.');
+        }
     }
 
     private function siteRoutes(): void
@@ -170,9 +212,10 @@ final class CmsServiceProvider extends ServiceProvider
         Route::middleware([...$middleware, 'signed'])->get('cms-preview/{translation}', [Site\SiteController::class, 'preview'])->name('sunrice.cms.preview');
         if (config('sunrice-cms.site.enabled', true) === true) {
             Route::middleware($middleware)->get('sitemap.xml', Site\SitemapController::class)->name('sunrice.cms.sitemap');
+            Route::middleware($middleware)->get('sitemap-{part}.xml', [Site\SitemapController::class, 'part'])->where('part', '[1-9][0-9]{0,5}')->name('sunrice.cms.sitemap.part');
             // The homepage: the fallback doesn't match /. An app's own / route, loaded later, replaces it.
             // The whole-page cache, when spatie/laravel-responsecache is installed (on with cache.pages).
-            $pages = class_exists(CacheResponse::class) ? [CacheResponse::class] : [];
+            $pages = [Site\SetSiteLocale::class, ...(class_exists(CacheResponse::class) ? [CacheResponse::class] : [])];
             Route::get('/', [Site\SiteController::class, 'show'])->middleware([...$middleware, ...$pages])->name('sunrice.cms.home');
             // The fallback: matched after every other route, so the app's own come first.
             Route::fallback([Site\SiteController::class, 'show'])->middleware([...$middleware, ...$pages])->name('sunrice.cms.page');

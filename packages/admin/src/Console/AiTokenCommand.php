@@ -6,70 +6,82 @@ namespace Sunrice\Admin\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Auth\Access\Authorizable;
+use Illuminate\Database\Eloquent\Model;
 use Sunrice\Admin\Actions\Ai\CreateAiToken;
 use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
 use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Panel;
 
 /**
- * sunrice:ai-token — AI access tokens from the command line, for setting
- * up an agent on a server: create one for a user, list or revoke theirs.
+ * sunrice:ai-token: creates, lists or revokes a user's access tokens for
+ * AI agents, like the panel's AI access page.
  *
  * @internal
  */
 final class AiTokenCommand extends Command
 {
     protected $signature = 'sunrice:ai-token
-        {email : The user the agent works as}
-        {--name=AI agent : What the token is for}
-        {--read-only : The agent may only read}
-        {--days= : The token expires after this many days}
+        {email : The user the agent acts as}
+        {--name=AI agent : A name to recognise the token by}
+        {--read-only : The agent may only look}
+        {--expires=90 : Days until it expires, or "never"}
         {--list : List the user\'s tokens instead}
-        {--revoke : Revoke all of the user\'s tokens instead}';
+        {--revoke= : Revoke the user\'s token with this id}';
 
-    protected $description = 'Create, list or revoke a user\'s AI access tokens';
+    protected $description = 'Create (or list, or revoke) an access token for AI agents acting as a user';
 
     public function handle(Panel $panel, CreateAiToken $create, RevokeAiTokens $revoke): int
     {
-        if (! $panel->hasAiAccess()) {
-            $this->components->error('AI access is off in this panel.');
+        $user = $panel->getUserModel()::query()->where('email', $this->argument('email'))->first();
+        if (! $user instanceof Model) {
+            $this->components->error('No account has that email.');
 
             return self::FAILURE;
         }
-        $user = $panel->getUserModel()::query()->where('email', (string) $this->argument('email'))->first();
-        if ($user === null) {
-            $this->components->error('There\'s no user with that email.');
+        $key = $user->getKey();
+        $tokens = AiToken::query()->where('user_id', is_scalar($key) ? (string) $key : '');
 
-            return self::FAILURE;
-        }
-        $id = $user->getKey();
-        $id = is_scalar($id) ? (string) $id : '';
-
-        if ($this->option('list')) {
-            $tokens = AiToken::query()->where('user_id', $id)->latest('id')->get();
-            $this->table(['Name', 'Read only', 'Last used', 'Expires'], $tokens->map(fn (AiToken $token): array => [
-                $token->name, $token->read_only ? 'yes' : 'no', $token->last_used_at?->diffForHumans() ?? 'never', $token->expires_at?->toDateString() ?? 'never',
+        if ($this->option('list') === true) {
+            $this->table(['ID', 'Name', 'Read-only', 'Expires', 'Last used', 'Created'], $tokens->orderBy('id')->get()->map(fn (AiToken $t): array => [
+                $t->id, $t->name, $t->read_only ? 'yes' : 'no', $t->expires_at?->toDateString() ?? 'never',
+                $t->last_used_at?->diffForHumans() ?? 'never', $t->created_at?->toDateString(),
             ])->all());
 
             return self::SUCCESS;
         }
-        if ($this->option('revoke')) {
-            $count = $revoke->all($user);
-            $this->components->info("Revoked {$count} ".($count === 1 ? 'token' : 'tokens').'.');
+
+        $revoking = $this->option('revoke');
+        if ($revoking !== null) {
+            $token = ctype_digit($revoking) ? $tokens->whereKey((int) $revoking)->first() : null;
+            if ($token === null) {
+                $this->components->error('This account has no token with that id (--list shows them).');
+
+                return self::FAILURE;
+            }
+            $revoke->one($token, $user);
+            $this->components->info("Token \"{$token->name}\" revoked.");
 
             return self::SUCCESS;
         }
 
-        if (! $user instanceof Authorizable || ! $user->can('sunrice.ai.connect')) {
-            $this->components->warn('This user may not connect AI agents (sunrice.ai.connect): the token won\'t work until they may.');
+        $expires = strtolower((string) $this->option('expires'));
+        if ($expires !== 'never' && (! ctype_digit($expires) || (int) $expires < 1 || (int) $expires > 3650)) {
+            $this->components->error('--expires takes a number of days (1 to 3650) or "never".');
+
+            return self::FAILURE;
         }
-        $days = $this->option('days');
-        [, $plain] = $create->handle($user, (string) $this->option('name'), (bool) $this->option('read-only'), is_numeric($days) ? now()->addDays((int) $days) : null);
-        $path = config('sunrice-admin.ai.path', 'mcp');
-        $this->components->info('Created the token. It is shown only now:');
-        $this->line("  {$plain}");
+        $name = trim((string) $this->option('name'));
+        if (! $user instanceof Authorizable || ! $user->can(Panel::ACCESS) || ! $user->can('sunrice.ai.connect')) {
+            $this->components->warn('This account may not open the panel or connect AI agents (sunrice.access, sunrice.ai.connect): the token won\'t work until a role gives it both.');
+        }
+        [, $plain] = $create->handle($user, $name !== '' ? $name : 'AI agent', $this->option('read-only') === true, $expires === 'never' ? null : now()->addDays((int) $expires));
+
+        $this->components->info('Token created. It is shown only once:');
+        $this->line($plain);
         $this->newLine();
-        $this->line('  Endpoint: '.url(is_string($path) ? $path : 'mcp'));
+        $path = config('sunrice-admin.ai.path', 'mcp');
+        $this->line('MCP endpoint: '.url('/'.trim(is_string($path) ? $path : 'mcp', '/')));
+        $this->line("Send it as the header  Authorization: Bearer {$plain}");
 
         return self::SUCCESS;
     }

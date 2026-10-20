@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
-use Sunrice\Admin\Branding\Branding;
 use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Events\SecurityEventRecorded;
 use Sunrice\Admin\Mail\SecurityAlert;
@@ -25,12 +24,13 @@ use Throwable;
  * `sunrice-admin.security.alerts`): an account locked after wrong
  * passwords, one address trying many accounts, a powerful account
  * signing in from a new address or after a long absence, someone gaining
- * power over users and roles, a dangerous upload, and bursts of exports
- * or deletes.
+ * a privileged permission (`$panel->privilegedPermissions()`), a
+ * dangerous upload, someone kept out of pages again and again, the
+ * activity log pruned in the panel, and bursts of exports or deletes.
  *
  * Each alert says what happened and what to do. The same alert (rule and
- * account) is sent once per `cooldown_minutes`, and each one sent is an
- * "alert sent" security event.
+ * account) is sent once per `cooldown_minutes`, each recipient's mail is
+ * queued, and each alert sent is an "alert sent" security event.
  *
  * Plugins raise alerts of their own with raise():
  *
@@ -44,14 +44,8 @@ use Throwable;
  */
 final class SecurityAlerts
 {
-    /** Permissions that give power over people and what they may do. */
-    public const PRIVILEGED_PERMISSIONS = [
-        'sunrice.users.create', 'sunrice.users.update', 'sunrice.users.delete',
-        'sunrice.roles.create', 'sunrice.roles.update', 'sunrice.roles.delete',
-    ];
-
-    /** Activity log actions that take things away (from the site, too). */
-    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed', 'unpublished', 'purged'];
+    /** Activity log actions that take things away (the `mass_deletes` rule). */
+    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed', 'unpublished'];
 
     public function __construct(private SecurityLog $log, private PermissionRank $rank, private Panel $panel) {}
 
@@ -113,9 +107,6 @@ final class SecurityAlerts
                 $this->alert('account-locked', $account, 'An account was locked after wrong passwords',
                     "Someone kept typing wrong passwords for {$account}, from different addresses ({$note}).",
                     'If the account\'s owner didn\'t do this, someone is guessing the password. Make sure the account has a strong, unique password.', $details);
-                $this->tellOwner($e->account, 'account-locked', 'Your account was locked',
-                    'Someone typed wrong passwords for your account many times, so it was locked for a while.',
-                    'If it wasn\'t you, change your password once you can sign in, and tell whoever runs the panel.');
                 break;
             case 'login blocked':
                 if (($e->properties['scope'] ?? null) === 'ip') {
@@ -129,7 +120,7 @@ final class SecurityAlerts
                 break;
             case 'roles changed':
             case 'permissions changed':
-                $this->gainedPower($e, $note, $details);
+                $this->gainedPower($e, $details);
                 break;
             case 'upload blocked':
                 $key = $e->account?->getKey();
@@ -146,22 +137,17 @@ final class SecurityAlerts
                 $this->alert('token-new-ip', (string) $e->label.'|'.$note, 'An AI access token was used from a new address',
                     "{$e->label}'s AI access token was used {$note}.",
                     'If nobody moved to a new network or computer, the token may have been copied: revoke it on the Users screen.', $details);
-                $this->tellOwner($e->account, 'token-new-ip|'.$note, 'Your AI access token was used from a new address',
-                    "Your AI access token was used {$note}.",
-                    'If you didn\'t connect from a new network or computer, revoke the token on the AI access page.');
-                break;
-            case 'activity pruned':
-                $this->alert('activity-pruned', (string) $e->label, 'Activity log lines were deleted',
-                    ($e->label ?? 'Someone').' deleted '.$note.' from the activity log.',
-                    'Clearing the log is how someone could hide what they did. If nobody on your team meant to, lock the account and check your backups of the log.', $details);
-                break;
-            case 'pages refused':
-                $this->alert('forbidden', (string) $e->label, 'Someone keeps opening pages they may not see',
-                    "{$e->label} was refused {$note}.",
-                    'People rarely do this by accident: it looks like someone exploring what the account can reach. If it isn\'t a broken link or a missing permission, lock the account on the Users screen.', $details);
                 break;
             case 'exported':
                 $this->exports($e, $details);
+                break;
+            case 'page refused':
+                $this->refused($e, $note, $details);
+                break;
+            case 'log pruned':
+                $this->alert('log-pruned', (string) $e->label, 'The activity log was pruned',
+                    ($e->label ?? 'Someone').' deleted activity log lines in the panel ('.($note === '' ? 'old lines' : $note).').',
+                    'If nobody meant to clean up the log, someone may be covering their tracks: check what this account did recently and lock it on the Users screen if in doubt.', $details);
                 break;
             case 'two-factor turned off':
                 $this->alert('two-factor-off', 'two-factor', 'Two-factor login was turned off',
@@ -200,28 +186,33 @@ final class SecurityAlerts
         }
         if ($this->isPrivileged($e->account) && ! $earlier->contains(fn (Activity $line) => $line->ip_address === $e->ip)) {
             $this->alert('new-ip', (string) $e->label.'|'.$e->ip, 'A powerful account signed in from a new address',
-                "{$e->label}, who can manage users or roles, signed in from {$e->ip}, an address not used before.",
+                "{$e->label}, who has privileged permissions, signed in from {$e->ip}, an address not used before.",
                 'If this wasn\'t them (a new network or device), sign the account out everywhere and lock it on the Users screen.', $details);
         }
     }
 
-    /** @param array<string, string> $details */
-    private function gainedPower(SecurityEventRecorded $e, string $note, array $details): void
+    /**
+     * Someone got the super admin role, a privileged permission, or a
+     * role that has one; read from the event's `added` list.
+     *
+     * @param  array<string, string>  $details
+     */
+    private function gainedPower(SecurityEventRecorded $e, array $details): void
     {
-        if (! str_contains($note, 'added:')) {
+        $added = is_array($e->properties['added'] ?? null) ? array_values(array_filter($e->properties['added'], 'is_string')) : [];
+        if ($added === []) {
             return;
         }
-        $added = trim(explode(';', explode('added:', $note, 2)[1])[0]);
-        $names = array_map('trim', explode(',', $added));
-        $powerful = in_array(SyncPermissions::superAdminRole(), $names, true)
-            || array_intersect($names, self::PRIVILEGED_PERMISSIONS) !== []
+        $powerful = in_array(SyncPermissions::superAdminRole(), $added, true)
+            || array_filter($added, $this->panel->isPrivilegedPermission(...)) !== []
             || ($e->action === 'roles changed' && $e->account !== null && $this->isPrivileged($e->account));
         if (! $powerful) {
             return;
         }
-        $this->alert('gained-power', (string) $e->label.'|'.$added, $e->action === 'roles changed' ? 'Someone was given power over users or roles' : 'A role was given power over users or roles',
-            "{$e->label} now has: {$added}.",
-            'Whoever has this can give themselves or others any access. If nobody on your team meant to do this, undo it on the Users or Roles screen and check who did it in the activity log.', $details);
+        $list = implode(', ', $added);
+        $this->alert('gained-power', (string) $e->label.'|'.$list, $e->action === 'roles changed' ? 'Someone was given privileged access' : 'A role was given privileged access',
+            "{$e->label} now has: {$list}.",
+            'Whoever has this can change who may do what, or what the site runs. If nobody on your team meant to do this, undo it on the Users or Roles screen and check who did it in the activity log.', $details);
     }
 
     /** @param array<string, string> $details */
@@ -240,29 +231,25 @@ final class SecurityAlerts
         }
     }
 
-    /**
-     * Tells the account's owner too, by email, when they have an address:
-     * they know best whether it was them.
-     */
-    private function tellOwner(?Model $account, string $rule, string $headline, string $what, string $advice): void
+    /** @param array<string, string> $details */
+    private function refused(SecurityEventRecorded $e, string $note, array $details): void
     {
-        $email = $account?->getAttribute('email');
-        $key = $account?->getKey();
-        if (! is_string($email) || filter_var($email, FILTER_VALIDATE_EMAIL) === false || ! is_scalar($key)
-            || ! Cache::add('sunrice-admin.notice:'.$rule.':'.$key, true, now()->addMinutes(self::number('cooldown_minutes', 60)))) {
+        $actor = $e->account?->getKey();
+        if (! is_scalar($actor)) {
             return;
         }
-        try {
-            Mail::to($email)->send(new SecurityAlert($headline, $what, $advice, ['When' => now()->toDayDateTimeString()],
-                Branding::shared($this->panel)['brand'], route('sunrice.admin.dashboard')));
-        } catch (Throwable $e) {
-            report($e);
+        $count = Activity::query()->where('source', 'security')->where('action', 'page refused')
+            ->where('subject_id', (string) $actor)->where('created_at', '>=', now()->subMinutes(10))->count();
+        if ($count >= self::number('forbidden', 15)) {
+            $this->alert('forbidden', (string) $actor, 'Someone keeps opening pages they may not see',
+                "{$e->label} was refused {$count} admin pages within 10 minutes (the last: {$note}).",
+                'People rarely do this by accident. It may be someone exploring what the account can reach. Ask them, and check the security events.', $details);
         }
     }
 
     private function isPrivileged(Model $account): bool
     {
-        return $this->rank->isSuperAdmin($account) || array_intersect($this->rank->permissionsOf($account), self::PRIVILEGED_PERMISSIONS) !== [];
+        return $this->rank->isSuperAdmin($account) || array_filter($this->rank->permissionsOf($account), $this->panel->isPrivilegedPermission(...)) !== [];
     }
 
     /**
@@ -298,10 +285,11 @@ final class SecurityAlerts
         }
 
         $mail = new SecurityAlert($headline, $what, $advice, [...$details, 'When' => now()->toDayDateTimeString()],
-            Branding::shared($this->panel)['brand'], route('sunrice.admin.activity.index', ['source' => 'security']));
+            $this->panel->brandName(), route('sunrice.admin.activity.index', ['source' => 'security']));
+        // One mail per person, on the queue: sending mustn't slow the request down.
         foreach ($recipients as $email) {
             try {
-                Mail::to($email)->send(clone $mail);
+                Mail::to($email)->queue(clone $mail);
             } catch (Throwable $e) {
                 report($e);
             }
@@ -309,7 +297,7 @@ final class SecurityAlerts
         $this->log->record('alert sent', null, $headline, ['note' => "{$rule} to ".count($recipients).' '.(count($recipients) === 1 ? 'person' : 'people')]);
     }
 
-    /** @return list<string> super admins, users with the configured roles, and the configured emails */
+    /** @return list<string> super admins, users with the configured roles (config and Settings → Security), and the configured emails */
     private function recipients(): array
     {
         $settings = app(SecuritySettings::class);

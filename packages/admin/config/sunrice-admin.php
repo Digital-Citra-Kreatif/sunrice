@@ -8,6 +8,15 @@ return [
     // `php artisan sunrice:sync-permissions`; give it with `sunrice:make-admin`.
     'super_admin_role' => 'super-admin',
 
+    // The panel's typeface. `stylesheet` is loaded on every admin page
+    // (null loads none); `family` names the font the panel uses instead of
+    // Inter (the CSS variable --sunrice-font). Set both to use another web
+    // font, or family alone for a system font.
+    'font' => [
+        'stylesheet' => 'https://fonts.bunny.net/css?family=inter:400,500,600&display=swap',
+        'family' => null,
+    ],
+
     'auth' => [
         // The password broker for "Forgot password?" (config/auth.php
         // passwords.*); null for the app's default broker.
@@ -63,8 +72,10 @@ return [
             'large' => [1600, null, 'fit'],
         ],
 
-        // Make the sizes on the queue instead of during the upload.
-        'queue' => false,
+        // Make the sizes on the queue instead of during the upload: true,
+        // false, or null to queue them whenever the default queue connection
+        // isn't sync (a file keeps only its original until the job ran).
+        'queue' => null,
 
         // Images larger than this (width x height) get no sizes: decoding
         // them could run out of memory.
@@ -109,16 +120,23 @@ return [
     ],
 
     'security' => [
+        // Headers on every panel response. X-Frame-Options: DENY, Referrer-Policy:
+        // same-origin and X-Content-Type-Options: nosniff are always sent; a
+        // Content-Security-Policy only when set here (Inertia and Vite setups
+        // vary, see packages/admin/docs/security.md#security-headers).
+        'headers' => [
+            'csp' => env('SUNRICE_CSP'),
+        ],
+
         // Also write security events (logins, failed and blocked logins, blocked
         // uploads …) to this log channel, e.g. 'daily', for fail2ban or a log
         // service. null: only the activity log.
         'log_channel' => env('SUNRICE_SECURITY_LOG_CHANNEL'),
 
-        // Emails when something may be a break-in (see docs/admin/security.md).
+        // Emails when something may be a break-in (see packages/admin/docs/security.md).
         // Sent to super admins, users with these roles, and these addresses.
         'alerts' => [
             'enabled' => env('SUNRICE_SECURITY_ALERTS', true),
-            // Besides super admins, and those chosen in Settings → Security.
             'roles' => [],
             'emails' => [],
             // The same alert (rule and account) at most this often.
@@ -129,7 +147,8 @@ return [
             'exports' => 5,
             // Deletes, trashes and unpublishes by one person (or AI agent) in 10 minutes.
             'mass_deletes' => 20,
-            // Pages one person is refused (403) in 10 minutes.
+            // Pages refused (403) to one signed-in account in 10 minutes; also
+            // how many "page refused" events are recorded per account in that time.
             'forbidden' => 15,
         ],
     ],
@@ -141,25 +160,28 @@ return [
         'path' => 'mcp',
         // Requests per minute per token.
         'requests_per_minute' => 120,
-
-        // Tools for working on the app itself: read and change Blade views,
-        // run the console commands listed below and read the error log.
-        // Changing a view or running a command runs code on the server, so
-        // they're off until you turn them on, and only people given the
-        // "Developer tools" permissions (which "*" never gives) may use them.
-        'developer_tools' => [
-            'enabled' => env('SUNRICE_AI_DEVELOPER_TOOLS', false),
-            // Where views are read and written (resource_path('views')).
-            'views_path' => null,
-            // Where log files are read (storage_path('logs')).
-            'logs_path' => null,
-            // Commands agents may run: names, or patterns like "cache:*".
-            'commands' => [
-                'about', 'migrate:status', 'route:list', 'schedule:list',
-                'cache:clear', 'config:clear', 'event:clear', 'route:clear', 'view:clear', 'optimize:clear',
-                'config:cache', 'event:cache', 'route:cache', 'view:cache', 'optimize',
-                'queue:failed', 'queue:retry',
-            ],
+        // The user an agent on the server itself acts as, over stdio
+        // (`php artisan mcp:start sunrice`), by email. Unset: refused.
+        'local_user' => env('SUNRICE_AI_USER'),
+        // read_error_log: recent errors from the Laravel log, secrets masked
+        // (with the "sunrice.ai.error-log" permission). The logs' directory:
+        // null for storage/logs.
+        'error_log' => env('SUNRICE_AI_ERROR_LOG', true),
+        'log_path' => env('SUNRICE_AI_LOG_PATH'),
+        // run_command: the artisan commands agents may run (with the
+        // "sunrice.ai.run-commands" permission); anything else is refused. A
+        // name takes any of the command's own options; `name => [options]`
+        // only those ("--days", "--force").
+        'commands' => [
+            'sunrice:activity-prune',
+            'sunrice:sync-permissions',
+            'sunrice:media-sizes',
+            'sunrice:optimize-images',
+            'cache:clear',
+            'view:clear',
+            'config:clear',
+            'route:clear',
+            'optimize:clear',
         ],
     ],
 

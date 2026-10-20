@@ -6,10 +6,14 @@ use Illuminate\Support\Facades\Gate;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Resources\Forms\RichText;
+use Sunrice\Admin\Resources\Tables\Action;
+use Sunrice\Tests\Admin\Fixtures\CatalogResource;
 use Sunrice\Tests\Admin\Fixtures\Category;
 use Sunrice\Tests\Admin\Fixtures\Product;
 use Sunrice\Tests\Admin\Fixtures\ProductPolicy;
 use Sunrice\Tests\Admin\Fixtures\ProductResource;
+use Sunrice\Tests\Admin\Fixtures\Tag;
 use Sunrice\Tests\Admin\Fixtures\TestPlugin;
 
 use function Pest\Laravel\actingAs;
@@ -20,7 +24,7 @@ use function Pest\Laravel\put;
 
 beforeEach(function () {
     Product::createTables();
-    usePanel(fn (Panel $panel) => $panel->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->resources(ProductResource::class))));
+    usePanel(fn (Panel $panel) => $panel->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->resources(ProductResource::class, CatalogResource::class))));
 });
 
 /** Signed in with the panel and these product permissions ("view", "create" …). */
@@ -46,7 +50,8 @@ it('registers permissions, a sidebar item and routes', function () {
     shopUser('view');
     get('/admin')->assertInertia(fn (Assert $page) => $page
         ->where('navigation.0.group', 'Shop')
-        ->where('navigation.0.items.0.url', 'products'));
+        ->where('navigation.0.items.0.url', 'products')
+        ->where('navigation.0.items.0.label', 'Products'));
 
     actingAs(adminUser(Panel::ACCESS));
     get('/admin')->assertInertia(fn (Assert $page) => $page->where('navigation', []));
@@ -97,7 +102,7 @@ it('lists records with search, filters, sorting and pages', function () {
     get('/admin/products?sort=-price')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.title', 'Hammer'));
     get('/admin/products?sort=sku')->assertInertia(fn (Assert $page) => $page->where('query.sort', 'name')); // not sortable
     get('/admin/products?per_page=10&page=2')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 10)->where('rows.data', []));
-    get('/admin/products?per_page=7')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 10)); // not an option: the one they chose last
+    get('/admin/products?per_page=7')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 25));
 });
 
 it('creates a record from the declared fields only', function () {
@@ -192,7 +197,7 @@ it('runs row and bulk actions', function () {
 it('exports the list as CSV, safe for spreadsheets', function () {
     product(['name' => '=HYPERLINK("http://evil")', 'sku' => 'E-1']);
     product(['name' => 'Plain', 'sku' => 'P-1', 'status' => 'live']);
-    shopUser('view');
+    shopUser('view', 'export');
 
     $csv = get('/admin/products/export?filters[status]=draft')->assertOk()->streamedContent();
 
@@ -220,4 +225,140 @@ it('uses the model\'s policy when it has one', function () {
     get("/admin/products/{$open->id}/edit")->assertOk();
     get("/admin/products/{$locked->id}/edit")->assertForbidden();
     delete("/admin/products/{$open->id}")->assertForbidden();
+});
+
+/** Signed in with these catalog permissions ("view", "update" …). */
+function catalogUser(string ...$abilities): void
+{
+    actingAs(adminUser(Panel::ACCESS, ...array_map(fn ($a) => "shop.catalog.{$a}", $abilities)));
+}
+
+it('searches a relation field\'s options behind the resource\'s view permission', function () {
+    foreach (['Tools', 'Toys', 'Garden'] as $name) {
+        Category::query()->create(['name' => $name]);
+    }
+    Tag::query()->create(['name' => 'Retired', 'active' => false]);
+    Tag::query()->create(['name' => 'Sale']);
+
+    catalogUser();
+    get('/admin/resources/catalog/options/category')->assertForbidden();
+
+    catalogUser('view');
+    expect(get('/admin/resources/catalog/options/category?q=to')->assertOk()->json('options'))
+        ->toBe([['value' => 1, 'label' => 'Tools'], ['value' => 2, 'label' => 'Toys']])
+        ->and(get('/admin/resources/catalog/options/category?q=%25')->json('options'))->toBe([]) // what was typed, not a pattern
+        ->and(get('/admin/resources/catalog/options/tags')->json('options'))->toBe([['value' => 2, 'label' => 'Sale']]) // ->query() narrows
+        ->and(route('sunrice.admin.resources.catalog.options', ['field' => 'tags'], false))->toBe('/admin/resources/catalog/options/tags');
+    get('/admin/resources/catalog/options/name')->assertNotFound(); // not a relation field
+    get('/admin/resources/catalog/options/nothing')->assertNotFound();
+});
+
+it('caps relation options at 50', function () {
+    Category::query()->insert(array_map(fn ($n) => ['name' => sprintf('Category %03d', $n)], range(1, 60)));
+    catalogUser('view');
+
+    expect(get('/admin/resources/catalog/options/category')->json('options'))->toHaveCount(50);
+});
+
+it('saves belongs-to and ordered belongs-to-many fields, only to records that may be chosen', function () {
+    $tools = Category::query()->create(['name' => 'Tools']);
+    [$red, $blue, $retired] = [Tag::query()->create(['name' => 'Red']), Tag::query()->create(['name' => 'Blue']), Tag::query()->create(['name' => 'Old', 'active' => false])];
+    catalogUser('view', 'create', 'update');
+
+    post('/admin/catalog', ['name' => 'Saw', 'sku' => 'S-1', 'category' => $tools->id, 'tags' => [$blue->id, $red->id]])->assertSessionHasNoErrors();
+    $saw = Product::query()->where('sku', 'S-1')->firstOrFail();
+    expect($saw->category_id)->toBe($tools->id)
+        ->and($saw->tags()->orderByPivot('sort_order')->pluck('name')->all())->toBe(['Blue', 'Red']);
+
+    get("/admin/catalog/{$saw->id}/edit")->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('values.category', $tools->id)
+        ->where('values.tags', [$blue->id, $red->id])
+        ->where('sections.0.fields.1.type', 'belongs_to')
+        ->where('sections.0.fields.1.selected', [['value' => $tools->id, 'label' => 'Tools']])
+        ->where('sections.0.fields.2.type', 'belongs_to_many')
+        ->where('sections.0.fields.2.selected', [['value' => $blue->id, 'label' => 'Blue'], ['value' => $red->id, 'label' => 'Red']]));
+
+    put("/admin/catalog/{$saw->id}", ['name' => 'Saw', 'category' => 999, 'tags' => [$retired->id]])->assertSessionHasErrors(['category', 'tags']);
+    put("/admin/catalog/{$saw->id}", ['name' => 'Saw', 'tags' => [$red->id, $red->id]])->assertSessionHasErrors('tags.1');
+    put("/admin/catalog/{$saw->id}", ['name' => 'Saw', 'category' => null, 'tags' => [$red->id]])->assertSessionHasNoErrors();
+    expect($saw->fresh()?->category_id)->toBeNull()
+        ->and($saw->tags()->pluck('name')->all())->toBe(['Red']);
+});
+
+it('keeps only the editor\'s formatting in rich text', function () {
+    catalogUser('view', 'create', 'update');
+    $html = '<h2 onclick="steal()">Hi</h2><p>Read <a href="javascript:alert(1)">this</a> and <a href="/about" target="_blank">that</a></p><script>alert(1)</script><img src="/media/a.jpg" data-media-id="7" onerror="x()">';
+
+    post('/admin/catalog', ['name' => 'Saw', 'sku' => 'S-1', 'description' => $html])->assertSessionHasNoErrors();
+    $saved = (string) Product::query()->where('sku', 'S-1')->value('description');
+
+    expect($saved)->toContain('<h2>Hi</h2>')->toContain('href="/about"')->toContain('rel="noopener noreferrer"')->toContain('data-media-id="7"')
+        ->not->toContain('script')->not->toContain('onclick')->not->toContain('onerror')->not->toContain('javascript:')
+        ->and(RichText::sanitize('<p>ok</p><iframe src="x"></iframe>'))->toBe('<p>ok</p>');
+
+    $id = Product::query()->where('sku', 'S-1')->value('id');
+    put("/admin/catalog/{$id}", ['name' => 'Saw', 'description' => '<p></p>'])->assertSessionHasNoErrors();
+    expect(Product::query()->whereKey($id)->value('description'))->toBeNull();
+});
+
+it('filters by a date range', function () {
+    product(['name' => 'Old', 'released_on' => '2025-12-31']);
+    product(['name' => 'January', 'released_on' => '2026-01-15']);
+    product(['name' => 'Later', 'released_on' => '2026-03-01']);
+    catalogUser('view');
+
+    $names = fn (string $range) => array_column(get('/admin/catalog?filters[released_on]='.$range)->viewData('page')['props']['rows']['data'], 'title');
+
+    expect($names('2026-01-01,2026-01-31'))->toBe(['January'])
+        ->and($names('2026-01-01,'))->toBe(['January', 'Later'])
+        ->and($names(',2026-01-15'))->toBe(['January', 'Old'])
+        ->and($names('2026-02-30,'))->toBe(['January', 'Later', 'Old']) // not a date: ignored
+        ->and($names('soon'))->toBe(['January', 'Later', 'Old']);
+    get('/admin/catalog')->assertInertia(fn (Assert $page) => $page->where('filters.0.type', 'date_range')->where('filters.0.options', []));
+});
+
+it('opens url actions and checks authorize() closures', function () {
+    $draft = product(['name' => 'Draft']);
+    $live = product(['name' => 'Live', 'status' => 'live']);
+    catalogUser('view', 'update');
+
+    get('/admin/catalog')->assertInertia(fn (Assert $page) => $page
+        ->where('rowActions.0.key', 'view-on-site')->where('rowActions.0.url', true)->where('rowActions.0.newTab', true)
+        ->where('rows.data.0.title', 'Draft')
+        ->where('rows.data.0.actions', ['view-on-site', 'archive']) // the javascript: address is never offered
+        ->where('rows.data.0.urls', ['view-on-site' => "/products/{$draft->id}"])
+        ->where('rows.data.1.actions', ['view-on-site'])); // authorize() refuses archiving a live one
+
+    post("/admin/catalog/{$draft->id}/actions/view-on-site")->assertNotFound();
+    post("/admin/catalog/{$live->id}/actions/archive")->assertForbidden();
+    post("/admin/catalog/{$draft->id}/actions/archive")->assertRedirect();
+    expect($draft->fresh()?->status)->toBe('archived')
+        ->and(fn () => Action::bulk('open')->url('/x'))->toThrow(InvalidArgumentException::class);
+});
+
+it('needs the export permission to export, registered only for exportable tables', function () {
+    product();
+    $permissions = array_keys(app(Panel::class)->getPermissions());
+    expect($permissions)->toContain('shop.products.export')->not->toContain('shop.catalog.export');
+
+    shopUser('view');
+    get('/admin/products')->assertInertia(fn (Assert $page) => $page->where('can.export', false));
+    get('/admin/products/export')->assertForbidden();
+
+    shopUser('view', 'export');
+    get('/admin/products')->assertInertia(fn (Assert $page) => $page->where('can.export', true));
+    get('/admin/products/export')->assertOk();
+
+    catalogUser('view', 'export');
+    get('/admin/catalog/export')->assertNotFound(); // not exportable
+});
+
+it('lets a policy with export() decide exports', function () {
+    Gate::policy(Product::class, ProductPolicy::class);
+    shopUser(); // no product permissions: the policy's viewAny and export() decide
+
+    get('/admin/products/export')->assertOk();
+    ProductPolicy::$exports = false;
+    get('/admin/products/export')->assertForbidden();
+    ProductPolicy::$exports = true;
 });

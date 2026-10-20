@@ -32,12 +32,15 @@ class PageCacheProfile extends CacheAllSuccessfulGetRequests
 
     public function cacheLifetimeInSeconds(Request $request): int
     {
-        return min(parent::cacheLifetimeInSeconds($request), SiteCache::ttl());
+        $lifetime = min(parent::cacheLifetimeInSeconds($request), SiteCache::ttl());
+        $own = app(PageCache::class)->lifetime($request, Page::current());
+
+        return $own === null ? $lifetime : min($lifetime, $own);
     }
 
-    /** The content version and languages: pages kept before a change are never served again. */
+    /** The pages' content version: pages kept before a change are never served again. */
     public function useCacheNameSuffix(Request $request): string
     {
-        return 'v'.app(SiteCache::class)->stamp();
+        return 'v'.app(SiteCache::class)->version(SiteCache::PAGES);
     }
 }

@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace Sunrice\Cms\Translation;
 
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * OpenRouter's chat completions, for any model it hosts.
+ * OpenRouter's chat completions, for any model it hosts, with SUNRICE_OPENROUTER_KEY.
  *
- * @internal
+ * @api
  */
 final class OpenRouterTranslator extends LlmTranslator
 {
+    public const DEFAULT_MODEL = 'google/gemini-2.5-flash';
+
     protected function complete(string $system, string $user): string
     {
-        $response = Http::timeout($this->timeout)->retry(2, 1000, throw: false)
-            ->withToken($this->key)
+        $name = config('app.name');
+        $response = $this->http()->withToken($this->key)
+            ->withHeaders(['HTTP-Referer' => url('/'), 'X-Title' => is_string($name) ? $name : 'Sunrice'])
             ->post('https://openrouter.ai/api/v1/chat/completions', [
                 'model' => $this->model,
                 'messages' => [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => $user]],
@@ -25,7 +27,9 @@ final class OpenRouterTranslator extends LlmTranslator
                 'temperature' => 0.2,
             ]);
         if ($response->failed()) {
-            throw new RuntimeException('OpenRouter answered '.$response->status().'.');
+            $message = $response->json('error.message');
+
+            throw new RuntimeException('OpenRouter answered '.$response->status().(is_string($message) ? ": {$message}" : '.'));
         }
         $text = $response->json('choices.0.message.content');
 

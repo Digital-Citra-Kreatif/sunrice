@@ -19,12 +19,12 @@ Other packages (sunrice-commerce, its payment and shipping gateways, sunrice-vis
 - **Performance**: no queries in loops (eager load), no work at boot that can wait until it's needed, lazy Inertia props for anything expensive, plugin JS loaded only on the pages that use it.
 - Larastan runs at `level: max`. Don't add ignores to `phpstan.neon` without a comment saying why.
 - Until 1.0 there is no backwards compatibility to keep: improve APIs freely, but record every change in `CHANGELOG.md`. After 1.0, never modify a released migration and keep developer-facing APIs compatible.
-- Update `docs/` when adding or changing developer-facing API.
+- Update the docs when adding or changing developer-facing API: each package's own pages live in its `docs/` (`packages/admin/docs`, `packages/cms/docs`, shipped with the package and shown on Help → Developer docs), cross-cutting ones (architecture, upgrading, the index) in the root `docs/`. Relative links between them are checked by `tests/Arch/DocsLinksTest.php`.
 - Do not commit `node_modules/`, `vendor/`, `composer.lock` or `.env`. Do commit compiled admin assets in each package's `dist/`.
 
 ## Approved dependencies
 
-- Composer, `sunrice/admin`: `illuminate/*`, `spatie/laravel-package-tools`, `inertiajs/inertia-laravel`, `spatie/laravel-permission`, `intervention/image` (v3+), `spatie/simple-excel`, `symfony/html-sanitizer`, `laravel/mcp`.
+- Composer, `sunrice/admin`: `illuminate/*`, `spatie/laravel-package-tools`, `inertiajs/inertia-laravel`, `spatie/laravel-permission`, `intervention/image` (v3+), `spatie/simple-excel`, `symfony/html-sanitizer`, `laravel/mcp`, `league/commonmark` (Markdown for the Help pages; ships with every Laravel install).
 - Composer, `sunrice/cms`: the above plus `spatie/laravel-honeypot`, `spatie/laravel-sitemap`, `spatie/laravel-responsecache` (optional, suggested).
 - Dev: `orchestra/testbench`, `pestphp/pest`, `pestphp/pest-plugin-laravel`, `laravel/pint`, `larastan/larastan`.
 - npm (admin): React 19, Inertia, TypeScript, Vite, Tailwind v4, shadcn/ui components with their Radix dependencies, `lucide-react`, `@tanstack/react-table`, `@dnd-kit/*`, TipTap, `sonner`, `date-fns`.

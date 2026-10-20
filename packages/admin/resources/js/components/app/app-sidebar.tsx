@@ -1,17 +1,14 @@
 import * as React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ChevronRight, ChevronsUpDown, LayoutGrid, LifeBuoy, LogOut } from 'lucide-react';
+import { ChevronRight, LayoutGrid } from 'lucide-react';
 import {
     Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
     SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { BrandMark } from '@/components/app/brand';
+import { AppLogo } from '@/components/app/app-logo';
+import { NavUser } from '@/components/app/nav-user';
 import { navIcon } from '@/components/app/nav-icon';
-import { useAppearance, type Appearance } from '@/hooks/use-appearance';
 import { adminUrl } from '@/lib/admin-url';
 import type { NavItem, SharedProps } from '@/types';
 
@@ -22,10 +19,9 @@ function isCurrent(currentPath: string, url: string): boolean {
 }
 
 export function AppSidebar() {
-    const { navigation, sunrice, auth } = usePage<SharedProps>().props;
+    const { navigation, sunrice } = usePage<SharedProps>().props;
     const path = usePage().url.split('?')[0] ?? '';
     const { isMobile, setOpenMobile } = useSidebar();
-    const { appearance, updateAppearance } = useAppearance();
 
     // On phones the sidebar is a flyout: close it when a visit starts.
     React.useEffect(() => {
@@ -77,11 +73,8 @@ export function AppSidebar() {
             <SidebarHeader className="pt-4 pb-5">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={adminUrl()} prefetch>
-                                <BrandMark />
-                                <span className="truncate font-semibold">{sunrice.brand}</span>
-                            </Link>
+                        <SidebarMenuButton size="lg" asChild tooltip={sunrice.branding.name}>
+                            <Link href={adminUrl()} prefetch><AppLogo /></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
@@ -109,42 +102,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter className="border-t border-sidebar-border/60 py-3">
-                {auth.user && (
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <SidebarMenuButton size="lg" tooltip={auth.user.name ?? auth.user.email ?? ''}>
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                                            {(auth.user.name ?? auth.user.email ?? '?').slice(0, 1).toUpperCase()}
-                                        </span>
-                                        <span className="grid min-w-0 text-left leading-tight">
-                                            <span className="truncate font-medium">{auth.user.name ?? auth.user.email}</span>
-                                            {auth.user.name && <span className="truncate text-xs text-muted-foreground">{auth.user.email}</span>}
-                                        </span>
-                                        <ChevronsUpDown className="ml-auto size-4" />
-                                    </SidebarMenuButton>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent side="top" align="start" className="w-56">
-                                    <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Appearance</DropdownMenuLabel>
-                                    <DropdownMenuRadioGroup value={appearance} onValueChange={(value) => updateAppearance(value as Appearance)}>
-                                        <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="system">Same as the device</DropdownMenuRadioItem>
-                                    </DropdownMenuRadioGroup>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem asChild>
-                                        <Link href={adminUrl('help')}><LifeBuoy /> Help</Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => router.post(adminUrl('logout'))}>
-                                        <LogOut />
-                                        Log out
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                )}
+                <NavUser />
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>

@@ -2,16 +2,21 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Comment;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Fieldset;
+use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -111,14 +116,28 @@ it('opens an entry with its draft, status and revisions', function () {
     $translation = app(PublishEntry::class)->handle(draft());
     app(SaveDraft::class)->handle($translation, ['title' => 'Hello again']);
     editor('view');
+    config(['inertia.testing.ensure_pages_exist' => false]); // the deferred reload looks for a page file: the CMS's are bundled
 
     get("/admin/cms/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('entry.status', 'published')
         ->where('entry.hasUnpublishedChanges', true)
-        ->where('entry.version', 2)
+        ->where('entry.version', 3)
         ->where('values.title', 'Hello again')
-        ->where('revisions.0.title', 'Hello')
-        ->where('can.update', false));
+        ->missing('revisions')
+        ->where('can.update', false)
+        // The sidebar's revisions load after the page shows.
+        ->loadDeferredProps(fn (Assert $reload) => $reload->where('revisions.0.title', 'Hello')));
+});
+
+it('opens an entry whose blocks may hold themselves', function () {
+    Fieldset::query()->create(['handle' => 'section', 'title' => 'Section', 'fields' => [['handle' => 'parts', 'type' => 'flexible', 'config' => ['blocks' => ['section']]]]]);
+    Blueprint::query()->where('handle', 'article')->update(['fields' => json_encode([['handle' => 'sections', 'type' => 'flexible', 'config' => ['blocks' => ['section']]]])]);
+    $translation = draft(data: ['sections' => [['type' => 'section', 'values' => ['parts' => [['type' => 'section', 'values' => []]]]]]]);
+    editor('view');
+
+    get("/admin/cms/entries/{$translation->entry_id}/edit")->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('fields.0.blocks.0.fields.0.blocks.0.label', 'Section')
+        ->where('values.data.sections.0.values.parts.0.type', 'section'));
 });
 
 it('saves the draft, refusing a stale version', function () {
@@ -185,4 +204,87 @@ it('hides entries of a deleted collection', function () {
 
     get('/admin/cms/collections/articles/entries')->assertNotFound();
     get("/admin/cms/entries/{$entry->id}/edit")->assertNotFound();
+});
+
+it('shows the entry\'s comments in the editor, to those who may see them', function () {
+    config(['inertia.testing.ensure_pages_exist' => false]);
+    $this->articles->update(['comments' => true]);
+    $entry = draft()->entry;
+    $other = draft('Other')->entry;
+    foreach (['pending', 'approved', 'approved', 'spam'] as $i => $status) {
+        Comment::query()->create(['entry_id' => $entry->id, 'author_name' => "Guest {$i}", 'body' => "Comment {$i}", 'status' => $status, 'locale' => 'en']);
+    }
+    Comment::query()->create(['entry_id' => $other->id, 'author_name' => 'Elsewhere', 'body' => 'Not here', 'status' => 'pending', 'locale' => 'en']);
+
+    editor('view');
+    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page->where('comments', null));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.comments.view'));
+    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->missing('comments')
+        ->loadDeferredProps(fn (Assert $reload) => $reload
+            ->where('comments.counts', ['pending' => 1, 'approved' => 2, 'spam' => 1])
+            ->has('comments.latest', 3)
+            ->where('comments.latest.0.excerpt', 'Comment 2')
+            ->where('comments.canModerate', false)));
+
+    // Not when the collection takes no comments.
+    $this->articles->update(['comments' => false]);
+    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page->where('comments', null));
+    // The comments page, filtered to the entry.
+    actingAs(adminUser(Panel::ACCESS, 'cms.comments.view'));
+    get("/admin/cms/comments?entry={$entry->id}")->assertInertia(fn (Assert $page) => $page->where('filters.entry', $entry->id)->has('comments.data', 3));
+});
+
+it('sends terms fields their taxonomy and the chosen terms\' titles, and the picker the terms', function () {
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'hierarchical' => true]);
+    $news = app(SaveTerm::class)->handle($topics, ['title' => 'News']);
+    $local = app(SaveTerm::class)->handle($topics, ['title' => 'Local', 'parent_id' => $news->id]);
+    $sport = app(SaveTerm::class)->handle($topics, ['title' => 'Sport']);
+    Taxonomy::query()->create(['handle' => 'other', 'title' => 'Other']);
+    Blueprint::query()->where('handle', 'article')->update(['fields' => json_encode([['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics', 'multiple' => true]]])]);
+    $entry = draft(data: ['topics' => [$local->id]])->entry;
+    editor('view');
+
+    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('fields.0.taxonomy', 'topics')->missing('fields.0.terms')
+        ->where('termLabels', [(string) $local->id => 'Local']));
+
+    $this->getJson('/admin/cms/term-picker?taxonomy=topics')->assertOk()->assertExactJson(['items' => [
+        ['id' => $news->id, 'label' => 'News', 'depth' => 0], ['id' => $local->id, 'label' => 'Local', 'depth' => 1], ['id' => $sport->id, 'label' => 'Sport', 'depth' => 0],
+    ], 'more' => false]);
+    $this->getJson('/admin/cms/term-picker?taxonomy=topics&q=spo')->assertJsonPath('items', [['id' => $sport->id, 'label' => 'Sport', 'depth' => 0]]);
+    $this->getJson("/admin/cms/term-picker?taxonomy=other&ids[]={$sport->id}")->assertJsonPath('items', []);
+    $this->getJson("/admin/cms/term-picker?taxonomy=topics&ids[]={$sport->id}")->assertJsonPath('items.0.label', 'Sport');
+    $this->getJson('/admin/cms/term-picker?taxonomy=nope')->assertNotFound();
+    $this->getJson('/admin/cms/term-picker')->assertUnprocessable();
+
+    actingAs(adminUser(Panel::ACCESS));
+    $this->getJson('/admin/cms/term-picker?taxonomy=topics')->assertForbidden();
+});
+
+it('keeps the editor to a query budget', function () {
+    Blueprint::query()->where('handle', 'article')->update(['fields' => json_encode([
+        ['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics', 'multiple' => true]],
+        ['handle' => 'related', 'type' => 'entries', 'config' => ['multiple' => true]],
+        ['handle' => 'rows', 'type' => 'repeater', 'fields' => [['handle' => 'tag', 'type' => 'terms', 'config' => ['taxonomy' => 'topics']]]],
+    ])]);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics']);
+    $terms = array_map(fn (int $i) => app(SaveTerm::class)->handle($topics, ['title' => "Topic {$i}"])->id, range(1, 30));
+    $translation = draft(data: ['topics' => array_slice($terms, 0, 10), 'rows' => array_map(fn (int $id) => ['tag' => $id], array_slice($terms, 10, 10))]);
+    foreach (range(1, 5) as $i) {
+        app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($translation->fresh(), ['title' => "Version {$i}"]));
+    }
+    editor('view', 'update');
+    $url = "/admin/cms/entries/{$translation->entry_id}/edit";
+    get($url)->assertOk(); // warms the caches
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    get($url)->assertOk()->assertInertia(fn (Assert $page) => $page->has('termLabels', 20));
+    $queries = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    // However many terms, revisions and rows: no queries in loops, and the term options aren't in the page.
+    expect($queries)->toBeLessThanOrEqual(10);
 });

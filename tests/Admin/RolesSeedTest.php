@@ -20,12 +20,12 @@ beforeEach(function () {
 it('creates the default roles with their permissions, adding only', function () {
     expect(app(Panel::class)->getDefaultRoles())->toBe([
         'administrator' => ['*'],
-        'cashier' => [Panel::ACCESS, 'shop.orders.view', 'shop.orders.*'],
+        'cashier' => [Panel::ACCESS, 'shop.orders.view', 'shop.orders.*', 'sunrice.guide.view'],
     ]);
 
     expect(array_keys(app(SeedRoles::class)->handle()))->toBe(['administrator', 'cashier']);
     $cashier = Role::findByName('cashier', 'web');
-    expect($cashier->permissions->pluck('name')->sort()->values()->all())->toBe(['shop.orders.refund', 'shop.orders.view', 'sunrice.access'])
+    expect($cashier->permissions->pluck('name')->sort()->values()->all())->toBe(['shop.orders.refund', 'shop.orders.view', 'sunrice.access', 'sunrice.guide.view'])
         ->and(Role::findByName('administrator', 'web')->permissions->pluck('name'))->toContain('sunrice.settings.security', 'shop.orders.refund');
 
     // Run again, it gives what's missing.

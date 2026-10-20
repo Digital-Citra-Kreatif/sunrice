@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Comments\PostComment;
@@ -48,9 +49,9 @@ function guest(array $input = []): array
     return [...['body' => 'Nice post', 'author_name' => 'Rina', 'author_email' => 'rina@example.com'], ...$input];
 }
 
-function commentOn(EntryTranslation $post, array $input = []): Comment
+function commentOn(EntryTranslation $post, array $input = [], string $ip = '10.0.0.1'): Comment
 {
-    return app(PostComment::class)->handle($post->entry, guest($input), null, 'en', '10.0.0.1');
+    return app(PostComment::class)->handle($post->entry, guest($input), null, 'en', $ip);
 }
 
 function commentSettings(array $values): void
@@ -66,7 +67,11 @@ it('holds a commenter\'s first comment, then trusts them', function () {
 
     app(SetCommentStatus::class)->handle($first, Comment::APPROVED);
     expect(commentOn($this->post, ['author_email' => 'RINA@example.com'])->status)->toBe(Comment::APPROVED)
-        ->and(commentOn($this->post, ['author_email' => 'other@example.com'])->status)->toBe(Comment::PENDING);
+        ->and(commentOn($this->post, ['author_email' => 'other@example.com'])->status)->toBe(Comment::PENDING)
+        // An email alone proves nothing: the same name and address (its hash) too, else held again.
+        ->and(commentOn($this->post, [], '10.0.0.2')->status)->toBe(Comment::PENDING)
+        ->and(commentOn($this->post, ['author_name' => 'Rina S.'])->status)->toBe(Comment::PENDING)
+        ->and(app(PostComment::class)->handle($this->post->entry, guest(), null, 'en', null)->status)->toBe(Comment::PENDING);
 
     commentSettings(['moderation' => CommentSettings::HOLD_ALL]);
     expect(commentOn($this->post)->status)->toBe(Comment::PENDING);
@@ -174,7 +179,10 @@ it('emails moderators, and commenters about replies once, with a way to stop', f
     commentSettings(['notifyEmails' => "editor@example.com\nnot-an-address"]);
 
     $question = commentOn($this->post, ['notify_replies' => '1']);
-    Mail::assertQueued(CommentPosted::class, fn (CommentPosted $mail) => $mail->hasTo('mod@example.com') && $mail->hasTo('editor@example.com'));
+    // One email each: moderators don't see each other's addresses.
+    Mail::assertQueued(CommentPosted::class, 2);
+    Mail::assertQueued(CommentPosted::class, fn (CommentPosted $mail) => $mail->hasTo('mod@example.com') && ! $mail->hasTo('editor@example.com'));
+    Mail::assertQueued(CommentPosted::class, fn (CommentPosted $mail) => $mail->hasTo('editor@example.com') && ! $mail->hasTo('mod@example.com'));
     app(SetCommentStatus::class)->handle($question, Comment::APPROVED);
 
     $answer = commentOn($this->post, ['body' => 'Answer', 'parent_id' => $question->id, 'author_email' => 'budi@example.com']);
@@ -191,12 +199,26 @@ it('emails moderators, and commenters about replies once, with a way to stop', f
 
     $unsubscribe = URL::signedRoute('sunrice.cms.comments.unsubscribe', ['comment' => $question->id]);
     get(str_replace('signature=', 'signature=x', $unsubscribe))->assertForbidden();
-    get($unsubscribe)->assertOk();
+    get($unsubscribe)->assertOk()->assertHeader('Content-Type', 'text/html; charset=utf-8')->assertHeader('X-Robots-Tag', 'noindex')
+        ->assertSee('<h1>You&#039;re unsubscribed</h1>', false)->assertSee('href="'.$this->post->url().'"', false);
     expect($question->fresh()?->notify_replies)->toBeFalse();
 
     // Guests can't sign anyone up when nothing is held.
     commentSettings(['moderation' => CommentSettings::HOLD_NONE]);
     expect(commentOn($this->post, ['notify_replies' => '1', 'author_email' => 'z@example.com'])->notify_replies)->toBeFalse();
+});
+
+it('signs a guest up for reply emails only when a moderator saw them ask', function () {
+    $first = commentOn($this->post);
+    app(SetCommentStatus::class)->handle($first, Comment::APPROVED);
+    // Trusted, so published at once: no moderator sees the address, and the comment that earned the trust didn't ask.
+    expect(commentOn($this->post, ['notify_replies' => '1'])->notify_replies)->toBeFalse();
+
+    $asked = commentOn($this->post, ['notify_replies' => '1', 'author_name' => 'Rina S.']);
+    expect($asked->status)->toBe(Comment::PENDING)->and($asked->notify_replies)->toBeTrue();
+    app(SetCommentStatus::class)->handle($asked, Comment::APPROVED);
+    expect(commentOn($this->post, ['notify_replies' => '1', 'author_name' => 'Rina S.'])->notify_replies)->toBeTrue()
+        ->and(commentOn($this->post, ['author_name' => 'Rina S.'])->notify_replies)->toBeFalse();
 });
 
 it('moderates in the admin, behind its permissions', function () {
@@ -229,6 +251,9 @@ it('moderates in the admin, behind its permissions', function () {
     expect(Comment::onlyTrashed()->count())->toBe(1);
     post("/admin/cms/comments/{$pending->id}/restore");
     post('/admin/cms/comments/bulk', ['action' => 'trash', 'ids' => [$pending->id, $spam->id]]);
+    get('/admin/cms/comments?status=trash')->assertInertia(fn (Assert $page) => $page
+        ->where('counts', ['all' => 1, 'pending' => 0, 'approved' => 1, 'spam' => 0, 'trash' => 2]) // the reply stays
+        ->where('comments.total', 2));
     post('/admin/cms/comments/bulk', ['action' => 'delete', 'ids' => [$pending->id]]);
     expect(Comment::withTrashed()->find($pending->id))->toBeNull()
         ->and(Comment::query()->sole()->parent_id)->toBeNull(); // the reply moved up
@@ -246,4 +271,21 @@ it('prunes old spam and deletes an entry\'s comments with it', function () {
     app(TrashEntry::class)->handle($this->post->entry);
     app(ForceDeleteEntry::class)->handle($this->post->entry);
     expect(Comment::withTrashed()->count())->toBe(0);
+});
+
+it('emails the members of the roles Settings → Comments names too', function () {
+    $role = Role::findOrCreate('reviewers', 'web');
+    $reviewer = adminUser(Panel::ACCESS);
+    $reviewer->update(['email' => 'reviewer@example.com']);
+    $reviewer->assignRole($role);
+    adminUser(Panel::ACCESS)->update(['email' => 'other@example.com']);
+    commentSettings(['notifyRoles' => ['reviewers', 'gone']]);
+
+    commentOn($this->post);
+
+    Mail::assertQueued(CommentPosted::class, 1);
+    Mail::assertQueued(CommentPosted::class, fn (CommentPosted $mail) => $mail->hasTo('reviewer@example.com'));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.comments'));
+    get('/admin/settings/comments')->assertOk()->assertSee('reviewers');
 });

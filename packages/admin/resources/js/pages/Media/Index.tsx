@@ -4,6 +4,7 @@ import {
     ChevronLeft, ChevronRight, CircleAlert, Folder, FolderPlus, LoaderCircle, MoreHorizontal, RotateCcw, Search, Trash2, Upload as UploadIcon, X,
 } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import { InputError } from '@/components/app/input-error';
 import { formatBytes } from '@/components/media/format';
 import { FileIcon, MediaDetails } from '@/components/media/media-details';
@@ -29,13 +30,15 @@ interface Props {
     media: { data: MediaItem[]; total: number; currentPage: number; lastPage: number; prevUrl: string | null; nextUrl: string | null };
     can: { upload: boolean; update: boolean; delete: boolean };
     upload: { maxKb: number; accept: string };
+    /** The public disk's storage link is missing (php artisan storage:link). */
+    storageLinkMissing?: boolean;
 }
 
 const ALL = '__all';
 const TOP = '__top';
 const TYPES = [{ value: 'image', label: 'Images' }, { value: 'video', label: 'Videos' }, { value: 'audio', label: 'Audio' }, { value: 'document', label: 'Documents' }];
 
-export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload }: Props) {
+export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false }: Props) {
     const base = adminUrl('media');
     useBreadcrumbs(path.length === 0 ? [{ label: 'Media' }] : [{ label: 'Media', href: base }, ...path.map((f, i) => (i === path.length - 1 ? { label: f.name } : { label: f.name, href: `${base}?folder=${f.id}` }))]);
     const [confirm, confirmDialog] = useConfirm();
@@ -81,21 +84,30 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             <Head title={folder ? `${folder.name} · Media` : 'Media'} />
             {confirmDialog}
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="truncate text-2xl font-medium tracking-tight">{query.trash ? 'Trash' : (folder?.name ?? 'Media')}</h1>
-                <div className="flex flex-wrap items-center gap-2">
-                    {can.update && !query.trash && !query.search && (
-                        <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />New folder</Button>
-                    )}
-                    {canUpload && (
-                        <>
-                            <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label="Files to upload"
-                                onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
-                            <Button onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>
-                        </>
-                    )}
+            <PageHeader
+                title={query.trash ? 'Trash' : (folder?.name ?? 'Media')}
+                actions={
+                    <>
+                        {can.update && !query.trash && !query.search && (
+                            <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />New folder</Button>
+                        )}
+                        {canUpload && (
+                            <>
+                                <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label="Files to upload"
+                                    onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
+                                <Button onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>
+                            </>
+                        )}
+                    </>
+                }
+            />
+
+            {storageLinkMissing && (
+                <div role="alert" className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                    <p className="font-medium">Files can't be shown: the storage link is missing.</p>
+                    <p className="text-muted-foreground">Run <code className="rounded bg-muted px-1">php artisan storage:link</code> on the server, so the public disk's files are served from <code className="rounded bg-muted px-1">public/storage</code>.</p>
                 </div>
-            </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-72" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
@@ -158,7 +170,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             {folders.length > 0 && (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                     {folders.map((f) => (
-                        <div key={f.id} className="group flex items-center gap-2 rounded-md border bg-card px-3 py-2.5 hover:bg-muted/50">
+                        <div key={f.id} className="group flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 transition-colors duration-150 ease-out-quart hover:bg-muted/40">
                             <Link href={`${base}?folder=${f.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
                                 <Folder className="size-4 shrink-0 text-muted-foreground" /><span className="truncate">{f.name}</span>
                             </Link>
@@ -181,15 +193,16 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             )}
 
             {media.data.length === 0 ? (
-                <div className="rounded-md border border-dashed p-12 text-center text-sm text-muted-foreground">
+                <div className="rounded-xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
                     {query.trash ? 'The trash is empty.' : query.search || query.type ? 'Nothing matches.' : canUpload ? 'No files here yet. Drop files on this page or use Upload.' : 'No files here yet.'}
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {media.data.map((item) => {
+                    {media.data.map((item, i) => {
                         const checked = selected.includes(item.id);
                         return (
-                            <div key={item.id} className={cn('group relative overflow-hidden rounded-md border bg-card', checked && 'ring-2 ring-primary')}>
+                            <div key={item.id} style={{ '--i': i } as React.CSSProperties}
+                                className={cn('sunrice-row-in group relative overflow-hidden rounded-lg border bg-card transition-[transform,box-shadow,border-color] duration-200 ease-out-quart hover:-translate-y-0.5 hover:border-border hover:shadow-card', checked && 'ring-2 ring-primary')}>
                                 <button type="button" className="block w-full text-left" onClick={() => setOpenId(item.id)} aria-label={`Open ${item.title || item.filename}`}>
                                     <div className="flex aspect-square items-center justify-center bg-muted">
                                         {item.thumbnail

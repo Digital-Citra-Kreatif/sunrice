@@ -14,6 +14,7 @@ use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Http\Controllers\MediaController;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaFolder;
+use Sunrice\Admin\Support\Like;
 
 #[IsReadOnly]
 #[Description('List the media library: files (id, title, filename, alt text, type, size, dimensions, URL) in a folder or matching a search, newest first, and the folders. Use a file\'s id in media fields (get_record shows them).')]
@@ -34,7 +35,7 @@ final class ListMedia extends Tool
 
         $media = Media::query()
             ->when($search === '', fn (Builder $q) => $q->where('folder_id', is_int($folder) ? $folder : null))
-            ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w->whereLike('title', "%{$search}%")->orWhereLike('filename', "%{$search}%")))
+            ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w->whereLike('title', '%'.Like::escape($search).'%')->orWhereLike('filename', '%'.Like::escape($search).'%')))
             ->tap(fn (Builder $q) => Media::whereTypes($q, is_string($type) && in_array($type, Media::TYPES, true) ? [$type] : []))
             ->orderByDesc('id')
             ->paginate(30, ['*'], 'page', is_int($page) ? max(1, $page) : 1);

@@ -2,19 +2,26 @@
 
 declare(strict_types=1);
 
+use Illuminate\Validation\ValidationException;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
+use Sunrice\Cms\Actions\Menus\SaveMenu;
+use Sunrice\Cms\Actions\Settings\SwitchMainLanguage;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
+use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\GlobalSet;
+use Sunrice\Cms\Models\Menu;
+use Sunrice\Cms\Models\MenuItem;
 use Sunrice\Cms\Models\Redirect;
 use Sunrice\Cms\Models\Taxonomy;
-use Sunrice\Cms\Support\SiteCache;
+use Sunrice\Cms\Models\TermTranslation;
+use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\artisan;
@@ -23,74 +30,90 @@ use function Pest\Laravel\get;
 beforeEach(function () {
     config(['sunrice-cms.locales' => ['en', 'id']]);
     actingAs(adminUser());
-    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
-        ['handle' => 'intro', 'type' => 'text'],
-        ['handle' => 'rating', 'type' => 'number'],
+    Blueprint::query()->create(['handle' => 'dish', 'title' => 'Dish', 'fields' => [
+        ['handle' => 'intro', 'type' => 'textarea'],
+        ['handle' => 'price', 'type' => 'number'],
+        ['handle' => 'sides', 'type' => 'repeater', 'fields' => [['handle' => 'name', 'type' => 'text'], ['handle' => 'extra', 'type' => 'number']]],
     ]]);
-    $this->blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'route' => '/blog/{slug}']);
+    $this->dishes = Collection::query()->create(['handle' => 'dishes', 'title' => 'Dishes', 'blueprint' => 'dish', 'route' => '/menu/{slug}']);
+    $this->coffee = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->dishes, ['title' => 'Coffee', 'data' => [
+        'intro' => 'Strong', 'price' => 30, 'sides' => [['_id' => 's1', 'name' => 'Milk', 'extra' => 2]],
+    ]]));
+    $kopi = app(CreateTranslation::class)->handle($this->coffee->entry, 'id');
+    app(SaveDraft::class)->handle($kopi, ['title' => 'Kopi', 'slug' => 'kopi', 'data' => ['intro' => 'Kental', 'sides' => [['_id' => 's1', 'name' => 'Susu']]]]);
+    $this->kopi = app(PublishEntry::class)->handle($kopi->fresh() ?? $kopi);
 });
 
-/** An entry live in English and Indonesian; the rating (shared) changed after it was translated. */
-function bilingualPost(): EntryTranslation
-{
-    $en = app(CreateEntry::class)->handle(test()->blog, ['title' => 'Hello', 'data' => ['intro' => 'Hi', 'rating' => 3]]);
-    $id = app(CreateTranslation::class)->handle($en->entry, 'id');
-    app(SaveDraft::class)->handle($id, ['title' => 'Halo', 'slug' => 'halo', 'data' => ['intro' => 'Hai']]);
-    app(SaveDraft::class)->handle($en->fresh() ?? $en, ['data' => ['rating' => 5]]);
-    app(PublishEntry::class)->handle($en->fresh() ?? $en);
-    app(PublishEntry::class)->handle($id->fresh() ?? $id);
+it('reports what a switch would change, and refuses one that would leave content behind', function () {
+    $tea = app(CreateEntry::class)->handle($this->dishes, ['title' => 'Tea', 'data' => ['price' => 10]]);
 
-    return $en;
-}
+    expect(app(SwitchMainLanguage::class)->report('id'))->toMatchArray(['entries' => 2, 'missing_entries' => 1, 'terms' => 0, 'missing_terms' => 0])
+        ->and(fn () => app(SwitchMainLanguage::class)->handle('id'))->toThrow(ValidationException::class, '--copy-missing')
+        ->and(fn () => app(SwitchMainLanguage::class)->handle('en'))->toThrow(ValidationException::class, 'already')
+        ->and(fn () => app(SwitchMainLanguage::class)->handle('fr'))->toThrow(ValidationException::class);
 
-it('moves the shared fields and redirects the addresses that change', function () {
-    $en = bilingualPost();
-    Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'phone', 'type' => 'text', 'translatable' => false], ['handle' => 'address', 'type' => 'text']]]);
+    artisan('sunrice:switch-main-language', ['locale' => 'id', '--dry-run' => true, '--copy-missing' => true])->assertSuccessful()->expectsOutputToContain('Dry run');
+    artisan('sunrice:switch-main-language', ['locale' => 'id', '--force' => true])->assertFailed();
+    expect(Locales::default())->toBe('en')->and($tea->fresh()?->locale)->toBe('en');
+});
+
+it('moves the shared values, labels and addresses to the new main language', function () {
+    $tea = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->dishes, ['title' => 'Tea', 'data' => ['price' => 10]]));
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'address', 'type' => 'text'], ['handle' => 'open', 'type' => 'toggle']]]);
     $contact = GlobalSet::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
-    app(SaveGlobals::class)->handle($contact, ['phone' => '555', 'address' => 'Main St']);
-    Redirect::query()->create(['from_path' => '/blog/old-hello', 'to_url' => '/blog/hello', 'status' => 301]);
+    app(SaveGlobals::class)->handle($contact, ['address' => 'Main St', 'open' => true]);
+    app(SaveGlobals::class)->handle($contact, ['address' => 'Jalan Utama'], 'id');
+    $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    app(SaveMenu::class)->handle($menu, [['entry_id' => $this->coffee->entry_id, 'labels' => ['en' => 'Our coffee']]]);
+    Redirect::query()->create(['from_path' => '/old-coffee', 'to_url' => '/menu/coffee']);
+    Redirect::query()->create(['from_path' => '/id/kopi-lama', 'to_url' => '/id/menu/kopi']);
 
-    artisan('sunrice:switch-main-language', ['locale' => 'id', '--force' => true])->assertSuccessful()
-        ->expectsOutputToContain('SUNRICE_LOCALES=id,en');
+    artisan('sunrice:switch-main-language', ['locale' => 'id', '--copy-missing' => true, '--force' => true])->assertSuccessful()
+        ->expectsOutputToContain('is the main language now');
 
-    $id = $en->entry->fresh()?->translation('id');
-    expect($id?->data['rating'])->toBe(5)->and($id?->draft_data['rating'])->toBe(5)->and($id?->data['intro'])->toBe('Hai')
-        ->and($contact->fresh()?->values->firstWhere('locale', 'id')?->data)->toBe(['phone' => '555', 'address' => 'Main St'])
-        ->and(Redirect::query()->pluck('to_url', 'from_path')->all())->toBe(['/blog/old-hello' => '/en/blog/hello', '/blog/hello' => '/en/blog/hello', '/id/blog/halo' => '/blog/halo']);
+    expect(Locales::all())->toBe(['id', 'en']);
 
-    config(['sunrice-cms.locales' => ['id', 'en']]);
-    get('/blog/halo')->assertOk()->assertSee('Halo');
-    get('/id/blog/halo')->assertRedirect('/blog/halo');
-    get('/blog/hello')->assertRedirect('/en/blog/hello');
-    get('/en/blog/hello')->assertOk()->assertSee('Hello');
-});
+    // Entries: the new main language holds the shared values, live and in the draft; the old one only its text.
+    $kopi = EntryTranslation::query()->findOrFail($this->kopi->id);
+    $coffee = EntryTranslation::query()->findOrFail($this->coffee->id);
+    expect($kopi->data)->toMatchArray(['intro' => 'Kental', 'price' => 30])
+        ->and($kopi->data['sides'][0])->toMatchArray(['name' => 'Susu', 'extra' => 2])
+        ->and($kopi->draft_data['price'])->toBe(30)
+        ->and($kopi->isMain())->toBeTrue()
+        ->and($coffee->data)->not->toHaveKey('price')
+        ->and($coffee->data['sides'][0])->not->toHaveKey('extra')
+        ->and($coffee->draft_data)->not->toHaveKey('price')
+        ->and($coffee->values(new HydrationContext('en'))['price'])->toBe(30)
+        ->and($coffee->search_text)->toContain('Strong');
 
-it('stops at content without the language, unless told to copy it', function () {
-    $en = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => 'Only English', 'data' => ['rating' => 2]]));
-    $news = app(SaveTerm::class)->handle(Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']), ['title' => 'News']);
+    // The entry only in English got an Indonesian copy, as the main one.
+    $teh = EntryTranslation::query()->where('entry_id', $tea->entry_id)->where('locale', 'id')->firstOrFail();
+    expect($teh->only(['title', 'slug', 'status']))->toBe(['title' => 'Tea', 'slug' => 'tea', 'status' => 'published'])
+        ->and($teh->data['price'])->toBe(10);
 
-    artisan('sunrice:switch-main-language', ['locale' => 'id', '--force' => true])->assertFailed()
-        ->expectsOutputToContain('Only English')->expectsOutputToContain('2 entries and terms have no id version');
-    artisan('sunrice:switch-main-language', ['locale' => 'id', '--dry-run' => true, '--copy-missing' => true])->assertSuccessful();
-    expect($en->entry->fresh()?->translation('id'))->toBeNull();
+    // Terms and globals keep what each language showed.
+    expect(TermTranslation::query()->where('term_id', $news->id)->where('locale', 'id')->value('title'))->toBe('News');
+    $contact->unsetRelation('values');
+    expect($contact->data('id'))->toBe(['address' => 'Jalan Utama', 'open' => true])
+        ->and($contact->data('en'))->toBe(['address' => 'Main St', 'open' => true])
+        ->and($contact->values()->where('locale', 'en')->firstOrFail()->data)->toBe(['address' => 'Main St']);
 
-    artisan('sunrice:switch-main-language', ['locale' => 'id', '--force' => true, '--copy-missing' => true])->assertSuccessful();
-    $copy = $en->entry->fresh()?->translation('id');
-    expect($copy?->title)->toBe('Only English')->and($copy?->slug)->toBe('only-english')->and($copy?->isLive())->toBeTrue()
-        ->and($copy?->data['rating'])->toBe(2)
-        ->and($news->fresh()?->translations->firstWhere('locale', 'id')?->title)->toBe('News');
-});
+    // A menu label the new main language left empty takes the old one's.
+    expect(MenuItem::query()->firstOrFail()->labels)->toBe(['en' => 'Our coffee', 'id' => 'Our coffee']);
 
-it('refuses a language the site lacks, or the main one', function () {
-    artisan('sunrice:switch-main-language', ['locale' => 'fr'])->assertFailed()->expectsOutputToContain('isn\'t one of the site\'s languages');
-    artisan('sunrice:switch-main-language', ['locale' => 'en'])->assertFailed()->expectsOutputToContain('main language already');
-});
+    // Addresses: the new main language's are plain, the old one's are prefixed, and redirects follow.
+    expect(Redirect::query()->pluck('to_url', 'from_path')->all())->toMatchArray([
+        '/en/old-coffee' => '/en/menu/coffee',
+        '/kopi-lama' => '/menu/kopi',
+        '/menu/coffee' => '/en/menu/coffee',
+    ])
+        // Where the new main language's page has the same address, it's served there.
+        ->and(Redirect::query()->whereIn('from_path', ['/menu/tea', '/tags/news'])->exists())->toBeFalse();
 
-it('keeps no cached page across a change of languages', function () {
-    $cache = app(SiteCache::class);
-    $before = $cache->key('page');
-
-    config(['sunrice-cms.locales' => ['id', 'en']]);
-
-    expect($cache->key('page'))->not->toBe($before);
+    get('/menu/kopi')->assertOk()->assertSee('Kopi');
+    get('/en/menu/coffee')->assertOk()->assertSee('Coffee');
+    get('/menu/coffee')->assertRedirect('/en/menu/coffee');
+    get('/id/menu/kopi')->assertRedirect('/menu/kopi');
 });

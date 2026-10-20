@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Resources\Forms;
 
 /**
- * A one-line text input: ->email(), ->url(), ->maxLength(100).
+ * A one-line text input: ->email(), ->url(), ->color(), ->maxLength(100).
  *
  * @api
  */
@@ -34,6 +34,15 @@ final class TextInput extends Field
         return $this;
     }
 
+    /** A colour as #rrggbb, with a colour picker beside the text. */
+    public function color(): self
+    {
+        $this->inputType = 'color';
+        $this->maxLength = 7;
+
+        return $this;
+    }
+
     public function maxLength(int $length): self
     {
         $this->maxLength = $length;
@@ -49,6 +58,7 @@ final class TextInput extends Field
             ...match ($this->inputType) {
                 'email' => ['email'],
                 'url' => ['url:http,https'],
+                'color' => ['regex:/^#[0-9a-fA-F]{6}$/'],
                 default => [],
             },
         ];

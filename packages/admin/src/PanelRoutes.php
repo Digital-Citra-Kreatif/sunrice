@@ -8,13 +8,16 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
 use Sunrice\Admin\Ai\PanelServer;
 use Sunrice\Admin\Http\Controllers\Auth\LoginController;
+use Sunrice\Admin\Http\Controllers\BrandingIconController;
+use Sunrice\Admin\Http\Controllers\MissingPageController;
 use Sunrice\Admin\Http\Middleware\Authenticate;
 use Sunrice\Admin\Http\Middleware\AuthenticateAiToken;
 use Sunrice\Admin\Http\Middleware\EnsureAccountActive;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Http\Middleware\HandleInertiaRequests;
+use Sunrice\Admin\Http\Middleware\PanelSecurityHeaders;
+use Sunrice\Admin\Http\Middleware\RecordRefusedPages;
 use Sunrice\Admin\Http\Middleware\RedirectIfAuthenticated;
-use Sunrice\Admin\Http\Middleware\WatchRefusedPages;
 use Sunrice\Admin\Resources\Http\ResourceController;
 use Sunrice\Admin\Resources\RegisteredResource;
 
@@ -30,11 +33,12 @@ final class PanelRoutes
     /** @return list<string|class-string> */
     public static function middleware(Panel $panel): array
     {
-        return ['web', HandleInertiaRequests::class, ...$panel->getMiddleware()];
+        return ['web', PanelSecurityHeaders::class, HandleInertiaRequests::class, RecordRefusedPages::class, ...$panel->getMiddleware()];
     }
 
-    /** Route names reachable without Panel::ACCESS: the guest pages and logout. */
+    /** Route names reachable without Panel::ACCESS: the guest pages, logout and the lettermark icon. */
     public const PUBLIC_ROUTES = [
+        'sunrice.admin.branding.icon',
         'sunrice.admin.login', 'sunrice.admin.login.store', 'sunrice.admin.login.code', 'sunrice.admin.login.code.verify', 'sunrice.admin.login.code.resend',
         'sunrice.admin.password.request', 'sunrice.admin.password.email',
         'sunrice.admin.password.reset', 'sunrice.admin.password.update', 'sunrice.admin.logout',
@@ -43,7 +47,7 @@ final class PanelRoutes
     /** @return list<class-string> */
     public static function authenticated(): array
     {
-        return [Authenticate::class, EnsureAccountActive::class, WatchRefusedPages::class, EnsureCanAccessPanel::class];
+        return [Authenticate::class, EnsureAccountActive::class, EnsureCanAccessPanel::class];
     }
 
     /** The routes of one resource: "/admin/products", named "sunrice.admin.resources.products.*". */
@@ -57,7 +61,6 @@ final class PanelRoutes
                 Route::post('/', [ResourceController::class, 'store'])->name('store'),
                 Route::get('export', [ResourceController::class, 'export'])->name('export'),
                 Route::post('bulk/{action}', [ResourceController::class, 'bulk'])->name('bulk'),
-                Route::put('columns', [ResourceController::class, 'columns'])->name('columns'),
                 Route::get('{record}/edit', [ResourceController::class, 'edit'])->name('edit'),
                 Route::put('{record}', [ResourceController::class, 'update'])->name('update'),
                 Route::delete('{record}', [ResourceController::class, 'destroy'])->name('destroy'),
@@ -67,6 +70,9 @@ final class PanelRoutes
                 $route->defaults('resource', $key);
             }
         });
+        // What a relation field may choose: "/admin/resources/products/options/category?q=".
+        Route::get("resources/{$key}/options/{field}", [ResourceController::class, 'options'])
+            ->name("resources.{$key}.options")->defaults('resource', $key);
     }
 
     public static function register(Panel $panel): void
@@ -78,6 +84,12 @@ final class PanelRoutes
                 ->middleware([AuthenticateAiToken::class, 'throttle:sunrice-ai'])
                 ->name('sunrice.ai.mcp');
         }
+
+        // The lettermark browser icon: the sign-in page shows it too, so no sign-in; no
+        // session or cookies either, so it can be cached. Only the name's initial and the colour.
+        Route::middleware(PanelSecurityHeaders::class)->prefix($panel->getPath())->group(function (): void {
+            Route::get('branding/icon.svg', BrandingIconController::class)->name('sunrice.admin.branding.icon');
+        });
 
         Route::middleware(self::middleware($panel))
             ->prefix($panel->getPath())
@@ -102,6 +114,11 @@ final class PanelRoutes
                     foreach ($panel->getRoutes() as $routes) {
                         $routes();
                     }
+                    // Matched after every other route: an unknown panel address is the panel's 404 page.
+                    Route::fallback(MissingPageController::class)->name('missing');
+                    // Other methods too, so an unknown address answers 404, not 405.
+                    Route::match(['POST', 'PUT', 'PATCH', 'DELETE'], '{fallbackPlaceholder}', MissingPageController::class)
+                        ->where('fallbackPlaceholder', '.*')->fallback()->name('missing.other');
                 });
             });
     }

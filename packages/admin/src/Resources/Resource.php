@@ -8,13 +8,9 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
-use Sunrice\Admin\Actions\Resources\SaveRecord;
-use Sunrice\Admin\Activity\ActivityLog;
-use Sunrice\Admin\Exceptions\PanelMisconfigured;
-use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Tables\Table;
+use Sunrice\Admin\Support\Card;
 
 /**
  * Admin screens for an Eloquent model, described in PHP: a list with
@@ -76,6 +72,12 @@ abstract class Resource
         return Str::headline(class_basename(static::model()));
     }
 
+    /** The sidebar item's text; the plural label unless overridden. */
+    public static function navigationLabel(): string
+    {
+        return static::label();
+    }
+
     public static function navigationGroup(): ?string
     {
         return null;
@@ -107,66 +109,23 @@ abstract class Resource
         return static::model()::query();
     }
 
-    /**
-     * Saves a record from form values as the admin's form does: validated
-     * by the form, only its fields written, and the activity log told. For
-     * imports and tools; check the user may do it first.
-     *
-     *     TagResource::saveRecord(['title' => 'News']);          // creates
-     *     TagResource::saveRecord(['title' => 'Updates'], $tag);  // edits
-     *
-     * @param  array<mixed>  $input
-     *
-     * @throws ValidationException
-     * @throws PanelMisconfigured when the resource isn't registered
-     */
-    public static function saveRecord(array $input, ?Model $record = null): Model
-    {
-        $resource = null;
-        foreach (app(Panel::class)->getResources() as $registered) {
-            if ($registered->class === static::class) {
-                $resource = $registered;
-            }
-        }
-        if ($resource === null) {
-            throw new PanelMisconfigured('The resource '.static::class.' isn\'t registered on the panel.');
-        }
-        $record ??= static::newRecord();
-        $creating = ! $record->exists;
-        $changed = app(SaveRecord::class)->handle($resource, $record, $input, $creating ? 'create' : 'edit');
-        $creating
-            ? app(ActivityLog::class)->record('created', $resource->key(), $record, static::title($record))
-            : app(ActivityLog::class)->updated($resource->key(), $record, static::title($record), $changed);
-
-        return $record;
-    }
-
-    /**
-     * Facts shown beside the edit form (when, who, how much):
-     * [['label' => 'Last login', 'value' => '2 hours ago'], …]. Keep it cheap.
-     *
-     * @return list<array{label: string, value: string}>
-     */
-    public static function aside(Model $record): array
-    {
-        return [];
-    }
-
-    /**
-     * Deletes a record, from the list, its form or a bulk delete, inside a
-     * transaction. Override it to do more (hand something over, clean up).
-     */
-    public static function deleteRecord(Model $record, Authorizable $by): void
-    {
-        $record->delete();
-    }
-
     /** The new record the create form fills. */
     public static function newRecord(): Model
     {
         $model = static::model();
 
         return new $model;
+    }
+
+    /**
+     * Deletes a record: the row's Delete, the edit page's and bulk
+     * delete, once authorized. Override it to delete through an action of
+     * your own, or throw `Sunrice\Admin\Resources\Tables\ActionFailed` to
+     * refuse with a message.
+     */
+    public static function deleteRecord(Model $record): void
+    {
+        $record->delete();
     }
 
     /**
@@ -178,6 +137,18 @@ abstract class Resource
     public static function can(Authorizable $user, string $ability, ?Model $record = null): bool
     {
         return true;
+    }
+
+    /**
+     * Read-only cards beside the edit form of `$record`, shown to `$user`
+     * (who may update it): status, history, related records. Nothing by
+     * default. Called once per edit page; load what the cards need here.
+     *
+     * @return list<Card>
+     */
+    public static function aside(Model $record, Authorizable $user): array
+    {
+        return [];
     }
 
     /** A record's name in headings and messages. */

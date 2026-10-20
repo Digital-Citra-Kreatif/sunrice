@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -9,6 +10,7 @@ use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\AiToken;
+use Sunrice\Admin\Ai\TokenScope;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
@@ -62,6 +64,13 @@ it('creates tokens on the AI access page, shows each once, and revokes them', fu
     get('/admin/ai')->assertInertia(fn (Assert $page) => $page->where('created', null)); // shown once
 
     post('/admin/ai/tokens', ['name' => '', 'expires_in_days' => 7])->assertSessionHasErrors(['name', 'expires_in_days']);
+    // 90 days unless asked otherwise; "never" only on purpose.
+    post('/admin/ai/tokens', ['name' => 'Default'])->assertRedirect();
+    post('/admin/ai/tokens', ['name' => 'Forever', 'expires_in_days' => null])->assertRedirect();
+    expect(AiToken::query()->where('name', 'Default')->sole()->expires_at?->isSameDay(now()->addDays(90)))->toBeTrue()
+        ->and(AiToken::query()->where('name', 'Forever')->sole()->expires_at)->toBeNull();
+    AiToken::query()->whereKeyNot($token->id)->delete();
+
     delete("/admin/ai/tokens/{$token->id}")->assertSessionHas('success');
     expect(AiToken::query()->count())->toBe(0)
         ->and(Activity::query()->where('source', 'security')->pluck('action')->all())->toContain('token created', 'token revoked');
@@ -75,7 +84,7 @@ it('lets an agent in with a valid token only, as its owner', function () {
 
     postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'])->assertUnauthorized();
     mcp('sra_wrong', 'tools/list')->assertUnauthorized();
-    expect(toolNames(mcp($plain, 'tools/list')->assertOk()))->toBe(['delete_record', 'get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'run_action', 'save_record', 'shop_read', 'shop_write', 'update_settings']);
+    expect(toolNames(mcp($plain, 'tools/list')->assertOk()))->toBe(['delete_record', 'get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'manage_media', 'read_docs', 'read_error_log', 'run_action', 'run_command', 'save_record', 'shop_read', 'shop_write', 'update_media', 'update_settings', 'upload_media']);
 
     $info = json_decode(mcp($plain, 'tools/call', ['name' => 'get_panel_info', 'arguments' => []])->json('result.content.0.text'), true);
     expect($info)->panel->toBe('Admin')->you->toBe(['name' => 'Rina', 'email' => 'rina@example.com'])->read_only_token->toBeFalse()
@@ -84,13 +93,30 @@ it('lets an agent in with a valid token only, as its owner', function () {
     $token->forceFill(['expires_at' => now()->subMinute()])->save();
     mcp($plain, 'tools/list')->assertUnauthorized();
 
-    [, $other] = AiToken::issue((string) $this->rina->id, 'Cursor');
-    app(AccountGuard::class)->lock($this->rina);
-    mcp($other, 'tools/list')->assertForbidden();
-
     $nobody = adminUser(Panel::ACCESS);
     [, $plain] = AiToken::issue((string) $nobody->id, 'X');
-    mcp($plain, 'tools/list')->assertForbidden();
+    mcp($plain, 'tools/list')->assertForbidden()->assertJsonPath('error', fn (string $error) => str_contains($error, 'Connect AI agents'));
+
+    // Allowed to connect agents, but not to open the panel (an app's customers).
+    $outsider = adminUser('sunrice.ai.connect');
+    [, $plain] = AiToken::issue((string) $outsider->id, 'X');
+    mcp($plain, 'tools/list')->assertForbidden()->assertJsonPath('error', fn (string $error) => str_contains($error, 'may not open the admin panel'));
+});
+
+it('revokes the tokens on "sign out everywhere" and on locking, and keeps a locked account out', function () {
+    [, $plain] = AiToken::issue((string) $this->rina->id, 'Claude');
+    mcp($plain, 'tools/list')->assertOk();
+
+    app(AccountGuard::class)->signOutEverywhere($this->rina);
+    mcp($plain, 'tools/list')->assertUnauthorized();
+    expect(AiToken::query()->count())->toBe(0)
+        ->and(Activity::query()->where('source', 'security')->orderBy('id')->pluck('action')->all())->toBe(['tokens revoked', 'signed out everywhere']);
+
+    [, $other] = AiToken::issue((string) $this->rina->id, 'Cursor');
+    app(AccountGuard::class)->lock($this->rina);
+    mcp($other, 'tools/list')->assertUnauthorized();
+    [, $later] = AiToken::issue((string) $this->rina->id, 'Cursor');
+    mcp($later, 'tools/list')->assertForbidden()->assertJsonPath('error', fn (string $error) => str_contains($error, 'locked'));
 });
 
 it('records an agent\'s changes as the AI agent\'s, and gives the instructions', function () {
@@ -109,13 +135,36 @@ it('keeps read-only tokens to reading, even for super admins', function () {
     $this->rina->assignRole('super-admin');
     [, $plain] = AiToken::issue((string) $this->rina->id, 'Reader', readOnly: true);
 
-    expect(toolNames(mcp($plain, 'tools/list')))->toBe(['get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'shop_read']);
+    expect(toolNames(mcp($plain, 'tools/list')))->toBe(['get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'read_docs', 'read_error_log', 'shop_read']);
     mcp($plain, 'tools/call', ['name' => 'shop_write', 'arguments' => []])->assertJsonPath('error.code', -32602);
 
     $info = json_decode(mcp($plain, 'tools/call', ['name' => 'get_panel_info', 'arguments' => []])->json('result.content.0.text'), true);
     expect($info['read_only_token'])->toBeTrue()
         ->and(collect($info['permissions'])->pluck('name')->all())->not->toContain('shop.products.update', 'sunrice.users.update')->toContain('sunrice.users.view')
         ->and(collect($info['resources'])->firstWhere('key', 'users')['can'])->toBe(['view']);
+});
+
+it('refuses a read-only token every ability but viewing, also ones the panel doesn\'t know', function () {
+    // A plugin's policy abilities, never registered as permissions.
+    Gate::define('shop.orders.view', fn () => true);
+    Gate::define('shop.orders.refund', fn () => true);
+    Gate::define('publish', fn () => true);
+    $this->rina->assignRole('super-admin');
+    actingAs($this->rina);
+    expect(Gate::allows('shop.orders.refund'))->toBeTrue()->and(Gate::allows('publish'))->toBeTrue();
+
+    [$token] = AiToken::issue((string) $this->rina->id, 'Reader', readOnly: true);
+    app(TokenScope::class)->token = $token;
+    expect(Gate::allows('shop.orders.view'))->toBeTrue()
+        ->and(Gate::allows('viewAny'))->toBeTrue()
+        ->and(Gate::allows(Panel::ACCESS))->toBeTrue()
+        ->and(Gate::allows('sunrice.ai.connect'))->toBeTrue()
+        ->and(Gate::allows('sunrice.ai.error-log'))->toBeTrue()
+        ->and(Gate::allows('sunrice.ai.run-commands'))->toBeFalse()
+        ->and(Gate::allows('shop.orders.refund'))->toBeFalse()
+        ->and(Gate::allows('publish'))->toBeFalse()
+        ->and(Gate::allows('shop.products.update'))->toBeFalse()
+        ->and(Gate::allows('sunrice.users.view'))->toBeTrue();
 });
 
 it('records a token used from a new address, alerts, and lets admins revoke a user\'s tokens', function () {
@@ -125,7 +174,7 @@ it('records a token used from a new address, alerts, and lets admins revoke a us
     mcp($plain, 'tools/list', ip: '10.0.0.2');
 
     expect(Activity::query()->where('action', 'token used from new IP')->sole()->properties['note'])->toBe('"Claude" from 10.0.0.2 (before: 10.0.0.1)');
-    Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline === 'An AI access token was used from a new address');
+    Mail::assertQueued(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline === 'An AI access token was used from a new address');
 
     actingAs($admin);
     post("/admin/users/{$this->rina->id}/actions/revoke-tokens")->assertSessionHas('success', '1 AI access token revoked.');

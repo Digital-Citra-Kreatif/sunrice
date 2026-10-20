@@ -1,16 +1,27 @@
 import * as React from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+import { Search } from 'lucide-react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useBreadcrumbOverride } from '@/components/app/breadcrumbs';
+import { setCommandPaletteOpen } from '@/components/app/command-palette';
+import { adminUrl } from '@/lib/admin-url';
+import { navigationCrumbs } from '@/lib/nav-match';
+import type { SharedProps } from '@/types';
 
-/** The bar above each page: the sidebar toggle and the page's breadcrumbs (useBreadcrumbs). */
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+
+/** The bar above each page: the sidebar toggle and the page's breadcrumbs (useBreadcrumbs, or the matching navigation item). */
 export function AppHeader() {
-    const crumbs = useBreadcrumbOverride() ?? [];
+    const page = usePage<SharedProps>();
+    const declared = useBreadcrumbOverride();
+    const fallback = React.useMemo(() => navigationCrumbs(page.props.navigation ?? [], page.url, adminUrl), [page.props.navigation, page.url]);
+    const crumbs = declared ?? fallback;
 
     return (
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/60 px-5 md:px-8 lg:px-10">
+        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/70 px-5 backdrop-blur-md md:px-8 lg:px-10">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
             <Breadcrumb>
@@ -29,6 +40,11 @@ export function AppHeader() {
                     ))}
                 </BreadcrumbList>
             </Breadcrumb>
+            <Button variant="outline" size="sm" className="ml-auto gap-2 text-muted-foreground" onClick={() => setCommandPaletteOpen(true)} aria-label="Go to a page or search" aria-keyshortcuts="Meta+K Control+K">
+                <Search />
+                <span className="hidden sm:inline">Go to…</span>
+                <kbd className="hidden rounded border border-border/70 bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground sm:inline">{isMac ? '⌘' : 'Ctrl'} K</kbd>
+            </Button>
         </header>
     );
 }

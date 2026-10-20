@@ -83,7 +83,16 @@ it('uploads into a folder, edits details and replaces the file', function () {
         ->assertRedirect()->assertSessionHasNoErrors();
     $media = Media::query()->sole();
     expect($media->folder_id)->toBe($folder->id)
+        ->and($media->title)->toBe('Logo')
         ->and($media->uploaded_by)->toBe((string) auth()->id());
+
+    // A title and alternative text may come with the file; empty ones mean none.
+    post('/admin/media', ['file' => UploadedFile::fake()->image('sun.jpg', 20, 20), 'title' => ' The sun ', 'alt' => 'A sun over the sea'])->assertSessionHasNoErrors();
+    expect(Media::query()->latest('id')->first())->title->toBe('The sun')->alt->toBe('A sun over the sea');
+    post('/admin/media', ['file' => UploadedFile::fake()->image('moon.jpg', 20, 20), 'title' => '', 'alt' => ''])->assertSessionHasNoErrors();
+    expect(Media::query()->latest('id')->first())->title->toBe('moon')->alt->toBeNull();
+    post('/admin/media', ['file' => UploadedFile::fake()->image('x.jpg', 20, 20), 'title' => str_repeat('x', 251)])->assertSessionHasErrors('title');
+    post('/admin/media', ['file' => UploadedFile::fake()->image('x.jpg', 20, 20), 'alt' => ['no']])->assertSessionHasErrors('alt');
 
     post('/admin/media', ['file' => UploadedFile::fake()->createWithContent('x.php', '<?php')])->assertSessionHasErrors('file');
     put("/admin/media/{$media->id}", ['title' => 'Logo'])->assertForbidden();
@@ -136,4 +145,28 @@ it('organises folders: create, rename, move files, delete without losing anythin
 
     mediaUser('view', 'upload');
     post('/admin/media/folders', ['name' => 'Nope'])->assertForbidden();
+});
+
+it('warns uploaders when the public disk\'s storage link is missing', function () {
+    $root = sys_get_temp_dir().'/sunrice-media-'.uniqid();
+    $link = sys_get_temp_dir().'/sunrice-link-'.uniqid();
+    config([
+        'filesystems.disks.media-test' => ['driver' => 'local', 'root' => $root, 'url' => '/storage', 'visibility' => 'public'],
+        'filesystems.links' => [$link => $root],
+        'sunrice-admin.media.disk' => 'media-test',
+    ]);
+
+    mediaUser('view', 'upload');
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', true));
+
+    mkdir($link);
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', false));
+    rmdir($link);
+
+    // Nobody who can't upload is told; other disks never are.
+    mediaUser('view');
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', false));
+    config(['sunrice-admin.media.disk' => 'public']);
+    mediaUser('view', 'upload');
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', false));
 });

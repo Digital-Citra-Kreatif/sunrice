@@ -9,12 +9,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\BasePlugin;
-use Sunrice\Admin\Help\HelpSection;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Permissions\Permission;
-use Sunrice\Admin\Users\OwnedContent;
+use Sunrice\Cms\Actions\Users\ReleaseUserContent;
 use Sunrice\Cms\Admin\CollectionResource;
+use Sunrice\Cms\Admin\DashboardWidgets;
 use Sunrice\Cms\Admin\FormResource;
 use Sunrice\Cms\Admin\GlobalSetResource;
 use Sunrice\Cms\Admin\MenuResource;
@@ -35,8 +35,10 @@ use Sunrice\Cms\Http\Controllers\TermController;
 use Sunrice\Cms\Http\Middleware\AuthorizeContent;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\GlobalSet;
+use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Settings\CodeSettings;
 use Sunrice\Cms\Settings\CommentSettings;
+use Sunrice\Cms\Settings\LocaleSettings;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Support\Access;
 
@@ -77,13 +79,13 @@ final class CmsPlugin extends BasePlugin
 
     public function register(Panel $panel): void
     {
-        $panel->settings(SiteSettings::class, CodeSettings::class, CommentSettings::class);
+        $panel->settings(SiteSettings::class, LocaleSettings::class, CodeSettings::class, CommentSettings::class);
         // Each permission for one collection, taxonomy or form too (see Support\Access).
         $panel->permissionsUsing(fn (): array => Support\ScopedPermissions::all());
         // sunrice:roles: people who write and look after the content, not the structure or the people.
-        $panel->defaultRole('editor', [Panel::ACCESS, 'sunrice.media.*', 'cms.entries.*', 'cms.terms.*', 'cms.globals.*', 'cms.menus.*', 'cms.comments.*', 'cms.submissions.view']);
+        $panel->defaultRole('editor', [Panel::ACCESS, 'sunrice.media.*', 'cms.entries.*', 'cms.terms.*', 'cms.globals.*', 'cms.menus.*', 'cms.comments.*', 'cms.submissions.view', 'cms.submissions.export']);
         // Writes entries, publishes nothing, and edits only their own.
-        $panel->defaultRole('author', [Panel::ACCESS, 'sunrice.media.view', 'sunrice.media.upload', 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own', 'cms.entries.delete-own']);
+        $panel->defaultRole('author', [Panel::ACCESS, 'sunrice.media.view', 'sunrice.media.upload', 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own', 'cms.entries.delete-own', 'cms.entries.view-drafts']);
         // Writes the other languages of every entry.
         $panel->defaultRole('translator', [Panel::ACCESS, 'sunrice.media.view', 'cms.entries.view', 'cms.entries.translate']);
         $panel->resources(CollectionResource::class, TaxonomyResource::class, GlobalSetResource::class, MenuResource::class, RedirectResource::class, FormResource::class);
@@ -93,27 +95,22 @@ final class CmsPlugin extends BasePlugin
             Permission::make('cms.entries.update', 'Edit drafts', 'Content'),
             Permission::make('cms.entries.publish', 'Publish and unpublish entries', 'Content'),
             Permission::make('cms.entries.delete', 'Trash and restore entries', 'Content'),
+            Permission::make('cms.entries.export', 'Export entries as CSV', 'Content'),
             Permission::make('cms.entries.update-own', 'Edit drafts of their own entries', 'Content'),
             Permission::make('cms.entries.delete-own', 'Trash their own entries', 'Content'),
             Permission::make('cms.entries.translate', 'Edit entries\' other languages (not the main one)', 'Content'),
+            Permission::make('cms.entries.view-drafts', 'See unpublished changes on the site while signed in', 'Content'),
             Permission::make('cms.terms.manage', 'Manage terms', 'Content'),
             Permission::make('cms.globals.view', 'View globals', 'Content'),
             Permission::make('cms.globals.update', 'Edit globals', 'Content'),
             Permission::make('cms.comments.view', 'View comments', 'Content'),
             Permission::make('cms.comments.moderate', 'Approve, answer and edit comments, mark spam', 'Content'),
             Permission::make('cms.comments.delete', 'Trash and delete comments', 'Content'),
-            Permission::make('cms.submissions.view', 'View and export form submissions', 'Content'),
+            Permission::make('cms.submissions.view', 'View form submissions', 'Content'),
+            Permission::make('cms.submissions.export', 'Export form submissions as CSV', 'Content'),
             Permission::make('cms.submissions.delete', 'Delete form submissions', 'Content'),
             Permission::make('cms.blueprints.manage', 'Manage blueprints and fieldsets', 'Content structure'),
         );
-        $panel->dashboardCards(...Admin\DashboardCards::all());
-        $panel->help(HelpSection::make('content', 'Content', dirname(__DIR__).'/guide', 20));
-        // Entries people wrote go to whoever deletes their account.
-        $panel->ownedContent(OwnedContent::make('cms.entries')->label('entries', 'entry')
-            ->count(fn (Model $user): int => Entry::withTrashed()->where('author_id', $user->getKey())->count())
-            ->handOver(function (Model $from, Model $to): void {
-                Entry::withTrashed()->where('author_id', $from->getKey())->update(['author_id' => $to->getKey()]);
-            }));
         $panel->navigation(
             NavigationItem::make('cms-entries')->label('Entries')->url('cms/entries')->icon('file-text')
                 ->group('Content')->sort(10)->visible(fn (Authorizable $user): bool => Access::entries($user, 'view')),
@@ -155,7 +152,7 @@ final class CmsPlugin extends BasePlugin
             Route::prefix('cms')->name('cms.submissions.')->controller(SubmissionController::class)->group(function (): void {
                 Route::get('submissions', 'home')->name('home')->middleware(AuthorizeContent::class.':submissions,view');
                 Route::get('forms/{form:handle}/submissions', 'index')->name('index')->middleware(AuthorizeContent::class.':submissions,view');
-                Route::get('forms/{form:handle}/submissions/export', 'export')->name('export')->middleware(AuthorizeContent::class.':submissions,view');
+                Route::get('forms/{form:handle}/submissions/export', 'export')->name('export')->middleware(AuthorizeContent::class.':submissions,export');
                 Route::delete('submissions/{submission}', 'destroy')->name('destroy')->middleware(AuthorizeContent::class.':submissions,delete');
                 Route::get('submissions/{submission}/files/{field}', 'file')->name('file')->middleware(AuthorizeContent::class.':submissions,view');
             });
@@ -170,6 +167,7 @@ final class CmsPlugin extends BasePlugin
                 Route::post('taxonomies/{taxonomy:handle}/terms', 'store')->name('store');
                 Route::put('terms/{term}', 'update')->name('update');
                 Route::post('terms/{term}/move', 'move')->name('move');
+                Route::post('terms/reorder', 'reorder')->name('reorder');
                 Route::delete('terms/{term}', 'destroy')->name('destroy');
                 Route::post('terms/{term}/restore', 'restore')->name('restore')->withTrashed();
                 Route::delete('terms/{term}/force', 'forceDelete')->name('force-delete')->withTrashed();
@@ -179,6 +177,7 @@ final class CmsPlugin extends BasePlugin
             Route::prefix('cms')->name('cms.entries.')->controller(EntryController::class)->group(function (): void {
                 Route::get('entries', 'home')->name('home')->middleware(AuthorizeContent::class.':entries,view');
                 Route::get('entry-picker', 'picker')->name('picker')->middleware(AuthorizeContent::class.':entries,view');
+                Route::get('term-picker', 'termPicker')->name('term-picker')->middleware(AuthorizeContent::class.':entries,view');
                 Route::get('collections/{collection:handle}/entries', 'index')->name('index')->middleware(AuthorizeContent::class.':entries,view');
                 Route::get('collections/{collection:handle}/entries/create', 'create')->name('create')->middleware(AuthorizeContent::class.':entries,create');
                 Route::post('collections/{collection:handle}/entries', 'store')->name('store')->middleware(AuthorizeContent::class.':entries,create');
@@ -187,6 +186,7 @@ final class CmsPlugin extends BasePlugin
                 Route::post('entries/{entry}/publish', 'publish')->name('publish')->middleware(AuthorizeContent::class.':entries,publish');
                 Route::post('entries/{entry}/unpublish', 'unpublish')->name('unpublish')->middleware(AuthorizeContent::class.':entries,publish');
                 Route::delete('entries/{entry}', 'destroy')->name('destroy')->middleware(AuthorizeContent::class.':entries,delete');
+                Route::post('entries/{translation}/translate', 'translate')->name('translate')->middleware(AuthorizeContent::class.':entries,update');
                 Route::post('entries/{entry}/translations', 'addTranslation')->name('translations.store')->middleware(AuthorizeContent::class.':entries,create');
                 Route::delete('entries/{entry}/translations/{locale}', 'removeTranslation')->name('translations.destroy')->middleware(AuthorizeContent::class.':entries,delete');
                 Route::post('entries/{entry}/restore', 'restore')->name('restore')->middleware(AuthorizeContent::class.':entries,delete')->withTrashed();
@@ -198,39 +198,58 @@ final class CmsPlugin extends BasePlugin
             });
             Route::prefix('cms')->name('cms.entries.')->controller(EntryManageController::class)->group(function (): void {
                 Route::post('collections/{collection:handle}/entries/bulk', 'bulk')->name('bulk')->middleware(AuthorizeContent::class.':entries,view');
-                Route::get('collections/{collection:handle}/entries/export', 'export')->name('export')->middleware(AuthorizeContent::class.':entries,view');
+                Route::get('collections/{collection:handle}/entries/export', 'export')->name('export')->middleware(AuthorizeContent::class.':entries,export');
                 Route::post('entries/{entry}/duplicate', 'duplicate')->name('duplicate')->middleware(AuthorizeContent::class.':entries,create');
                 Route::put('entries/{entry}/settings', 'settings')->name('settings')->middleware(AuthorizeContent::class.':entries,update');
                 Route::post('entries/{entry}/move', 'move')->name('move')->middleware(AuthorizeContent::class.':entries,update');
+                Route::post('entries/reorder', 'reorder')->name('reorder')->middleware(AuthorizeContent::class.':entries,update');
                 Route::delete('entries/{entry}/force', 'forceDelete')->name('force-delete')->middleware(AuthorizeContent::class.':entries,delete')->withTrashed();
                 Route::post('entry-translations/{translation}/undo-restore', 'undoRestore')->name('undo-restore')->middleware(AuthorizeContent::class.':entries,update');
             });
         });
         $panel->tools(
             Ai\ListEntries::class, Ai\GetEntry::class, Ai\SaveEntry::class, Ai\PublishEntry::class, Ai\UnpublishEntry::class,
-            Ai\TranslateEntry::class, Ai\TrashEntry::class, Ai\ListTerms::class, Ai\SaveTerm::class,
-            Ai\GetGlobals::class, Ai\SaveGlobals::class, Ai\ListSubmissions::class, Ai\DeleteSubmissions::class,
-            Ai\GetSiteInfo::class, Ai\SeoAudit::class, Ai\EntryRevisions::class, Ai\MoveEntry::class,
-            Ai\GetBlueprint::class, Ai\SaveBlueprint::class, Ai\GetMenu::class, Ai\SaveMenu::class, Ai\GetListing::class, Ai\SaveListing::class,
+            Ai\TranslateEntry::class, Ai\TrashEntry::class, Ai\ManageEntry::class, Ai\EntryRevisions::class, Ai\Reorder::class,
+            Ai\ListTerms::class, Ai\SaveTerm::class, Ai\GetGlobals::class, Ai\SaveGlobals::class,
+            Ai\GetListing::class, Ai\SaveListing::class, Ai\GetMenu::class, Ai\SaveMenu::class,
+            Ai\ListSubmissions::class, Ai\DeleteSubmissions::class,
+            Ai\GetBlueprint::class, Ai\SaveBlueprint::class, Ai\FieldTypes::class,
+            Ai\SeoAudit::class, Ai\RenderPage::class, Ai\GetTemplateGuide::class, Ai\ReadTemplate::class, Ai\WriteTemplate::class,
         )->aiInstructions(<<<'MD'
-            Content (the CMS): collections hold entries, written per language as drafts and published to the site.
-            - Start with cms_get_site_info: the languages, collections, taxonomies, menus and forms.
-            - Find entries with cms_list_entries (no arguments lists the collections), read one with cms_get_entry, which shows its fields.
-            - Write with cms_save_entry: it saves the draft; the site changes only when it's published (cms_publish_entry, or "publish": true). Ask before publishing, unpublishing or trashing.
-            - Other languages: cms_translate_entry copies the main language into a new draft; then save it with "locale".
-            - Media fields take ids from list_media; terms fields ids from cms_list_terms; entries fields entry ids.
-            - Site-wide values: cms_get_globals and cms_save_globals. Form submissions: cms_list_submissions, cms_delete_submissions.
-            - Menu links: cms_get_menu and cms_save_menu. Listing pages: cms_get_listing and cms_save_listing.
-            - Published versions: cms_entry_revisions (and "restore"). Manual order: cms_move_entry. SEO problems: cms_seo_audit.
-            - Fields of collections and fieldsets: cms_get_blueprint and cms_save_blueprint.
-            - Collections, taxonomies, global sets, menus, redirects and forms themselves are resources (list_records, save_record).
-            - Templates, if you have the view tools (list_views): an entry's page uses its own or its collection's template, else the view cms.{collection handle}, else cms.entry; listing pages cms.{handle}-listing or cms.listing; term pages cms.taxonomy-{handle} or cms.term; search cms.search. They get $entry, $title, $values (the fields), $collection, $locale and $preview; print rich text with {!! $values['body'] !!} and everything else with {{ }}. Put <x-sunrice-cms::seo /> in the layout's <head>. Fields' handles come from cms_get_blueprint.
+            Content (the CMS): collections are kinds of content (pages, articles); each has a blueprint (its fields) and entries. An entry has a translation per language (title, slug, fields, SEO), edited as a draft and published to the site. Taxonomies hold terms; globals are site-wide values; menus are navigation; templates are Blade views.
+            - Find entries with cms_list_entries (no arguments lists the collections); read one with cms_get_entry, which shows its fields.
+            - Write with cms_save_entry (only what you send changes): it saves the draft; the site changes only when it's published (cms_publish_entry, or "publish": true). Ask before publishing, unpublishing, trashing or deleting.
+            - Lifecycle: cms_trash_entry, then cms_manage_entry (delete for good, duplicate, set as the homepage); cms_entry_revisions lists, shows and restores published versions.
+            - Order: cms_reorder for entries (collections with Manual order), terms and menu items.
+            - Other languages: cms_translate_entry adds one, then save it with "locale". Only translatable fields have a value per language; the rest are shared with the main language. The same for terms, globals and listing pages.
+            - Media fields take ids from list_media (upload_media adds files; give images alt text); terms fields ids from cms_list_terms; entries fields entry ids.
+            - Live as soon as saved (ask first): globals (cms_get_globals, cms_save_globals), listing pages (cms_get_listing, cms_save_listing), menus (cms_get_menu, cms_save_menu).
+            - Structure: cms_field_types, then cms_get_blueprint and cms_save_blueprint; collections, taxonomies, global sets, menus, redirects and forms themselves are resources (list_records, save_record).
+            - Forms: cms_list_submissions, cms_delete_submissions (ask first).
+            - SEO: cms_seo_audit, then fix with cms_save_entry ("seo") and update_media (alt text).
+            - Templates: read cms_get_template_guide first, then cms_read_template / cms_write_template, and check pages with cms_render_page.
             MD);
-        // One editor at a time per entry or global set, per language (useEditLock).
+        // The CMS's developer docs (docs/) for Help → Docs and read_docs, and its user guide (guide/), shipped with the package.
+        $panel->docs('CMS', dirname(__DIR__).'/docs');
+        $panel->guide('Website', dirname(__DIR__).'/guide');
+        // One editor at a time per entry, global set or term page, per language (useEditLock).
         $panel->lockable('cms.entry', fn (string $id, string $locale, Authorizable $user): bool => ($entry = Entry::query()->whereHas('collection')->find($id)) !== null
             && Access::entries($user, 'update', $entry->collection, $entry, $locale));
         $panel->lockable('cms.global', fn (string $id, string $locale, Authorizable $user): bool => $user->can('cms.globals.update')
             && GlobalSet::query()->whereKey($id)->exists());
+        $panel->lockable('cms.term', fn (string $id, string $locale, Authorizable $user): bool => ($term = Term::query()->whereHas('taxonomy')->find($id)) !== null
+            && Access::terms($user, $term->taxonomy));
+        // Deleting a user: what happens to their entries and comments (DeleteUser).
+        $panel->userContent('cms.entries', 'entries',
+            fn (Model $user): int => ReleaseUserContent::entries($user),
+            fn (Model $user, string $mode, ?Model $heir) => app(ReleaseUserContent::class)->handleEntries($user, $mode, $heir));
+        $panel->userContent('cms.comments', 'comments',
+            fn (Model $user): int => ReleaseUserContent::comments($user),
+            fn (Model $user, string $mode, ?Model $heir) => app(ReleaseUserContent::class)->handleComments($user, $mode, $heir));
+        // The dashboard: content per collection, recent edits, comments waiting, what's coming up, submissions.
+        $panel->widgets(...DashboardWidgets::all());
+        // Getting these is worth an alert: site-wide scripts, and the shape of all content.
+        $panel->privilegedPermissions('cms.settings.code', 'cms.blueprints.manage');
         $panel->bundle(PluginBundle::make('cms')->module(self::asset('admin.js'))->style(self::asset('admin.css'))->pages('Cms/'));
         if ($this->fieldTypes !== []) {
             $types = $this->fieldTypes;
@@ -241,11 +260,17 @@ final class CmsPlugin extends BasePlugin
         }
     }
 
-    /** A published asset's URL, versioned by the built file so browsers fetch a new one after an update. */
+    /** @var array<string, string|null> the built files' versions, once per process */
+    private static array $versions = [];
+
+    /** A published asset's URL, versioned by the built file (looked at once per process) so browsers fetch a new one after an update. */
     private static function asset(string $file): string
     {
-        $built = dirname(__DIR__)."/dist/{$file}";
-        $version = is_file($built) ? substr(md5((string) filemtime($built).filesize($built)), 0, 12) : null;
+        if (! array_key_exists($file, self::$versions)) {
+            $stat = @stat(dirname(__DIR__)."/dist/{$file}");
+            self::$versions[$file] = $stat === false ? null : substr(md5($stat['mtime'].$stat['size']), 0, 12);
+        }
+        $version = self::$versions[$file];
 
         return asset(self::ASSETS."/{$file}").($version === null ? '' : "?v={$version}");
     }

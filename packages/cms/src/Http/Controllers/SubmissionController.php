@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Content → Submissions: what visitors sent, per form, to read, delete
- * and export (cms.submissions.view, .delete).
+ * and export (cms.submissions.view, .export, .delete).
  *
  * @internal
  */
@@ -35,7 +35,7 @@ final class SubmissionController
         $first = Form::query()->orderBy('title')->get()->first(fn (Form $form): bool => Access::submissions($request->user(), 'view', $form));
 
         return $first === null
-            ? Inertia::render('Cms/Submissions/Index', ['form' => null, 'forms' => [], 'submissions' => null, 'can' => ['delete' => false]])
+            ? Inertia::render('Cms/Submissions/Index', ['form' => null, 'forms' => [], 'submissions' => null, 'can' => ['delete' => false, 'export' => false]])
             : redirect()->route('sunrice.admin.cms.submissions.index', $first->handle);
     }
 
@@ -50,6 +50,7 @@ final class SubmissionController
                     'locale' => $submission->locale,
                     'createdAt' => $submission->created_at?->toIso8601String(),
                     'rows' => SubmissionRows::of($submission),
+                    'visitor' => ['ip' => $submission->ip_address, 'userAgent' => $submission->user_agent, 'referrer' => $submission->referrer],
                 ];
             });
 
@@ -59,7 +60,7 @@ final class SubmissionController
                 ->filter(fn (Form $f): bool => Access::submissions($request->user(), 'view', $f))->values()
                 ->map(fn (Form $f): array => ['handle' => $f->handle, 'title' => $f->title, 'count' => $f->submissions_count])->all(),
             'submissions' => $submissions,
-            'can' => ['delete' => Access::submissions($request->user(), 'delete', $form)],
+            'can' => ['delete' => Access::submissions($request->user(), 'delete', $form), 'export' => Access::submissions($request->user(), 'export', $form)],
         ]);
     }
 
@@ -80,12 +81,12 @@ final class SubmissionController
         return redirect()->back()->with('success', 'Submission deleted.');
     }
 
-    /** All of a form's submissions as CSV, a column per field. Logged: it carries personal data out. */
+    /** All of a form's submissions as CSV, a column per field, then who sent it. Logged: it carries personal data out. */
     public function export(Request $request, Form $form, SecurityLog $security): StreamedResponse
     {
         $user = $request->user();
         $security->record('exported', $user instanceof Model ? $user : null, null, ['note' => $form->title.' submissions (CSV)']);
-        $headers = ['Sent', 'Language', ...array_map(SubmissionRows::label(...), $form->schema()->fields())];
+        $headers = ['Sent', 'Language', ...array_map(SubmissionRows::label(...), $form->schema()->fields()), 'IP address', 'User agent', 'Referrer'];
 
         return response()->streamDownload(function () use ($form, $headers): void {
             $out = fopen('php://output', 'w');
@@ -100,7 +101,7 @@ final class SubmissionController
                     foreach ($form->schema()->fields() as $field) {
                         $values[] = SubmissionRows::text($submission->data[$field->handle] ?? null, $field);
                     }
-                    $cells = [(string) $submission->created_at?->toDateTimeString(), $submission->locale, ...$values];
+                    $cells = [(string) $submission->created_at?->toDateTimeString(), $submission->locale, ...$values, (string) $submission->ip_address, (string) $submission->user_agent, (string) $submission->referrer];
                     Csv::write($out, $cells);
                 }
             });

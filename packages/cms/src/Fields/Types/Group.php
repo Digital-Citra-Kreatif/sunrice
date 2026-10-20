@@ -12,9 +12,11 @@ use Sunrice\Cms\Fields\Schema;
 /** Fields kept together under one handle: `$entry->get('hero')['title']`. */
 final class Group extends FieldType
 {
+    public const TYPE = 'group';
+
     public function type(): string
     {
-        return 'group';
+        return self::TYPE;
     }
 
     public function rules(Field $field): array
@@ -59,6 +61,6 @@ final class Group extends FieldType
 
     public function toAdmin(Field $field, Schema $schema): array
     {
-        return ['fields' => Schema::children($field)->toAdmin()] + parent::toAdmin($field, $schema);
+        return ['fields' => Schema::children($field, $schema->depth())->toAdmin()] + parent::toAdmin($field, $schema);
     }
 }

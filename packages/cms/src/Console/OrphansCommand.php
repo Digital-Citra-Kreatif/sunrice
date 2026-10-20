@@ -5,86 +5,108 @@ declare(strict_types=1);
 namespace Sunrice\Cms\Console;
 
 use Illuminate\Console\Command;
-use Sunrice\Cms\Actions\Structure\PurgeDeleted;
+use Illuminate\Support\Facades\Storage;
+use Sunrice\Admin\Media\Media;
+use Sunrice\Cms\Actions\Collections\PurgeDeleted;
+use Sunrice\Cms\Fields\Reference;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\ContentReference;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
 
 /**
- * sunrice:orphans — the deleted collections and taxonomies, which keep
- * their entries and terms (and their handles): restore them, or delete
- * them for good.
+ * sunrice:orphans: what's left over. Deleted collections and taxonomies
+ * with the entries and terms they keep (--purge deletes them for good and
+ * frees their handles), media whose file is gone, and fields pointing at
+ * entries or terms that are gone.
  *
  * @internal
  */
 final class OrphansCommand extends Command
 {
     protected $signature = 'sunrice:orphans
-        {--restore : Bring the listed collections and taxonomies back, with their entries and terms}
-        {--purge : Delete the listed collections and taxonomies for good, with their entries and terms}
-        {--handle=* : Only these handles}
-        {--force : Don\'t ask before purging}';
+        {--purge : Delete the deleted collections and taxonomies for good, with their entries and terms}
+        {--force : Purge without asking}';
 
-    protected $description = 'List, restore or purge deleted collections and taxonomies and the content they keep';
+    protected $description = 'List deleted collections and taxonomies, media with missing files and links to missing entries or terms';
 
     public function handle(PurgeDeleted $purge): int
     {
-        if ($this->option('restore') && $this->option('purge')) {
-            $this->components->error('Use --restore or --purge, not both.');
-
-            return self::FAILURE;
-        }
-        $handles = array_values(array_filter((array) $this->option('handle'), is_string(...)));
-        $collections = Collection::onlyTrashed()->when($handles !== [], fn ($query) => $query->whereIn('handle', $handles))->orderBy('handle')->get();
-        $taxonomies = Taxonomy::onlyTrashed()->when($handles !== [], fn ($query) => $query->whereIn('handle', $handles))->orderBy('handle')->get();
-        if ($collections->isEmpty() && $taxonomies->isEmpty()) {
-            $this->components->info('No deleted collections or taxonomies.');
-
-            return self::SUCCESS;
-        }
-
-        $entries = Entry::query()->withTrashed()->whereIn('collection_id', $collections->modelKeys())->selectRaw('collection_id, count(*) as aggregate')->groupBy('collection_id')->pluck('aggregate', 'collection_id');
-        $terms = Term::query()->withTrashed()->whereIn('taxonomy_id', $taxonomies->modelKeys())->selectRaw('taxonomy_id, count(*) as aggregate')->groupBy('taxonomy_id')->pluck('aggregate', 'taxonomy_id');
-        $rows = [];
+        $collections = Collection::onlyTrashed()->orderBy('handle')->get();
+        $taxonomies = Taxonomy::onlyTrashed()->orderBy('handle')->get();
+        $kept = [];
         foreach ($collections as $collection) {
-            $rows[] = ['Collection', $collection->handle, $collection->title, self::count($entries[$collection->id] ?? 0).' entries', (string) $collection->deleted_at];
+            $kept[] = ['Collection', $collection->handle, $collection->title, PurgeDeleted::entriesOf($collection)->count().' entries', $collection->deleted_at?->toDateTimeString() ?? ''];
         }
         foreach ($taxonomies as $taxonomy) {
-            $rows[] = ['Taxonomy', $taxonomy->handle, $taxonomy->title, self::count($terms[$taxonomy->id] ?? 0).' terms', (string) $taxonomy->deleted_at];
+            $kept[] = ['Taxonomy', $taxonomy->handle, $taxonomy->title, PurgeDeleted::termsOf($taxonomy)->count().' terms', $taxonomy->deleted_at?->toDateTimeString() ?? ''];
         }
-        $this->table(['', 'Handle', 'Title', 'Keeps', 'Deleted'], $rows);
-
-        if ($this->option('restore')) {
-            $collections->each->restore();
-            $taxonomies->each->restore();
-            $this->components->info('Restored: they are back in the admin and on the site.');
-
-            return self::SUCCESS;
+        $this->components->twoColumnDetail('<fg=gray>Deleted collections and taxonomies</>', (string) count($kept));
+        if ($kept !== []) {
+            $this->table(['Type', 'Handle', 'Title', 'Keeps', 'Deleted'], $kept);
         }
+
+        $missing = [];
+        Media::query()->lazyById(200)->each(function (Media $media) use (&$missing): void {
+            if (! Storage::disk($media->disk)->exists($media->path)) {
+                $missing[] = [(string) $media->id, $media->filename, $media->disk.':'.$media->path];
+            }
+        });
+        $this->components->twoColumnDetail('<fg=gray>Media whose file is missing</>', (string) count($missing));
+        if ($missing !== []) {
+            $this->table(['ID', 'File', 'Stored at'], $missing);
+        }
+
+        $dangling = $this->danglingReferences();
+        $this->components->twoColumnDetail('<fg=gray>Fields pointing at missing entries or terms</>', (string) count($dangling));
+        if ($dangling !== []) {
+            $this->table(['In', 'Language', 'Field', 'Points at'], $dangling);
+        }
+
         if (! $this->option('purge')) {
-            $this->line('  They are hidden in the admin and on the site, and keep their handles. Bring them back with --restore,');
-            $this->line('  or delete them for good with --purge (--handle=… for some only).');
+            if ($kept !== []) {
+                $this->line('Restore deleted collections and taxonomies from their lists (filter: Deleted), or run <comment>sunrice:orphans --purge</comment> to delete them for good.');
+            }
 
             return self::SUCCESS;
         }
-        if (! $this->option('force') && ! $this->confirm('Delete all of the above for good? This can\'t be undone.', false)) {
-            $this->components->warn('Nothing deleted.');
+        if ($kept === []) {
+            $this->components->info('Nothing to purge.');
+
+            return self::SUCCESS;
+        }
+        if (! $this->option('force') && ! $this->confirm('Delete the deleted collections and taxonomies listed, with their entries and terms, for good? This can\'t be undone.')) {
+            $this->components->warn('Nothing was deleted.');
 
             return self::FAILURE;
         }
         foreach ($collections as $collection) {
-            $this->components->twoColumnDetail("Collection {$collection->handle}", $purge->collection($collection).' entries deleted');
+            $this->components->info("Deleted the collection \"{$collection->handle}\" and {$purge->collection($collection)} entries; its handle is free.");
         }
         foreach ($taxonomies as $taxonomy) {
-            $this->components->twoColumnDetail("Taxonomy {$taxonomy->handle}", $purge->taxonomy($taxonomy).' terms deleted');
+            $this->components->info("Deleted the taxonomy \"{$taxonomy->handle}\" and {$purge->taxonomy($taxonomy)} terms; its handle is free.");
         }
 
         return self::SUCCESS;
     }
 
-    private static function count(mixed $value): int
+    /**
+     * References whose entry or term no longer exists (in the trash counts as existing).
+     *
+     * @return list<array{string, string, string, string}>
+     */
+    private function danglingReferences(): array
     {
-        return is_numeric($value) ? (int) $value : 0;
+        $rows = [];
+        foreach ([Reference::ENTRY => Entry::class, Reference::TERM => Term::class] as $type => $class) {
+            ContentReference::query()->where('target_type', $type)
+                ->whereNotIn('target_id', $class::withTrashed()->select('id'))
+                ->orderBy('id')->each(function (ContentReference $reference) use (&$rows): void {
+                    $rows[] = ["{$reference->source_type} {$reference->source_id}", $reference->locale, $reference->field, "{$reference->target_type} {$reference->target_id}"];
+                });
+        }
+
+        return $rows;
     }
 }

@@ -1,4 +1,3 @@
-/** A field definition as stored (see Sunrice\Cms\Fields\Field). */
 /** Shown only when another field on its level is so. */
 export interface FieldCondition {
     field: string;
@@ -6,6 +5,7 @@ export interface FieldCondition {
     value?: string | number | boolean | null;
 }
 
+/** A field definition as stored (see Sunrice\Cms\Fields\Field). */
 export interface FieldDefinition {
     handle: string;
     type: string;
@@ -19,10 +19,12 @@ export interface FieldDefinition {
     condition?: FieldCondition | null;
     /** A flexible field's kinds of block, as the editor gets them. */
     blocks?: BlockType[];
-    /** A terms field's terms to choose from (nested ones indented). */
-    terms?: Option[];
+    /** A terms field's taxonomy (its terms load from cms/term-picker). */
+    taxonomy?: string | null;
     /** An entries field's collections to choose from (handles). */
     collections?: string[];
+    /** Inside a translated group, row or block of another language: the main language's value, read-only. */
+    shared?: boolean;
 }
 
 /** A field type the builder offers, with its settings as fields. */

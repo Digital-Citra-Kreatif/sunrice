@@ -16,6 +16,7 @@ use Sunrice\Cms\Content;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Redirect;
 use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\actingAs;
@@ -115,8 +116,36 @@ it('previews drafts through a signed link only', function () {
     $draft = sitePost($this->blog, 'Not yet', ['intro' => 'Draft intro'], publish: false);
     $url = URL::temporarySignedRoute('sunrice.cms.preview', now()->addMinutes(30), ['translation' => $draft->id]);
 
-    get($url)->assertOk()->assertSee('Draft intro')->assertSee('Preview of the draft')->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+    get($url)->assertOk()->assertSee('Draft intro')->assertSee('Preview of the draft')
+        ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertHeader('Cache-Control', 'no-store, private');
     get("/cms-preview/{$draft->id}")->assertForbidden();
+});
+
+it('keeps the query string when redirecting', function () {
+    Redirect::query()->create(['from_path' => '/old', 'to_url' => '/new', 'status' => 301]);
+    Redirect::query()->create(['from_path' => '/older', 'to_url' => 'https://example.com/?from=older', 'status' => 302]);
+
+    get('/old?utm_source=mail&x=1')->assertRedirect('/new?utm_source=mail&x=1')->assertStatus(301);
+    get('/old')->assertRedirect('/new');
+    get('/older?x=1')->assertRedirect('https://example.com/?from=older&x=1');
+});
+
+it('speaks the address\'s language before anything is looked up, and drops the main language\'s prefix', function () {
+    $hello = sitePost($this->blog, 'Hello');
+    Route::get('/en/custom', fn () => 'the app has its own page here');
+    app('router')->getRoutes()->refreshNameLookups();
+
+    get('/id/blog/nothing-here')->assertNotFound();
+    expect(app()->getLocale())->toBe('id');
+    get('/blog/nothing-here')->assertNotFound();
+    expect(app()->getLocale())->toBe('en');
+    get('/id/search?q=x')->assertOk();
+    expect(app()->getLocale())->toBe('id');
+
+    get('/en/blog/hello?x=1')->assertRedirect('/blog/hello?x=1')->assertStatus(301);
+    get('/en')->assertRedirect('/');
+    get('/en/custom')->assertOk()->assertSee('the app has its own page here');
+    expect($hello->url())->toBe(url('/blog/hello'));
 });
 
 it('gives the editor the preview and live links', function () {
@@ -153,4 +182,53 @@ it('queries live entries for templates', function () {
         ->and(Content::entries()->count())->toBe(3)
         ->and(Content::entries('blog')->whereSlug('newer')->first()?->title)->toBe('Newer')
         ->and(Content::entries('blog')->paginate(1)->total())->toBe(2);
+});
+
+it('serves the main language where an entry isn\'t translated, at that language\'s address', function () {
+    $hello = sitePost($this->blog, 'Hello', ['intro' => 'In English']);
+    $draft = app(CreateTranslation::class)->handle($hello->entry, 'id');
+    app(SaveDraft::class)->handle($draft, ['title' => 'Halo', 'slug' => 'halo']);
+
+    // A translation that isn't live doesn't count, nor does its slug.
+    get('/id/blog/hello')->assertOk()->assertSee('<html lang="id">', false)->assertSee('<h1>Hello</h1>', false)->assertSee('In English')
+        ->assertSee('lang-id', false);
+    expect(app()->getLocale())->toBe('id')
+        ->and(Content::page()?->fallback)->toBeTrue()
+        ->and(Content::localeUrls())->toBe(['en' => url('/blog/hello'), 'id' => url('/id/blog/hello')]);
+    get('/id/blog/halo')->assertNotFound();
+
+    app(PublishEntry::class)->handle($draft->refresh());
+    get('/id/blog/halo')->assertOk()->assertSee('<h1>Halo</h1>', false);
+    get('/id/blog/hello')->assertNotFound();
+});
+
+it('gives templates $fallback, and answers 404 with the fallback off', function () {
+    sitePost($this->blog, 'Hello');
+    config(['sunrice-cms.site.fallback' => false]);
+
+    get('/id/blog/hello')->assertNotFound();
+    expect(Content::page())->toBeNull();
+
+    config(['sunrice-cms.site.fallback' => true]);
+    get('/id/blog/hello')->assertOk()->assertViewHas('fallback', true)->assertViewHas('locale', 'id');
+    get('/blog/hello')->assertOk()->assertViewHas('fallback', false);
+});
+
+it('serves an untranslated term\'s page in the main language too', function () {
+    $tags = Taxonomy::query()->firstOrFail();
+    $tags->update(['route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+
+    get('/id/tags/news')->assertOk()->assertViewHas('fallback', true)->assertViewHas('locale', 'id');
+    expect(Content::localeUrls())->toBe(['en' => url('/tags/news'), 'id' => url('/id/tags/news')]);
+
+    app(SaveTerm::class)->handle($tags, ['title' => 'Berita', 'locale' => 'id'], $news);
+    get('/id/tags/news')->assertNotFound();
+    get('/id/tags/berita')->assertOk()->assertViewHas('fallback', false);
+});
+
+it('leaves pages shown in the main language out of the search in another', function () {
+    sitePost($this->blog, 'Coffee beans');
+
+    get('/id/search?q=coffee')->assertOk()->assertDontSee(url('/id/blog/coffee-beans'))->assertDontSee(url('/blog/coffee-beans'));
 });

@@ -36,7 +36,7 @@ beforeEach(function () {
 it('takes files, kept privately, downloaded by people who may see submissions', function () {
     $html = Blade::render('<x-sunrice-cms::form handle="apply" />');
     expect($html)->toContain('enctype="multipart/form-data"')
-        ->toContain('<input type="file" id="form-apply-cv" name="cv"')->toContain('accept=".pdf,.docx"');
+        ->toContain('<input type="file" id="form-apply-cv" name="data[cv]"')->toContain('accept=".pdf,.docx"');
 
     post('/forms/apply', ['name' => 'Ana', 'cv' => UploadedFile::fake()->create('my cv.pdf', 120, 'application/pdf')])->assertSessionHasNoErrors();
     $file = Submission::query()->sole()->data['cv'];

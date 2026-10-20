@@ -1,16 +1,19 @@
 import * as React from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, History, Search, Trash2, X } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { DatePicker } from '@/components/app/date-picker';
+import { PageHeader } from '@/components/app/page-header';
+import { useConfirm } from '@/components/resources/confirm';
+import type { FieldInfo } from '@/components/resources/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { queryParams } from '@/lib/query-params';
 
 interface Row {
     id: number;
@@ -34,6 +37,8 @@ interface Query {
     search: string;
     source: string | null;
     type: string | null;
+    action: string | null;
+    perPage: number;
     subject: string | null;
     user: string | null;
     from: string | null;
@@ -43,66 +48,50 @@ interface Query {
 interface Props {
     query: Query;
     types: { value: string; label: string }[];
+    actions: string[];
     sources: string[];
+    perPageOptions: number[];
+    defaultPerPage: number;
+    /** Set when the user may prune (sunrice.activity.prune): the configured days to keep. */
+    prune: { keepDays: number | null } | null;
     rows: { data: Row[]; total: number; currentPage: number; lastPage: number; prevUrl: string | null; nextUrl: string | null };
-    can: { prune: boolean };
-}
-
-/** Deletes lines older than some days, after asking. */
-function PruneDialog() {
-    const [open, setOpen] = React.useState(false);
-    const form = useForm({ days: 180 });
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline"><Trash2 /> Delete old lines</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Delete old activity log lines</DialogTitle>
-                    <DialogDescription>Lines older than this are deleted for good. Super admins get an email saying so.</DialogDescription>
-                </DialogHeader>
-                <form id="prune" className="grid gap-2" onSubmit={(event) => {
-                    event.preventDefault();
-                    form.post(adminUrl('activity/prune'), { preserveScroll: true, onSuccess: () => setOpen(false) });
-                }}>
-                    <Label htmlFor="days">Older than (days)</Label>
-                    <Input id="days" type="number" min={1} max={3650} required value={form.data.days}
-                        onChange={(event) => form.setData('days', Number(event.target.value))} aria-invalid={form.errors.days !== undefined} />
-                    {form.errors.days && <p className="text-sm text-destructive">{form.errors.days}</p>}
-                </form>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button type="submit" form="prune" variant="destructive" disabled={form.processing}>Delete</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
 }
 
 const ALL = '__all';
+
 const SOURCE_LABELS: Record<string, string> = { admin: 'Admin', ai: 'AI agent', system: 'System', security: 'Security' };
 
 /** Who changed what, newest first. */
-export default function ActivityIndex({ query, types, sources, rows, can }: Props) {
+export default function ActivityIndex({ query, types, actions, sources, perPageOptions, defaultPerPage, prune, rows }: Props) {
     useBreadcrumbs([{ label: 'Activity log' }]);
     const [search, setSearch] = React.useState(query.search);
+    const [confirm, confirmDialog] = useConfirm();
     const base = adminUrl('activity');
 
     const visit = (changes: Partial<Query>) => {
         const next: Query = { ...query, ...changes };
-        const params = Object.fromEntries(Object.entries(next).filter(([, value]) => value !== null && value !== ''));
-        router.get(base, params, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(base, queryParams(next, { perPage: defaultPerPage }, { perPage: 'per_page' }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const pruneLog = () => {
+        const days: FieldInfo = {
+            kind: 'field', type: 'number', name: 'days', label: 'Keep the last … days', required: true, disabled: false,
+            help: 'Older lines are deleted for good. Pruning is itself recorded, and alerts are sent.', placeholder: null, span: 1,
+            default: prune?.keepDays ?? 365, min: 1,
+        };
+        confirm('Delete old activity log lines?', (values) => new Promise<boolean>((resolve) => router.post(`${base}/prune`, { days: values.days }, {
+            preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
+        })), true, [days]);
     };
 
     return (
         <div className="flex flex-col gap-4">
             <Head title="Activity log" />
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-2xl font-medium tracking-tight">Activity log</h1>
-                {can.prune && <PruneDialog />}
-            </div>
+            {confirmDialog}
+            <PageHeader
+                title="Activity log"
+                actions={prune && <Button variant="outline" onClick={pruneLog}><Trash2 />Prune…</Button>}
+            />
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-64" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
@@ -124,8 +113,17 @@ export default function ActivityIndex({ query, types, sources, rows, can }: Prop
                         {types.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                <Input type="date" aria-label="From" className="w-40" value={query.from ?? ''} onChange={(e) => visit({ from: e.target.value || null })} />
-                <Input type="date" aria-label="To" className="w-40" value={query.to ?? ''} onChange={(e) => visit({ to: e.target.value || null })} />
+                <Select value={query.action ?? ALL} onValueChange={(value) => visit({ action: value === ALL ? null : value })}>
+                    <SelectTrigger aria-label="Action" className="w-44"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL}>Any action</SelectItem>
+                        {actions.map((action) => <SelectItem key={action} value={action}>{action}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <div className="flex items-center gap-2">
+                    <DatePicker className="w-36" placeholder="From" value={query.from} onChange={(from) => visit({ from })} />
+                    <DatePicker className="w-36" placeholder="To" value={query.to} onChange={(to) => visit({ to })} />
+                </div>
                 {(query.subject || query.user) && (
                     <Button variant="secondary" size="sm" onClick={() => visit({ subject: null, user: null })}>
                         {query.subject ? 'One item\'s history' : 'One person\'s activity'}<X />
@@ -145,17 +143,17 @@ export default function ActivityIndex({ query, types, sources, rows, can }: Prop
                     </TableHeader>
                     <TableBody>
                         {rows.data.length === 0 && (
-                            <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Nothing recorded{query.search || query.source || query.type || query.from || query.to ? ' that matches' : ' yet'}.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Nothing recorded{query.search || query.source || query.type || query.action || query.from || query.to ? ' that matches' : ' yet'}.</TableCell></TableRow>
                         )}
-                        {rows.data.map((row) => (
-                            <TableRow key={row.id}>
+                        {rows.data.map((row, i) => (
+                            <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties}>
                                 <TableCell className="align-top whitespace-nowrap text-muted-foreground">{row.at ? new Date(row.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : ''}</TableCell>
                                 <TableCell className="align-top">
                                     {row.userId ? (
                                         <button type="button" className="text-left hover:underline" onClick={() => visit({ user: row.userId })}>{row.user}</button>
                                     ) : <span>{row.user ?? (row.source === 'system' ? 'System' : 'Someone not signed in')}</span>}
                                     <div className="mt-0.5 flex flex-wrap gap-1">
-                                        {row.source !== 'admin' && <Badge variant={row.source === 'security' ? 'destructive' : 'secondary'}>{SOURCE_LABELS[row.source] ?? row.source}{row.via ? ` · ${row.via}` : ''}</Badge>}
+                                        {row.source !== 'admin' && <Badge variant={row.source === 'security' ? 'warning' : 'secondary'}>{SOURCE_LABELS[row.source] ?? row.source}{row.via ? ` · ${row.via}` : ''}</Badge>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="align-top">
@@ -180,8 +178,14 @@ export default function ActivityIndex({ query, types, sources, rows, can }: Prop
                 </Table>
             </Card>
 
-            {rows.lastPage > 1 && (
-                <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+            {rows.total > (perPageOptions[0] ?? 25) && (
+                <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-muted-foreground">
+                    <Select value={String(query.perPage)} onValueChange={(value) => visit({ perPage: Number(value) })}>
+                        <SelectTrigger aria-label="Lines per page" className="h-8 w-auto"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            {perPageOptions.map((n) => <SelectItem key={n} value={String(n)}>{n} per page</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                     <span>Page {rows.currentPage} of {rows.lastPage} · {rows.total} lines</span>
                     <Button variant="outline" size="icon" className="size-8" disabled={!rows.prevUrl} asChild={!!rows.prevUrl} aria-label="Previous page">
                         {rows.prevUrl ? <Link href={rows.prevUrl} preserveScroll><ChevronLeft /></Link> : <ChevronLeft />}

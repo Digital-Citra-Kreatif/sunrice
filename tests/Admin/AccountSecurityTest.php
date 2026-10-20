@@ -35,12 +35,12 @@ function rinaEvents(User $rina): array
 
 it('locks an account: its session ends, it can\'t log in, until unlocked', function () {
     actingAs($this->admin);
-    get('/admin/users')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->firstWhere('title', 'Rina')['actions'] === ['sign-out', 'revoke-tokens', 'lock']
+    get('/admin/users')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->firstWhere('title', 'Rina')['actions'] === ['sign-out', 'revoke-tokens', 'lock', 'delete']
         && collect($rows)->firstWhere('title', 'Rina')['cells']['locked'] === false
         && collect($rows)->firstWhere('title', 'Admin')['actions'] === ['sign-out', 'revoke-tokens']));
 
     post("/admin/users/{$this->rina->id}/actions/lock")->assertSessionHas('success', 'Account locked.');
-    get('/admin/users')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->firstWhere('title', 'Rina')['actions'] === ['sign-out', 'revoke-tokens', 'unlock']
+    get('/admin/users')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->firstWhere('title', 'Rina')['actions'] === ['sign-out', 'revoke-tokens', 'unlock', 'delete']
         && collect($rows)->firstWhere('title', 'Rina')['cells']['locked'] === true));
     post("/admin/users/{$this->rina->id}/actions/lock")->assertForbidden(); // already locked
 

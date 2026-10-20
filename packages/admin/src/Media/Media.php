@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Storage;
  *
  *     $media->url();             // the original
  *     $media->url('thumbnail');  // a size, or the original if it has none
+ *     $media->thumbnail();       // the thumbnail, the smallest size, or the original
+ *     $media->srcset();          // "…-medium.jpg?v=1 800w, …-large.jpg?v=1 1600w, ….jpg?v=1 2400w"
  *
  * URLs carry the version, so browsers fetch a replaced file again.
  * Deleting moves a file to the trash (soft delete); DeleteMedia removes
@@ -124,6 +126,72 @@ class Media extends Model
         $url = Storage::disk($this->disk)->url($path);
 
         return $url.(str_contains($url, '?') ? '&' : '?').'v='.$this->version;
+    }
+
+    /**
+     * The URL of a small copy for lists and previews: the "thumbnail"
+     * size, else the smallest size it has, else the original.
+     */
+    public function thumbnail(): string
+    {
+        if (isset($this->sizes['thumbnail'])) {
+            return $this->url('thumbnail');
+        }
+        $widths = [];
+        foreach (array_keys($this->sizes) as $name) {
+            $widths[$name] = $this->sizeWidth($name) ?? PHP_INT_MAX;
+        }
+        asort($widths);
+
+        return $this->url(array_key_first($widths));
+    }
+
+    /**
+     * A `srcset` attribute value: the URL and width of each of these sizes
+     * it has, and of the original. Without names, every size that keeps
+     * the image's proportions ("fit", not "crop"). Sizes as wide as the
+     * original or one listed before are left out; '' for files that
+     * can't have sizes.
+     *
+     *     <img src="{{ $media->url('medium') }}" srcset="{{ $media->srcset() }}" sizes="(min-width: 800px) 800px, 100vw">
+     */
+    public function srcset(string ...$sizes): string
+    {
+        if (! $this->isResizable()) {
+            return '';
+        }
+        $config = MediaConfig::imageSizes();
+        $names = $sizes !== [] ? $sizes : array_keys(array_filter($config, fn (array $size) => ! $size['crop']));
+        // The original first: a size as wide as it is the same picture.
+        $candidates = $this->width === null ? [] : [$this->width => $this->url().' '.$this->width.'w'];
+        foreach ($names as $name) {
+            $width = isset($this->sizes[$name]) ? $this->sizeWidth($name) : null;
+            if ($width !== null) {
+                $candidates[$width] ??= $this->url($name).' '.$width.'w';
+            }
+        }
+        ksort($candidates);
+
+        return implode(', ', $candidates);
+    }
+
+    /** How wide a size comes out, from its configuration and the original's dimensions (null: unknown). */
+    private function sizeWidth(string $name): ?int
+    {
+        $size = MediaConfig::imageSizes()[$name] ?? null;
+        if ($size === null) {
+            return null;
+        }
+        if ($size['crop']) {
+            return $size['width'];
+        }
+        if ($this->width === null || $this->height === null || $this->width < 1 || $this->height < 1) {
+            return $size['width'];
+        }
+        // Scaled down to fit, never up.
+        $factor = min(1, $size['width'] === null ? 1 : $size['width'] / $this->width, $size['height'] === null ? 1 : $size['height'] / $this->height);
+
+        return max(1, (int) round($this->width * $factor));
     }
 
     /**

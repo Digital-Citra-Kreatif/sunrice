@@ -31,13 +31,13 @@ final class RunAction extends ResourceTool
         }
         $actions = array_values(array_filter($resource->table()->getActions(), fn (Action $a) => $a->key === $key));
         $action = $actions[0] ?? null;
-        if ($action === null) {
-            return Response::error("This resource has no action \"{$key}\".");
+        if ($action === null || $action->isUrl()) {
+            return Response::error("This resource has no action \"{$key}\" to run.");
         }
         $records = $resource->class::query()->whereKey(array_filter($ids, fn (mixed $id) => is_int($id) || is_string($id)))->get();
         $user = $this->user();
         foreach ($records as $record) {
-            if ($user === null || ! $resource->allows($user, $action->getAbility(), $record) || (! $action->isBulk && ! $action->isVisibleFor($record))) {
+            if ($user === null || ! $resource->allows($user, $action->getAbility(), $record) || ! $action->allows($user, $record) || (! $action->isBulk && ! $action->isVisibleFor($record))) {
                 return $this->denied("run \"{$action->key}\" on ".$resource->class::title($record));
             }
         }
