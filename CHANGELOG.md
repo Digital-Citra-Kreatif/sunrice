@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- AI tools `read_docs` (the panel's `docs/admin` and what plugins register with the new `$panel->docs($title, $directory)`, `@api`; nothing outside them), `read_error_log` (permission `sunrice.ai.error-log`, config `sunrice-admin.ai.error_log` and `log_path`: the last 2 MB of the newest logs, grouped, secrets masked; read-only tokens may use it, `TokenScope::READING`) and `run_command` (permission `sunrice.ai.run-commands`, allow-list `sunrice-admin.ai.commands` with options checked against the command, output returned, `ran command` logged). The privileged permissions now cover `sunrice.ai.*`.
+- AI tools for media: `upload_media` (a public URL, no redirects or private addresses, or base64; every `UploadMedia` check), `update_media` (title, alt text, caption) and `manage_media` (folders, move, trash and restore, usages, delete for good with the usage rule), with the media permissions and the activity log.
+- `php artisan sunrice:ai-token {email} --name= --read-only --expires=90|never --list --revoke=ID` creates, lists and revokes AI access tokens from the console (`token created` / `token revoked` security events).
+- Local AI agents over stdio: `php artisan mcp:start sunrice` (`Mcp::local`) works as `sunrice-admin.ai.local_user` (`SUNRICE_AI_USER`) with the token user's checks, and refuses to start without one (`PanelServer::actAsLocalUser()`); logged as AI agent via `local (mcp:start)`.
+
 - Login attempts made while blocked are `login blocked` security events too (`tried while blocked`), at most once a minute per email and IP; and an unknown email costs a password check like a wrong password does, so the timing doesn't tell who has an account (`AttemptLogin`).
 - Tests prove plugin routes guarded: every `sunrice.admin.*` route, the CMS's included, is behind `Authenticate` and `EnsureCanAccessPanel` (but the guest pages and logout), and every `sunrice.admin.cms.*` route names a `can:` permission or `AuthorizeContent` (`tests/Cms/AdminRoutesGuardTest.php`).
 - Security headers on every panel response (`PanelSecurityHeaders` in `PanelRoutes::middleware()`): `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, and a `Content-Security-Policy` from `sunrice-admin.security.headers.csp` (`SUNRICE_CSP`) when set.

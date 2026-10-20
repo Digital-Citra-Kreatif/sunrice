@@ -103,6 +103,9 @@ final class Panel
     /** @var list<string> */
     private array $aiInstructions = [];
 
+    /** @var array<string, array{title: string, directory: string}> developer docs for AI agents, keyed by the title's slug */
+    private array $docs = [];
+
     /** @var array<string, Closure(string, string, Authorizable): bool> */
     private array $lockables = [];
 
@@ -546,6 +549,29 @@ final class Panel
         return $this;
     }
 
+    /**
+     * Developer documentation AI agents may read with read_docs: the
+     * Markdown files (`*.md`) of a directory, under a title. Pages are
+     * named "{slug of the title}/{file name}" ("cms/collections"). The
+     * panel registers its own as "Panel"; a missing directory is skipped.
+     *
+     *     $panel->docs('Shop', dirname(__DIR__).'/docs');
+     */
+    public function docs(string $title, string $directory): self
+    {
+        $this->assertRegistering();
+        $key = Str::slug($title);
+        if ($key === '') {
+            throw new PanelMisconfigured("The docs \"{$title}\" need a title with letters or numbers.");
+        }
+        if (isset($this->docs[$key])) {
+            throw new PanelMisconfigured("Two docs are called \"{$title}\"{$this->owner()}.");
+        }
+        $this->docs[$key] = ['title' => $title, 'directory' => rtrim($directory, '/')];
+
+        return $this;
+    }
+
     /** A plugin's admin JavaScript, loaded when one of its pages opens. */
     public function bundle(PluginBundle $bundle): self
     {
@@ -602,7 +628,13 @@ final class Panel
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
             ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
         if ($this->aiAccess) {
-            $this->permissions(Permission::make('sunrice.ai.connect', 'Connect AI agents', 'AI access'));
+            $this->permissions(
+                Permission::make('sunrice.ai.connect', 'Connect AI agents', 'AI access'),
+                Permission::make('sunrice.ai.error-log', 'Let AI agents read the error log', 'AI access'),
+                Permission::make('sunrice.ai.run-commands', 'Let AI agents run allowed commands', 'AI access'),
+            );
+            // The panel's developer docs (this repository's docs/admin), for read_docs.
+            $this->docs('Panel', dirname(__DIR__, 3).'/docs/admin');
             $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')
                 ->group('Administration')->sort(970)->permission('sunrice.ai.connect'));
         }
@@ -622,7 +654,7 @@ final class Panel
                 });
         }
         // Getting one of these is an email alert (SecurityAlerts); plugins add theirs.
-        $this->privilegedPermissions('sunrice.users.*', 'sunrice.roles.*', 'sunrice.settings.*', 'sunrice.ai.connect', 'sunrice.activity.*');
+        $this->privilegedPermissions('sunrice.users.*', 'sunrice.roles.*', 'sunrice.settings.*', 'sunrice.ai.*', 'sunrice.activity.*');
         if ($this->userResource !== null) {
             $this->registerResource($this->userResource, self::CORE.'.users');
         }
@@ -753,6 +785,12 @@ final class Panel
         $key = $user->getKey();
 
         return is_scalar($key) ? (string) $key : '';
+    }
+
+    /** @return array<string, array{title: string, directory: string}> keyed by the title's slug */
+    public function getDocs(): array
+    {
+        return $this->docs;
     }
 
     /** @return list<string> */
