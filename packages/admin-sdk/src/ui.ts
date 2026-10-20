@@ -66,6 +66,19 @@ export const MediaPickerInput = m.MediaPickerInput as ComponentType<{
     invalid: boolean;
     onChange: (value: number | number[] | null) => void;
 }>;
+/**
+ * The block at the top of a page: the title in the panel's display style,
+ * an optional description, a back button, buttons on the right (`actions`),
+ * and children beside the title (a badge, a switcher, "Unsaved changes").
+ */
+export const PageHeader = m.PageHeader as ComponentType<{
+    title: ReactNode;
+    description?: ReactNode;
+    back?: { href: string; label: string };
+    actions?: ReactNode;
+    children?: ReactNode;
+    className?: string;
+}>;
 export const Select = m.Select as AnyComponent;
 export const SelectContent = m.SelectContent as AnyComponent;
 export const SelectItem = m.SelectItem as AnyComponent;

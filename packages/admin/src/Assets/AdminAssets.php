@@ -59,6 +59,35 @@ final class AdminAssets
         return $manifest === null ? null : (md5_file($manifest) ?: null);
     }
 
+    /** The web font's stylesheet (config `sunrice-admin.font.stylesheet`), if one is loaded. */
+    public static function fontStylesheet(): ?string
+    {
+        $href = config('sunrice-admin.font.stylesheet');
+
+        return is_string($href) && $href !== '' ? $href : null;
+    }
+
+    /** The font stylesheet's origin, to connect to before the stylesheet is asked for. */
+    public static function fontOrigin(): ?string
+    {
+        $href = self::fontStylesheet();
+        $parts = $href === null ? false : parse_url($href);
+
+        return is_array($parts) && isset($parts['scheme'], $parts['host']) ? $parts['scheme'].'://'.$parts['host'] : null;
+    }
+
+    /** The font family the panel uses instead of Inter (config `sunrice-admin.font.family`), safe for a CSS string. */
+    public static function fontFamily(): ?string
+    {
+        $family = config('sunrice-admin.font.family');
+        if (! is_string($family)) {
+            return null;
+        }
+        $family = trim((string) preg_replace('/[^\w\s-]/u', '', $family));
+
+        return $family === '' ? null : $family;
+    }
+
     /** The script and style tags for the panel's entry point. */
     public static function tags(): HtmlString
     {

@@ -4,6 +4,7 @@ import {
     ChevronLeft, ChevronRight, CircleAlert, Folder, FolderPlus, LoaderCircle, MoreHorizontal, RotateCcw, Search, Trash2, Upload as UploadIcon, X,
 } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import { InputError } from '@/components/app/input-error';
 import { formatBytes } from '@/components/media/format';
 import { FileIcon, MediaDetails } from '@/components/media/media-details';
@@ -81,21 +82,23 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             <Head title={folder ? `${folder.name} · Media` : 'Media'} />
             {confirmDialog}
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="truncate text-2xl font-medium tracking-tight">{query.trash ? 'Trash' : (folder?.name ?? 'Media')}</h1>
-                <div className="flex flex-wrap items-center gap-2">
-                    {can.update && !query.trash && !query.search && (
-                        <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />New folder</Button>
-                    )}
-                    {canUpload && (
-                        <>
-                            <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label="Files to upload"
-                                onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
-                            <Button onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>
-                        </>
-                    )}
-                </div>
-            </div>
+            <PageHeader
+                title={query.trash ? 'Trash' : (folder?.name ?? 'Media')}
+                actions={
+                    <>
+                        {can.update && !query.trash && !query.search && (
+                            <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />New folder</Button>
+                        )}
+                        {canUpload && (
+                            <>
+                                <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label="Files to upload"
+                                    onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
+                                <Button onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>
+                            </>
+                        )}
+                    </>
+                }
+            />
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-72" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>

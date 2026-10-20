@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import { Cell } from '@/components/resources/cell';
 import { useConfirm } from '@/components/resources/confirm';
 import type { ActionInfo, ColumnInfo, FilterInfo, ResourceInfo, Row } from '@/components/resources/types';
@@ -95,21 +96,23 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
             <Head title={resource.label} />
             {confirmDialog}
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-2xl font-medium tracking-tight">{resource.label}</h1>
-                <div className="flex items-center gap-2">
-                    {can.export && (
-                        <Button variant="outline" asChild>
-                            <a href={exportUrl()}><Download /> Export</a>
-                        </Button>
-                    )}
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={`${base}/create`}><Plus /> New {resource.singularLabel.toLowerCase()}</Link>
-                        </Button>
-                    )}
-                </div>
-            </div>
+            <PageHeader
+                title={resource.label}
+                actions={
+                    <>
+                        {can.export && (
+                            <Button variant="outline" asChild>
+                                <a href={exportUrl()}><Download /> Export</a>
+                            </Button>
+                        )}
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={`${base}/create`}><Plus /> New {resource.singularLabel.toLowerCase()}</Link>
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
             <div className="flex flex-wrap items-center gap-2">
                 <div className="relative w-full max-w-xs">

@@ -9,6 +9,7 @@ import type { SunriceRuntime } from '@sunrice/admin-sdk';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { KeptEditsNotice, useEditLock, ViewingNotice } from '@/components/app/edit-lock';
 import { MediaPickerInput } from '@/components/media/media-picker';
+import { PageHeader } from '@/components/app/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +37,7 @@ const ui = {
     Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-    Input, KeptEditsNotice, Label, MediaPickerInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Skeleton, Switch,
+    Input, KeptEditsNotice, Label, MediaPickerInput, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Skeleton, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
     Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, useBreadcrumbs, useEditLock, useUnsavedChanges, ViewingNotice,
 };

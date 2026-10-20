@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, History, Search, X } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -63,7 +64,7 @@ export default function ActivityIndex({ query, types, sources, rows }: Props) {
     return (
         <div className="flex flex-col gap-4">
             <Head title="Activity log" />
-            <h1 className="text-2xl font-medium tracking-tight">Activity log</h1>
+            <PageHeader title="Activity log" />
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-64" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>

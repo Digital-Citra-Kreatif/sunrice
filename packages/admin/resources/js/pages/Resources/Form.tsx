@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, LoaderCircle, Trash2 } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { LoaderCircle, Trash2 } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import { useConfirm } from '@/components/resources/confirm';
 import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
@@ -47,25 +48,23 @@ export default function ResourceForm({ resource, record, sections, values, can }
             <Head title={title} />
             {confirmDialog}
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3">
-                    <Button variant="outline" size="icon" className="size-8 shrink-0" asChild>
-                        <Link href={base} aria-label={`Back to ${resource.label.toLowerCase()}`}><ArrowLeft /></Link>
-                    </Button>
-                    <h1 className="truncate text-2xl font-medium tracking-tight">{title}</h1>
-                </div>
-                <div className="flex items-center gap-2">
-                    {can.delete && (
-                        <Button type="button" variant="outline" size="icon" className="text-destructive" aria-label={`Delete ${title}`} onClick={remove}>
-                            <Trash2 />
+            <PageHeader
+                title={title}
+                back={{ href: base, label: `Back to ${resource.label.toLowerCase()}` }}
+                actions={
+                    <>
+                        {can.delete && (
+                            <Button type="button" variant="outline" size="icon" className="text-destructive" aria-label={`Delete ${title}`} onClick={remove}>
+                                <Trash2 />
+                            </Button>
+                        )}
+                        <Button type="submit" disabled={form.processing}>
+                            {form.processing && <LoaderCircle className="animate-spin" />}
+                            {record ? 'Save' : `Create ${resource.singularLabel.toLowerCase()}`}
                         </Button>
-                    )}
-                    <Button type="submit" disabled={form.processing}>
-                        {form.processing && <LoaderCircle className="animate-spin" />}
-                        {record ? 'Save' : `Create ${resource.singularLabel.toLowerCase()}`}
-                    </Button>
-                </div>
-            </div>
+                    </>
+                }
+            />
 
             <FormSections sections={sections} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
         </form>

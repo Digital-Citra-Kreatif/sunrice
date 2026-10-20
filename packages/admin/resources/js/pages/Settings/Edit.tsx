@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
 import type { SectionInfo } from '@/components/resources/types';
@@ -68,16 +69,16 @@ function SettingsForm({ section, sections, form: schema, values, secrets }: Prop
                 </nav>
             )}
             <form onSubmit={submit} className="flex max-w-3xl min-w-0 flex-1 flex-col gap-6">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-medium tracking-tight">{section.label}</h1>
-                        {section.description && <p className="text-sm text-muted-foreground">{section.description}</p>}
-                    </div>
-                    <Button type="submit" disabled={form.processing}>
-                        {form.processing && <LoaderCircle className="animate-spin" />}
-                        Save
-                    </Button>
-                </div>
+                <PageHeader
+                    title={section.label}
+                    description={section.description}
+                    actions={
+                        <Button type="submit" disabled={form.processing}>
+                            {form.processing && <LoaderCircle className="animate-spin" />}
+                            Save
+                        </Button>
+                    }
+                />
                 <FormSections sections={shown} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
             </form>
         </div>
