@@ -12,6 +12,7 @@ use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Terms\DeleteTerm;
 use Sunrice\Cms\Actions\Terms\MoveTerm;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
+use Sunrice\Cms\Admin\TemplateHelp;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Fields\HydrationContext;
@@ -201,7 +202,7 @@ it('lists each term with its entry count, and the taxonomy\'s collections and se
 });
 
 it('explains a template setting with the files tried in order when it is empty', function () {
-    expect(Sunrice\Cms\Admin\TemplateHelp::text('cms.topic', ['cms.taxonomy-{handle}', 'cms.term']))->toBe(implode("\n", [
+    expect(TemplateHelp::text('cms.topic', ['cms.taxonomy-{handle}', 'cms.term']))->toBe(implode("\n", [
         'A Blade view: cms.topic is resources/views/cms/topic.blade.php.',
         'Empty: the first that exists of',
         '1. resources/views/cms/taxonomy-{handle}.blade.php',
