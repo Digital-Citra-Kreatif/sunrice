@@ -86,7 +86,9 @@ When something may be a break-in, the panel emails super admins, users with the 
 
 The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. Each recipient's mail is queued (`Mail::queue()`), so set up a queue worker or the `sync` driver; they need your app's mail settings.
 
-Plugins raise their own (the CMS does when site code snippets change) with `SecurityAlerts::raise()`: a rule name, a key (the same rule and key alert once per cooldown), a headline, what happened, what to do and optional details:
+### Your own rules
+
+The built-in rules aren't configurable classes: there's no registry of rules to add to. Your own rule is your own code that decides, then calls **`SecurityAlerts::raise()`** (`@api`): a rule name, a key (the same rule and key alert once per cooldown), a headline, what happened, what to do and optional details. The CMS does it when site code snippets change.
 
 ```php
 app(\Sunrice\Admin\Security\SecurityAlerts::class)->raise('shop-payout-changed', (string) $shop->id,
@@ -94,7 +96,31 @@ app(\Sunrice\Admin\Security\SecurityAlerts::class)->raise('shop-payout-changed',
     'If nobody meant to, change it back and check who did it in the activity log.', ['Who' => $who]);
 ```
 
-It goes to the same people, does nothing when alerts are off, and never throws.
+It goes to the same people (super admins, `security.alerts.roles` and `security.alerts.emails`), is queued, records an `alert sent` security event, does nothing when alerts are off, and never throws.
+
+To watch the activity log or the security events the way the built-in rules do, listen to `Sunrice\Admin\Events\ActivityRecorded` (every new line, `$event->activity`) or `SecurityEventRecorded`, count what you need, and raise when a threshold is reached:
+
+```php
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
+use Sunrice\Admin\Events\ActivityRecorded;
+use Sunrice\Admin\Security\SecurityAlerts;
+
+// In a service provider's boot(): many refunds by one person within an hour.
+Event::listen(function (ActivityRecorded $event): void {
+    $line = $event->activity;
+    if ($line->action !== 'refunded' || $line->user_id === null) {
+        return;
+    }
+    $key = "shop-refunds:{$line->user_id}";
+    Cache::add($key, 0, now()->addHour());
+    if (Cache::increment($key) === 10) {
+        app(SecurityAlerts::class)->raise('shop-many-refunds', (string) $line->user_id,
+            'Many refunds in a short time', "{$line->user_name} refunded 10 orders within an hour.",
+            'Check the refunds in the activity log, and lock the account if they weren\'t meant.');
+    }
+});
+```
 
 ## Captcha
 

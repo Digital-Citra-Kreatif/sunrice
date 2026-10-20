@@ -61,6 +61,8 @@ final class ShopPlugin extends BasePlugin
 }
 ```
 
+A complete example (a resource, settings, a React page, a widget, an AI tool, docs and a guide) and how to test it with Testbench are in [Writing a plugin: the Shop example](plugins.md).
+
 When the panel boots it calls `register()` on every plugin, each plugin's requirements before the plugin itself, checks what they declared, then calls `boot()` in the same order.
 
 | Rule | When it's broken |
