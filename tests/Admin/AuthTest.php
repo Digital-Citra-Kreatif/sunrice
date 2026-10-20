@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Auth\Events\Failed;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
@@ -66,6 +68,13 @@ it('refuses a wrong password, and accounts that may not open the panel', functio
     User::query()->create(['name' => 'Customer', 'email' => 'buyer@shop.test', 'password' => 'secret-password']);
     login('buyer@shop.test')->assertSessionHasErrors(['email' => 'This account can\'t use the admin panel.']);
     assertGuest();
+});
+
+it('checks a password for an unknown email too, so the timing tells nothing', function () {
+    expect(Cache::has('sunrice-login-dummy-hash'))->toBeFalse();
+
+    login('nobody@example.com', 'wrong')->assertSessionHasErrors(['email' => __('auth.failed')]);
+    expect(Cache::get('sunrice-login-dummy-hash'))->toBeString()->and(Hash::isHashed(Cache::get('sunrice-login-dummy-hash')))->toBeTrue();
 });
 
 it('blocks one email from one IP after a few wrong passwords', function () {

@@ -11,7 +11,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `logged in`, `logged out` | Someone signed in to or out of the panel. |
 | `login failed` | A wrong password, or an email with no account (then the email typed is shown), or a wrong [login code](auth.md#two-factor-login). |
 | `login refused` | The right password for an account that may not open the panel (`sunrice.access`). |
-| `login blocked` | Too many wrong passwords from one IP, or for one email from one IP (once, when the limit is reached), or a locked account trying to log in or open a page. |
+| `login blocked` | Too many wrong passwords from one IP, or for one email from one IP: once when the limit is reached, then at most once a minute per email and IP while attempts keep coming (`tried while blocked`), so a sustained attack shows without flooding the log. Also a locked account trying to log in or open a page. |
 | `account locked` | Too many wrong passwords for one account from any IPs: it's locked for `account_lock_seconds`. |
 | `password reset requested`, `password reset` | The "Forgot password?" form (also for emails without an account) and a completed reset. |
 | `upload blocked` | A script, executable or web page, or an SVG that could run code, uploaded to the media library. |
