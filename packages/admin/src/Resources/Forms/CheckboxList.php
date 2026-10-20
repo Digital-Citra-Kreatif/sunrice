@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Resources\Forms;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
+use Sunrice\Admin\Support\Say;
 
 /**
  * Several choices from a list, as an array of the chosen values. Options
@@ -83,10 +84,10 @@ final class CheckboxList extends Field
         foreach ($options as $key => $item) {
             if (is_array($item)) {
                 foreach ($item as $value => $label) {
-                    $list[] = ['value' => (string) $value, 'label' => $label, 'group' => (string) $key];
+                    $list[] = ['value' => (string) $value, 'label' => Say::it($label), 'group' => Say::it((string) $key)];
                 }
             } else {
-                $list[] = ['value' => (string) $key, 'label' => $item, 'group' => null];
+                $list[] = ['value' => (string) $key, 'label' => Say::it($item), 'group' => null];
             }
         }
 

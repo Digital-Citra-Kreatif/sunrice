@@ -26,6 +26,7 @@ use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Support\Branding;
+use Sunrice\Admin\Support\Say;
 use Sunrice\Admin\Users\RoleResource;
 use Sunrice\Admin\Users\UserContent;
 use Sunrice\Admin\Users\UserResource;
@@ -1115,7 +1116,7 @@ final class Panel
     /** @return array{key: string, label: string, url: string, icon: string} */
     private static function link(NavigationItem $item): array
     {
-        return ['key' => $item->key, 'label' => $item->getLabel(), 'url' => $item->getUrl(), 'icon' => $item->getIcon()];
+        return ['key' => $item->key, 'label' => Say::it($item->getLabel()), 'url' => $item->getUrl(), 'icon' => $item->getIcon()];
     }
 
     /**

@@ -160,6 +160,8 @@ final class AdminServiceProvider extends ServiceProvider
         });
 
         $this->loadViewsFrom(dirname(__DIR__).'/resources/views', 'sunrice-admin');
+        // The panel's words in other languages (lang/{code}.json, English text as keys; PanelLocale).
+        $this->loadJsonTranslationsFrom(dirname(__DIR__).'/lang');
         View::composer('sunrice-admin::app', function (ViewInstance $view): void {
             $view->with('sunricePanel', $this->app->make(Panel::class));
         });

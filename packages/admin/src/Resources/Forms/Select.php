@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Resources\Forms;
 
 use Closure;
 use Illuminate\Validation\Rule;
+use Sunrice\Admin\Support\Say;
 
 /**
  * A choice from fixed options: ->options(['draft' => 'Draft', 'live' => 'Live']),
@@ -41,7 +42,7 @@ final class Select extends Field
     protected function props(): array
     {
         return ['options' => array_map(
-            fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => $label],
+            fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => Say::it($label)],
             array_keys($options = $this->resolve()),
             array_values($options),
         )];

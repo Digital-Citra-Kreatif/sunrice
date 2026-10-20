@@ -30,6 +30,7 @@ use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Support\Card;
 use Sunrice\Admin\Support\Csv;
+use Sunrice\Admin\Support\Say;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -436,6 +437,6 @@ final class ResourceController
     /** @return array{key: string, label: string, singularLabel: string} */
     private function describe(RegisteredResource $resource): array
     {
-        return ['key' => $resource->key(), 'path' => $resource->path(), 'label' => $resource->class::label(), 'singularLabel' => $resource->class::singularLabel()];
+        return ['key' => $resource->key(), 'path' => $resource->path(), 'label' => Say::it($resource->class::label()), 'singularLabel' => Say::it($resource->class::singularLabel())];
     }
 }

@@ -9,7 +9,7 @@
  */
 
 /** Bumped when the runtime changes incompatibly. Plugins built for another major version refuse to load. */
-export const SDK_VERSION = 2;
+export const SDK_VERSION = 3;
 
 export const SHARED_MODULES = {
     react: [

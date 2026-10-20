@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Sunrice\Admin\Resources\Forms\Field;
+use Sunrice\Admin\Support\Say;
 
 /**
  * A button on each row (Action::make) or on the selected rows
@@ -310,8 +311,8 @@ final class Action
             'key' => $this->key,
             'url' => $this->url !== null,
             'newTab' => $this->newTab,
-            'label' => $this->label,
-            'confirm' => $this->confirm,
+            'label' => Say::it($this->label),
+            'confirm' => Say::it($this->confirm),
             'destructive' => $this->destructive,
             'fields' => array_map(fn (Field $field) => [...$field->toArray(), 'default' => $field->formValue(null)], $this->fields),
         ];

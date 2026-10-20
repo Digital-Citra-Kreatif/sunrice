@@ -18,6 +18,7 @@ use Sunrice\Admin\Http\Middleware\HandleInertiaRequests;
 use Sunrice\Admin\Http\Middleware\PanelSecurityHeaders;
 use Sunrice\Admin\Http\Middleware\RecordRefusedPages;
 use Sunrice\Admin\Http\Middleware\RedirectIfAuthenticated;
+use Sunrice\Admin\Http\Middleware\SetPanelLocale;
 use Sunrice\Admin\Resources\Http\ResourceController;
 use Sunrice\Admin\Resources\RegisteredResource;
 
@@ -33,7 +34,7 @@ final class PanelRoutes
     /** @return list<string|class-string> */
     public static function middleware(Panel $panel): array
     {
-        return ['web', PanelSecurityHeaders::class, HandleInertiaRequests::class, RecordRefusedPages::class, ...$panel->getMiddleware()];
+        return ['web', SetPanelLocale::class, PanelSecurityHeaders::class, HandleInertiaRequests::class, RecordRefusedPages::class, ...$panel->getMiddleware()];
     }
 
     /** Route names reachable without Panel::ACCESS: the guest pages, logout and the lettermark icon. */

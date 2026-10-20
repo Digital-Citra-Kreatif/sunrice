@@ -8,6 +8,7 @@ use Sunrice\Admin\Http\Controllers\ActivityController;
 use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Http\Controllers\EditLocksController;
 use Sunrice\Admin\Http\Controllers\HelpController;
+use Sunrice\Admin\Http\Controllers\LanguageController;
 use Sunrice\Admin\Http\Controllers\PreferencesController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
 use Sunrice\Admin\Preferences\Preferences;
@@ -38,6 +39,8 @@ Route::get('kept-edits/{kept}', [EditLocksController::class, 'show'])->name('kep
 Route::delete('kept-edits/{kept}', [EditLocksController::class, 'destroy'])->name('kept-edits.destroy');
 
 // The signed-in user's own preferences (useTablePreferences); nobody else's.
+// The panel's language for the signed-in user (PanelLocale).
+Route::put('language', [LanguageController::class, 'update'])->name('language.update');
 Route::get('preferences/{key}', [PreferencesController::class, 'show'])->name('preferences.show')->where('key', Preferences::KEY_PATTERN);
 Route::put('preferences/{key}', [PreferencesController::class, 'update'])->name('preferences.update')->where('key', Preferences::KEY_PATTERN);
 

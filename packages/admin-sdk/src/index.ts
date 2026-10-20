@@ -12,6 +12,7 @@ export interface SunriceRuntime {
     modules: Record<string, Record<string, unknown>>;
     registerPage(name: string, component: PageComponent): void;
     adminUrl(path?: string): string;
+    t(text: string, replace?: Record<string, string | number | null | undefined>): string;
 }
 
 declare global {
@@ -52,6 +53,15 @@ export function definePlugin(definition: PluginDefinition): void {
     for (const [name, component] of Object.entries(definition.pages ?? {})) {
         sunrice.registerPage(name, component);
     }
+}
+
+/**
+ * The panel's words in the user's language: t('Save'), t('Delete :title?', { title }).
+ * The English text is the key: ship lang/{code}.json with your plugin
+ * (loadJsonTranslationsFrom) for other languages.
+ */
+export function t(text: string, replace: Record<string, string | number | null | undefined> = {}): string {
+    return runtime().t(text, replace);
 }
 
 /** adminUrl('shop/orders') → '/admin/shop/orders', whatever path the panel lives under. */

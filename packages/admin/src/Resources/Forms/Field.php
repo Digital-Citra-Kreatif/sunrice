@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
+use Sunrice\Admin\Support\Say;
 
 /**
  * One editable attribute of a resource's model. The field decides how it
@@ -330,11 +331,11 @@ abstract class Field implements Component
             'kind' => 'field',
             'type' => $this->type(),
             'name' => $this->name,
-            'label' => $this->label,
+            'label' => Say::it($this->label),
             'required' => $this->isRequired($record),
             'disabled' => $this->isDisabled($record),
-            'help' => $this->help,
-            'placeholder' => $this->placeholder,
+            'help' => Say::it($this->help),
+            'placeholder' => Say::it($this->placeholder),
             'span' => $this->span,
             'showWhen' => $this->showWhen,
             ...$this->props(),
