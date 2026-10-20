@@ -35,15 +35,9 @@ breaking ones.
 | Documentation | Parity: in-admin Docs and Guide pages, an editor guide in English and Indonesian, installation, upgrading, configuration, commands, helpers, plugins pages, full READMEs. |
 | UI and UX | Section 9's plan implemented: Inter, warm tokens, layered shadows, spring easing, page and view transitions, glass chrome, list stagger, shimmer, collapsible sections, sortable lists with a lifted ghost, command palette (Cmd/Ctrl+K), date picker, refined overlays, controls and focus glow, scoped reduced motion. |
 
-**Deliberately not done or still open:**
+**Follow-up fixes (also done):** emails, password reset, security alerts and the AI server use the branded name (`Panel::brandName()`); the logo, or a lettermark, is the browser icon; each package ships its own developer docs (`packages/*/docs`, links checked by `tests/Arch/DocsLinksTest.php`); `sunrice:references` and a migration backfill references; rename-field refuses collisions inside blueprints that include the fieldset; the command palette and calendar are in-house, so `cmdk` and `react-day-picker` are gone and `league/commonmark` is on the approved list; the suite passes on SQLite, PostgreSQL 16 and MySQL 8; every admin page was checked in Chromium (desktop and phone, light and dark) and the problems found were fixed, with `tests/Browser/smoke.mjs` to repeat the sweep.
 
-- Nested page URLs and plugin JavaScript field components stay out of scope (`AGENTS.md`).
-- Emails and the AI server still use `Panel::brand()` rather than the branded name; the logo is not used as a favicon.
-- Panel developer docs are read from the monorepo's `docs/admin`, so a Packagist install shows the guides but not those docs.
-- References are recorded on save; content saved before the migration gets them on its next save (no backfill).
-- `sunrice:rename-field` doesn't check sibling collisions inside blueprints that include the renamed fieldset inline.
-- New dependencies outside the approved list, explained in the CHANGELOG: `cmdk` and `react-day-picker` (shadcn's command and calendar), and `league/commonmark` (already installed with Laravel) declared by the panel.
-- The UI was verified by typecheck, unit and DOM tests and builds, not in a browser. MySQL ran only through the CI matrix, not locally (SQLite and PostgreSQL were run).
+**Still out of scope by design:** nested page URLs and plugin JavaScript field components (`AGENTS.md`).
 
 ## 1. Summary
 
