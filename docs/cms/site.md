@@ -142,18 +142,27 @@ In any view, `Cms::entries()` finds live entries in the current language (`Sunri
 {{ Cms::global('contact')['phone'] ?? '' }}
 ```
 
-`entries(...$collections)` (none: every collection), then `whereTerm(...$terms)`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereEntry()`, `except()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, and `get()`, `first()`, `count()` or `paginate()`.
+`entries(...$collections)` (none: every collection), then `locale()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate()` or `toBase()`.
 
 ```php
-Cms::entries('events')->where('featured', true)->where('date', '>=', today()->toDateString())->orderBy('date')->get();
+Cms::entries('events')->where('featured', true)->where('date', '>=', today())->orderBy('date')->get();
+Cms::entries('shop')->where('price', '<', 100)->where('color', 'in', ['red', 'blue'])->orderBy('price', 'desc')->get();
 Cms::entries('blog')->where('city', '!=', 'Jakarta')->except($entry)->limit(3)->get();   // "more like this"
 Cms::entries('blog')->whereEntry('related', $entry)->get();                             // pointing at $entry
+Cms::entries('blog')->whereTerm('topics', 'news', includeChildren: true)->latest()->paginate(10);
+Cms::entries('blog')->search($request->query('q', ''))->paginate(10);
 ```
 
-- `where($field, [$operator,] $value)`: a field, or `title`, `slug`, `published_at`, `parent_id`; operators `=`, `!=`, `<`, `>`, `<=`, `>=`; `null` for "no value". Fields are compared as text by `<` and `>`: right for dates and times, not numbers.
+- `locale($locale)`: another language than the current one. `preview()`: every entry not in the trash, by its draft title, slug and fields (`values()` give the draft's too), as the site's preview does; never cached.
+- `where($field, [$operator,] $value)`: a field, or `title`, `slug`, `published_at`, `parent_id`; operators `=`, `!=`, `<`, `>`, `<=`, `>=`, and `in`, `not in` with a list; `null` for "no value" (`where('subtitle', null)`, `where('subtitle', '!=', null)`). Number and date fields compare as such (`9 < 100`, a `Carbon` or `2026-01-01` for dates); the others as text.
+- `whereTerm($term, ...)`: entries with a term (or any of several): `Term` models or ids (`whereTerm($news, $tips)`, `whereTerm([$news, $tips])`), or a taxonomy handle and a slug or list of slugs (`whereTerm('topics', 'news')`, `whereTerm('topics', ['news', 'tips'])`); `includeChildren: true` takes the terms under them too. Looks at the terms of every terms field.
+- `whereFieldTerm($field, $terms, includeChildren: false)`: the same for one terms field, with slugs looked up in that field's taxonomy.
 - `whereEntry($field, $entries)`: entries whose entries field links to an entry (or any of a list).
-- `orderBy($field, 'asc'|'desc')`: a column or a field.
+- `search($text)`: entries whose title or field text holds the words, as the site's search matches them; title matches first, then in the query's order.
+- `orderBy($field, 'asc'|'desc')`: a column or a field; numbers and dates sort as such.
 - `except(...$entries)`: leave these out.
+- `remember()`: keep the matched ids in the site's cache (`SiteCache`, when it's on) until the content changes, so the query runs once; the entries themselves are always read fresh.
+- `toBase()`: the Eloquent query (`Builder<EntryTranslation>`, a new one each time) for what the methods here don't do.
 
 Field filters read the main language's published values (shared fields, like entries and terms, live there).
 
@@ -178,7 +187,7 @@ For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice
 </x-sunrice-cms::terms>
 ```
 
-`entries`: `collection` (handles, comma-separated; none for all), `limit`, `paginate` (per page: a paginator, `$component->entries->links()`), `order` (`latest`, `oldest`, `alphabetical`, `ordered`, or a field, `-field` for descending), `term` (one or a list), `parent` (an entry, or `top`), `where` (`['featured' => true]`) and `except`.
+`entries`: `collection` (handles, comma-separated; none for all), `limit`, `paginate` (per page: a paginator, `$component->entries->links()`), `order` (`latest`, `oldest`, `alphabetical`, `ordered`, or a field, `-field` for descending), `term` (one or a list), `parent` (an entry, or `top`), `where` (`['featured' => true]`), `except`, `search` (words to find) and `remember` (keep the matched ids in the site's cache).
 
 `terms`: `taxonomy`, in the editors' order, each with `entries_count` (its live entries in the current language, of `collection` when given); `hide-empty`; `tree` (the top-level terms, each with `children`); `:entry` (only that entry's terms).
 
