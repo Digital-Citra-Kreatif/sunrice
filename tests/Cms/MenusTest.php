@@ -23,6 +23,7 @@ use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+use function Pest\Laravel\post;
 use function Pest\Laravel\put;
 
 beforeEach(function () {
@@ -181,4 +182,20 @@ it('labels the menus resource apart from the menu editor in the sidebar', functi
             ->and($items['resources.menus']['label'])->toBe('Menu settings');
     });
     expect(app(Panel::class)->getPermissions()['cms.menus.view']->label)->toBe('View Menus');
+});
+
+it('fills a new menu\'s handle from its title, and shows it read-only after, with the way to its links', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
+
+    get('/admin/menus/create')->assertInertia(fn (Assert $page) => $page
+        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.slugFrom', 'title'));
+    post('/admin/menus', ['title' => 'Footer', 'handle' => 'Footer Links'])
+        ->assertSessionHasErrors(['handle' => 'Use lowercase letters, numbers and underscores, starting with a letter (like main_menu).']);
+
+    get("/admin/menus/{$this->main->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.disabled', true)->where('values.handle', 'main')
+        ->where('aside.0.title', 'Links')->where('aside.0.links.0.url', '/admin/cms/menus/main'));
+    put("/admin/menus/{$this->main->id}", ['title' => 'Main menu', 'handle' => 'other'])->assertSessionHasNoErrors();
+    expect($this->main->fresh()?->only(['title', 'handle']))->toBe(['title' => 'Main menu', 'handle' => 'main']);
 });

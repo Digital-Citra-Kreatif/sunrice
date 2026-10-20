@@ -11,6 +11,7 @@ import { ResourceKeyContext } from '@/components/resources/resource-context';
 import type { InfoCard, ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
+import { withSlugs } from '@/lib/slug-from';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
 interface Props {
@@ -29,6 +30,17 @@ export default function ResourceForm({ resource, record, sections, values, can, 
     useBreadcrumbs([{ label: resource.label, href: base }, { label: title }]);
     const [confirm, confirmDialog] = useConfirm();
     const form = useForm<Record<string, FieldValue>>(values);
+    // Creating: fields filled from another one (slugFrom) follow it until typed in.
+    const typed = React.useRef(new Set<string>());
+    const fields = React.useMemo(() => sections.flatMap((section) => section.fields), [sections]);
+    const change = (name: string, value: FieldValue) => {
+        if (record) {
+            form.setData(name, value);
+            return;
+        }
+        if (fields.some((field) => field.name === name && field.slugFrom)) typed.current.add(name);
+        form.setData((data) => withSlugs(fields, data, name, value, typed.current) as Record<string, FieldValue>);
+    };
 
     const save = () => {
         if (form.processing) return;
@@ -71,7 +83,7 @@ export default function ResourceForm({ resource, record, sections, values, can, 
             />
 
             <ResourceKeyContext value={resource.key}>
-                <FormSections sections={sections} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
+                <FormSections sections={sections} data={form.data} errors={form.errors} onChange={change} />
             </ResourceKeyContext>
         </form>
     );

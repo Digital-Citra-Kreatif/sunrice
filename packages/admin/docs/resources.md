@@ -84,7 +84,7 @@ public static function query(): Builder
 
 | Field | Stored as | Options |
 | --- | --- | --- |
-| `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255) |
+| `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slugFrom('title')` (while creating, filled from that field as it's typed, `main_menu`, or with `'-'` `main-menu`, until someone types in it) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |

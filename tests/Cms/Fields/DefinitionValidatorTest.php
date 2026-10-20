@@ -39,7 +39,8 @@ it('stores a select\'s options without content row metadata', function () {
 });
 
 it('checks handles and types', function () {
-    expect(definitionErrors([['handle' => 'Bad Handle', 'type' => 'text']]))->toHaveKey('fields.0.handle')
+    expect(definitionErrors([['handle' => 'Bad Handle', 'type' => 'text']])['fields.0.handle'] ?? null)
+        ->toBe(['"Bad Handle" can\'t be a handle: use lowercase letters, numbers and underscores, starting with a letter (like hero_image).'])
         ->and(definitionErrors([['handle' => 'map', 'type' => 'map']]))->toHaveKey('fields.0.type')
         ->and(definitionErrors([['handle' => 'a', 'type' => 'text'], ['handle' => 'a', 'type' => 'number']]))->toHaveKey('fields.1.handle')
         ->and(definitionErrors('nope'))->toHaveKey('fields')

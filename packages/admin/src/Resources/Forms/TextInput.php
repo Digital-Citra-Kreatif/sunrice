@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Resources\Forms;
 
 /**
- * A one-line text input: ->email(), ->url(), ->color(), ->maxLength(100).
+ * A one-line text input: ->email(), ->url(), ->color(), ->maxLength(100),
+ * ->slugFrom('title').
  *
  * @api
  */
@@ -14,6 +15,11 @@ final class TextInput extends Field
     private string $inputType = 'text';
 
     private int $maxLength = 255;
+
+    private ?string $slugFrom = null;
+
+    /** @var '_'|'-' */
+    private string $slugSeparator = '_';
 
     public function type(): string
     {
@@ -43,6 +49,21 @@ final class TextInput extends Field
         return $this;
     }
 
+    /**
+     * While creating, fill it from another field as that one is typed,
+     * made fit for a handle or an address ("Main menu" → "main_menu", or
+     * with '-' "main-menu"), until someone types in this one.
+     *
+     * @param  '_'|'-'  $separator
+     */
+    public function slugFrom(string $field, string $separator = '_'): self
+    {
+        $this->slugFrom = $field;
+        $this->slugSeparator = $separator;
+
+        return $this;
+    }
+
     public function maxLength(int $length): self
     {
         $this->maxLength = $length;
@@ -66,6 +87,7 @@ final class TextInput extends Field
 
     protected function props(): array
     {
-        return ['inputType' => $this->inputType, 'maxLength' => $this->maxLength];
+        return ['inputType' => $this->inputType, 'maxLength' => $this->maxLength]
+            + ($this->slugFrom !== null ? ['slugFrom' => $this->slugFrom, 'slugSeparator' => $this->slugSeparator] : []);
     }
 }
