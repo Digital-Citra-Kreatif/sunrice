@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- CMS pages match the panel: published and approved badges are the green `success` badge (as on the dashboard) instead of solid black, an up-to-date entry shows a quiet "✓ Published" button instead of a greyed-out primary one, the listing page's SEO card folds like the entry editor's, the comments list has a search icon and a proper empty state, and the term form's Add button lines up with its fields.
 - Panel controls line up: buttons, icon buttons and selects are all 40 px tall with the inputs' 10 px radius (icon buttons were 36 px, selects 36 px); placeholders in monospace inputs are set in the UI font; the colour field draws its own swatch (empty, not black, when unset); the rows-per-page selects no longer clip their text.
 - Panel: a favicon, the lettermark on the brand colour (`Branding::favicon()`), instead of a 404 for `/favicon.ico` on every first visit.
 - Fix: the dashboard crashed on load (`<Deferred fallback={null}>` throws in Inertia 3); a frontend test checks every `<Deferred>` has a fallback.
