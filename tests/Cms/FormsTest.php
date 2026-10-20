@@ -144,9 +144,14 @@ it('lists, shows and deletes submissions for those allowed', function () {
     expect(Submission::query()->count())->toBe(0);
 });
 
-it('exports submissions as CSV safe for spreadsheets', function () {
+it('exports submissions as CSV safe for spreadsheets, with the export permission', function () {
     app(SubmitForm::class)->handle($this->form, contactInput(['name' => '=HYPERLINK("x")']));
     actingAs(adminUser(Panel::ACCESS, 'cms.submissions.view'));
+    get('/admin/cms/forms/contact/submissions/export')->assertForbidden();
+    get('/admin/cms/forms/contact/submissions')->assertInertia(fn (Assert $page) => $page->where('can.export', false));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.submissions.contact.view', 'cms.submissions.contact.export'));
+    get('/admin/cms/forms/contact/submissions')->assertInertia(fn (Assert $page) => $page->where('can.export', true));
 
     $csv = get('/admin/cms/forms/contact/submissions/export')->assertOk()->streamedContent();
 

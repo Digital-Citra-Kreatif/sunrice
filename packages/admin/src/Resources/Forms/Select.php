@@ -4,21 +4,24 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources\Forms;
 
+use Closure;
 use Illuminate\Validation\Rule;
 
 /**
- * A choice from fixed options: ->options(['draft' => 'Draft', 'live' => 'Live']).
- * Only the listed values are accepted.
+ * A choice from fixed options: ->options(['draft' => 'Draft', 'live' => 'Live']),
+ * or a closure returning them (called when the form is shown and when it's
+ * saved, so building the form runs no query). Only the listed values are
+ * accepted.
  *
  * @api
  */
 final class Select extends Field
 {
-    /** @var array<string|int, string> */
-    private array $options = [];
+    /** @var array<string|int, string>|Closure(): array<string|int, string> */
+    private array|Closure $options = [];
 
-    /** @param array<string|int, string> $options value => label */
-    public function options(array $options): self
+    /** @param array<string|int, string>|Closure(): array<string|int, string> $options value => label */
+    public function options(array|Closure $options): self
     {
         $this->options = $options;
 
@@ -32,15 +35,21 @@ final class Select extends Field
 
     protected function typeRules(): array
     {
-        return [Rule::in(array_map('strval', array_keys($this->options)))];
+        return [Rule::in(array_map('strval', array_keys($this->resolve())))];
     }
 
     protected function props(): array
     {
         return ['options' => array_map(
             fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => $label],
-            array_keys($this->options),
-            array_values($this->options),
+            array_keys($options = $this->resolve()),
+            array_values($options),
         )];
+    }
+
+    /** @return array<string|int, string> */
+    private function resolve(): array
+    {
+        return $this->options instanceof Closure ? ($this->options)() : $this->options;
     }
 }

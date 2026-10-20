@@ -45,7 +45,7 @@ it('has permissions for each collection, taxonomy and form, kept in step with th
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     $form = Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'post']);
 
-    expect(Permission::query()->pluck('name')->all())->toContain('cms.entries.blog.view', 'cms.entries.news.publish', 'cms.terms.tags.manage', 'cms.submissions.contact.view', 'cms.submissions.contact.delete')
+    expect(Permission::query()->pluck('name')->all())->toContain('cms.entries.blog.view', 'cms.entries.news.publish', 'cms.terms.tags.manage', 'cms.submissions.contact.view', 'cms.submissions.contact.delete', 'cms.entries.blog.export', 'cms.submissions.contact.export')
         ->and(app(Panel::class)->getPermissions()['cms.entries.blog.update']->group)->toBe('Entries: Blog');
 
     $form->delete();
@@ -62,7 +62,7 @@ it('lets someone work in one collection only', function () {
     get('/admin/cms/entries')->assertRedirect('/admin/cms/collections/blog/entries');
     get('/admin/cms/collections/blog/entries')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('collections', [['handle' => 'blog', 'title' => 'Blog']])
-        ->where('can', ['create' => false, 'update' => true, 'publish' => false, 'delete' => false]));
+        ->where('can', ['create' => false, 'update' => true, 'publish' => false, 'delete' => false, 'export' => false]));
     get('/admin/cms/collections/news/entries')->assertForbidden();
     get("/admin/cms/entries/{$news->entry_id}/edit")->assertForbidden();
     put("/admin/cms/entries/{$blog->entry_id}", ['title' => 'Mine', 'version' => 1])->assertSessionHasNoErrors();

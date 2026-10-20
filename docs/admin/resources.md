@@ -48,12 +48,13 @@ Register it in a plugin's `register()` or in your panel provider:
 $panel->resources(ProductResource::class);
 ```
 
-That adds a sidebar item, the routes (`/admin/products`, named `sunrice.admin.resources.products.*`) and four permissions.
+That adds a sidebar item, the routes (`/admin/products`, named `sunrice.admin.resources.products.*`) and four permissions, five when the table is `->exportable()`.
 
 ## Who may do what
 
 - If the model has a **policy**, it decides: `viewAny` and `view`, `create`, `update`, `delete` (and `updateAny`/`deleteAny`, if present, to offer bulk actions).
-- Otherwise the resource's **permissions** decide: `<prefix>.view`, `.create`, `.update`, `.delete`. The prefix is the registering plugin's id and the resource's key (`shop.products.view`), or just the key when your app registers it (`products.view`). `sunrice:sync-permissions` creates them.
+- Otherwise the resource's **permissions** decide: `<prefix>.view`, `.create`, `.update`, `.delete`.
+- **Export** needs `view` and `<prefix>.export`, registered automatically for a resource whose table is `->exportable()` (with or without a policy; a policy with an `export($user)` method decides instead). The prefix is the registering plugin's id and the resource's key (`shop.products.view`), or just the key when your app registers it (`products.view`). `sunrice:sync-permissions` creates them.
 
 Every request is checked, per record where there is one. **`can()`** may refuse more, after the policy or permissions allowed it; `$record` is null for the list, the create form and whether to offer bulk actions:
 
@@ -141,7 +142,7 @@ Override `newRecord()` to prepare the record the create form fills (`$record->te
 - `Filter::make('status')->options([...])` (or a closure returning them), `Filter::make('active')->boolean()`, or any query: `->query(fn (Builder $q, string $value) => ...)`. Only the listed option values are applied.
 - `Filter::dateRange('created_at')->label('Created')`: two dates, either end open, both days included (`whereDate`). Its value is `from,to` (`2026-01-01,2026-01-31`, `2026-01-01,`); anything else is ignored. With `->query()` the closure gets that value, and `Filter::range($value)` reads it as `[$from, $to]`.
 - `Column::make('overdue')->state(fn (Invoice $i) => $i->due_on->isPast())->boolean()` shows a value worked out from the record (not sortable or searchable; keep it free of queries).
-- `->defaultSort('-created_at')`, `->perPage(50)`, `->exportable()` (CSV of the filtered, sorted list; values that spreadsheets would run as formulas are escaped). For CSV of your own, `Sunrice\Admin\Support\Csv::write($stream, $cells)` escapes the same way (`Csv::cell()` for one value).
+- `->defaultSort('-created_at')`, `->perPage(50)`, `->exportable()` (CSV of the filtered, sorted list, for people with `<prefix>.export`; values that spreadsheets would run as formulas are escaped). For CSV of your own, `Sunrice\Admin\Support\Csv::write($stream, $cells)` escapes the same way (`Csv::cell()` for one value).
 
 Sorting, filtering and searching only ever use what the table declares; anything else in the URL is ignored.
 

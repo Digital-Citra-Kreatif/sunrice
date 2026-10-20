@@ -196,7 +196,7 @@ it('runs row and bulk actions', function () {
 it('exports the list as CSV, safe for spreadsheets', function () {
     product(['name' => '=HYPERLINK("http://evil")', 'sku' => 'E-1']);
     product(['name' => 'Plain', 'sku' => 'P-1', 'status' => 'live']);
-    shopUser('view');
+    shopUser('view', 'export');
 
     $csv = get('/admin/products/export?filters[status]=draft')->assertOk()->streamedContent();
 
@@ -333,4 +333,31 @@ it('opens url actions and checks authorize() closures', function () {
     post("/admin/catalog/{$draft->id}/actions/archive")->assertRedirect();
     expect($draft->fresh()?->status)->toBe('archived')
         ->and(fn () => Action::bulk('open')->url('/x'))->toThrow(InvalidArgumentException::class);
+});
+
+it('needs the export permission to export, registered only for exportable tables', function () {
+    product();
+    $permissions = array_keys(app(Panel::class)->getPermissions());
+    expect($permissions)->toContain('shop.products.export')->not->toContain('shop.catalog.export');
+
+    shopUser('view');
+    get('/admin/products')->assertInertia(fn (Assert $page) => $page->where('can.export', false));
+    get('/admin/products/export')->assertForbidden();
+
+    shopUser('view', 'export');
+    get('/admin/products')->assertInertia(fn (Assert $page) => $page->where('can.export', true));
+    get('/admin/products/export')->assertOk();
+
+    catalogUser('view', 'export');
+    get('/admin/catalog/export')->assertNotFound(); // not exportable
+});
+
+it('lets a policy with export() decide exports', function () {
+    Gate::policy(Product::class, ProductPolicy::class);
+    shopUser(); // no product permissions: the policy's viewAny and export() decide
+
+    get('/admin/products/export')->assertOk();
+    ProductPolicy::$exports = false;
+    get('/admin/products/export')->assertForbidden();
+    ProductPolicy::$exports = true;
 });

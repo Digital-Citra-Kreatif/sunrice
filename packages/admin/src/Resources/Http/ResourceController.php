@@ -83,7 +83,7 @@ final class ResourceController
                 ...($resource->allows($user, 'delete') ? [['key' => 'delete', 'label' => 'Delete', 'confirm' => 'Delete the selected records? This can\'t be undone.', 'destructive' => true]] : []),
                 ...array_map(fn (Action $action) => $action->toArray(), $bulkActions),
             ],
-            'can' => ['create' => $resource->allows($user, 'create'), 'export' => $table->isExportable()],
+            'can' => ['create' => $resource->allows($user, 'create'), 'export' => $table->isExportable() && $resource->allows($user, 'export')],
             'query' => $list->state(),
             'rows' => [
                 'data' => $rows,
@@ -215,6 +215,7 @@ final class ResourceController
         $resource = $this->resource($request);
         $this->authorize($request, $resource, 'view');
         abort_unless($resource->table()->isExportable(), 404);
+        $this->authorize($request, $resource, 'export');
 
         $columns = $resource->table()->getColumns();
         $query = (new ListQuery($resource, $request))->builder();

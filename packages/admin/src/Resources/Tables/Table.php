@@ -65,7 +65,11 @@ final class Table
         return $this;
     }
 
-    /** Offer a CSV download of the list (as filtered and sorted), for users who may view it. */
+    /**
+     * Offer a CSV download of the list (as filtered and sorted), for users
+     * who may view it and export it: the resource gets the permission
+     * "<prefix>.export" (or the policy's export(), when it has one).
+     */
     public function exportable(bool $exportable = true): self
     {
         $this->exportable = $exportable;

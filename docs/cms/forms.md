@@ -50,7 +50,7 @@ Visitors go back to the page they were on, or to the form's **After sending, go 
 
 ## Submissions
 
-Under **Content → Submissions** (`cms.submissions.view`): each form's submissions, newest first; open one to read all of it. **Export CSV** downloads them all, a column per field, with values spreadsheets would run as formulas escaped. Exports are recorded in the security log. `cms.submissions.delete` deletes them for good.
+Under **Content → Submissions** (`cms.submissions.view`): each form's submissions, newest first; open one to read all of it. **Export CSV** (`cms.submissions.export`, or `cms.submissions.{form}.export`) downloads them all, a column per field, with values spreadsheets would run as formulas escaped. Exports are recorded in the security log. `cms.submissions.delete` deletes them for good.
 
 The notification email lists the fields with their labels. It's queued, so it's sent by your queue worker when the app has a queue, and right away when it doesn't.
 
