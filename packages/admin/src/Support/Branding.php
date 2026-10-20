@@ -47,6 +47,21 @@ final class Branding
         return mb_strtoupper(mb_substr($this->name(), 0, 1)) ?: '?';
     }
 
+    /**
+     * The browser tab's icon: the lettermark on the brand colour (or the
+     * panel's near-black), as an SVG data URI, so no request 404s.
+     */
+    public function favicon(): string
+    {
+        $fill = $this->color() ?? '#2f2a26';
+        $text = $this->color() === null ? '#ffffff' : self::readableOn($fill);
+        $letter = htmlspecialchars($this->lettermark(), ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="'.$fill.'"/>'
+            .'<text x="32" y="43" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="32" font-weight="600" fill="'.$text.'">'.$letter.'</text></svg>';
+
+        return 'data:image/svg+xml,'.rawurlencode($svg);
+    }
+
     /** The chosen font's key, or null for the `sunrice-admin.font` config. */
     public function font(): ?string
     {

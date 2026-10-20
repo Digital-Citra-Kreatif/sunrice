@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Panel: a favicon, the lettermark on the brand colour (`Branding::favicon()`), instead of a 404 for `/favicon.ico` on every first visit.
 - Fix: the dashboard crashed on load (`<Deferred fallback={null}>` throws in Inertia 3); a frontend test checks every `<Deferred>` has a fallback.
 - READMEs: the root `README.md` (what Sunrice is, the two packages, requirements, a quick start, the docs and developing the monorepo), and proper introductions, features, installing, assets and docs links in `packages/admin/README.md` and `packages/cms/README.md`.
 - Docs: `docs/README.md` (an index of every page), `docs/upgrading.md` (how to upgrade, and every breaking change of this version), `docs/admin/installation.md` (requirements, the panel provider, `HasRoles`, the scheduler, the queue worker, the storage link, assets, upgrading), `docs/admin/configuration.md` and `docs/cms/configuration.md` (every config key with its default and environment variable), `docs/admin/commands.md` (every panel command; `docs/cms/commands.md` gains `sunrice:translate` and `sunrice:switch-main-language`), `docs/cms/helpers.md` (the `Cms` facade, the `cms_*` functions, `@bodyClass`, the `EntryQuery` reference), `docs/admin/plugins.md` (the Shop example plugin and testing a plugin with Testbench) and *Your own rules* in `docs/admin/security.md` (`SecurityAlerts::raise()` from a listener).

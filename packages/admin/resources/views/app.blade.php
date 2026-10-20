@@ -7,6 +7,7 @@
     <meta name="robots" content="noindex, nofollow">
     @php($sunriceBranding = \Sunrice\Admin\Support\Branding::make())
     <title inertia>{{ $sunriceBranding->name() }}</title>
+    <link rel="icon" href="{{ $sunriceBranding->favicon() }}">
     {{-- The saved appearance, before paint, so dark mode doesn't flash light. --}}
     <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
         (function () {

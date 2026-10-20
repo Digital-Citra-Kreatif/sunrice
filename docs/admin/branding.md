@@ -55,6 +55,8 @@ const { branding } = usePage<{ sunrice: { branding: Branding } }>().props.sunric
 //   login: { layout, eyebrow, headline, text, footer, image: url | null } }
 ```
 
+The browser tab's icon is the lettermark on the brand colour (`Branding::make()->favicon()`, an SVG data URI), so it follows the name and colour without a file to upload.
+
 `sunrice.brand` (the name) is still shared too. Emails (security alerts, login codes) and the AI server keep using `$panel->brand()`.
 
 ## The user menu

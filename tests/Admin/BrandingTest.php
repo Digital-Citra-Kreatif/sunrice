@@ -225,3 +225,19 @@ it('shares the branding with every page, with the panel\'s defaults for what is 
     $logo->delete();
     get('/admin/login')->assertInertia(fn (Assert $page) => $page->where('sunrice.branding.logo', null));
 });
+
+it('gives the browser tab an icon: the lettermark on the brand colour', function () {
+    $icon = rawurldecode(Branding::make()->favicon());
+    expect($icon)->toStartWith('data:image/svg+xml,<svg')
+        ->toContain('fill="#2f2a26"')
+        ->toContain('>A</text>');
+
+    brand(['name' => '<b>', 'color' => '#facc15']);
+    $icon = rawurldecode(Branding::make()->favicon());
+    expect($icon)->toContain('fill="#facc15"')
+        ->toContain('fill="#111111"')
+        ->toContain('>&lt;</text>')
+        ->not->toContain('<b>');
+
+    get('/admin/login')->assertOk()->assertSee('<link rel="icon" href="data:image/svg+xml,', false);
+});
