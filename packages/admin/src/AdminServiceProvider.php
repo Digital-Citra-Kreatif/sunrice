@@ -7,9 +7,11 @@ namespace Sunrice\Admin;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Database\Events\NoPendingMigrations;
+use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -40,12 +42,14 @@ use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Events\LoginThrottled;
 use Sunrice\Admin\Events\SecurityEventRecorded;
 use Sunrice\Admin\Events\SettingsSaved;
+use Sunrice\Admin\Http\ErrorPages;
 use Sunrice\Admin\Locks\KeptEdit;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\SettingsStore;
+use Throwable;
 
 /**
  * Boots the admin panel package. The panel itself and its plugins are
@@ -70,6 +74,12 @@ final class AdminServiceProvider extends ServiceProvider
 
         // Registered here too, so the panel works in apps that turn off package discovery.
         $this->app->register(InertiaServiceProvider::class);
+        // 403, 404, 419 and 500 under the panel's path: the panel's Error page.
+        $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
+            if ($handler instanceof Handler) {
+                $handler->renderable(fn (Throwable $e, Request $request) => ErrorPages::render($e, $request));
+            }
+        });
         $this->app->register(PermissionServiceProvider::class);
         $this->app->register(McpServiceProvider::class);
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
 use Sunrice\Admin\Ai\PanelServer;
 use Sunrice\Admin\Http\Controllers\Auth\LoginController;
+use Sunrice\Admin\Http\Controllers\MissingPageController;
 use Sunrice\Admin\Http\Middleware\Authenticate;
 use Sunrice\Admin\Http\Middleware\AuthenticateAiToken;
 use Sunrice\Admin\Http\Middleware\EnsureAccountActive;
@@ -102,6 +103,8 @@ final class PanelRoutes
                     foreach ($panel->getRoutes() as $routes) {
                         $routes();
                     }
+                    // Matched after every other route: an unknown panel address is the panel's 404 page.
+                    Route::fallback(MissingPageController::class)->name('missing');
                 });
             });
     }

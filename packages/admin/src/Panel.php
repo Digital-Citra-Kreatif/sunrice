@@ -50,7 +50,7 @@ final class Panel
     private const RESERVED_SHARED = ['sunrice', 'auth', 'navigation', 'flash', 'errors'];
 
     /** Page folders of the panel's own React pages; plugin bundles use others. */
-    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/'];
+    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/', 'Error'];
 
     private string $path = 'admin';
 
