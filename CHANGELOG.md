@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Docs: `docs/cms/structure.md` (references, renaming fields, exporting and importing structure, leftovers, demo content) and `docs/cms/commands.md` (every CMS command, with links to the panel's).
 - `sunrice:demo-content [--fresh]`: a small demo site made through `StructureImporter` (Pages and a Blog with flexible sections, nested Topics, twelve entries in English and Indonesian, a main menu, a global set, a contact form and redirects); the workbench seeder runs it.
 - `sunrice:orphans [--purge]`: deleted collections and taxonomies with the entries and terms they keep, media whose file is missing, and fields pointing at entries or terms that are gone; `--purge` deletes the deleted collections and taxonomies for good with `Actions\Collections\PurgeDeleted` (`@api`), freeing their handles. Collections and taxonomies lists get a **Deleted** filter and a **Restore** action (`RestoreDeleted`, `@api`; refused when another one took its address).
 - Resources: `Action::trashed()` (`@api`) for actions on records in the trash, such as a Restore: found though the resource's query leaves them out, and offered for nothing else.
