@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import type { ComponentType } from 'react';
 import {
     commandScore, matchCommands, navigationCommands, queryCommandSources, registerCommandSource, subscribeCommandSources, type CommandItem,
 } from '../../packages/admin/resources/js/lib/command-sources.ts';
-import { loadAdminModule } from './support/render.ts';
+import { loadAdminModule, render } from './support/render.ts';
 
 const navigation = [
     { group: null, items: [{ key: 'users', label: 'Users', url: 'users', icon: 'users', children: [] }] },
@@ -78,4 +79,87 @@ test('recognises Cmd+K and Ctrl+K, not other K presses', async () => {
     assert.equal(isCommandPaletteShortcut(key({})), false);
     assert.equal(isCommandPaletteShortcut(key({ metaKey: true, shiftKey: true })), false);
     assert.equal(isCommandPaletteShortcut(key({ ctrlKey: true, key: 'j' })), false);
+});
+
+type CommandList = {
+    itemScore: (value: string, keywords: string[] | undefined, search: string) => number;
+    displayOrder: (items: { score: number; group: string | null }[]) => number[];
+    nextActive: (values: string[], active: string | undefined, key: string, loop?: boolean) => string | undefined;
+    isNavigationKey: (key: string) => boolean;
+};
+
+test('the command list filters items on their value and keywords with the palette ranking', async () => {
+    const { itemScore } = await loadAdminModule<CommandList>('lib/command-list.ts');
+
+    assert.equal(itemScore('Media library', undefined, ''), 1);
+    assert.equal(itemScore('Media library', undefined, 'media'), 4);
+    assert.equal(itemScore('Media library', undefined, 'lib'), 3);
+    assert.equal(itemScore('Users', ['people'], 'people'), 1);
+    assert.equal(itemScore('Users', ['people'], 'xyz'), 0);
+    assert.equal(itemScore('Café', undefined, 'cafe'), 4);
+});
+
+test('the command list shows matches best first, groups by their best item, ties in document order', async () => {
+    const { displayOrder } = await loadAdminModule<CommandList>('lib/command-list.ts');
+
+    // Equal scores (no search, or no filtering): document order.
+    assert.deepEqual(displayOrder([{ score: 1, group: 'a' }, { score: 1, group: 'a' }, { score: 1, group: null }, { score: 1, group: 'b' }]), [0, 1, 2, 3]);
+    // Within a group by score; the group with the better best item first.
+    assert.deepEqual(displayOrder([
+        { score: 1, group: 'a' }, { score: 3, group: 'a' },
+        { score: 4, group: 'b' }, { score: 2, group: 'b' }, { score: 4, group: 'b' },
+    ]), [2, 4, 3, 1, 0]);
+    // Ungrouped items rank alongside groups.
+    assert.deepEqual(displayOrder([{ score: 2, group: 'a' }, { score: 3, group: null }, { score: 1, group: null }]), [1, 0, 2]);
+    assert.deepEqual(displayOrder([]), []);
+});
+
+test('the command list moves the active item with Up, Down, Home and End, wrapping round', async () => {
+    const { nextActive, isNavigationKey } = await loadAdminModule<CommandList>('lib/command-list.ts');
+    const values = ['a', 'b', 'c'];
+
+    assert.equal(nextActive(values, 'a', 'ArrowDown'), 'b');
+    assert.equal(nextActive(values, 'c', 'ArrowDown'), 'a');
+    assert.equal(nextActive(values, 'a', 'ArrowUp'), 'c');
+    assert.equal(nextActive(values, 'b', 'ArrowUp'), 'a');
+    assert.equal(nextActive(values, 'b', 'Home'), 'a');
+    assert.equal(nextActive(values, 'a', 'End'), 'c');
+    assert.equal(nextActive(values, undefined, 'ArrowDown'), 'a');
+    assert.equal(nextActive(values, 'gone', 'ArrowUp'), 'c');
+    assert.equal(nextActive(values, 'c', 'ArrowDown', false), 'c');
+    assert.equal(nextActive(values, 'a', 'ArrowUp', false), 'a');
+    assert.equal(nextActive([], 'a', 'ArrowDown'), undefined);
+    assert.equal(isNavigationKey('ArrowDown'), true);
+    assert.equal(isNavigationKey('Enter'), false);
+});
+
+test('renders the command list as a combobox controlling a listbox of options', async () => {
+    const { createElement: h } = await import('react');
+    const ui = await loadAdminModule<Record<string, ComponentType<any>>>('components/ui/command.tsx');
+    const html = render(ui.Command!, { label: 'Pick a page' },
+        h(ui.CommandInput!, { placeholder: 'Search…' }),
+        h(ui.CommandList!, null,
+            h(ui.CommandEmpty!, null, 'Nothing found.'),
+            h(ui.CommandGroup!, { heading: 'Pages' },
+                h(ui.CommandItem!, { value: 'users', keywords: ['people'] }, 'Users'),
+                h(ui.CommandItem!, { value: 'media', disabled: true }, 'Media'),
+            ),
+            h(ui.CommandSeparator!, null),
+            h(ui.CommandItem!, null, 'Settings'),
+        ),
+    );
+
+    const listId = /<div id="([^"]+)" role="listbox"/.exec(html)?.[1];
+    assert.ok(listId);
+    assert.match(html, new RegExp(`<input[^>]*role="combobox"[^>]*aria-expanded="true"[^>]*aria-controls="${listId}"[^>]*aria-autocomplete="list"`));
+    assert.match(html, /aria-label="Pick a page"/);
+    assert.equal(html.match(/role="option"/g)?.length, 3);
+    assert.match(html, /role="option" aria-selected="false" aria-disabled="true"[^>]*data-value="media"/);
+    assert.match(html, /data-value="Settings"/, 'an item without a value is known by its text');
+    const headingId = /<div id="([^"]+)" aria-hidden="true" data-slot="command-group-heading"[^>]*>Pages<\/div>/.exec(html)?.[1];
+    assert.ok(headingId);
+    assert.match(html, new RegExp(`role="group" aria-labelledby="${headingId}"`));
+    assert.match(html, /role="separator"/);
+    assert.doesNotMatch(html, /Nothing found/, 'the empty state waits until the items are counted');
+    assert.doesNotMatch(html, /hidden=""/);
 });

@@ -95,7 +95,7 @@ export function CommandPalette() {
     }
 
     return (
-        <CommandDialog open={open} onOpenChange={setCommandPaletteOpen} title="Go to" description="Type to find a page or search." showCloseButton={false}>
+        <CommandDialog open={open} onOpenChange={setCommandPaletteOpen} title="Go to" description="Type to find a page or search." showCloseButton={false} shouldFilter={false}>
             <CommandInput placeholder="Go to…" value={query} onValueChange={setQuery} />
             <CommandList>
                 {loading && <CommandLoading><p className="px-3 py-2 text-xs text-muted-foreground">Searching…</p></CommandLoading>}

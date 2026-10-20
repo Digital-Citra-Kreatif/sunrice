@@ -161,9 +161,9 @@ It also has these interaction components, the ones the panel's own pages use:
   </SortableList>
   ```
 
-- **`DatePicker`**: a calendar in a popover, with a time input when `withTime`. Its value is what a native date input gives (`"2026-10-19"`, or `"2026-10-19T14:30"`), so it drops in where a date input was.
+- **`DatePicker`**: a calendar in a popover, with a time input when `withTime`. Its value is what a native date input gives (`"2026-10-19"`, or `"2026-10-19T14:30"`), so it drops in where a date input was. The calendar is a keyboard grid: arrows move by a day or a week, PageUp/PageDown by a month (a year with Shift), Home/End to the ends of the week, Enter or Space picks the day.
 
-- **`Command`**, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`, `CommandEmpty`, `CommandSeparator`: cmdk's filterable list, for comboboxes and pickers.
+- **`Command`**, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`, `CommandEmpty`, `CommandSeparator`: a filterable list with a search box, for comboboxes and pickers. Items match on their `value` (their text when none is given) and `keywords` with the command palette's ranking, best first; `<Command shouldFilter={false}>` shows them as given (when a server already searched). The input is a combobox: Up/Down (wrapping round; `loop={false}` stops at the ends), Home/End move the active item, Enter or a click runs its `onSelect(value)`, hovering makes it active; `disabled` items are skipped. `CommandInput` takes `value`/`onValueChange`, `CommandGroup` a `heading`, and `CommandEmpty` shows when nothing matches.
 
 - **`registerCommandSource(source, { minLength })`**: adds results to the command palette (Cmd/Ctrl+K, which lists the navigation out of the box). The source gets the query and an `AbortSignal` and returns items (`id`, `label`, `group`, optional `description`, `icon` (a navigation icon name), `url` (a full href from `adminUrl()`) or `onSelect`). It's asked after `minLength` letters (2 by default), debounced; one that throws or is aborted contributes nothing. It returns a function that removes the source. A bundle runs when one of its pages first opens, so a source registered at its top level is there from then on. The CMS registers one that searches entries by title through its entry picker endpoint.
 

@@ -49,7 +49,7 @@ export const CollapsibleCard = m.CollapsibleCard as ComponentType<{
     children: ReactNode;
 }>;
 
-/** cmdk's command list (a filterable list of items), for comboboxes and pickers. */
+/** The panel's command list (a filterable list of items with a search box), for comboboxes and pickers. */
 export const Command = m.Command as AnyComponent;
 export const CommandEmpty = m.CommandEmpty as AnyComponent;
 export const CommandGroup = m.CommandGroup as AnyComponent;
