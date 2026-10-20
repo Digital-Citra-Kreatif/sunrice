@@ -146,3 +146,27 @@ it('organises folders: create, rename, move files, delete without losing anythin
     mediaUser('view', 'upload');
     post('/admin/media/folders', ['name' => 'Nope'])->assertForbidden();
 });
+
+it('warns uploaders when the public disk\'s storage link is missing', function () {
+    $root = sys_get_temp_dir().'/sunrice-media-'.uniqid();
+    $link = sys_get_temp_dir().'/sunrice-link-'.uniqid();
+    config([
+        'filesystems.disks.media-test' => ['driver' => 'local', 'root' => $root, 'url' => '/storage', 'visibility' => 'public'],
+        'filesystems.links' => [$link => $root],
+        'sunrice-admin.media.disk' => 'media-test',
+    ]);
+
+    mediaUser('view', 'upload');
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', true));
+
+    mkdir($link);
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', false));
+    rmdir($link);
+
+    // Nobody who can't upload is told; other disks never are.
+    mediaUser('view');
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', false));
+    config(['sunrice-admin.media.disk' => 'public']);
+    mediaUser('view', 'upload');
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', false));
+});

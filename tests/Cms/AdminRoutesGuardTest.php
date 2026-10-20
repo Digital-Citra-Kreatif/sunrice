@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Routing\Route as RegisteredRoute;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
+use Inertia\Testing\AssertableInertia;
 use Sunrice\Admin\Http\Middleware\Authenticate;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Panel;
@@ -43,4 +44,13 @@ it('declares a permission or content check on every CMS admin route', function (
         ->map(fn (RegisteredRoute $route) => $route->getName())->all();
 
     expect($unguarded)->toBe([]);
+});
+
+it('answers an unknown admin address with the panel\'s 404 page, not the site\'s', function () {
+    config(['app.debug' => false]);
+    \Pest\Laravel\actingAs(adminUser(Panel::ACCESS));
+
+    \Pest\Laravel\get('/admin/no/such/page')->assertNotFound()
+        ->assertInertia(fn (AssertableInertia $page) => $page->component('Error', false)->where('status', 404));
+    \Pest\Laravel\get('/no/such/page')->assertNotFound()->assertDontSee('data-'.'page=', false);
 });

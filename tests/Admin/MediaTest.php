@@ -191,3 +191,23 @@ it('keeps only the original of images it can\'t read or that are too large', fun
     config(['sunrice-admin.media.max_pixels' => 1000]);
     expect(upload(UploadedFile::fake()->image('big.png', 100, 100))->sizes)->toBe([]);
 });
+
+it('gives a thumbnail and a srcset from the sizes an image has', function () {
+    $media = upload(UploadedFile::fake()->image('wide.jpg', 2400, 1200));
+    expect($media->sizes)->toHaveKeys(['thumbnail', 'medium', 'large'])
+        ->and($media->thumbnail())->toBe($media->url('thumbnail'))
+        ->and($media->srcset())->toBe($media->url('medium').' 800w, '.$media->url('large').' 1600w, '.$media->url().' 2400w')
+        ->and($media->srcset('thumbnail', 'medium'))->toBe($media->url('thumbnail').' 300w, '.$media->url('medium').' 800w, '.$media->url().' 2400w');
+
+    // A small image: sizes as wide as the original are left out.
+    $small = upload(UploadedFile::fake()->image('small.jpg', 640, 480));
+    expect($small->srcset())->toBe($small->url().' 640w');
+
+    // Without a thumbnail size, the smallest size; without sizes, the original.
+    $small->forceFill(['sizes' => ['large' => $small->sizes['large'], 'medium' => $small->sizes['medium']]]);
+    config(['sunrice-admin.media.image_sizes' => ['medium' => [400, null, 'fit'], 'large' => [1600, null, 'fit']]]);
+    expect($small->thumbnail())->toBe($small->url('medium'));
+    $small->forceFill(['sizes' => []]);
+    expect($small->thumbnail())->toBe($small->url())
+        ->and(upload(UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf'))->srcset())->toBe('');
+});

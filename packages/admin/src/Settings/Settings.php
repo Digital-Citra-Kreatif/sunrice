@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Settings;
 
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Support\Str;
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Support\Card;
 
 /**
  * A section of settings: typed public properties with defaults, stored
@@ -63,6 +65,19 @@ abstract class Settings
     public static function description(): ?string
     {
         return null;
+    }
+
+    /**
+     * Read-only cards under the section's form, for `$user` (who may edit
+     * the section): how something is set up outside the panel, with
+     * buttons to try it. Nothing by default. A section without fields
+     * shows only its cards.
+     *
+     * @return list<Card>
+     */
+    public static function cards(Authorizable $user): array
+    {
+        return [];
     }
 
     /**

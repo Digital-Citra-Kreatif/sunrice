@@ -13,6 +13,8 @@ The panel has one media library, shared by your app and every plugin: files on a
 | `sunrice.media.update` | Editing details, replacing files, folders and moving |
 | `sunrice.media.delete` | The trash: moving to it, restoring, deleting for good |
 
+When the media disk is a local disk served through a link in `filesystems.links` that doesn't exist (`php artisan storage:link` wasn't run), the page tells those who may upload, since files' links lead nowhere until it is.
+
 Turn the page off with `$panel->mediaLibrary(false)`; the library still works from code.
 
 ## Where files are used
@@ -71,6 +73,9 @@ $media = app(UploadMedia::class)->handle($request->file('photo'), ['folder_id' =
 
 $media->url();               // the original
 $media->url('thumbnail');    // a size (the original when it has none)
+$media->thumbnail();         // the "thumbnail" size, else the smallest size it has, else the original
+$media->srcset();            // "…-medium.jpg?v=1 800w, …-large.jpg?v=1 1600w, ….jpg?v=1 2400w"
+$media->srcset('thumbnail', 'medium');   // only these sizes (and the original)
 
 app(ReplaceMedia::class)->handle($media, $newFile);   // same URL, new version
 $media->delete();                                      // to the trash (soft delete)
@@ -83,6 +88,12 @@ app(DeleteMediaFolder::class)->handle($folder);                      // its cont
 ```
 
 URLs end in `?v=<version>`, so a replaced file is fetched again rather than served from a cache.
+
+`srcset()` gives the value of an `<img srcset>`: each size's URL with its width, worked out from the size's settings and the original's dimensions, and the original's. Without names it uses the sizes that keep the picture's proportions (`fit`, not `crop`); sizes as wide as the original, or as one already listed, are left out, and files that can't have sizes (SVGs, documents) give `''`:
+
+```blade
+<img src="{{ $media->url('medium') }}" srcset="{{ $media->srcset() }}" sizes="(min-width: 50rem) 50rem, 100vw" alt="{{ $media->alt }}">
+```
 
 ## Settings
 

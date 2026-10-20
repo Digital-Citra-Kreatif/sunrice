@@ -24,6 +24,7 @@ use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Security\SecurityLog;
+use Sunrice\Admin\Support\Card;
 use Sunrice\Admin\Support\Csv;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -247,6 +248,7 @@ final class ResourceController
             'sections' => $sections,
             'values' => $values,
             'can' => ['delete' => $record !== null && $resource->allows($this->user(), 'delete', $record)],
+            'aside' => $record === null ? [] : array_map(fn (Card $card) => $card->toArray(), $resource->class::aside($record, $this->user())),
         ]);
     }
 
