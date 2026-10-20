@@ -4,7 +4,7 @@ The CMS serves entries as pages: each collection with a **URL** (`route`) shows 
 
 ## URLs
 
-Set a collection's URL under Structure → Collections: a path with `{slug}` once, like `/blog/{slug}`, or `/{slug}` for pages at the root. Collections without one have no pages of their own (their entries can still be shown by your templates).
+Set a collection's URL under Structure → Collections: a path with `{slug}` once, like `/blog/{slug}`, or `/{slug}` for pages at the root (and [related entries' slugs](#related-entries-in-the-url) if you like). Collections without one have no pages of their own (their entries can still be shown by your templates).
 
 - The main language has no prefix; others start with their code: `/blog/hello`, `/id/blog/halo`. The app's locale is set from the address as soon as the CMS's route takes over, so 404 pages, redirects and the search page are in that language too. The main language's own prefix (`/en/about`, from before the main language changed) redirects (301) to the plain address, query string kept; your app's own routes aren't touched.
 - The more specific pattern is tried first (more fixed characters): `/blog/{slug}` before `/{slug}`. The first pattern that matches decides: `/blog/about` looks for a blog entry "about", and is a 404 if there's none, even when a page "about" exists.
@@ -13,6 +13,15 @@ Set a collection's URL under Structure → Collections: a path with `{slug}` onc
 - The CMS's route is the app's **fallback**: your own routes (`routes/web.php`) always come first. Turn the site off with `sunrice-cms.site.enabled` (the admin and previews keep working); its middleware is `sunrice-cms.site.middleware` (`web`).
 
 `$translation->url()` gives an entry's address (null without a route).
+
+### Related entries in the URL
+
+A collection's URL may also hold the slug of an entry its entries link to: put the handle of a single-value **Entries** field of its blueprint in braces, `/projects/{project}/{slug}`. The URL is checked when the collection is saved (each `{field}` must be an Entries field without *Several entries*).
+
+- URLs are filled from the linked entry's slug in the same language (else its main language's slug); an entry that links to nothing live gets `-` there: `/projects/-/unit-1`.
+- A path matches only with the linked entry's current slug: `/projects/bridge/unit-1` is a 404 when unit 1 belongs to Tower.
+- When the linked entry's slug changes, or an entry links to another one, publishing adds redirects from the old URLs (`Site::moved()`), as for a slug of its own.
+- Listing pages, the sitemap, menus, links and structured data all use the filled URLs. The slugs are read once per request for every entry a field may link to (and kept in the [site cache](caching.md)), not once per entry.
 
 ## Templates
 

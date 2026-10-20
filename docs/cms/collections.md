@@ -12,7 +12,7 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `title` | The name editors see. |
 | `blueprint` | A blueprint's handle, or none. Changing it keeps entries' data: values of fields the new blueprint lacks stay stored, out of sight, and come back with the field. A blueprint can't be deleted while a collection uses it. |
 | `dated` | Entries show a date and list newest first. |
-| `route` | The entries' URL, like `/blog/{slug}`; none: no pages. See [the site](site.md). |
+| `route` | The entries' URL, like `/blog/{slug}` or `/projects/{project}/{slug}`; none: no pages. See [the site](site.md). |
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
 | `listing_route` | The URL of a page listing the entries, like `/blog`; none: no listing page. See [the site](site.md#listing-pages). |
 | `listing_blueprint`, `per_page` | The listing page's own fields (an intro…), edited from the entries list, and how many entries it shows per page (10). `SaveListing` saves the fields per language and, given the `version` the editor opened (`CollectionListing::$version`), refuses a save over someone else's newer one. |

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Collection URLs may hold a related entry's slug: `/projects/{project}/{slug}`, where `project` is a single-value `entries` field (checked on save, `Site\RoutePatternRule`). URLs are filled from the linked entry's slug in the same language, `Site::match()` takes them most specific first, and a related slug change or a new link redirects the old URLs (`Site::relatedMoved()`). `RoutePattern::match()` returns the slug and parameters.
 - The `link` field links to entries too: stored `{type: entry, entry_id, label, new_tab}` (or `{type: url, url, …}`), with a `collections` setting; templates get `{type, url, label, title, new_tab}`, the entry's URL and title in the page's language from the shared `HydrationContext` (URL null while it isn't live); the editor switches between **Address** and **Entry** (`EntriesPicker`). `Site::urlIn()`. **Hydrated links have two new keys.**
 - Login attempts made while blocked are `login blocked` security events too (`tried while blocked`), at most once a minute per email and IP; and an unknown email costs a password check like a wrong password does, so the timing doesn't tell who has an account (`AttemptLogin`).
 - Tests prove plugin routes guarded: every `sunrice.admin.*` route, the CMS's included, is behind `Authenticate` and `EnsureCanAccessPanel` (but the guest pages and logout), and every `sunrice.admin.cms.*` route names a `can:` permission or `AuthorizeContent` (`tests/Cms/AdminRoutesGuardTest.php`).
