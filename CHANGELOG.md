@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Content → Comments counts its tabs in one query (`GROUP BY status`) instead of five.
 - Indexes for lookups (panel migration `000009`, CMS migration `000018`): `sunrice_revisions.entry_translation_id`, `sunrice_media_usages.media_id`, `sunrice_media.mime_type`, `sunrice_comments.parent_id` and `.author_email`, `sunrice_menu_items.entry_id`, `.term_id` and `.collection_id`, `sunrice_entry_translations (status, published_at)` for the scheduled-publish sweep, and `deleted_at` on entries, terms, comments and media.
 - Site search uses a full-text index (migration `000017`): MySQL and MariaDB `MATCH … AGAINST`, Postgres a GIN index with `plainto_tsquery`, SQLite the LIKE scan as before. `search_text` keeps 20,000 characters (was 60,000). A limit for everyone together (`sunrice-cms.search.per_minute_global`, 300) besides the one per visitor, and results cached for a minute (`SiteCache::remember()` takes a `$ttl`).
 - Menus link to term pages (`term_id`) and listing pages (`collection_id`) too (migration `000016`; Term and Listing in the menu editor), and each link says whether it's the page shown (`active`) or leads to it (`active_trail`). **Menu links have two new keys.**
