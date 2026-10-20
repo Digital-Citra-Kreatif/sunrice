@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Cms\Actions\Blueprints\RenameFieldHandle;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
@@ -54,10 +55,10 @@ it('renames a field in a group, with drafts, live values, revisions and other la
         ->and($this->page->fresh()->schema()->field('hero.heading'))->not->toBeNull()
         ->and($this->page->fresh()->schema()->field('hero.title'))->toBeNull();
     $home = $this->home->fresh();
-    expect($home->data['hero'])->toBe(['heading' => 'Welcome home', 'note' => 'n'])
-        ->and($home->draft_data['hero'])->toBe(['heading' => 'Welcome home', 'note' => 'n'])
-        ->and($home->version)->toBe($version + 1)
-        ->and(Revision::query()->where('entry_translation_id', $home->id)->first()->data['hero'])->toBe(['heading' => 'Welcome home', 'note' => 'n'])
+    expectStored($home->data['hero'], ['heading' => 'Welcome home', 'note' => 'n']);
+    expectStored($home->draft_data['hero'], ['heading' => 'Welcome home', 'note' => 'n']);
+    expectStored(Revision::query()->where('entry_translation_id', $home->id)->first()->data['hero'], ['heading' => 'Welcome home', 'note' => 'n']);
+    expect($home->version)->toBe($version + 1)
         ->and($this->homeId->fresh()->draft_data['hero']['heading'])->toBe('Selamat datang')
         ->and($home->values()['hero']['heading'])->toBe('Welcome home');
 });
@@ -69,9 +70,10 @@ it('renames a field in a repeater and a top-level one, keeping references and se
     $home = $this->home->fresh();
     expect(array_map(fn (array $row) => $row['text'] ?? null, $home->data['rows']))->toBe(['One', 'Two'])
         ->and($home->data['rows'][0])->not->toHaveKey('caption')
-        ->and(array_keys($home->data))->toBe(['hero', 'rows', 'sections', 'links']) // in its place
         ->and($home->search_text)->toContain('Welcome home')->toContain('One')
         ->and(ContentReference::query()->where('source_id', $home->entry_id)->where('locale', 'en')->orderBy('field')->pluck('field')->all())->toBe(['links', 'sections.0.values.target']);
+    $keys = array_keys($home->data); // in its place, where the database keeps the order (see expectStored())
+    DB::getDriverName() === 'mysql' ? expect($keys)->toEqualCanonicalizing(['hero', 'rows', 'sections', 'links']) : expect($keys)->toBe(['hero', 'rows', 'sections', 'links']);
 });
 
 it('renames a fieldset field wherever it is used: blocks, includes, terms and globals', function () {
@@ -114,3 +116,13 @@ it('renames from the command, with a dry run first', function () {
     artisan('sunrice:rename-field', ['definition' => 'page', 'old' => 'hero.heading', 'new' => 'Bad'])->assertFailed();
     artisan('sunrice:rename-field', ['definition' => 'nope', 'old' => 'a', 'new' => 'b'])->assertFailed();
 });
+
+/**
+ * A stored JSON object is what's expected, its keys in the order written,
+ * except on MySQL, whose JSON type keeps keys in an order of its own
+ * (shortest first): there only the keys and values count.
+ */
+function expectStored(array $actual, array $expected): void
+{
+    DB::getDriverName() === 'mysql' ? expect($actual)->toEqual($expected) : expect($actual)->toBe($expected);
+}

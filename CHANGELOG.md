@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- The test suite passes on MySQL 8 and PostgreSQL 16 as well as SQLite: `commitForFullText()` in `tests/Pest.php` for tests that use site search (MySQL's FULLTEXT index sees committed rows only), and no assertions on the key order of stored JSON where MySQL keeps its own; the README says how to run the tests on either.
 - Fixed: on MySQL, `EntryQuery::where()`/`orderBy()` and the admin's entries list read an empty field (JSON null) as the text `'null'`, so `!=`, `not in`, `<`/`>` and number casts matched it; it now reads as no value, as on SQLite and PostgreSQL (`Query\JsonCast::value()`).
 - Fixed: reordering entries, terms and menu items failed on PostgreSQL (`column "sort_order" is of type integer but expression is of type text`): the `UPDATE ... CASE` now writes integer literals (`Support\SortOrder`).
 - READMEs: the root `README.md` (what Sunrice is, the two packages, requirements, a quick start, the docs and developing the monorepo), and proper introductions, features, installing, assets and docs links in `packages/admin/README.md` and `packages/cms/README.md`.

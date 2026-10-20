@@ -64,4 +64,6 @@ composer analyse     # Larastan, level max
 npm run typecheck && npm run test:frontend   # the admin's TypeScript and its node tests
 ```
 
+The tests use in-memory SQLite; CI runs them on MySQL 8 and PostgreSQL 16 too. To do the same, point them at an empty database: `DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_DATABASE=sunrice DB_USERNAME=... DB_PASSWORD=... composer test` (or `pgsql`). A test that uses site search calls `commitForFullText()` (in `tests/Pest.php`) before searching: MySQL's FULLTEXT index sees committed rows only.
+
 Read [AGENTS.md](AGENTS.md) before contributing: the boundaries between the packages, the approved dependencies and the conventions.

@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -22,19 +21,11 @@ use Sunrice\Cms\Support\SiteCache;
 use function Pest\Laravel\get;
 
 /*
- * These tests run on every database. InnoDB's FULLTEXT index sees committed
- * rows only, so on MySQL each test commits the transaction the suite wraps
- * it in, and empties the tables afterwards instead of rolling back.
+ * These tests run on every database (on MySQL committing as they go, for
+ * its FULLTEXT index: commitForFullText()).
  */
-function commitsForFullText(): bool
-{
-    return in_array(DB::getDriverName(), ['mysql', 'mariadb'], true);
-}
-
 beforeEach(function () {
-    if (commitsForFullText()) {
-        DB::commit();
-    }
+    commitForFullText();
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     config(['sunrice-cms.locales' => ['en', 'id']]);
     Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
@@ -45,18 +36,6 @@ beforeEach(function () {
     $this->blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'route' => '/blog/{slug}']);
     $this->help = Collection::query()->create(['handle' => 'help', 'title' => 'Help', 'blueprint' => 'post', 'route' => '/help/{slug}']);
     $this->snippets = Collection::query()->create(['handle' => 'snippets', 'title' => 'Snippets', 'blueprint' => 'post']); // no pages
-});
-
-afterEach(function () {
-    if (commitsForFullText()) {
-        Schema::withoutForeignKeyConstraints(function (): void {
-            foreach (Schema::getTableListing(schemaQualified: false) as $table) {
-                if ($table !== 'migrations') {
-                    DB::table($table)->truncate();
-                }
-            }
-        });
-    }
 });
 
 function found(Collection $collection, string $title, array $data = [], bool $publish = true): EntryTranslation

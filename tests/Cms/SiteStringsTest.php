@@ -31,6 +31,7 @@ it('shows the site\'s own words in the page\'s language', function () {
     get('/id/blog/kopi')->assertOk()->assertSee('0 komentar')->assertSee('Kirim komentar')->assertSee('Email (tidak ditampilkan)');
     get('/blog/kopi')->assertOk()->assertSee('0 comments')->assertSee('Post comment');
 
+    commitForFullText();
     get('/id/search?q=kopi')->assertOk()->assertSee('<h1>Cari</h1>', false)->assertSee('1 hasil untuk “kopi”');
     get('/search?q=kopi')->assertOk()->assertSee('1 result for “kopi”');
 });

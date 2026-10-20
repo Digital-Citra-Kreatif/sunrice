@@ -96,6 +96,7 @@ it('publishes the starter templates, and the site renders with them', function (
 
     get('/blog')->assertOk()->assertViewIs('cms.listing')->assertSee('<li class="card">', false)->assertSee('A first post');
     get('/topics/news')->assertOk()->assertViewIs('cms.term')->assertSee('<p class="eyebrow">Topics</p>', false)->assertSee('Hello &lt;world&gt;', false);
+    commitForFullText();
     get('/search?q=hello')->assertOk()->assertViewIs('cms.search')->assertSee('1 result for “hello”')->assertSee(url('/blog/hello'));
     // Not translated: a note, in the main language's content.
     get('/id/topics/news')->assertOk()->assertSee('This page isn\'t translated yet');
