@@ -24,6 +24,8 @@ final class AdminPanelProvider extends PanelProvider
 
 An app has one panel. Once it boots, the panel is locked: changing it later throws `PanelMisconfigured`.
 
+`brand()` names the panel in the sidebar, on the sign-in page and in emails. Admins can give it another name, a logo, a font, a colour and their own sign-in page in Settings → Branding: see [Branding](branding.md).
+
 ## Writing a plugin
 
 A plugin implements `Sunrice\Admin\Contracts\Plugin`, or extends `Sunrice\Admin\BasePlugin`:

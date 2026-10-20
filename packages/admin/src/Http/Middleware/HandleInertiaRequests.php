@@ -10,6 +10,7 @@ use Inertia\Middleware;
 use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Support\Branding;
 
 /**
  * Inertia for the panel's pages: its root view, its asset version and the
@@ -36,7 +37,8 @@ final class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'sunrice' => fn (): array => [
-                'brand' => $this->panel->getBrand(),
+                'brand' => ($branding = Branding::make()->toArray())['name'],
+                'branding' => $branding,
                 'path' => '/'.$this->panel->getPath(),
                 'bundles' => array_values(array_map(fn (PluginBundle $bundle) => $bundle->toArray(), $this->panel->getBundles())),
             ],
