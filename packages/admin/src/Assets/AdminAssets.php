@@ -51,12 +51,21 @@ final class AdminAssets
         return is_file($published) && is_file($built) && md5_file($published) !== md5_file($built);
     }
 
-    /** The asset version Inertia sends with every page, so browsers reload after an update. */
+    /** @var array<string, string|null> the manifests' hashes, once per process */
+    private static array $versions = [];
+
+    /** The asset version Inertia sends with every page, so browsers reload after an update (hashed once per process). */
     public static function version(): ?string
     {
         $manifest = self::manifestPath();
+        if ($manifest === null) {
+            return null;
+        }
+        if (! array_key_exists($manifest, self::$versions)) {
+            self::$versions[$manifest] = md5_file($manifest) ?: null;
+        }
 
-        return $manifest === null ? null : (md5_file($manifest) ?: null);
+        return self::$versions[$manifest];
     }
 
     /** The web font's stylesheet (config `sunrice-admin.font.stylesheet`), if one is loaded. */
