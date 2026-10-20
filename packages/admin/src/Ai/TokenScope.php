@@ -12,6 +12,9 @@ namespace Sunrice\Admin\Ai;
  */
 final class TokenScope
 {
+    /** Abilities a read-only token keeps, besides permissions ending in ".view". */
+    public const READING = ['view', 'viewAny', 'sunrice.access', 'sunrice.ai.connect', 'sunrice.ai.error-log'];
+
     public ?AiToken $token = null;
 
     public function readOnly(): bool
@@ -22,7 +25,7 @@ final class TokenScope
     /**
      * Whether a read-only token refuses this ability: everything but
      * viewing. Only "view", "viewAny", a permission ending in ".view",
-     * opening the panel and connecting agents pass; an ability the panel
+     * opening the panel, connecting agents and reading the error log pass; an ability the panel
      * doesn't know (a plugin policy's "publish" or "refund") is refused
      * rather than let through.
      */
@@ -32,6 +35,6 @@ final class TokenScope
             return false;
         }
 
-        return ! in_array($ability, ['view', 'viewAny', 'sunrice.access', 'sunrice.ai.connect'], true) && ! str_ends_with($ability, '.view');
+        return ! in_array($ability, self::READING, true) && ! str_ends_with($ability, '.view');
     }
 }

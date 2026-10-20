@@ -16,7 +16,7 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
 | `listing_route` | The URL of a page listing the entries, like `/blog`; none: no listing page. See [the site](site.md#listing-pages). |
 | `listing_blueprint`, `per_page` | The listing page's own fields (an intro…), edited from the entries list, and how many entries it shows per page (10). `SaveListing` saves the fields per language and, given the `version` the editor opened (`CollectionListing::$version`), refuses a save over someone else's newer one. |
-| `ordered` | **Manual order**: editors put entries in order with Move up and Move down in the list, instead of by date or title. |
+| `ordered` | **Manual order**: editors put entries in order with Move up and Move down in the list, instead of by date or title. In code: `ReorderEntries::handle($collection, $ids, $parentId)` puts one level in the order given (the rest of the level after them), logged as `reordered`. |
 | `hierarchical` | Entries may have a **parent** entry, like pages under pages, for breadcrumbs and sub-menus. URLs stay flat: *Team* under *About* is still `/team`. |
 
 ```php

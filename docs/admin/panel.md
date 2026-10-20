@@ -145,7 +145,7 @@ It runs inside the delete's transaction, before the user row goes. `delete` mean
 
 ## Privileged permissions
 
-Some permissions are worth an [email alert](security.md#email-alerts) when someone gets them, directly or through a role. The panel's own are `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.connect` and `sunrice.activity.*`; a plugin adds names or patterns of its own (starting with its id):
+Some permissions are worth an [email alert](security.md#email-alerts) when someone gets them, directly or through a role. The panel's own are `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.*` (connecting agents, letting them read the error log and run commands) and `sunrice.activity.*`; a plugin adds names or patterns of its own (starting with its id):
 
 ```php
 $panel->privilegedPermissions('shop.settings.*', 'shop.payouts.manage');
