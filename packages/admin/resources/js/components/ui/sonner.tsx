@@ -16,12 +16,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
                 error: <OctagonXIcon className="size-4" />,
                 loading: <Loader2Icon className="size-4 animate-spin" />,
             }}
+            offset={16}
+            mobileOffset={16}
+            toastOptions={{ classNames: { toast: 'rounded-xl! border-border/60! shadow-pop! backdrop-blur-md!' } }}
             style={
                 {
-                    '--normal-bg': 'var(--popover)',
+                    '--normal-bg': 'var(--surface-glass)',
                     '--normal-text': 'var(--popover-foreground)',
                     '--normal-border': 'var(--border)',
-                    '--border-radius': 'var(--radius)',
+                    '--border-radius': 'calc(var(--radius) + 4px)',
                 } as React.CSSProperties
             }
             {...props}
