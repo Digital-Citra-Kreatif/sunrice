@@ -9,6 +9,7 @@ use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Content;
 use Sunrice\Cms\Globals;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\GlobalSet;
@@ -49,6 +50,13 @@ it('shares untranslated fields from the main language', function () {
 
     expect(app(Globals::class)->get('contact', 'id'))->toBe(['address' => 'Jl. Utama 1', 'phone' => '+62 21 555', 'open_weekends' => true])
         ->and(app(Globals::class)->get('contact', 'en')['address'])->toBe('1 Main St');
+
+    // Left out, the language is the current one (as Cms::global()), not always the main one.
+    app()->setLocale('id');
+    expect(app(Globals::class)->get('contact')['address'])->toBe('Jl. Utama 1')
+        ->and(Content::global('contact')['address'])->toBe('Jl. Utama 1');
+    app()->setLocale('fr');
+    expect(app(Globals::class)->get('contact')['address'])->toBe('1 Main St');
 });
 
 it('loads all global sets once per request', function () {
