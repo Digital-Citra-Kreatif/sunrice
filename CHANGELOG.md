@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- The workbench follows the address it is served on (`testbench serve --port=…`): the CMS bundle and media URLs no longer point at `APP_URL`'s port 8000.
 - `sunrice:references [--dry-run]` rebuilds references (`sunrice_references`) and the media library's usages of entries and global sets from what is stored, in chunks (`Actions\References\RebuildReferences`, `@api`); the new data migration `2026_02_01_000022_backfill_sunrice_references` runs it once, so content saved before references were recorded gets them on `migrate`. `References::entry()`, `term()` and `global()` take `$dryRun` and return how many references they hold.
 - `RenameFieldHandle` (and `sunrice:rename-field`) refuses a fieldset field's new handle when a blueprint or fieldset that includes the fieldset (through other includes too) already has a field with it where the fieldset's fields land, naming that blueprint or fieldset.
 - The developer docs ship with each package: the panel's in `packages/admin/docs`, the CMS's in `packages/cms/docs` (were `docs/admin` and `docs/cms`), registered with `$panel->docs()` from the package's own folder, so Help → Developer docs and `read_docs` work in a Composer install; the root `docs/` keeps the index, architecture and upgrading. `tests/Arch/DocsLinksTest.php` checks that every relative Markdown link (and its anchor) leads somewhere.

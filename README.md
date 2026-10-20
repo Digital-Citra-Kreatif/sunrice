@@ -55,7 +55,7 @@ npm ci && npm run build      # the SDK and the admin bundles (packages/*/dist)
 composer serve               # the workbench app at http://127.0.0.1:8000
 ```
 
-Sign in to the workbench at `/_workbench/login/admin@example.com`; it has demo content in English and Indonesian.
+Sign in to the workbench at `/_workbench/login/admin@example.com`; it has demo content in English and Indonesian. Another host or port works as it is (the workbench builds its URLs from the address it is served on, not `APP_URL`): after one `composer serve`, run `vendor/bin/testbench serve --port=8001`.
 
 ```bash
 composer test        # Pest: tests/Admin, tests/Cms, tests/Arch
