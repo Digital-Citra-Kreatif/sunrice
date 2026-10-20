@@ -11,6 +11,7 @@ use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Settings\LocaleSettings;
+use Sunrice\Cms\Site\Site;
 use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
@@ -33,7 +34,7 @@ function languages(string $lines): void
 {
     app(LocaleSettings::class)->fill(['languages' => $lines])->save();
     app()->forgetInstance(LocaleSettings::class);
-    app()->forgetInstance(\Sunrice\Cms\Site\Site::class);
+    app()->forgetInstance(Site::class);
 }
 
 it('puts the main language at the plain addresses and the others under their code, by default', function () {
