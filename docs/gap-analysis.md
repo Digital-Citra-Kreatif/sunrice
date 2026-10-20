@@ -14,6 +14,37 @@ File paths are relative to each repository; "OLD" is `sunrice-cms`,
 Status legend: **present** (same or better), **partial** (exists, but
 something is missing: noted), **missing**, **NEW only**.
 
+## 0. Status after the fixes (20 October 2026)
+
+Sections 1–11 below are the analysis as written on 19 October; they are
+kept unchanged as the record of what was found. Every roadmap phase in
+section 10 has since been implemented on this branch. The CHANGELOG's
+Unreleased section lists each change, `docs/upgrading.md` collects the
+breaking ones.
+
+| Area | Now |
+| --- | --- |
+| Security (S1–S12, lows) | All fixed: AI tokens need panel access and die with sign-out-everywhere, read-only tokens default-deny, comments no longer flush the cache, indexed search with a global limit, route-guard tests for plugins, comment trust by name/email/IP, security headers, privileged-permission registry, template allow-list, no reset enumeration, page-cache key allow-list, repeated-403 and mass-unpublish alerts restored. |
+| Performance (P1–P10, lows) | All fixed: queued image sizes, per-area cache versions, chunked sitemap with an index, cached admin handle lists and account states, missing indexes, one-query comment counts, deferred editor props and a term picker, shared hydration for query results. |
+| Robustness (bugs 1–19) | All fixed, each with a test. |
+| Content modeling and entries | Parity: link fields to entries, route parameters from related entries, per-entry blueprints, row-level shared fields, references and "used by", rename-field, structure export/import, orphans and restore, outdated-translation badge, version checks everywhere, term locks, drag-and-drop ordering, entry list filters/columns/saved preferences. |
+| Site side | Parity: main-language fallback, draft viewing, locale middleware, entry-filter and every old component attribute, SEO field mapping and tags, template/body-class/page-cache hooks, helpers and `@bodyClass`, starter templates, form slot, submission details. |
+| Admin panel | Parity: dashboard with a widget API, branding and sign-in page, user menu with appearance, per-user security card, user deletion with content handling, strict role rank, test email, admin error pages, activity prune and filters, relation/rich-text resource fields, export permission. |
+| AI / MCP | Parity: the sixteen missing tools, stdio transport, `sunrice:ai-token`. |
+| Translation | Parity: locales with names in Settings, switching the main language, Gemini/OpenRouter machine translation and `sunrice:translate`, Indonesian site and core strings. |
+| Documentation | Parity: in-admin Docs and Guide pages, an editor guide in English and Indonesian, installation, upgrading, configuration, commands, helpers, plugins pages, full READMEs. |
+| UI and UX | Section 9's plan implemented: Inter, warm tokens, layered shadows, spring easing, page and view transitions, glass chrome, list stagger, shimmer, collapsible sections, sortable lists with a lifted ghost, command palette (Cmd/Ctrl+K), date picker, refined overlays, controls and focus glow, scoped reduced motion. |
+
+**Deliberately not done or still open:**
+
+- Nested page URLs and plugin JavaScript field components stay out of scope (`AGENTS.md`).
+- Emails and the AI server still use `Panel::brand()` rather than the branded name; the logo is not used as a favicon.
+- Panel developer docs are read from the monorepo's `docs/admin`, so a Packagist install shows the guides but not those docs.
+- References are recorded on save; content saved before the migration gets them on its next save (no backfill).
+- `sunrice:rename-field` doesn't check sibling collisions inside blueprints that include the renamed fieldset inline.
+- New dependencies outside the approved list, explained in the CHANGELOG: `cmdk` and `react-day-picker` (shadcn's command and calendar), and `league/commonmark` (already installed with Laravel) declared by the panel.
+- The UI was verified by typecheck, unit and DOM tests and builds, not in a browser. MySQL ran only through the CI matrix, not locally (SQLite and PostgreSQL were run).
+
 ## 1. Summary
 
 | Area | Parity | Biggest gaps |
