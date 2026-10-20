@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: a `text` field without a `max` no longer refuses values over 255 characters on the next publish (the ceiling is 65535); the builder still offers up to 255.
 - `DeleteBlueprint` refuses to delete a blueprint a taxonomy, a global set, a form or a collection's listing page uses (not only a collection's entries), naming what uses it; `DeleteBlueprint::usedBy()` lists them.
 - Globals, term pages, terms and listing pages refuse a save over someone else's newer one, as entries do: `version` columns on `sunrice_global_values`, `sunrice_term_translations` and `sunrice_collection_listings` (migration `000017`), `SaveGlobals` and `SaveListing` take a `$version` argument, `SaveTerm` and `SaveTermContent` take `version` in their input, the editors send it and offer **Load theirs** or **Save mine anyway**. `PublishEntry` now counts the entry's `version` up too. `Support\Versioned` (internal) does the check.
 - Fixed: a translation other than the main one no longer keeps stale copies of the shared fields: `CreateTranslation` and `SaveDraft` store only the translated fields, and `search_text`, revisions and `EntryTranslation::completeData()` (new, with `ownData()`) read the shared ones from the main translation, whose publish refreshes the others' search text.

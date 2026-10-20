@@ -38,6 +38,13 @@ it('validates required fields first', function () {
         ->and(fieldErrors($schema, ['title' => 'Hi', 'count' => 3]))->toBe([]);
 });
 
+it('limits text only to the field\'s own maximum, with a ceiling', function () {
+    $schema = Schema::make([Field::make('title', 'text'), Field::make('short', 'text', ['max' => 10])]);
+
+    expect(fieldErrors($schema, ['title' => str_repeat('a', 1000), 'short' => str_repeat('a', 10)]))->toBe([])
+        ->and(fieldErrors($schema, ['title' => str_repeat('a', 65536), 'short' => str_repeat('a', 11)]))->toHaveKeys(['data.title', 'data.short']);
+});
+
 it('adds the field\'s extra rules', function () {
     $schema = Schema::make([new Field('code', 'text', validation: ['alpha_num', 'size:4'])]);
 

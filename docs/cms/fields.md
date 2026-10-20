@@ -30,7 +30,7 @@ Each field is stored as JSON and read as a `Sunrice\Cms\Fields\Field`:
 
 | Type | Stores | Templates get | Settings |
 | --- | --- | --- | --- |
-| `text` | a string | the string | `max` (≤ 255), `placeholder`, `default` |
+| `text` | a string | the string | `max` (≤ 255; none: values up to 65535 characters pass, so longer data saved before isn't refused), `placeholder`, `default` |
 | `textarea` | a string | the string | `rows`, `max` |
 | `rich_text` | HTML, cleaned on save | the HTML | |
 | `number` | a number | the number | `min`, `max`, `step` (1 for whole numbers), `default` |
