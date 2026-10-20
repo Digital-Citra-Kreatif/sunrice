@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Models\Entry;
+use Sunrice\Cms\Models\Term;
 use Sunrice\Tests\Admin\AdminTestCase;
 use Sunrice\Tests\Admin\Fixtures\TestPanelProvider;
 use Sunrice\Tests\Cms\CmsTestCase;
@@ -91,4 +93,20 @@ function emptyTablesAfterFullTextCommit(): void
             }
         }
     });
+}
+
+/** An entry's editor address, under its collection: entryEditUrl($entry->id, 'id'). */
+function entryEditUrl(int $entryId, ?string $locale = null): string
+{
+    $entry = Entry::withTrashed()->with('collection')->findOrFail($entryId);
+
+    return '/admin/cms/collections/'.$entry->collection->handle.'/entries/'.$entryId.'/edit'.($locale !== null ? '?locale='.$locale : '');
+}
+
+/** A term's page editor address, under its taxonomy: termEditUrl($term->id, 'id'). */
+function termEditUrl(int $termId, ?string $locale = null): string
+{
+    $term = Term::withTrashed()->with('taxonomy')->findOrFail($termId);
+
+    return '/admin/cms/taxonomies/'.$term->taxonomy->handle.'/terms/'.$termId.'/edit'.($locale !== null ? '?locale='.$locale : '');
 }

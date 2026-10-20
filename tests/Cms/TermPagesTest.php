@@ -65,7 +65,7 @@ it('edits a term\'s page per language, and checks the template', function () {
     app(SaveTerm::class)->handle($this->topics, ['title' => 'Berita', 'locale' => 'id'], $this->news);
     actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
 
-    get("/admin/cms/terms/{$this->news->id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page
+    get(termEditUrl($this->news->id, 'id'))->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Terms/Edit', shouldExist: false)->where('translated', true)->where('term.title', 'Berita'));
     put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Semua berita'], 'seo' => [], 'template' => 'cms.topic'])->assertSessionHasNoErrors();
     put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'Bad!'])->assertSessionHasErrors('template');
@@ -78,7 +78,7 @@ it('edits a term\'s page per language, and checks the template', function () {
 
     // A save over someone else's newer one is refused, template included.
     $translation = $this->news->translations()->where('locale', 'id')->firstOrFail();
-    get("/admin/cms/terms/{$this->news->id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('version', $translation->version));
+    get(termEditUrl($this->news->id, 'id'))->assertInertia(fn (Assert $page) => $page->where('version', $translation->version));
     put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Berita'], 'version' => $translation->version])->assertSessionHasNoErrors();
     put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Stale'], 'template' => 'cms.stale', 'version' => $translation->version])->assertSessionHasErrors('version');
     expect($translation->fresh()?->only(['version']))->toBe(['version' => $translation->version + 1])

@@ -8,6 +8,7 @@
 
 Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#from-the-previous-development-snapshot).
 
+- `route('sunrice.admin.cms.entries.edit')` and `…terms.edit` need the collection's or taxonomy's handle as well.
 - PHP 8.4 or newer is required.
 - `SDK_VERSION` is 2: rebuild plugin bundles with the matching `@sunrice/admin-sdk`.
 - Role rank is strict: users and roles one manages must be strictly below them.
@@ -27,6 +28,8 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- The sidebar lists each collection under **Content** (`cms/collections/{handle}/entries`) and each taxonomy under **Taxonomies** (`cms/taxonomies/{handle}/terms`), for those who may see it, instead of one **Entries** and one **Terms** item; through the new `Panel::navigationUsing()` (`@api`), for navigation made from data on each page.
+- Entries and terms are edited under their collection and taxonomy, like their list: `cms/collections/{collection}/entries/{entry}/edit` and `cms/taxonomies/{taxonomy}/terms/{term}/edit` (routes `sunrice.admin.cms.entries.edit` and `…terms.edit` now take the handle too). The old `cms/entries/{entry}/edit` and `cms/terms/{term}/edit` redirect there (`…entries.open`, `…terms.open`). The entry picker's items carry `collectionHandle`.
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
 - `sunrice:translate --only=lang` translates the app's language files (never without `--only=lang`) (`lang/<from>/*.php` and `lang/<from>.json`), keeping keys already translated (`Translation\LangFileTranslator`).
 - Settings → Security chooses who else gets security alerts: more roles (`SecuritySettings::$alertRoles`) and addresses, one per line (`$alertEmails`), on top of super admins and `security.alerts.roles`/`emails`.

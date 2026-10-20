@@ -111,13 +111,13 @@ it('edits each language in the editor', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.entries.update', 'cms.entries.publish', 'cms.entries.delete'));
     $entry = $this->main->entry;
 
-    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($entry->id))->assertInertia(fn (Assert $page) => $page
         ->where('entry.locale', 'en')->where('entry.isMain', true)->where('shared', [])
         ->where('locales', [['code' => 'en', 'name' => Locales::displayName('en'), 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'name' => Locales::displayName('id'), 'main' => false, 'status' => null, 'outdated' => false]]));
-    get("/admin/cms/entries/{$entry->id}/edit?locale=id")->assertNotFound();
+    get(entryEditUrl($entry->id, 'id'))->assertNotFound();
 
-    post("/admin/cms/entries/{$entry->id}/translations", ['locale' => 'id'])->assertRedirect("/admin/cms/entries/{$entry->id}/edit?locale=id");
-    get("/admin/cms/entries/{$entry->id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page
+    post("/admin/cms/entries/{$entry->id}/translations", ['locale' => 'id'])->assertRedirect(entryEditUrl($entry->id, 'id'));
+    get(entryEditUrl($entry->id, 'id'))->assertInertia(fn (Assert $page) => $page
         ->where('entry.locale', 'id')->where('entry.isMain', false)
         ->where('shared', ['price', 'tagline'])
         ->where('sharedValues', ['price' => 30, 'tagline' => 'Brewed daily']));
@@ -129,7 +129,7 @@ it('edits each language in the editor', function () {
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
         ->where('entries.data.0.locales.1', ['code' => 'id', 'name' => Locales::displayName('id'), 'main' => false, 'status' => 'published', 'outdated' => false]));
 
-    delete("/admin/cms/entries/{$entry->id}/translations/id")->assertRedirect("/admin/cms/entries/{$entry->id}/edit");
+    delete("/admin/cms/entries/{$entry->id}/translations/id")->assertRedirect(entryEditUrl($entry->id));
     delete("/admin/cms/entries/{$entry->id}/translations/en")->assertSessionHasErrors('locale');
 });
 
@@ -160,7 +160,7 @@ it('shows outdated translations in the editor and the list', function () {
     app(CreateTranslation::class)->handle($entry, 'id');
     app(SaveDraft::class)->handle($this->main, ['title' => 'Coffee, stronger']);
 
-    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($entry->id))->assertInertia(fn (Assert $page) => $page
         ->where('locales.0.outdated', false)->where('locales.1.outdated', true));
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
         ->where('entries.data.0.locales.1.outdated', true));
@@ -215,7 +215,7 @@ it('shares the shared fields inside translated groups, rows and blocks with the 
     // The editor shows them read-only, with the main language's values.
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
-    get("/admin/cms/entries/{$main->entry_id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($main->entry_id, 'id'))->assertInertia(fn (Assert $page) => $page
         ->where('fields.0.fields.1.shared', true)->missing('fields.0.fields.0.shared')
         ->where('fields.1.fields.1.shared', true)
         ->where('fields.2.blocks.0.fields.1.shared', true)

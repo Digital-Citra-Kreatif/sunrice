@@ -6,13 +6,13 @@ const href = (path: string) => `/admin/${path}`;
 
 test('lists the entry picker\'s results as commands that open the editor', () => {
     const commands = entryCommands([
-        { id: 7, title: 'Hello', collection: 'Blog', status: 'published' },
-        { id: 9, title: 'Soon', collection: 'Pages', status: 'draft' },
+        { id: 7, title: 'Hello', collection: 'Blog', collectionHandle: 'blog', status: 'published' },
+        { id: 9, title: 'Soon', collection: 'Pages', collectionHandle: 'pages', status: 'draft' },
     ], href);
 
     assert.deepEqual(commands, [
-        { id: '7', label: 'Hello', description: 'Blog', group: 'Entries', icon: 'file-text', url: '/admin/cms/entries/7/edit' },
-        { id: '9', label: 'Soon', description: 'Pages · draft', group: 'Entries', icon: 'file-text', url: '/admin/cms/entries/9/edit' },
+        { id: '7', label: 'Hello', description: 'Blog', group: 'Entries', icon: 'file-text', url: '/admin/cms/collections/blog/entries/7/edit' },
+        { id: '9', label: 'Soon', description: 'Pages · draft', group: 'Entries', icon: 'file-text', url: '/admin/cms/collections/pages/entries/9/edit' },
     ]);
 });
 

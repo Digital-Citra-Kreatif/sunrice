@@ -133,7 +133,7 @@ it('undoes a revision restore in the same session', function () {
 
     post("/admin/cms/revisions/{$revision->id}/restore");
     expect($hello->fresh()?->draft_title)->toBe('Hello');
-    get("/admin/cms/entries/{$hello->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('undoRestore', $hello->id));
+    get(entryEditUrl($hello->entry_id))->assertInertia(fn (Assert $page) => $page->where('undoRestore', $hello->id));
 
     post("/admin/cms/entry-translations/{$hello->id}/undo-restore")->assertSessionHas('success');
     expect($hello->fresh()?->draft_title)->toBe('Hello, newer');

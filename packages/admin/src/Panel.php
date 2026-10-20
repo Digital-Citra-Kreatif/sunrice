@@ -71,6 +71,9 @@ final class Panel
     /** @var array<string, NavigationItem> */
     private array $navigation = [];
 
+    /** @var list<Closure(): iterable<NavigationItem>> */
+    private array $navigationResolvers = [];
+
     /** @var array<string, Permission> */
     private array $permissions = [];
 
@@ -283,6 +286,27 @@ final class Panel
             }
             $this->navigation[$item->key] = $item;
         }
+
+        return $this;
+    }
+
+    /**
+     * Navigation items made from data, worked out on each page instead of
+     * at boot, e.g. one item per record:
+     *
+     *     $panel->navigationUsing(fn () => Shop::query()->get()->map(
+     *         fn ($shop) => NavigationItem::make("shop-{$shop->handle}")->label($shop->name)
+     *             ->url("shops/{$shop->handle}")->group('Shops')->permission('shop.orders.view')));
+     *
+     * Each item still says who sees it. Keys must not clash with other
+     * items'; a submenu's parent may be a registered item or one of these.
+     *
+     * @param  Closure(): iterable<NavigationItem>  $resolve
+     */
+    public function navigationUsing(Closure $resolve): self
+    {
+        $this->assertRegistering();
+        $this->navigationResolvers[] = $resolve;
 
         return $this;
     }
@@ -737,7 +761,7 @@ final class Panel
                 Permission::make('sunrice.media.update', 'Edit and organise media', 'Media'),
                 Permission::make('sunrice.media.delete', 'Delete media', 'Media'),
             );
-            $this->navigation(NavigationItem::make('media')->label('Media')->url('media')->icon('image')->sort(50)->permission('sunrice.media.view'));
+            $this->navigation(NavigationItem::make('media')->label('Media')->url('media')->icon('image')->sort(5)->permission('sunrice.media.view'));
             $this->widgets(PanelWidgets::media());
             // Deleting a user: their uploads move to the heir or stay without an uploader (other content may use them).
             $this->userContent('media', 'uploads',
@@ -1017,7 +1041,16 @@ final class Panel
      */
     public function navigationFor(Authorizable $user): array
     {
-        $visible = array_filter($this->navigation, fn (NavigationItem $item): bool => $item->isVisibleTo($user));
+        $items = $this->navigation;
+        foreach ($this->navigationResolvers as $resolve) {
+            foreach ($resolve() as $item) {
+                if (isset($items[$item->key])) {
+                    throw new PanelMisconfigured("Two navigation items have the key \"{$item->key}\" (one from navigationUsing()).");
+                }
+                $items[$item->key] = $item;
+            }
+        }
+        $visible = array_filter($items, fn (NavigationItem $item): bool => $item->isVisibleTo($user));
         uasort($visible, fn (NavigationItem $a, NavigationItem $b) => [$a->getSort(), $a->getLabel()] <=> [$b->getSort(), $b->getLabel()]);
 
         $children = [];

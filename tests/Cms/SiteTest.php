@@ -153,7 +153,7 @@ it('gives the editor the preview and live links', function () {
     $hello = sitePost($this->blog, 'Hello');
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
 
-    get("/admin/cms/entries/{$hello->entry_id}/edit")->assertInertia(fn ($page) => $page
+    get(entryEditUrl($hello->entry_id))->assertInertia(fn ($page) => $page
         ->where('entry.url', url('/blog/hello'))
         ->where('entry.previewUrl', fn (string $url) => str_contains($url, "/cms-preview/{$hello->id}?expires=")));
 });

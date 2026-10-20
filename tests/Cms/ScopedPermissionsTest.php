@@ -66,14 +66,14 @@ it('lets someone work in one collection only', function () {
         ->where('collections', [['handle' => 'blog', 'title' => 'Blog']])
         ->where('can', ['create' => false, 'update' => true, 'publish' => false, 'delete' => false, 'export' => false]));
     get('/admin/cms/collections/news/entries')->assertForbidden();
-    get("/admin/cms/entries/{$news->entry_id}/edit")->assertForbidden();
+    get(entryEditUrl($news->entry_id))->assertForbidden();
     put("/admin/cms/entries/{$blog->entry_id}", ['title' => 'Mine', 'version' => 1])->assertSessionHasNoErrors();
     put("/admin/cms/entries/{$blog->entry_id}", ['title' => 'Live', 'publish' => true, 'version' => 2])->assertForbidden();
     post("/admin/cms/entries/{$blog->entry_id}/publish")->assertForbidden();
 
     expect(Access::entries($user, 'view'))->toBeTrue()
         ->and(Access::entries($user, 'view', 'news'))->toBeFalse()
-        ->and(collect(app(Panel::class)->navigationFor($user))->pluck('items')->flatten(1)->pluck('key')->all())->toBe(['cms-entries']);
+        ->and(collect(app(Panel::class)->navigationFor($user))->pluck('items')->flatten(1)->pluck('key')->all())->toBe(['cms-collection-blog']);
 });
 
 it('lets authors edit and trash only their own entries', function () {
@@ -82,8 +82,8 @@ it('lets authors edit and trash only their own entries', function () {
     $other = scopedDraft($this->blog, adminUser());
     actingAs($author);
 
-    get("/admin/cms/entries/{$theirs->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('can.update', true)->where('can.publish', false));
-    get("/admin/cms/entries/{$other->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('can.update', false));
+    get(entryEditUrl($theirs->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.update', true)->where('can.publish', false));
+    get(entryEditUrl($other->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.update', false));
     put("/admin/cms/entries/{$theirs->entry_id}", ['title' => 'Mine', 'version' => 1])->assertSessionHasNoErrors();
     put("/admin/cms/entries/{$other->entry_id}", ['title' => 'Mine', 'version' => 1])->assertForbidden();
     delete("/admin/cms/entries/{$other->entry_id}")->assertForbidden();
@@ -105,8 +105,8 @@ it('lets translators edit the other languages only', function () {
     put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'id', 'title' => 'Halo', 'version' => $id->version])->assertSessionHasNoErrors();
     put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'en', 'title' => 'Hello', 'version' => $post->version])->assertForbidden();
     put("/admin/cms/entries/{$post->entry_id}/settings", ['template' => 'x'])->assertForbidden();
-    get("/admin/cms/entries/{$post->entry_id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('can.update', true));
-    get("/admin/cms/entries/{$post->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('can.update', false));
+    get(entryEditUrl($post->entry_id, 'id'))->assertInertia(fn (Assert $page) => $page->where('can.update', true));
+    get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.update', false));
 });
 
 it('scopes terms and submissions too', function () {
@@ -163,7 +163,7 @@ it('renames a collection\'s, taxonomy\'s and form\'s permissions with its handle
         ->and(Access::terms($blogger, 'topics'))->toBeTrue()
         ->and(Access::submissions($blogger, 'view', 'enquiry'))->toBeTrue();
     actingAs($blogger);
-    get("/admin/cms/entries/{$entry->entry_id}/edit")->assertOk();
+    get(entryEditUrl($entry->entry_id))->assertOk();
 });
 
 it('leaves a permission alone when its new name is already stored', function () {
