@@ -1,9 +1,14 @@
 import * as React from 'react';
 import { Link } from '@inertiajs/react';
+import { Search } from 'lucide-react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useBreadcrumbOverride } from '@/components/app/breadcrumbs';
+import { setCommandPaletteOpen } from '@/components/app/command-palette';
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 /** The bar above each page: the sidebar toggle and the page's breadcrumbs (useBreadcrumbs). */
 export function AppHeader() {
@@ -29,6 +34,11 @@ export function AppHeader() {
                     ))}
                 </BreadcrumbList>
             </Breadcrumb>
+            <Button variant="outline" size="sm" className="ml-auto gap-2 text-muted-foreground" onClick={() => setCommandPaletteOpen(true)} aria-label="Go to a page or search" aria-keyshortcuts="Meta+K Control+K">
+                <Search />
+                <span className="hidden sm:inline">Go to…</span>
+                <kbd className="hidden rounded border border-border/70 bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground sm:inline">{isMac ? '⌘' : 'Ctrl'} K</kbd>
+            </Button>
         </header>
     );
 }

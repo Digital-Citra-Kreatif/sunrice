@@ -30,6 +30,49 @@ export const CardFooter = m.CardFooter as AnyComponent;
 export const CardHeader = m.CardHeader as AnyComponent;
 export const CardTitle = m.CardTitle as AnyComponent;
 export const Checkbox = m.Checkbox as AnyComponent;
+
+/**
+ * A card whose header folds its content away (animated); the choice is
+ * remembered per `storageKey`, and `hasErrors` opens it so a validation
+ * error is never hidden. Folded fields stay in the form but are inert.
+ */
+export const CollapsibleCard = m.CollapsibleCard as ComponentType<{
+    title: ReactNode;
+    description?: ReactNode;
+    storageKey?: string;
+    defaultOpen?: boolean;
+    hasErrors?: boolean;
+    headerAction?: ReactNode;
+    titleClassName?: string;
+    contentClassName?: string;
+    className?: string;
+    children: ReactNode;
+}>;
+
+/** cmdk's command list (a filterable list of items), for comboboxes and pickers. */
+export const Command = m.Command as AnyComponent;
+export const CommandEmpty = m.CommandEmpty as AnyComponent;
+export const CommandGroup = m.CommandGroup as AnyComponent;
+export const CommandInput = m.CommandInput as AnyComponent;
+export const CommandItem = m.CommandItem as AnyComponent;
+export const CommandList = m.CommandList as AnyComponent;
+export const CommandSeparator = m.CommandSeparator as AnyComponent;
+
+/**
+ * A calendar in a popover, with a time input when `withTime`. The value is
+ * what a native date input gives: "2026-10-19", or "2026-10-19T14:30".
+ */
+export const DatePicker = m.DatePicker as ComponentType<{
+    id?: string;
+    value: string | null;
+    onChange: (value: string | null) => void;
+    withTime?: boolean;
+    disabled?: boolean;
+    invalid?: boolean;
+    required?: boolean;
+    placeholder?: string;
+    className?: string;
+}>;
 export const Dialog = m.Dialog as AnyComponent;
 export const DialogContent = m.DialogContent as AnyComponent;
 export const DialogDescription = m.DialogDescription as AnyComponent;
@@ -66,6 +109,38 @@ export const MediaPickerInput = m.MediaPickerInput as ComponentType<{
     invalid: boolean;
     onChange: (value: number | number[] | null) => void;
 }>;
+/** A copy of `items` with the one at `from` moved to `to` (what SortableList's onReorder did). */
+export const moveItem = m.moveItem as <T>(items: readonly T[], from: number, to: number) => T[];
+
+/** An item the command palette (Cmd/Ctrl+K) lists. */
+export interface CommandItem {
+    id: string;
+    label: string;
+    description?: string;
+    group?: string;
+    /** A navigation icon name ('file-text', 'users'…). */
+    icon?: string;
+    /** Opened with Inertia when chosen: a full href, so use adminUrl(). */
+    url?: string;
+    onSelect?: () => void;
+    keywords?: string[];
+}
+
+/**
+ * Adds a source of results to the command palette, asked while the person
+ * types (after `minLength` letters, 2 by default); returns a function that
+ * removes it. Throwing or an aborted request contributes nothing:
+ *
+ *     registerCommandSource(async (query, signal) => {
+ *         const response = await fetch(`${adminUrl('shop/orders/search')}?q=${encodeURIComponent(query)}`, { signal, headers: { Accept: 'application/json' } });
+ *         return (await response.json()).map((order) => ({ id: String(order.id), label: order.number, group: 'Orders', url: adminUrl(`shop/orders/${order.id}`) }));
+ *     });
+ */
+export const registerCommandSource = m.registerCommandSource as (
+    source: (query: string, signal: AbortSignal) => Promise<CommandItem[]> | CommandItem[],
+    options?: { minLength?: number },
+) => () => void;
+
 export const Select = m.Select as AnyComponent;
 export const SelectContent = m.SelectContent as AnyComponent;
 export const SelectItem = m.SelectItem as AnyComponent;
@@ -73,6 +148,40 @@ export const SelectTrigger = m.SelectTrigger as AnyComponent;
 export const SelectValue = m.SelectValue as AnyComponent;
 export const Separator = m.Separator as AnyComponent;
 export const Skeleton = m.Skeleton as AnyComponent;
+
+/** Props the SortableList render prop gives for the drag handle; spread them on SortableHandle or your own button. */
+export interface SortableHandleProps extends Record<string, unknown> {
+    ref?: (element: HTMLElement | null) => void;
+    disabled?: boolean;
+}
+
+export interface SortableItemState {
+    index: number;
+    handle: SortableHandleProps;
+    isDragging: boolean;
+    /** This render is the ghost that follows the pointer. */
+    isOverlay: boolean;
+}
+
+/** The grip button that starts a drag (also sortable with the keyboard). */
+export const SortableHandle = m.SortableHandle as ComponentType<SortableHandleProps & { label?: string; className?: string }>;
+
+/**
+ * A vertical list reordered by dragging a handle or with the keyboard:
+ *
+ *     <SortableList items={rows} getId={(row) => row.id} onReorder={setRows}>
+ *         {(row, { handle }) => <div><SortableHandle {...handle} />{row.title}</div>}
+ *     </SortableList>
+ */
+export const SortableList = m.SortableList as <T>(props: {
+    items: readonly T[];
+    getId: (item: T) => string | number;
+    onReorder: (items: T[], from: number, to: number) => void;
+    children: (item: T, state: SortableItemState) => ReactNode;
+    disabled?: boolean;
+    className?: string;
+    itemClassName?: string;
+}) => ReactNode;
 export const Switch = m.Switch as AnyComponent;
 export const Table = m.Table as AnyComponent;
 export const TableBody = m.TableBody as AnyComponent;

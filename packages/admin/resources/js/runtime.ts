@@ -7,12 +7,17 @@ import { toast } from 'sonner';
 import { SDK_VERSION, type SharedModuleName } from '@sunrice/admin-sdk/shared';
 import type { SunriceRuntime } from '@sunrice/admin-sdk';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { CollapsibleCard } from '@/components/app/collapsible-card';
+import { registerCommandSource } from '@/components/app/command-palette';
+import { DatePicker } from '@/components/app/date-picker';
 import { KeptEditsNotice, useEditLock, ViewingNotice } from '@/components/app/edit-lock';
+import { moveItem, SortableHandle, SortableList } from '@/components/app/sortable-list';
 import { MediaPickerInput } from '@/components/media/media-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -33,10 +38,12 @@ import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
 /** What `@sunrice/admin-sdk/ui` gives plugins. Keep in step with SHARED_MODULES (a test checks). */
 const ui = {
-    Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox,
+    Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, CollapsibleCard,
+    Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-    Input, KeptEditsNotice, Label, MediaPickerInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Skeleton, Switch,
+    Input, KeptEditsNotice, Label, MediaPickerInput, moveItem, registerCommandSource,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Skeleton, SortableHandle, SortableList, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
     Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, useBreadcrumbs, useEditLock, useUnsavedChanges, ViewingNotice,
 };

@@ -110,6 +110,35 @@ Your bundle can split: a dynamic `import()` (or `React.lazy`) becomes a chunk ne
 
 `@sunrice/admin-sdk/ui` gives the panel's own components: buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, and saves on Ctrl/Cmd+S, as the panel's own forms do), `useEditLock`, `KeptEditsNotice` and `ViewingNotice` ([edit locks](locks.md)), and `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file).
 
+It also has these interaction components, the ones the panel's own pages use:
+
+- **`CollapsibleCard`**: a card whose header folds its content away, animated. `storageKey` remembers the choice in the browser, `hasErrors` opens the card so a validation error is never hidden, `headerAction` sits in the header outside the toggle. Folded fields stay in the form (still submitted) but are inert and hidden from assistive technology.
+
+  ```tsx
+  <CollapsibleCard title="Shipping" storageKey="shop:order:shipping" hasErrors={'address' in errors}>…</CollapsibleCard>
+  ```
+
+- **`SortableList`** and **`SortableHandle`**: a vertical list reordered by dragging a handle or with the keyboard (focus the handle, space, arrows, space). The dragged item follows the pointer as a lifted ghost; with reduced motion nothing travels. `onReorder` gets the reordered list, and `moveItem(items, from, to)` is the pure helper behind it.
+
+  ```tsx
+  <SortableList items={rows} getId={(row) => row.id} onReorder={setRows}>
+      {(row, { handle }) => <div className="shop:flex shop:gap-2"><SortableHandle {...handle} />{row.title}</div>}
+  </SortableList>
+  ```
+
+- **`DatePicker`**: a calendar in a popover, with a time input when `withTime`. Its value is what a native date input gives (`"2026-10-19"`, or `"2026-10-19T14:30"`), so it drops in where a date input was.
+
+- **`Command`**, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`, `CommandEmpty`, `CommandSeparator`: cmdk's filterable list, for comboboxes and pickers.
+
+- **`registerCommandSource(source, { minLength })`**: adds results to the command palette (Cmd/Ctrl+K, which lists the navigation out of the box). The source gets the query and an `AbortSignal` and returns items (`id`, `label`, `group`, optional `description`, `icon` (a navigation icon name), `url` (a full href from `adminUrl()`) or `onSelect`). It's asked after `minLength` letters (2 by default), debounced; one that throws or is aborted contributes nothing. It returns a function that removes the source. A bundle runs when one of its pages first opens, so a source registered at its top level is there from then on. The CMS registers one that searches entries by title through its entry picker endpoint.
+
+  ```ts
+  registerCommandSource(async (query, signal) => {
+      const response = await fetch(`${adminUrl('shop/orders/search')}?q=${encodeURIComponent(query)}`, { signal, headers: { Accept: 'application/json' } });
+      return (await response.json()).map((order) => ({ id: String(order.id), label: order.number, group: 'Orders', url: adminUrl(`shop/orders/${order.id}`) }));
+  });
+  ```
+
 ## Compatibility
 
 `definePlugin()` checks the panel's runtime version and refuses to load a bundle built for another major version, with an error that says to rebuild it. The modules shared with plugins are listed in `@sunrice/admin-sdk/shared`.

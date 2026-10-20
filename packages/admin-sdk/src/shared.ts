@@ -9,7 +9,7 @@
  */
 
 /** Bumped when the runtime changes incompatibly. Plugins built for another major version refuse to load. */
-export const SDK_VERSION = 1;
+export const SDK_VERSION = 2;
 
 export const SHARED_MODULES = {
     react: [
@@ -32,10 +32,12 @@ export const SHARED_MODULES = {
         'usePoll', 'usePrefetch', 'useRemember',
     ],
     '@sunrice/admin-sdk/ui': [
-        'Badge', 'Button', 'Card', 'CardContent', 'CardDescription', 'CardFooter', 'CardHeader', 'CardTitle', 'Checkbox',
+        'Badge', 'Button', 'Card', 'CardContent', 'CardDescription', 'CardFooter', 'CardHeader', 'CardTitle', 'Checkbox', 'CollapsibleCard',
+        'Command', 'CommandEmpty', 'CommandGroup', 'CommandInput', 'CommandItem', 'CommandList', 'CommandSeparator', 'DatePicker',
         'Dialog', 'DialogContent', 'DialogDescription', 'DialogFooter', 'DialogHeader', 'DialogTitle', 'DialogTrigger',
         'DropdownMenu', 'DropdownMenuContent', 'DropdownMenuItem', 'DropdownMenuLabel', 'DropdownMenuSeparator', 'DropdownMenuTrigger',
-        'Input', 'KeptEditsNotice', 'Label', 'MediaPickerInput', 'Select', 'SelectContent', 'SelectItem', 'SelectTrigger', 'SelectValue', 'Separator', 'Skeleton', 'Switch',
+        'Input', 'KeptEditsNotice', 'Label', 'MediaPickerInput', 'moveItem', 'registerCommandSource',
+        'Select', 'SelectContent', 'SelectItem', 'SelectTrigger', 'SelectValue', 'Separator', 'Skeleton', 'SortableHandle', 'SortableList', 'Switch',
         'Table', 'TableBody', 'TableCell', 'TableHead', 'TableHeader', 'TableRow', 'Tabs', 'TabsContent', 'TabsList', 'TabsTrigger',
         'Textarea', 'Tooltip', 'TooltipContent', 'TooltipTrigger', 'toast', 'useBreadcrumbs', 'useEditLock', 'useUnsavedChanges', 'ViewingNotice',
     ],
