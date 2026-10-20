@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Honeypot\Honeypot;
 use Sunrice\Admin\Panel;
@@ -161,4 +162,41 @@ it('manages forms in Structure → Forms', function () {
     expect(Form::query()->where('handle', 'quote')->sole()->notify)->toBe(['a@example.com', 'b@example.com']);
 
     post('/admin/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify' => 'not-an-email'])->assertSessionHasErrors('notify');
+});
+
+it('takes markup of the template\'s own in a slot, with this form\'s errors and old input only', function () {
+    Blueprint::query()->create(['handle' => 'signup', 'title' => 'Signup', 'fields' => [['handle' => 'email', 'type' => 'text', 'required' => true, 'validation' => ['email']]]]);
+    Form::query()->create(['handle' => 'newsletter', 'title' => 'Newsletter', 'blueprint' => 'signup', 'message' => 'Welcome!']);
+    $slot = fn (string $handle, string $extra = '') => '<x-sunrice-cms::form handle="'.$handle.'" '.$extra.'>'
+        .'<input name="data[email]" value="{{ $component->old(\'email\') }}">[{{ $component->error(\'email\') }}]{{ $component->submitted() ? \'sent\' : \'\' }}'
+        .'<button>Go</button></x-sunrice-cms::form>';
+    Route::get('/two-forms', fn () => Blade::render('<div id="a">'.$slot('contact').'</div><div id="b">'.$slot('newsletter', 'replace').'</div>'));
+
+    $html = (string) from('/two-forms')->followingRedirects()->post('/forms/contact', ['_form' => 'contact', 'data' => contactInput(['email' => 'not-an-email'])])->assertOk()->getContent();
+    [$contact, $newsletter] = explode('<div id="b">', $html);
+
+    expect($contact)->toContain('name="_token"')->toContain('name="_form" value="contact"')
+        ->toContain('value="not-an-email"')->toContain('[The Email field must be a valid email address.]sent')
+        ->not->toContain('<button type="submit">');
+    // The other form, with a field of the same handle, keeps its own (empty) state.
+    expect($newsletter)->toContain('<input name="data[email]" value="">[]<button>');
+    expect(Submission::query()->count())->toBe(0);
+
+    // Sent: the thank-you message above the form, or in its place with `replace`.
+    $html = (string) from('/two-forms')->followingRedirects()->post('/forms/newsletter', ['_form' => 'newsletter', 'data' => ['email' => 'ana@example.com']])->assertOk()->getContent();
+    [$contact, $newsletter] = explode('<div id="b">', $html);
+    expect($newsletter)->toContain('<p id="form-newsletter" role="status">Welcome!</p>')->not->toContain('<form')
+        ->and($contact)->toContain('<form')->not->toContain('Welcome!');
+    expect(Submission::query()->sole()->data)->toBe(['email' => 'ana@example.com']);
+});
+
+it('refills the printed form after errors, and takes its fields as data[handle]', function () {
+    Route::get('/contact-page', fn () => Blade::render('<x-sunrice-cms::form handle="contact" />'));
+
+    $html = (string) from('/contact-page')->followingRedirects()->post('/forms/contact', ['_form' => 'contact', 'data' => contactInput(['message' => ''])])->getContent();
+
+    expect($html)->toContain('name="data[name]" value="Ana"')->toContain('id="form-contact-message-error" role="alert"')
+        ->toContain('<option value="help" selected>');
+    postJson('/forms/contact', ['data' => contactInput()])->assertCreated()->assertJson(['message' => 'Thanks!', 'redirect_url' => null]);
+    postJson('/forms/contact', ['data' => contactInput(['email' => 'x'])])->assertUnprocessable()->assertJsonValidationErrors(['email']);
 });

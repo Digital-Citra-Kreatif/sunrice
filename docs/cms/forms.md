@@ -14,9 +14,71 @@
 <x-sunrice-cms::form handle="contact" submit="Send message" class="contact-form" />
 ```
 
-The component prints the form with its labels, help texts and errors, the CSRF token and the honeypot, and the thank-you message once it's sent. Other attributes go on the `<form>`. It has no styles of its own: style it from your stylesheet, or publish the CMS's views to change its markup.
+Empty, the component prints the form with its labels, help texts and errors (each tied to its input with `aria-describedby` and `aria-invalid`), the CSRF token and the honeypot, the [captcha](#captcha) when the form asks for one, and the thank-you message once it's sent. Other attributes go on the `<form>`. It has no styles of its own: style it from your stylesheet, or publish the CMS's views to change its markup. Nothing is printed for an unknown handle.
 
-Forms post to `POST /forms/{handle}` (route `sunrice.cms.forms.submit`). After sending, visitors go back to the page they were on, with the thank-you message in the session (`session('sunrice-cms.form.contact')`); errors are in the form's own error bag (`$errors->contact`), so two forms on a page don't mix them up. Requests that ask for JSON get `201 {"message": "…"}` or `422` with the errors.
+| Attribute | |
+| --- | --- |
+| `handle` | The form's handle (required). |
+| `submit` | The button's text when it prints the fields (`Send`). |
+| `replace` | Once it's sent, the thank-you message (`<p role="status" id="form-{handle}">`) takes the form's place; without it, the message shows above the form. |
+
+### Your own markup
+
+With a slot, the markup inside the `<form>` is yours; the component still adds the `<form>` itself, the CSRF token, the honeypot and two hidden inputs (`locale`, and `_form`, which tells this form's old input from another's). Name the inputs `data[handle]` and use the component's methods:
+
+```blade
+<x-sunrice-cms::form handle="contact" class="stack" replace>
+    <label for="contact-email">Email</label>
+    <input id="contact-email" type="email" name="data[email]" value="{{ $component->old('email') }}"
+        @if ($component->error('email')) aria-invalid="true" aria-describedby="contact-email-error" @endif>
+    @if ($message = $component->error('email'))
+        <p id="contact-email-error" role="alert">{{ $message }}</p>
+    @endif
+
+    <label for="contact-message">Message</label>
+    <textarea id="contact-message" name="data[message]">{{ $component->old('message') }}</textarea>
+
+    {{ $component->captcha() }}
+    @if ($message = $component->captchaError()) <p role="alert">{{ $message }}</p> @endif
+
+    <button>Send</button>
+</x-sunrice-cms::form>
+```
+
+- `$component->old('email', $default)`: what the field was sent with when the form came back with errors, for this form only (two forms with an `email` field don't refill each other).
+- `$component->error('email')`: this form's first error for the field, or null; `failed()` whether it has any (for a summary); `captchaError()` the captcha's.
+- `$component->success()`: the thank-you message right after it was sent, or null (the component prints it already; use it to show something else).
+- `$component->captcha()`: the captcha widget and its script when the form asks for one, else null. With your own markup, print it yourself.
+- `$component->submitted()`: whether the page comes right after this form was sent back with errors. `$component->form` is the `Form` model (`->schema()->fields()` lists its fields).
+
+Fields the form's blueprint doesn't have are ignored; a toggle needs a hidden `0` before its checkbox to send "off"; a select with several choices is `data[topics][]`; a file field needs the form to send `multipart/form-data` (the component adds it when the form has one).
+
+Forms post to `POST /forms/{handle}` (route `sunrice.cms.forms.submit`), the fields as `data[handle]` (or by handle, as in older templates). After sending, visitors go back to the page they were on, with the thank-you message in the session (`session('sunrice-cms.form.contact')`); errors are in the form's own error bag (`$errors->contact`), so two forms on a page don't mix them up.
+
+### Submitting without a page reload
+
+Requests that ask for JSON (`Accept: application/json`) get JSON instead of a redirect. Send what the form holds, the CSRF token included (the `_token` input, or an `X-CSRF-TOKEN` header) along with the honeypot fields:
+
+```js
+form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+    const body = await response.json().catch(() => ({}));
+    if (response.status === 201) {
+        body.redirect_url ? (location.href = body.redirect_url) : form.replaceWith(Object.assign(document.createElement('p'), { role: 'status', textContent: body.message }));
+    } else if (response.status === 422) {
+        // body.errors: { email: ['The Email field must be a valid email address.'], _captcha: [...] }
+    }
+});
+```
+
+| Status | Body | |
+| --- | --- | --- |
+| `201` | `{"message": "Thanks!", "redirect_url": "/thanks" \| null}` | Kept (and emailed). `redirect_url` is the form's **After sending, go to**. |
+| `422` | `{"message": "…", "errors": {"email": ["…"], "_captcha": ["…"]}}` | Not kept. Errors are keyed by field handle (no `data.`); `_captcha` for the captcha. |
+| `429` | | Too many sends from this address this minute. |
+| `419` | | The CSRF token is missing or stale (the page was open too long): reload it. |
+| `200`, empty | | The honeypot caught it (fields missing, the trap filled in, or sent too fast); nothing is kept. |
 
 ### Files
 
@@ -34,7 +96,7 @@ SUNRICE_CAPTCHA_SITE_KEY=…
 SUNRICE_CAPTCHA_SECRET_KEY=…
 ```
 
-then turn on **Require a captcha** on the form (it stays off until both keys are set). The component prints the widget and the provider's script; the answer is checked before anything else, and a missing or wrong one comes back as the `_captcha` error ("Please confirm you're not a robot …"; `422` with JSON). When the provider can't be reached, the form is refused, not let through. Without the keys, no form asks for it.
+then turn on **Require a captcha** on the form (it stays off until both keys are set). The component prints the widget and the provider's script (with your own markup, `{{ $component->captcha() }}`); the answer is checked before anything else, and a missing or wrong one comes back as the `_captcha` error ("Please confirm you're not a robot …"; `422` with JSON). When the provider can't be reached, the form is refused, not let through. Without the keys, no form asks for it.
 
 Plugins use the same captcha: `app(\Sunrice\Admin\Security\Captcha::class)->widget()` and `->passes($request)`. Turnstile's test keys (site `1x00000000000000000000AA`, secret `1x0000000000000000000000000000000AA`) always pass.
 
@@ -46,7 +108,7 @@ Plugins use the same captcha: `app(\Sunrice\Admin\Security\Captcha::class)->widg
 
 ### After sending
 
-Visitors go back to the page they were on, or to the form's **After sending, go to** page, with the thank-you message in the session. JSON requests get `201 {"message": "…", "redirect_url": "/thanks" | null}`.
+Visitors go back to the page they were on, or to the form's **After sending, go to** page, with the thank-you message in the session. JSON requests get `201 {"message": "…", "redirect_url": "/thanks" | null}` ([more](#submitting-without-a-page-reload)).
 
 ## Submissions
 
