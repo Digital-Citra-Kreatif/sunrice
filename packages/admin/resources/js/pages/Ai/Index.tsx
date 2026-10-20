@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Copy, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
@@ -16,6 +16,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { copyText } from '@/lib/clipboard';
+import type { SharedProps } from '@/types';
 
 interface Token {
     id: number;
@@ -49,14 +51,13 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
         form.transform((data) => ({ ...data, expires_in_days: data.expires_in_days === NEVER ? null : Number(data.expires_in_days) }));
         form.post(adminUrl('ai/tokens'), { preserveScroll: true, onSuccess: () => { setCreating(false); form.reset(); } });
     };
-    const copy = async (text: string) => {
-        await navigator.clipboard.writeText(text);
-        toast.success('Copied.');
-    };
+    const { sunrice } = usePage<SharedProps>().props;
+    const copy = (text: string) => copyText(text).then(() => toast.success('Copied.'), () => toast.error('Copying failed: select the text and copy it yourself.'));
 
-    const token = created?.token ?? 'sra_…';
-    const claudeCode = `claude mcp add --transport http panel ${endpoint} --header "Authorization: Bearer ${token}"`;
-    const json = JSON.stringify({ mcpServers: { panel: { type: 'http', url: endpoint, headers: { Authorization: `Bearer ${token}` } } } }, null, 2);
+    const token = created?.token ?? 'YOUR_TOKEN';
+    const server = sunrice.branding.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'panel';
+    const claudeCode = `claude mcp add --transport http ${server} ${endpoint} --header "Authorization: Bearer ${token}"`;
+    const json = JSON.stringify({ mcpServers: { [server]: { type: 'http', url: endpoint, headers: { Authorization: `Bearer ${token}` } } } }, null, 2);
 
     return (
         <div className="flex max-w-5xl flex-col gap-6">
@@ -64,9 +65,26 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
             {confirmDialog}
             <PageHeader
                 title="AI access"
-                description="Let AI agents (Claude, ChatGPT, Cursor …) work in the panel as you, with your permissions."
+                description="Connect an AI agent (Claude, ChatGPT, Cursor …) to this site through MCP. It works in the panel as you, always with your permissions."
                 actions={<Button onClick={() => setCreating(true)}><Plus />New token</Button>}
             />
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Connect an agent</CardTitle>
+                    <CardDescription>
+                        The server address and the header carrying your token{created ? '' : ' (create a token below, then paste it in place of YOUR_TOKEN)'}. Most agents accept one of these.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-5">
+                    <CodeBlock label="Server URL" code={endpoint} onCopy={copy} />
+                    <CodeBlock label="Claude Code" code={claudeCode} onCopy={copy} />
+                    <CodeBlock label="Claude Desktop, Cursor, VS Code … (JSON config)" code={json} onCopy={copy} />
+                    <p className="text-xs text-muted-foreground">
+                        For an agent running on the server itself: <code className="font-mono">php artisan mcp:start sunrice</code>, with <code className="font-mono">SUNRICE_AI_USER</code> set to the email of the user it acts as. See Help → Developer docs → AI access.
+                    </p>
+                </CardContent>
+            </Card>
 
             {created && (
                 <Card className="border-primary">
@@ -81,6 +99,7 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
                 </Card>
             )}
 
+            <h2 className="mt-2 text-base font-medium">Your access tokens</h2>
             <Card className="overflow-hidden py-0">
                 <Table>
                     <TableHeader>
@@ -117,22 +136,6 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
                 </Table>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Connecting an agent</CardTitle>
-                    <CardDescription>Give the agent the panel's MCP address and a token{created ? '' : ' (create one above)'}. Read-only tokens can look but not change anything.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 text-sm">
-                    <div className="grid gap-1.5">
-                        <Label>Claude Code</Label>
-                        <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs"><code>{claudeCode}</code></pre>
-                    </div>
-                    <div className="grid gap-1.5">
-                        <Label>Claude Desktop, Cursor and other MCP clients</Label>
-                        <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs"><code>{json}</code></pre>
-                    </div>
-                </CardContent>
-            </Card>
 
             <Dialog open={creating} onOpenChange={setCreating}>
                 <DialogContent>
@@ -169,6 +172,19 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
                     </form>
                 </DialogContent>
             </Dialog>
+        </div>
+    );
+}
+
+/** A labelled block of text to copy: an address, a command, a config. */
+function CodeBlock({ label, code, onCopy }: { label: string; code: string; onCopy: (text: string) => void }) {
+    return (
+        <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-2">
+                <Label>{label}</Label>
+                <Button type="button" variant="ghost" size="sm" onClick={() => onCopy(code)}><Copy />Copy</Button>
+            </div>
+            <pre className="overflow-x-auto rounded-md bg-muted px-3 py-2.5 font-mono text-xs leading-relaxed"><code>{code}</code></pre>
         </div>
     );
 }

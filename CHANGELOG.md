@@ -29,6 +29,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- AI access starts with **Connect an agent**: the server URL, the Claude Code command and the JSON config, each with a Copy button (and a fallback on plain-http hosts), named after the panel's brand, with `YOUR_TOKEN` until a token is created; then the tokens.
 - A plugin's resources live under the plugin's id: the CMS's structure pages are `/admin/cms/collections`, `/admin/cms/taxonomies`, `/admin/cms/forms`, `/admin/cms/global-sets`, `/admin/cms/redirects` and `/admin/cms/menu-settings` (was `/admin/collections` …). `Resource::path()` (`@api`) gives a resource another address than its key; route names and permissions are unchanged. The Submissions page's `createForm` is a full path.
 - Handles are filled in from the title while creating (`TextInput::slugFrom()`, `@api`), and a menu's or global set's handle stays on its edit form, read-only, instead of disappearing. The blueprint builder keeps typed handles to lowercase letters, numbers and underscores, and a bad handle says what's allowed instead of "The fields.0.handle field format is invalid". Menu settings link to the menu's links (Content → Menus).
 - A cleaner look, after sunrice-cms: neutral greys instead of warm ones, a smaller radius (`--radius` 0.5rem), squarer buttons and inputs, cards with a faint shadow under their border instead of a ring, and Instrument Sans as the default font (`sunrice-admin.font`). Pages use up to 1536px of a wide screen (was 1280px), and forms up to 1024px.
