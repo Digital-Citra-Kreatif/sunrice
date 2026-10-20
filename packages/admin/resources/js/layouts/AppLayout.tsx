@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppHeader } from '@/components/app/app-header';
 import { BreadcrumbProvider } from '@/components/app/breadcrumbs';
+import { CommandPalette, isCommandPaletteShortcut, setCommandPaletteOpen, useCommandPaletteOpen } from '@/components/app/command-palette';
 import type { SharedProps } from '@/types';
 
 /** The sidebar's open/collapsed state, kept in a cookie by the sidebar. */
@@ -18,6 +19,19 @@ function sidebarDefaultOpen(): boolean {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const page = usePage<SharedProps>();
     const { flash } = page.props;
+    const paletteOpen = useCommandPaletteOpen();
+
+    // Cmd/Ctrl+K opens the command palette from anywhere in the admin.
+    React.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (!isCommandPaletteShortcut(event)) return;
+            event.preventDefault();
+            setCommandPaletteOpen(!paletteOpen);
+        };
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [paletteOpen]);
 
     React.useEffect(() => {
         if (flash.success) toast.success(flash.success);
@@ -46,6 +60,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <main key={page.component} className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-5 md:p-8 lg:p-10">{children}</main>
                     </SidebarInset>
                     <Toaster position="top-right" />
+                    <CommandPalette />
                 </SidebarProvider>
             </BreadcrumbProvider>
         </TooltipProvider>
