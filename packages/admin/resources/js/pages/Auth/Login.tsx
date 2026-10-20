@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import AuthLayout from '@/layouts/AuthLayout';
+import { useBranding } from '@/components/app/app-logo';
 import { InputError } from '@/components/app/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { adminUrl } from '@/lib/admin-url';
 
 export default function Login() {
+    const { name } = useBranding();
     const form = useForm({ email: '', password: '', remember: false });
 
     const submit = (event: React.FormEvent) => {
@@ -18,7 +20,7 @@ export default function Login() {
     };
 
     return (
-        <AuthLayout title="Log in" description="Sign in to the admin panel.">
+        <AuthLayout title={`Log in to ${name}`} description="Enter your email and password to continue.">
             <form onSubmit={submit} className="grid gap-6">
                 <div className="grid gap-2">
                     <Label htmlFor="email">Email address</Label>

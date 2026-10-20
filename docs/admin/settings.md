@@ -37,7 +37,7 @@ Register it in a plugin's `register()` or in your panel provider:
 $panel->settings(ShopSettings::class);
 ```
 
-That adds the section to `/admin/settings/shop` and a permission to edit it: `shop.settings.shop` when the plugin `shop` registers it, `settings.shop` when your app does. The Settings sidebar item shows for users who may edit at least one section. The key `security` belongs to the panel's own section (two-factor login, `sunrice.settings.security`).
+That adds the section to `/admin/settings/shop` and a permission to edit it: `shop.settings.shop` when the plugin `shop` registers it, `settings.shop` when your app does. The Settings sidebar item shows for users who may edit at least one section. The keys `branding` ([the panel's look and sign-in page](branding.md), `sunrice.settings.branding`) and `security` (two-factor login, `sunrice.settings.security`) belong to the panel's own sections.
 
 ## Reading and writing
 
