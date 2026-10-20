@@ -178,6 +178,20 @@ it('compares and sorts numbers and dates as such, with lists and null checks', f
         ->and(fn () => Content::entries('blog')->orderBy('x; drop'))->toThrow(InvalidArgumentException::class);
 });
 
+it('reads an empty field (JSON null) as no value on every database', function () {
+    queryPost('Priced', ['price' => 5, 'intro' => 'a']);
+    queryPost('Blank', ['price' => null, 'intro' => null]);
+    $titles = fn (EntryQuery $query) => $query->alphabetical()->get()->pluck('title')->all();
+
+    // MySQL's json_unquote() reads JSON null as the string 'null'.
+    expect($titles(Content::entries('blog')->where('intro', '!=', 'a')))->toBe([])
+        ->and($titles(Content::entries('blog')->where('intro', 'not in', ['b'])))->toBe(['Priced'])
+        ->and($titles(Content::entries('blog')->where('intro', '>', 'm')))->toBe([])
+        ->and($titles(Content::entries('blog')->where('price', '<', 10)))->toBe(['Priced'])
+        ->and($titles(Content::entries('blog')->where('price', null)))->toBe(['Blank'])
+        ->and($titles(Content::entries('blog')->where('intro', null)))->toBe(['Blank']);
+});
+
 it('remembers matched ids in the site cache until the content changes', function () {
     $a = queryPost('A');
     queryPost('B');

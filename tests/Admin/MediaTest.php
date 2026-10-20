@@ -169,7 +169,7 @@ it('makes sizes on the queue when asked, and again from the console', function (
 it('makes sizes on the queue by default, unless jobs would run in the request anyway', function () {
     expect(config('sunrice-admin.media.queue'))->toBeNull()->and(config('queue.default'))->toBe('sync')->and(MediaConfig::queue())->toBeFalse();
     $now = upload(UploadedFile::fake()->image('now.jpg', 900, 600));
-    expect(array_keys($now->sizes))->toBe(['thumbnail', 'medium', 'large']);
+    expect(array_keys($now->sizes))->toEqualCanonicalizing(['thumbnail', 'medium', 'large']); // MySQL's JSON keeps keys in an order of its own
 
     config(['queue.default' => 'redis']);
     expect(MediaConfig::queue())->toBeTrue();

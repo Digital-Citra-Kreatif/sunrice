@@ -64,6 +64,8 @@ composer analyse     # Larastan, level max
 npm run typecheck && npm run test:frontend   # the admin's TypeScript and its node tests
 ```
 
+The tests use in-memory SQLite; CI runs them on MySQL 8 and PostgreSQL 16 too. To do the same, point them at an empty database: `DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_DATABASE=sunrice DB_USERNAME=... DB_PASSWORD=... composer test` (or `pgsql`). A test that uses site search calls `commitForFullText()` (in `tests/Pest.php`) before searching: MySQL's FULLTEXT index sees committed rows only.
+
 After UI work, sweep every admin page in a real browser (desktop and phone, light and dark): `tests/Browser/smoke.mjs` fails on JavaScript errors, console errors, failed requests and pages wider than the screen, and can save a screenshot of each page. It isn't part of `composer test` and Playwright isn't a dependency: install `playwright-core` anywhere and point the script at it and at a Chromium.
 
 ```bash

@@ -104,6 +104,7 @@ it('lets the template set the SEO title, description and noindex, or describe a 
 
 it('takes the search box\'s query string name and the results\' page name', function () {
     componentPost('Coffee beans');
+    commitForFullText();
     request()->query->set('find', 'coffee');
 
     $html = Blade::render('<x-sunrice-cms::search results name="find" page-name="p">{{ $component->name }}|{{ $component->query }}|@foreach ($component->results as $r){{ $r->title }}@endforeach|{{ $component->results->getPageName() }}</x-sunrice-cms::search>');
