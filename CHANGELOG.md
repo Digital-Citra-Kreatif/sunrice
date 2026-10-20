@@ -28,6 +28,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Submissions with no forms yet offers **Create a form** to those who may (`cms.forms.create`) instead of pointing at Structure → Forms.
 - The sidebar's groups fold away when their title is clicked, remembered per browser; the group of the current page stays open, and every group shows its icons when the sidebar is shrunk.
 - The sidebar lists each collection under **Content** (`cms/collections/{handle}/entries`) and each taxonomy under **Taxonomies** (`cms/taxonomies/{handle}/terms`), for those who may see it, instead of one **Entries** and one **Terms** item; through the new `Panel::navigationUsing()` (`@api`), for navigation made from data on each page.
 - Entries and terms are edited under their collection and taxonomy, like their list: `cms/collections/{collection}/entries/{entry}/edit` and `cms/taxonomies/{taxonomy}/terms/{term}/edit` (routes `sunrice.admin.cms.entries.edit` and `…terms.edit` now take the handle too). The old `cms/entries/{entry}/edit` and `cms/terms/{term}/edit` redirect there (`…entries.open`, `…terms.open`). The entry picker's items carry `collectionHandle`.

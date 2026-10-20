@@ -250,3 +250,15 @@ it('emails the members of the form\'s roles too, once each', function () {
     expect(Form::query()->where('handle', 'quote')->sole()->notify_roles)->toBe(['sales']);
     post('/admin/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify_roles' => ['nobody']])->assertSessionHasErrors('notify_roles.0');
 });
+
+it('offers to create a form when there are none, to those who may', function () {
+    Submission::query()->delete();
+    Form::query()->delete();
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.submissions.view', 'cms.forms.create'));
+    get('/admin/cms/submissions')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('Cms/Submissions/Index', shouldExist: false)->where('form', null)->where('createForm', 'forms/create'));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.submissions.view'));
+    get('/admin/cms/submissions')->assertInertia(fn (Assert $page) => $page->where('createForm', null));
+});
