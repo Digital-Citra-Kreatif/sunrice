@@ -92,6 +92,23 @@ Fields are **translated** or **shared**. A field's *Per language* setting in the
 
 Shared fields inside a translated group, repeater or flexible block are shared too, row by row: another language's rows and blocks have their own text, and take the shared values (a dish's price, a quote's rating) from the main language's row or block with the same id (`_id` for rows, `id` for blocks; a group's by its handle). The editor shows them read-only with the main language's values. A row or block only that language has (added after it was copied) keeps its own. `Schema::withShared($data, $main)` and `withoutShared()` do the matching; `completeData()` and `ownData()` use them.
 
+## Switching the main language
+
+Once there's content, the main language is changed with a command, which moves what's stored so nothing is lost:
+
+```bash
+php artisan sunrice:switch-main-language id --dry-run       # what would change
+php artisan sunrice:switch-main-language id --copy-missing  # back up the database first
+```
+
+- **Entries** (live and draft), **terms**, **globals** and **listing pages**: the shared values move from the old main language to the new one, which holds them from then on (in rows and blocks too); the old main language keeps only its text, and every language shows what it showed before.
+- Entries and terms without a translation in the new main language stop the switch, unless `--copy-missing`, which gives them a copy of the old main language's (published as it was).
+- **Menu labels** the new main language left empty take the old one's.
+- **Addresses**: the new main language's lose their prefix (`/id/about` → `/about`, and `/id/…` redirects there) and the old one's get it (`/about` → `/en/about`). Redirects are rewritten to match, and the old main language's pages and terms redirect (301) from their old addresses, where the new main language has no page of its own, without chains.
+- **Settings → Languages** lists the new main language first. The command reports what it moved.
+
+In code: `Sunrice\Cms\Actions\Settings\SwitchMainLanguage`, `report($to)` (counts, changing nothing) and `handle($to, copyMissing: true)`, which throws a `ValidationException` for a language that isn't a content language or is the main one already, or for content left without it.
+
 ## Drafts and publishing
 
 Editors work on the **draft**; the site shows the **live** version, which only changes on publish.
