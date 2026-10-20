@@ -15,7 +15,7 @@ export function AppHeader() {
     const crumbs = useBreadcrumbOverride() ?? [];
 
     return (
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/60 px-5 md:px-8 lg:px-10">
+        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/70 px-5 backdrop-blur-md md:px-8 lg:px-10">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
             <Breadcrumb>

@@ -106,3 +106,17 @@ it('tells you when the assets are not published, and publishes them', function (
 
     (new Filesystem)->deleteDirectory($public);
 });
+
+it('loads the panel font, or the one configured instead', function () {
+    usePanel();
+
+    get('/admin/login')->assertOk()
+        ->assertSee('<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>', false)
+        ->assertSee('https://fonts.bunny.net/css?family=inter:400,500,600&amp;display=swap', false)
+        ->assertDontSee('--sunrice-font');
+
+    config(['sunrice-admin.font' => ['stylesheet' => null, 'family' => 'Instrument "Sans"']]);
+    get('/admin/login')->assertOk()
+        ->assertDontSee('fonts.bunny.net')
+        ->assertSee(':root { --sunrice-font: "Instrument Sans"; }', false);
+});

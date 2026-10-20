@@ -1,5 +1,6 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import type { SharedProps } from '@/types';
 
 export default function Dashboard() {
@@ -9,8 +10,7 @@ export default function Dashboard() {
     return (
         <>
             <Head title="Dashboard" />
-            <h1 className="text-2xl font-medium tracking-tight">Welcome{auth.user?.name ? `, ${auth.user.name}` : ''}</h1>
-            <p className="mt-2 text-muted-foreground">This is the {sunrice.brand} admin panel.</p>
+            <PageHeader title={`Welcome${auth.user?.name ? `, ${auth.user.name}` : ''}`} description={`This is the ${sunrice.brand} admin panel.`} />
         </>
     );
 }

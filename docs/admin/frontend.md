@@ -108,7 +108,37 @@ Your bundle can split: a dynamic `import()` (or `React.lazy`) becomes a chunk ne
 
 ## UI components
 
-`@sunrice/admin-sdk/ui` gives the panel's own components: buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, and saves on Ctrl/Cmd+S, as the panel's own forms do), `useEditLock`, `KeptEditsNotice` and `ViewingNotice` ([edit locks](locks.md)), and `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file).
+`@sunrice/admin-sdk/ui` gives the panel's own components: `PageHeader` (the title block at the top of every page: `title`, `description`, `back={{ href, label }}`, `actions`, and children beside the title), buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, and saves on Ctrl/Cmd+S, as the panel's own forms do), `useEditLock`, `KeptEditsNotice` and `ViewingNotice` ([edit locks](locks.md)), and `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file).
+
+## Design language
+
+The panel is calm and warm: neutral surfaces with a hint of warmth, one accent used sparingly, soft radii, two-layer shadows, and motion that is quick, eased out and purposeful. Plugin pages get the same look by reading the panel's tokens, which are CSS variables on `:root` (and `.dark`):
+
+| Token | Use |
+| --- | --- |
+| `--background`, `--foreground`, `--card`, `--popover`, `--muted`, `--accent`, `--border`, `--input`, `--ring` … | The shadcn colour set; `--color-*` in your prefixed theme (see above). |
+| `--accent-tint` (`bg-accent-tint`) | A faint wash of the primary colour: selected rows, the current nav item. |
+| `--surface-glass` (`bg-surface-glass`) | Translucent chrome over `backdrop-blur`: the header, the sidebar, toasts. |
+| `--ring-glow` (`ring-ring-glow`) | The soft 4 px focus glow: `focus-visible:ring-4 focus-visible:ring-ring-glow`, as inputs do. |
+| `--radius` (0.625rem) | `rounded-lg`; `rounded-xl` for dialogs and toasts. |
+| `--shadow-card` (`shadow-card`) | A hairline and a soft spread: cards, tiles on hover, the content panel. |
+| `--shadow-pop` (`shadow-pop`) | Deeper: dialogs, menus, popovers, tooltips, toasts. |
+| `--ease-out-quart` (`ease-out-quart`) | `cubic-bezier(0.22, 1, 0.36, 1)`: nearly everything that moves (150–300 ms). |
+| `--ease-spring` (`ease-spring`) | A `linear()` spring with a touch of overshoot: dialogs entering, the switch thumb, the checkbox tick. |
+| `--sunrice-font` | The typeface (Inter unless the app sets `sunrice-admin.font`). |
+
+Add the ones you use to your `@theme inline reference` block, as the CMS does (`--shadow-card: var(--shadow-card)`, `--ease-spring: var(--ease-spring)`, `--color-ring-glow: var(--ring-glow)`), and they become `shop:shadow-card`, `shop:ease-spring` and `shop:ring-ring-glow`.
+
+The panel's stylesheet also ships a few plain classes, usable unprefixed from any bundle:
+
+- `sunrice-page-title`: the display style of page titles (`PageHeader` uses it).
+- `sunrice-page-enter`: a page's entrance, a short fade and rise; the layout puts it on every page.
+- `sunrice-row-in`: rows and tiles arriving one after another. Give each `style={{ '--i': index }}`; the delay is 28 ms a row, capped at twelve.
+- `sunrice-shimmer`: the gradient sweep of `Skeleton`.
+- `sunrice-card-content`: a collapsible card body (`data-state="open|closed"`).
+- `sunrice-atmosphere`, `sunrice-orb`, `sunrice-orbit`: the sign-in page's decoration.
+
+Rows answer the pointer with `hover:bg-muted/40`; buttons press with `active:scale-[0.98]`. Page to page, the panel runs a view transition (`::view-transition-old/new(root)`) when the browser supports it. Under `prefers-reduced-motion: reduce` nothing travels: pages, rows and overlays appear in place, placeholders stop sweeping, and colour and opacity transitions survive, so keep your own travel animations on those classes or behind the same media query.
 
 It also has these interaction components, the ones the panel's own pages use:
 

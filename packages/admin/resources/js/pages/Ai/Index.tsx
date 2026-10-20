@@ -3,6 +3,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { Copy, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import { InputError } from '@/components/app/input-error';
 import { useConfirm } from '@/components/resources/confirm';
 import { Badge } from '@/components/ui/badge';
@@ -61,13 +62,11 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
         <div className="flex max-w-4xl flex-col gap-6">
             <Head title="AI access" />
             {confirmDialog}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-medium tracking-tight">AI access</h1>
-                    <p className="text-sm text-muted-foreground">Let AI agents (Claude, ChatGPT, Cursor …) work in the panel as you, with your permissions.</p>
-                </div>
-                <Button onClick={() => setCreating(true)}><Plus />New token</Button>
-            </div>
+            <PageHeader
+                title="AI access"
+                description="Let AI agents (Claude, ChatGPT, Cursor …) work in the panel as you, with your permissions."
+                actions={<Button onClick={() => setCreating(true)}><Plus />New token</Button>}
+            />
 
             {created && (
                 <Card className="border-primary">

@@ -15,6 +15,15 @@
             } catch (e) {}
         })();
     </script>
+    @if ($sunriceFont = \Sunrice\Admin\Assets\AdminAssets::fontStylesheet())
+        @if ($sunriceFontOrigin = \Sunrice\Admin\Assets\AdminAssets::fontOrigin())
+            <link rel="preconnect" href="{{ $sunriceFontOrigin }}" crossorigin>
+        @endif
+        <link rel="stylesheet" href="{{ $sunriceFont }}">
+    @endif
+    @if ($sunriceFontFamily = \Sunrice\Admin\Assets\AdminAssets::fontFamily())
+        <style @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>:root { --sunrice-font: "{{ $sunriceFontFamily }}"; }</style>
+    @endif
     {{ \Sunrice\Admin\Assets\AdminAssets::tags() }}
     @inertiaHead
 </head>

@@ -4,6 +4,7 @@ import {
     ChevronLeft, ChevronRight, CircleAlert, Folder, FolderPlus, LoaderCircle, MoreHorizontal, RotateCcw, Search, Trash2, Upload as UploadIcon, X,
 } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { PageHeader } from '@/components/app/page-header';
 import { InputError } from '@/components/app/input-error';
 import { formatBytes } from '@/components/media/format';
 import { FileIcon, MediaDetails } from '@/components/media/media-details';
@@ -81,21 +82,23 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             <Head title={folder ? `${folder.name} · Media` : 'Media'} />
             {confirmDialog}
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="truncate text-2xl font-medium tracking-tight">{query.trash ? 'Trash' : (folder?.name ?? 'Media')}</h1>
-                <div className="flex flex-wrap items-center gap-2">
-                    {can.update && !query.trash && !query.search && (
-                        <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />New folder</Button>
-                    )}
-                    {canUpload && (
-                        <>
-                            <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label="Files to upload"
-                                onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
-                            <Button onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>
-                        </>
-                    )}
-                </div>
-            </div>
+            <PageHeader
+                title={query.trash ? 'Trash' : (folder?.name ?? 'Media')}
+                actions={
+                    <>
+                        {can.update && !query.trash && !query.search && (
+                            <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />New folder</Button>
+                        )}
+                        {canUpload && (
+                            <>
+                                <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label="Files to upload"
+                                    onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
+                                <Button onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>
+                            </>
+                        )}
+                    </>
+                }
+            />
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-72" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
@@ -158,7 +161,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             {folders.length > 0 && (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                     {folders.map((f) => (
-                        <div key={f.id} className="group flex items-center gap-2 rounded-md border bg-card px-3 py-2.5 hover:bg-muted/50">
+                        <div key={f.id} className="group flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 transition-colors duration-150 ease-out-quart hover:bg-muted/40">
                             <Link href={`${base}?folder=${f.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
                                 <Folder className="size-4 shrink-0 text-muted-foreground" /><span className="truncate">{f.name}</span>
                             </Link>
@@ -186,10 +189,11 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {media.data.map((item) => {
+                    {media.data.map((item, i) => {
                         const checked = selected.includes(item.id);
                         return (
-                            <div key={item.id} className={cn('group relative overflow-hidden rounded-md border bg-card', checked && 'ring-2 ring-primary')}>
+                            <div key={item.id} style={{ '--i': i } as React.CSSProperties}
+                                className={cn('sunrice-row-in group relative overflow-hidden rounded-lg border bg-card transition-[transform,box-shadow,border-color] duration-200 ease-out-quart hover:-translate-y-0.5 hover:border-border hover:shadow-card', checked && 'ring-2 ring-primary')}>
                                 <button type="button" className="block w-full text-left" onClick={() => setOpenId(item.id)} aria-label={`Open ${item.title || item.filename}`}>
                                     <div className="flex aspect-square items-center justify-center bg-muted">
                                         {item.thumbnail

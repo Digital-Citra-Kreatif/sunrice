@@ -1,6 +1,6 @@
 import '../css/admin.css';
 import type * as React from 'react';
-import { createInertiaApp } from '@inertiajs/react';
+import { config, createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import AppLayout from '@/layouts/AppLayout';
 import { initializeAppearance } from '@/hooks/use-appearance';
@@ -11,6 +11,11 @@ import type { SharedProps } from '@/types';
 
 initializeAppearance();
 installRuntime();
+
+// Page to page, the old page fades as the new one rises (admin.css ::view-transition-*),
+// unless the person asked for less motion. Filters and pagination keep their state and stay put.
+const viewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+config.set('visitOptions', (_href, options) => (viewTransitions && !options.preserveState && (options.method ?? 'get') === 'get' ? { viewTransition: true } : {}));
 
 // The panel's own pages, each in its own chunk.
 const corePages = import.meta.glob<{ default: PageComponent }>('./pages/**/*.tsx');

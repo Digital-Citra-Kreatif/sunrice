@@ -13,6 +13,7 @@ import { DatePicker } from '@/components/app/date-picker';
 import { KeptEditsNotice, useEditLock, ViewingNotice } from '@/components/app/edit-lock';
 import { moveItem, SortableHandle, SortableList } from '@/components/app/sortable-list';
 import { MediaPickerInput } from '@/components/media/media-picker';
+import { PageHeader } from '@/components/app/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +43,7 @@ const ui = {
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-    Input, KeptEditsNotice, Label, MediaPickerInput, moveItem, registerCommandSource,
+    Input, KeptEditsNotice, Label, MediaPickerInput, moveItem, PageHeader, registerCommandSource,
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, Skeleton, SortableHandle, SortableList, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
     Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, useBreadcrumbs, useEditLock, useUnsavedChanges, ViewingNotice,
