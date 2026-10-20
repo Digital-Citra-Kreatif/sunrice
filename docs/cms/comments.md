@@ -25,20 +25,20 @@ The markup's classes: `sunrice-comments` (`#comments`), `sunrice-comments-list`,
 
 | Setting | Default | |
 | --- | --- | --- |
-| New comments | Hold a commenter's first comment | Or hold every comment, or publish at once. "First" trusts a commenter once one of theirs is approved: signed-in users by their account, guests by email among guests' comments. Comments by people who may moderate are always published. |
+| New comments | Hold a commenter's first comment | Or hold every comment, or publish at once. "First" trusts a commenter once one of theirs is approved: signed-in users by their account; guests by the same name, email and address (its hash) as an approved guest comment, since an email alone proves nothing, so a different name or address is held again. Comments by people who may moderate are always published. |
 | Only signed-in users can comment | off | Guests see the thread but not the form. |
 | Ask for a captcha | off | The captcha set up for [forms](forms.md#captcha). |
 | Comments per visitor a minute | 3 | More get `429`. |
 | Close comments after | never | Days after the entry's publish date. |
 | Reply levels shown | 3 | Deeper replies line up at the last level. |
 | Email moderators about new comments | on | Users with `cms.comments.moderate`, and the extra addresses. |
-| Let commenters get an email when someone replies | on | A box on the form. With comments published at once, only signed-in users get it (a guest could type anyone's address). |
+| Let commenters get an email when someone replies | on | A box on the form. A guest could type anyone's address, so a guest is signed up only when a moderator sees the comment (it's held), or when the comment that earned their trust asked too; with comments published at once, only signed-in users get it. |
 
 Every comment also needs the honeypot. Spam is deleted after `sunrice-cms.comments.prune_spam_after_days` (30) by the daily `model:prune`.
 
 ## Emails
 
-- **To moderators**, for each new comment by someone who can't moderate, with a link to it in the admin.
+- **To moderators**, for each new comment by someone who can't moderate, with a link to it in the admin; one email each, so addresses aren't shown to each other (form notifications go the same way).
 - **To commenters** who asked, when a reply to their comment is published (once per reply; not for replying to yourself), in the language they commented in, with a link that stops these emails for that comment.
 
 Both are queued: run a queue worker.
