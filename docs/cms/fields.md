@@ -2,7 +2,7 @@
 
 A **blueprint** lists the fields editors fill in for one kind of content: the entries of a collection, a taxonomy's terms, a global set or a form. A **fieldset** is a group of fields used in several places: blueprints include it, and flexible fields use fieldsets as their kinds of block.
 
-Both are stored in the database (`sunrice_blueprints`, `sunrice_fieldsets`) and built in the admin under **Structure → Blueprints** and **Structure → Fieldsets**, for people with the `cms.blueprints.manage` permission. The builder adds, edits, reorders and removes fields, nests groups and repeaters, and shows each type's settings. Changing a blueprint never deletes data: content keeps values under handles the blueprint no longer has, and they come back when the field does. A blueprint can't be deleted while a collection (for its entries or its listing page), a taxonomy, a global set or a form uses it: the error names them.
+Both are stored in the database (`sunrice_blueprints`, `sunrice_fieldsets`) and built in the admin under **Structure → Blueprints** and **Structure → Fieldsets**, for people with the `cms.blueprints.manage` permission. The builder adds, edits, drags into order and removes fields (each nested group or repeater's fields among themselves), nests groups and repeaters, and shows each type's settings. Changing a blueprint never deletes data: content keeps values under handles the blueprint no longer has, and they come back when the field does. A blueprint can't be deleted while a collection (for its entries or its listing page), a taxonomy, a global set or a form uses it: the error names them.
 
 ## Field definitions
 
@@ -54,7 +54,7 @@ Media must exist, not be in the trash and be of the allowed kinds. Templates get
 
 ### Repeaters and flexible blocks
 
-Every repeater row gets a stable `_id`, an optional `_key` and a `_hidden` switch; every flexible block is stored as `{id, type, key, hidden, values}`, where `type` is a fieldset's handle. Templates get `Items` (a Laravel collection) without the hidden ones, and can pick out a keyed one:
+In the editor, rows and blocks are dragged into order by their handle (or with the keyboard), and a top-level group field is a card of its own that folds away. Every repeater row gets a stable `_id`, an optional `_key` and a `_hidden` switch; every flexible block is stored as `{id, type, key, hidden, values}`, where `type` is a fieldset's handle. Templates get `Items` (a Laravel collection) without the hidden ones, and can pick out a keyed one:
 
 ```blade
 @foreach ($entry->get('sections') as $block)

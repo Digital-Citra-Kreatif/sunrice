@@ -16,7 +16,7 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
 | `listing_route` | The URL of a page listing the entries, like `/blog`; none: no listing page. See [the site](site.md#listing-pages). |
 | `listing_blueprint`, `per_page` | The listing page's own fields (an intro…), edited from the entries list, and how many entries it shows per page (10). `SaveListing` saves the fields per language and, given the `version` the editor opened (`CollectionListing::$version`), refuses a save over someone else's newer one. |
-| `ordered` | **Manual order**: editors put entries in order with Move up and Move down in the list, instead of by date or title. |
+| `ordered` | **Manual order**: editors put entries in order in the list (**Reorder**, then drag; in a hierarchical collection among an entry's siblings), instead of by date or title. |
 | `hierarchical` | Entries may have a **parent** entry, like pages under pages, for breadcrumbs and sub-menus. URLs stay flat: *Team* under *About* is still `/team`. |
 
 ```php
@@ -52,6 +52,12 @@ In the list, tick entries to publish, unpublish or trash them together (in the t
 - **Duplicate** copies every language's draft as a new draft entry ("Hello (copy)", slug `hello-copy`).
 - Only one person edits an entry in a language at a time: others are told who's editing and can view it or take over (see [edit locks](../admin/locks.md)).
 - When someone else saved since you opened the page, saving says so: **Load theirs**, or **Save mine anyway** over their version.
+- Group fields, **Search and sharing** and the sidebar's cards (status, page settings, comments, revisions) fold away; each remembers being open or closed in the browser, and opens by itself when a field inside has an error.
+- Repeater rows, flexible blocks and an entries field's chosen entries are dragged into order by their handle (or with the keyboard: focus the handle, space, arrows, space).
+- **Comments** (when the collection takes comments and the person has `cms.comments.view`): the counts by status and the latest five, with **Approve**, **Spam** and **Reply** for those with `cms.comments.moderate`, and a link to the [comments page](comments.md) showing only this entry's (`?entry=`).
+- The revisions and comments load just after the page shows (Inertia's deferred props), and a terms field's terms load when it shows (`cms/term-picker`), so a large entry opens fast.
+
+**Reordering** in code: `ReorderEntries::handle($collection, $ids, $parentId)` puts those entries (of an ordered collection, and all under `$parentId` in a hierarchical one; null is the top level) in the order given. They take the places they held among the collection's entries, so reordering one page of the list leaves the others where they are; the collection is numbered again in one transaction, and the change is logged (`reordered`) and clears the site's cache. Its route is `POST cms/entries/reorder` (`collection`, `ids`, `parent_id`), behind `cms.entries.update` for that collection. `MoveEntry` still moves one entry a place up or down.
 
 Media fields use the media library's picker, which needs `sunrice.media.view` (and `.upload` to upload from it).
 
@@ -65,6 +71,7 @@ Each language of an entry is a translation of its own: its own title, slug, draf
 
 - **Adding a language** (`cms.entries.create`, or `CreateTranslation`) makes a draft copied from the main translation, to translate and publish on its own.
 - **Removing one** (`cms.entries.delete`, or `DeleteTranslation`) deletes that translation and its revisions. The main translation can't be removed: trash the entry instead.
+- **Outdated** shows on a language (in the bar, in the list's language badges, and to AI tools as `outdated` and `outdated_languages`) when the main translation changed after it was translated: each translation keeps the main one's `version` from when it was created, saved or published (`main_version`), and `$translation->isOutdated()` compares. Saving or publishing the translation clears it.
 
 Fields are **translated** or **shared**. A field's *Per language* setting in the blueprint decides; left to the type, text fields (text, textarea, rich text, links, groups, repeaters, flexible) are translated and the others (numbers, toggles, selects, dates, media) shared. Shared fields belong to the main translation: other languages show its values, read-only, and templates get them from it (`$translation->values()`). A price changed in the main language is the price in every language. Other languages store only their translated fields (`CreateTranslation` and `SaveDraft` leave the shared ones out; `$translation->ownData()`), and `$translation->completeData()` gives the stored fields with the main translation's shared ones, live or in the draft, which site search text and revisions follow. Shared fields nested inside a translated group, repeater or block aren't shared: a translated field is translated whole.
 
