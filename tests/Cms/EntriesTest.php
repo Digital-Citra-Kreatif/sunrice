@@ -77,6 +77,23 @@ it('keeps slugs unique per collection and language, trashed entries included', f
     expect(app(CreateEntry::class)->handle($pages, ['title' => 'Hello world'])->draft_slug)->toBe('hello-world');
 });
 
+it('refuses a slug another save took between the check and the write', function () {
+    $mine = article(['slug' => 'hello']);
+    $theirs = article(['title' => 'Hello too', 'slug' => 'hello-2']);
+    // Their draft gets the slug and is published just as mine is written: the lock can't hold them off on SQLite.
+    $raced = false;
+    EntryTranslation::saving(function (EntryTranslation $saving) use ($theirs, &$raced): void {
+        if (! $raced && $saving->draft_slug === 'hello') {
+            $raced = true;
+            DB::table('sunrice_entry_translations')->where('id', $theirs->id)->update(['slug' => 'hello', 'status' => 'published', 'published_at' => now()]);
+        }
+    });
+
+    expect(fn () => app(PublishEntry::class)->handle($mine))->toThrow(ValidationException::class, 'This slug is already used')
+        ->and($mine->fresh()?->status)->toBe('draft')
+        ->and(Revision::query()->count())->toBe(0);
+});
+
 it('doesn\'t store fields the blueprint doesn\'t have', function () {
     expect(article(['data' => ['intro' => 'Hi', 'secret' => 'x']])->draft_data)->not->toHaveKey('secret');
 });

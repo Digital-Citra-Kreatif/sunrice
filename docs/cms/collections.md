@@ -84,7 +84,7 @@ app(UnpublishEntry::class)->handle($translation);
 
 - `CreateEntry` takes `title`, `slug`, `data` and `locale` (the main language when left out), makes a draft and records the signed-in user as the author. Fields left out get their defaults.
 - `SaveDraft` takes any of `title`, `slug`, `data` and `version`; fields left out of `data` keep their values. Pass the `version` the editor opened: if someone saved since, the save is refused instead of overwriting their work.
-- Both validate the title, the slug and the blueprint's fields, and ignore handles the blueprint doesn't have.
+- Both validate the title, the slug and the blueprint's fields, and ignore handles the blueprint doesn't have. The slug check and the write run in one transaction (`EntryInput::write()`), locking the translations the check looks at where the database can; a slug another save took in between is refused with a validation error on `slug`, never a database error.
 - `PublishEntry` checks the draft again (the blueprint may have changed), copies it to the live version and keeps a revision. The entry is live from its date: now when first published, the original date when published again, or the date you pass, which may be in the future.
 - `UnpublishEntry` takes it off the site; publishing again keeps its date.
 - Each fires an event (`EntryPublished`, `EntryUnpublished`, `EntryTrashed`, `EntryRestored`, `EntryDeleted`); one published for a later date is announced again when its time comes. See [Caching, events and scheduled publishing](caching.md).
