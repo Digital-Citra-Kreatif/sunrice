@@ -41,7 +41,9 @@ it('gives terms pages listing their live entries, with their fields and SEO', fu
     expect($this->news->fresh()?->url('en'))->toBe(url('/topics/news'));
     get('/sitemap.xml')->assertSee(url('/topics/news'));
     get('/topics/nothing')->assertNotFound();
+    config(['sunrice-cms.site.fallback' => false]);
     get('/id/topics/news')->assertNotFound(); // not translated
+    config(['sunrice-cms.site.fallback' => true]);
 });
 
 it('takes terms in the trash off the site', function () {

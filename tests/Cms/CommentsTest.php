@@ -199,7 +199,8 @@ it('emails moderators, and commenters about replies once, with a way to stop', f
 
     $unsubscribe = URL::signedRoute('sunrice.cms.comments.unsubscribe', ['comment' => $question->id]);
     get(str_replace('signature=', 'signature=x', $unsubscribe))->assertForbidden();
-    get($unsubscribe)->assertOk();
+    get($unsubscribe)->assertOk()->assertHeader('Content-Type', 'text/html; charset=utf-8')->assertHeader('X-Robots-Tag', 'noindex')
+        ->assertSee('<h1>You&#039;re unsubscribed</h1>', false)->assertSee('href="'.$this->post->url().'"', false);
     expect($question->fresh()?->notify_replies)->toBeFalse();
 
     // Guests can't sign anyone up when nothing is held.

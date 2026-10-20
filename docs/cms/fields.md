@@ -37,7 +37,7 @@ Each field is stored as JSON and read as a `Sunrice\Cms\Fields\Field`:
 | `toggle` | true or false | the boolean | `default` |
 | `select` | a value, or a list with `multiple` | the same | `options` (`[{value, label}]`), `multiple`, `default` |
 | `date` | `2026-10-19`, or `2026-10-19T14:30:00` with `time` | a Carbon | `time` |
-| `link` | `{url, label, new_tab}` | the same, or null | |
+| `link` | `{type: url, url, label, new_tab}` or `{type: entry, entry_id, label, new_tab}` | `{type, url, label, title, new_tab}`, or null | `collections` (entry links; none: any) |
 | `media` | a media id, or a list with `multiple` | a `Media` model, or a collection | `multiple`, `max`, `types` (image, video, audio, document) |
 | `group` | an object of its fields | an array | (its `fields`) |
 | `repeater` | a list of rows of its fields | `Items` of arrays | `min`, `max` (its `fields`) |
@@ -47,6 +47,14 @@ Each field is stored as JSON and read as a `Sunrice\Cms\Fields\Field`:
 | `entries` | an entry id, or a list with `multiple` | the linked entries' `EntryTranslation`s | `collections`, `multiple`, `max` |
 
 Rich text keeps only the formatting the editor produces: no scripts, styles or event handlers, and links only to web, mail and phone addresses or paths on the site. Links are checked the same way when saved and again when shown, so a link can never run script.
+
+A link goes to an address or to an entry. An entry link follows the entry: its `url` and `title` are the entry's in the page's language (its main language's page when it isn't translated), so a new slug or a translation needs no edit; the `url` is null while the entry isn't live (a preview gets its draft title, still without a URL). The linked entry must exist, outside the trash, in the chosen `collections`. Links saved before entry links existed (`{url, label, new_tab}`) are addresses.
+
+```blade
+@if ($cta = $values['cta'])
+    @if ($cta['url'])<a href="{{ $cta['url'] }}" @if ($cta['new_tab']) target="_blank" rel="noopener" @endif>{{ $cta['label'] ?? $cta['title'] ?? $cta['url'] }}</a>@endif
+@endif
+```
 
 Linked entries must exist in the chosen collections and not be in the trash. Templates get each one in the page's language (else its main one), published ones only (drafts too in a preview), in the order chosen, loaded once per request. In the editor, editors search entries by title.
 

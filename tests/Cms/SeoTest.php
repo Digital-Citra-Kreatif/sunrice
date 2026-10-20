@@ -341,3 +341,17 @@ it('adds alternate locales, article times and X card tags', function () {
     $this->blog->update(['dated' => false]);
     get('/blog/hello')->assertDontSee('article:published_time', false);
 });
+
+it('points a page shown in the main language at the main page, without hreflang links', function () {
+    seoPost($this->blog, 'Hello');
+
+    get('/id/blog/hello')->assertOk()
+        ->assertSee('<link rel="canonical" href="'.url('/blog/hello').'">', false)
+        ->assertDontSee('hreflang', false);
+    expect(Seo::forPage(Page::current())['canonical'])->toBe(url('/blog/hello'))
+        ->and(Seo::forPage(Page::current())['alternates'])->toBe([]);
+
+    // The main page doesn't list the language it isn't translated into, nor does the sitemap.
+    get('/blog/hello')->assertOk()->assertDontSee('hreflang="id"', false);
+    get('/sitemap.xml')->assertOk()->assertDontSee(url('/id/blog/hello'));
+});

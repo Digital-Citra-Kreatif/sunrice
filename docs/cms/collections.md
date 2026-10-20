@@ -12,7 +12,7 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `title` | The name editors see. |
 | `blueprint` | A blueprint's handle, or none. Changing it keeps entries' data: values of fields the new blueprint lacks stay stored, out of sight, and come back with the field. A blueprint can't be deleted while a collection uses it. |
 | `dated` | Entries show a date and list newest first. |
-| `route` | The entries' URL, like `/blog/{slug}`; none: no pages. See [the site](site.md). |
+| `route` | The entries' URL, like `/blog/{slug}` or `/projects/{project}/{slug}`; none: no pages. See [the site](site.md). |
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
 | `listing_route` | The URL of a page listing the entries, like `/blog`; none: no listing page. See [the site](site.md#listing-pages). |
 | `listing_blueprint`, `per_page` | The listing page's own fields (an intro…), edited from the entries list, and how many entries it shows per page (10). `SaveListing` saves the fields (and the listing page's own SEO, `$seo`) per language and, given the `version` the editor opened (`CollectionListing::$version`), refuses a save over someone else's newer one. |
@@ -41,10 +41,11 @@ Editors write entries under **Content → Entries**: a list per collection (see 
 | `cms.entries.delete` | Move entries to the trash, restore them and delete them for good, also several at once. |
 | `cms.entries.update-own`, `.delete-own` | The same, for entries they created, in collections they may view. |
 | `cms.entries.translate` | Save drafts of entries' other languages (not the main one), in collections they may view. |
+| `cms.entries.view-drafts` | While signed in, see on the site that a live page has unpublished changes, and open them (`?draft`), in collections they may view. See [draft viewing](site.md#draft-viewing). |
 
 Each of the first five also comes for one collection: `cms.entries.blog.publish` publishes only in Blog. They're created with the collection (and deleted with it), and the role editor shows them under "Entries: Blog". The same goes for terms (`cms.terms.{taxonomy}.manage`) and form submissions (`cms.submissions.{form}.view`, `.delete`). People see only the collections, taxonomies and forms they may work in. In code: `Sunrice\Cms\Support\Access::entries($user, 'publish', $collection, $entry, $locale)`.
 
-`sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
+`sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing, sees drafts on the site) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
 
 In the editor:
 

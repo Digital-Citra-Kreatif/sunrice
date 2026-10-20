@@ -4,7 +4,7 @@ The CMS serves entries as pages: each collection with a **URL** (`route`) shows 
 
 ## URLs
 
-Set a collection's URL under Structure → Collections: a path with `{slug}` once, like `/blog/{slug}`, or `/{slug}` for pages at the root. Collections without one have no pages of their own (their entries can still be shown by your templates).
+Set a collection's URL under Structure → Collections: a path with `{slug}` once, like `/blog/{slug}`, or `/{slug}` for pages at the root (and [related entries' slugs](#related-entries-in-the-url) if you like). Collections without one have no pages of their own (their entries can still be shown by your templates).
 
 - The main language has no prefix; others start with their code: `/blog/hello`, `/id/blog/halo`. The app's locale is set from the address as soon as the CMS's route takes over, so 404 pages, redirects and the search page are in that language too. The main language's own prefix (`/en/about`, from before the main language changed) redirects (301) to the plain address, query string kept; your app's own routes aren't touched.
 - The more specific pattern is tried first (more fixed characters): `/blog/{slug}` before `/{slug}`. The first pattern that matches decides: `/blog/about` looks for a blog entry "about", and is a 404 if there's none, even when a page "about" exists.
@@ -13,6 +13,25 @@ Set a collection's URL under Structure → Collections: a path with `{slug}` onc
 - The CMS's route is the app's **fallback**: your own routes (`routes/web.php`) always come first. Turn the site off with `sunrice-cms.site.enabled` (the admin and previews keep working); its middleware is `sunrice-cms.site.middleware` (`web`).
 
 `$translation->url()` gives an entry's address (null without a route).
+
+### Untranslated pages
+
+An entry that isn't live in a language other than the main one (no translation there, or one still a draft or scheduled) shows its main language's content at that language's address, with the main language's slug: `/id/blog/hello`. The same goes for term pages without a translation and for the homepage (`/id`). On such a page:
+
+- the app's locale and `$locale` are the address's language, so the layout's own words are in it; templates get `$fallback = true` (and `Cms::page()->fallback`), to say "Not translated yet" if you like;
+- `<x-sunrice-cms::seo />` gives the main language's page as the canonical URL and no `hreflang` links, and the main page's `hreflang` links leave the language out; the sitemap lists only the main page;
+- menus, entry links and `Cms::localeUrls()` link it in that language, so visitors stay in it; site search in that language doesn't find it (only what's translated).
+
+A translation's own slug works once it's live, and the main language's slug then no longer does in that language. Turn this off with `sunrice-cms.site.fallback` (`SUNRICE_FALLBACK=false`): untranslated pages are then 404s in other languages, and menus and links go to the main language's page.
+
+### Related entries in the URL
+
+A collection's URL may also hold the slug of an entry its entries link to: put the handle of a single-value **Entries** field of its blueprint in braces, `/projects/{project}/{slug}`. The URL is checked when the collection is saved (each `{field}` must be an Entries field without *Several entries*).
+
+- URLs are filled from the linked entry's slug in the same language (else its main language's slug); an entry that links to nothing live gets `-` there: `/projects/-/unit-1`.
+- A path matches only with the linked entry's current slug: `/projects/bridge/unit-1` is a 404 when unit 1 belongs to Tower.
+- When the linked entry's slug changes, or an entry links to another one, publishing adds redirects from the old URLs (`Site::moved()`), as for a slug of its own.
+- Listing pages, the sitemap, menus, links and structured data all use the filled URLs. The slugs are read once per request for every entry a field may link to (and kept in the [site cache](caching.md)), not once per entry.
 
 ## Templates
 
@@ -36,8 +55,37 @@ Views get:
 | `$collection` | the `Collection` |
 | `$locale` | the language; the app's locale is set to it too |
 | `$preview` | whether this is a preview of the draft |
+| `$fallback` | whether this is the main language's content in another language ([untranslated pages](#untranslated-pages)) |
 
 Rich text is cleaned when it's saved, so print it as is: `{!! $values['body'] !!}`. Print everything else escaped: `{{ $values['intro'] }}`.
+
+### Starter templates
+
+A working set of templates to start from, and edit freely:
+
+```bash
+php artisan vendor:publish --tag=sunrice-cms-templates
+```
+
+It copies them into `resources/views/cms/`, where the rules above pick them up, the error pages into `resources/views/errors/`, and a small stylesheet to `public/cms/site.css`:
+
+| File | Used for | Shows how to |
+| --- | --- | --- |
+| `cms/layout.blade.php` | every page (`@extends('cms.layout')`, `@section('content')`, `@push('head')`) | `<x-sunrice-cms::seo>`, site code, the `main` and `footer` menus, the language switcher, a footer (the `footer` global's `text`), `@bodyClass`, a skip link |
+| `cms/entry.blade.php` | any entry | the title, date and fields; a note on [untranslated pages](#untranslated-pages); comments |
+| `cms/listing.blade.php` | listing pages | the listing's fields, cards, pagination |
+| `cms/term.blade.php` | term pages | the term's fields and its entries |
+| `cms/search.blade.php` | the search page | the search box, results |
+| `cms/partials/fields.blade.php` | the pages above | text, rich text, images, galleries, links and flexible blocks, by kind |
+| `cms/partials/blocks.blade.php`, `block.blade.php` | flexible blocks | `cms/blocks/{fieldset}.blade.php` per kind of block when you make one (it gets `$block`), else the block's fields |
+| `cms/partials/card.blade.php` | lists of entries | title, date, and an `image` and `excerpt` field when there are |
+| `cms/partials/pagination.blade.php` | lists of entries | previous and next links |
+| `cms/partials/language-switcher.blade.php` | the layout | `cms_locale_urls()`, with `hreflang` and `lang` |
+| `cms/partials/menu.blade.php` | the layout | a menu with its sub-menus, `aria-current` on the page shown |
+| `errors/404.blade.php`, `errors/500.blade.php` | error pages | the 404 in the layout with a search box; the 500 on its own (whatever failed would fail again in the layout) |
+| `public/cms/site.css` | all of the above | plain CSS with light and dark colours; replace it with your own build and change the `<link>` in the layout |
+
+Every template works on a fresh install: missing menus, globals and fields render nothing. Layouts and partials read the page from `cms_page()`, not from `$entry` or `$term`: Blade hands a page's variables to its layout, so after a listing's `@foreach` those would be its last card. Words are wrapped in `__()`, so a `lang/{locale}.json` translates them.
 
 ## SEO
 
@@ -111,8 +159,29 @@ Code there runs in every visitor's browser, so give the permission only to peopl
 ```
 
 - `Cms::bodyClass($extra)`: what the page is, for CSS and scripts. Entries: `page-entry collection-{handle} entry-{id} entry-{slug}`, with `home`, `has-parent parent-{id}` and `is-preview` when they apply; listing pages: `page-listing collection-{handle}`; term pages: `page-term taxonomy-{handle} term-{id} term-{slug}`; pages past the first: `paged paged-{n}`; always `template-{view} lang-{locale}`, and `logged-in` for people signed in to the panel. On your app's own pages: `lang-{locale}` and your extras.
-- `Cms::localeUrls()`: the page shown in each language it's live in, in the order of `sunrice-cms.locales`, for a language switcher (none on your app's own pages).
-- `Cms::page()`: the page shown (`Sunrice\Cms\Site\Page`: `type`, `locale`, `view`, `entry`, `collection`, `term`, `preview`, `home`, `pageNumber`), or null.
+- `Cms::localeUrls()`: the page shown in each language it's live in (and, with the [main-language fallback](#untranslated-pages), the others), in the order of `sunrice-cms.locales`, for a language switcher (none on your app's own pages).
+- `Cms::page()`: the page shown (`Sunrice\Cms\Site\Page`: `type`, `locale`, `view`, `entry`, `collection`, `term`, `preview`, `home`, `pageNumber`, `fallback`), or null.
+
+`@bodyClass` prints the whole attribute: `<body @bodyClass>` or `<body @bodyClass('dark')>` gives `<body class="page-entry … dark">`.
+
+The same as functions, for templates that prefer them (each defined only if the app hasn't defined it first): `cms_entries(...$collections)`, `cms_menu($handle, $locale = null)`, `cms_global($handle, $locale = null)`, `cms_locale_urls()`, `cms_body_class($extra = [])` and `cms_page()`.
+
+### Hooks
+
+In a service provider's `boot()`, change what every page of the CMS does (entries, listing, term and search pages):
+
+```php
+use Sunrice\Cms\Content as Cms;
+use Sunrice\Cms\Site\Page;
+
+// The view: return another one's name, or null to keep $page->view (what the rules above chose, or an earlier hook).
+Cms::resolveTemplateUsing(fn (Page $page): ?string => $page->entry?->entry->parent_id !== null ? 'cms.child-page' : null);
+
+// More body classes (Cms::bodyClass(), @bodyClass), after the CMS's own.
+Cms::bodyClassUsing(fn (Page $page): array => $page->collection?->dated ? ['has-date'] : []);
+```
+
+Hooks run in the order they were registered, on every request; keep them cheap. How long the page cache keeps a page has its own hook, [`PageCache::lifetimeUsing()`](caching.md).
 
 ## Redirects
 
@@ -377,3 +446,7 @@ Laravel's own lines (`pagination`, `validation`, `auth`, `passwords`, and the pa
 ## Previews
 
 The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex` and `Cache-Control: no-store, private`, so no cache keeps a draft. Save first to see changes.
+
+### Drafts on the site
+
+Signed-in panel users with `cms.entries.view-drafts` (and view access to the collection; the author and editor roles have it) see a small banner on a live page whose entry has a newer draft, with a **View draft** link. `?draft` renders the draft the way a preview does: the view gets `$draft = true`, `Cms::page()->draft` is set, the body class gets `is-draft`, and the response is `noindex` and `Cache-Control: no-store, private`, never kept by the page cache. The banner is `sunrice-cms::draft-banner`, inserted right after `<body>`, so it works with any template.
