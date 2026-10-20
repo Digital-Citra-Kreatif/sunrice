@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, History, Search, Trash2, X } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { DatePicker } from '@/components/app/date-picker';
 import { PageHeader } from '@/components/app/page-header';
 import { useConfirm } from '@/components/resources/confirm';
 import type { FieldInfo } from '@/components/resources/types';
@@ -119,8 +120,10 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                         {actions.map((action) => <SelectItem key={action} value={action}>{action}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                <Input type="date" aria-label="From" className="w-40" value={query.from ?? ''} onChange={(e) => visit({ from: e.target.value || null })} />
-                <Input type="date" aria-label="To" className="w-40" value={query.to ?? ''} onChange={(e) => visit({ to: e.target.value || null })} />
+                <div className="flex items-center gap-2">
+                    <DatePicker className="w-36" placeholder="From" value={query.from} onChange={(from) => visit({ from })} />
+                    <DatePicker className="w-36" placeholder="To" value={query.to} onChange={(to) => visit({ to })} />
+                </div>
                 {(query.subject || query.user) && (
                     <Button variant="secondary" size="sm" onClick={() => visit({ subject: null, user: null })}>
                         {query.subject ? 'One item\'s history' : 'One person\'s activity'}<X />
@@ -150,7 +153,7 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                                         <button type="button" className="text-left hover:underline" onClick={() => visit({ user: row.userId })}>{row.user}</button>
                                     ) : <span>{row.user ?? (row.source === 'system' ? 'System' : 'Someone not signed in')}</span>}
                                     <div className="mt-0.5 flex flex-wrap gap-1">
-                                        {row.source !== 'admin' && <Badge variant={row.source === 'security' ? 'destructive' : 'secondary'}>{SOURCE_LABELS[row.source] ?? row.source}{row.via ? ` · ${row.via}` : ''}</Badge>}
+                                        {row.source !== 'admin' && <Badge variant={row.source === 'security' ? 'warning' : 'secondary'}>{SOURCE_LABELS[row.source] ?? row.source}{row.via ? ` · ${row.via}` : ''}</Badge>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="align-top">
@@ -178,7 +181,7 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
             {rows.total > (perPageOptions[0] ?? 25) && (
                 <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-muted-foreground">
                     <Select value={String(query.perPage)} onValueChange={(value) => visit({ perPage: Number(value) })}>
-                        <SelectTrigger aria-label="Lines per page" className="h-8 w-32"><SelectValue /></SelectTrigger>
+                        <SelectTrigger aria-label="Lines per page" className="h-8 w-auto"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             {perPageOptions.map((n) => <SelectItem key={n} value={String(n)}>{n} per page</SelectItem>)}
                         </SelectContent>

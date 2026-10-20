@@ -80,7 +80,8 @@ export default function ResourceForm({ resource, record, sections, values, can, 
     return (
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
             {page}
-            <InfoCards cards={aside} className="xl:sticky xl:top-24 xl:w-80 xl:shrink-0" />
+            {/* xl:mt-16: level with the first card, below the page header (h-10 + gap-6). */}
+            <InfoCards cards={aside} className="xl:sticky xl:top-24 xl:mt-16 xl:w-80 xl:shrink-0" />
         </div>
     );
 }
