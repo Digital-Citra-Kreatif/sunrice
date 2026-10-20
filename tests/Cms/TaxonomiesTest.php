@@ -163,7 +163,12 @@ it('edits taxonomies and their terms in the admin', function () {
         ->component('Cms/Terms/Index', shouldExist: false)
         ->where('terms.0.title', 'Headlines')
         ->where('terms.1.title', 'Local')
-        ->where('terms.1.depth', 1));
+        ->where('terms.1.depth', 1)
+        ->where('terms.0.entries', 0)
+        ->has('terms.0.createdAt')
+        ->where('taxonomy.collections', [])
+        // Settings only for those who may change the taxonomy.
+        ->where('taxonomy.settings', null));
 
     // To the trash with the term under it, back, and deleted for good (its child moves up).
     delete("/admin/cms/terms/{$news->id}")->assertSessionHasNoErrors();
@@ -175,4 +180,22 @@ it('edits taxonomies and their terms in the admin', function () {
     post('/admin/cms/terms/'.Term::onlyTrashed()->where('id', '!=', $news->id)->value('id').'/restore');
     delete("/admin/cms/terms/{$news->id}/force")->assertSessionHasNoErrors();
     expect(Term::query()->count())->toBe(1)->and(Term::query()->value('parent_id'))->toBeNull();
+});
+
+it('lists each term with its entry count, and the taxonomy\'s collections and settings', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog']);
+    $this->tags->collections()->attach($blog);
+    $laravel = term($this->tags, 'Laravel');
+    term($this->tags, 'PHP');
+    $post = app(CreateEntry::class)->handle($blog, ['title' => 'Hello']);
+    $post->entry->terms()->attach($laravel);
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage', 'cms.taxonomies.update'));
+    get('/admin/cms/taxonomies/tags/terms')->assertInertia(fn (Assert $page) => $page
+        ->where('terms.0.title', 'Laravel')
+        ->where('terms.0.entries', 1)
+        ->where('terms.1.entries', 0)
+        ->where('taxonomy.collections', [['title' => 'Blog', 'url' => url('/admin/cms/collections/blog/entries')]])
+        ->where('taxonomy.settings', url("/admin/cms/taxonomies/{$this->tags->id}/edit")));
 });
