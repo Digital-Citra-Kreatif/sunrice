@@ -85,6 +85,8 @@ $schema->references($data);                                  // media it uses, a
 
 `rules()` takes the input because a flexible field's rules depend on which blocks were sent.
 
+A `HydrationContext` remembers the media, entries and terms it loads, so hydrating many values with one context costs one query per kind: `$context->preload($schema->references($data))` loads everything a set of data points at up front. `Cms::entries()` does this for its whole result, and `$translation->hydrateWith($context)` makes `values()` use a context when given none.
+
 ## Your own field types
 
 Register field types on the CMS plugin in your panel provider:

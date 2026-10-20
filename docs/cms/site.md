@@ -157,6 +157,8 @@ Cms::entries('blog')->whereEntry('related', $entry)->get();                     
 
 Field filters read the main language's published values (shared fields, like entries and terms, live there).
 
+A result's entries share one `HydrationContext`: whatever their fields point at (media, entries, terms) is loaded up front, one query per kind, so `$post->values()` in a loop costs no queries of its own.
+
 ### Components
 
 For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice-cms::terms>` run the query and leave the markup to you, as `$component->entries` and `$component->terms`:
