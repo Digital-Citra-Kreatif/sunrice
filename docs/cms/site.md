@@ -177,7 +177,7 @@ A result's entries share one `HydrationContext`: whatever their fields point at 
 
 ### Components
 
-For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice-cms::terms>` run the query and leave the markup to you, as `$component->entries` and `$component->terms`:
+For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice-cms::terms>` run the query and leave the markup to you, as `$component->entries` and `$component->terms`. Every component and its attributes are listed below.
 
 ```blade
 <x-sunrice-cms::entries collection="blog" :limit="3" :term="$news" :except="$entry" order="-date">
@@ -232,7 +232,23 @@ See [SEO](#seo): `entry` with `preview`, `term`, `collection` (a `Collection` or
 
 #### `<x-sunrice-cms::search>`
 
-See [Search](#search): `results`, `collection`, `per-page`, `name` (the query string's name, `q`) and `page-name` (`page`).
+See [Search](#search): `results`, `collection`, `per-page`, `name` (the query string's name, `q`) and `page-name` (`page`). In the slot: `$component->action`, `->name`, `->query`, `->results`.
+
+#### `<x-sunrice-cms::entry-filter>`
+
+See [Filtering entries](#filtering-entries): `collection`, `filters`, `sorts`, `per-page`, `page-name`, `sort-name`, `where`, `terms`.
+
+#### `<x-sunrice-cms::form>`
+
+See [Forms](forms.md#on-the-site): `handle`, `submit`, `replace`, other attributes on the `<form>`; empty, it prints the fields, with a slot the markup is yours (`$component->old()`, `->error()`, `->success()`, `->captcha()`).
+
+#### `<x-sunrice-cms::comments>`
+
+See [Comments](comments.md#on-the-site): `entry` (an `Entry` or `EntryTranslation`).
+
+#### `<x-sunrice-cms::code>`
+
+See [Site code](#site-code): `place` (`head`, `body-start`, `body-end`).
 
 ### Filtering entries
 
