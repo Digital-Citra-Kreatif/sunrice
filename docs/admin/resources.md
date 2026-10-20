@@ -138,3 +138,13 @@ Edit and delete are built in. Add your own, per row or for the selected rows:
 ```
 
 `->visible(fn (Product $p) => ! $p->isLive())` offers a row action only for some records (and refuses it for the others). `->ability()` is the resource ability the action needs (`update` by default), checked for each record. A handler returns the message to show, or throws `ActionFailed` with one to show as an error.
+
+An action can ask for something in its dialog with `->form(Field ...)`: the fields (a `Select`, a `TextInput` …) are shown under the question, validated with their rules, and given to the handler as its second argument. The dialog stays open, showing the errors, until the action is accepted:
+
+```php
+Action::make('reject')->ability('update')
+    ->form(Select::make('reason')->options(['stock' => 'Out of stock', 'fraud' => 'Suspected fraud'])->required())
+    ->handle(fn (Order $order, array $input) => $order->reject($input['reason'])),
+```
+
+A row action with the key `delete` replaces the built-in Delete in the row's menu (the Users screen does this to ask what happens to the user's content). Deleting itself, from the row, the edit page or in bulk, goes through the resource's `deleteRecord($record)`: override it to delete through an action of your own, or throw `ActionFailed` to refuse with a message (the Roles screen refuses while users still have the role).

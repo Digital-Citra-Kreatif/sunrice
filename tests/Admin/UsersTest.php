@@ -8,11 +8,16 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
+use Sunrice\Admin\Actions\Users\DeleteUser;
+use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Locks\KeptEdit;
+use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Permissions\Permission as PanelPermission;
 use Sunrice\Admin\Users\PermissionRank;
 use Sunrice\Admin\Users\UserResource;
+use Sunrice\Tests\Admin\Fixtures\TestPlugin;
 use Workbench\App\Models\User;
 
 use function Pest\Laravel\actingAs;
@@ -135,31 +140,41 @@ it('lists users with their roles, filtered by role, without a query per row', fu
     expect($count())->toBe($few);
 });
 
-it('lets users manage only users whose permissions they have', function () {
+it('lets users manage only users strictly below them, and edit their own account', function () {
+    // Another manager with the same access: side by side, not below.
+    $peer = person('Peer', 'manager');
     actingAs($this->manager);
 
     get('/admin/users')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->mapWithKeys(fn ($row) => [$row['title'] => $row['can']])->all() === [
         'Boss' => ['update' => false, 'delete' => false],
         'Editor' => ['update' => true, 'delete' => true],
         'Manager' => ['update' => true, 'delete' => false],
+        'Peer' => ['update' => false, 'delete' => false],
         'Super' => ['update' => false, 'delete' => false],
     ]));
 
-    foreach ([$this->super, $this->boss] as $other) {
+    foreach ([$this->super, $this->boss, $peer] as $other) {
         get("/admin/users/{$other->id}/edit")->assertForbidden();
         put("/admin/users/{$other->id}", ['name' => 'x', 'email' => 'x@example.com'])->assertForbidden();
         delete("/admin/users/{$other->id}")->assertForbidden();
     }
     post('/admin/users/bulk/delete', ['ids' => [$this->editor->id, $this->boss->id]])->assertForbidden();
-    expect(User::query()->count())->toBe(4);
+    expect(User::query()->count())->toBe(5);
 
-    // Only roles within their own permissions are offered or accepted.
-    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'roles')['options'])->pluck('value')->all())->toBe(['editor', 'manager']));
-    put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => ['boss']])->assertSessionHasErrors('roles.0');
-    put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => ['super-admin']])->assertSessionHasErrors('roles.0');
+    // Only roles strictly below their own access are offered or accepted: not their own role.
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'roles')['options'])->pluck('value')->all())->toBe(['editor']));
+    foreach (['boss', 'manager', 'super-admin'] as $role) {
+        put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => [$role]])->assertSessionHasErrors('roles.0');
+    }
     post('/admin/users', ['name' => 'New', 'email' => 'new@example.com', 'password' => 'a-long-password', 'roles' => ['super-admin']])->assertSessionHasErrors('roles.0');
-    put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => ['manager']])->assertSessionHasNoErrors();
-    expect($this->editor->fresh()->getRoleNames()->all())->toBe(['manager']);
+
+    // Roles each below them, but together as much as they have: refused too.
+    Role::findOrCreate('people', 'web')->givePermissionTo([Panel::ACCESS, 'sunrice.users.view', 'sunrice.users.create', 'sunrice.users.update', 'sunrice.users.delete']);
+    Role::findOrCreate('roles', 'web')->givePermissionTo([Panel::ACCESS, 'sunrice.roles.view', 'sunrice.roles.create', 'sunrice.roles.update', 'sunrice.roles.delete']);
+    put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => ['people', 'roles']])->assertSessionHasErrors('roles');
+    expect($this->editor->fresh()->getRoleNames()->all())->toBe(['editor']);
+    put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => ['people']])->assertSessionHasNoErrors();
+    expect($this->editor->fresh()->getRoleNames()->all())->toBe(['people']);
 
     delete("/admin/users/{$this->editor->id}")->assertRedirect();
     expect(User::query()->whereKey($this->editor->id)->exists())->toBeFalse();
@@ -182,7 +197,7 @@ it('edits roles and their permissions, within the editor\'s own', function () {
     get('/admin/roles')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->mapWithKeys(fn ($row) => [$row['title'] => [$row['can']['update'], $row['cells']['permissions_count']]])->all() === [
         'boss' => [false, 10],
         'editor' => [true, 2],
-        'manager' => [true, 9],
+        'manager' => [false, 9],
         'super-admin' => [false, 0],
     ]));
 
@@ -193,11 +208,15 @@ it('edits roles and their permissions, within the editor\'s own', function () {
     $helper = Role::findByName('helper', 'web');
     expect($helper->permissions->pluck('name')->sort()->values()->all())->toBe([Panel::ACCESS, 'sunrice.users.view']);
 
-    // Permissions they don't have themselves are refused, the app's own too.
+    // Permissions they don't have themselves are refused, the app's own too; so is a role as powerful as they are.
     put("/admin/roles/{$helper->id}", ['name' => 'helper', 'permissions' => ['reports.export']])->assertSessionHasErrors('permissions.0');
+    put("/admin/roles/{$helper->id}", ['name' => 'helper', 'permissions' => MANAGES_USERS])->assertSessionHasErrors('permissions');
+    post('/admin/roles', ['name' => 'twin', 'permissions' => MANAGES_USERS])->assertSessionHasErrors('permissions');
+    expect($helper->fresh()->permissions->count())->toBe(2)
+        ->and(Role::query()->where('name', 'twin')->exists())->toBeFalse();
     put("/admin/roles/{$helper->id}", ['name' => 'manager', 'permissions' => []])->assertSessionHasErrors('name');
 
-    foreach ([$this->bossRole, Role::findByName('super-admin', 'web')] as $role) {
+    foreach ([$this->bossRole, $this->managerRole, Role::findByName('super-admin', 'web')] as $role) {
         get("/admin/roles/{$role->id}/edit")->assertForbidden();
         delete("/admin/roles/{$role->id}")->assertForbidden();
     }
@@ -213,19 +232,86 @@ it('keeps permissions the form doesn\'t offer, and never edits the super admin r
     get("/admin/roles/{$super->id}/edit")->assertForbidden();
     delete("/admin/roles/{$super->id}")->assertForbidden();
 
-    delete("/admin/roles/{$this->editorRole->id}")->assertRedirect();
-    expect($this->editor->fresh()->getRoleNames()->all())->toBe([]);
+    // A role still given to someone can't be deleted, one by one or in bulk.
+    delete("/admin/roles/{$this->editorRole->id}")->assertRedirect()->assertSessionHas('error', 'The role "editor" is still given to 1 user. Take it away from them first.');
+    post('/admin/roles/bulk/delete', ['ids' => [$this->editorRole->id]])->assertSessionHas('error');
+    expect($this->editorRole->fresh())->not->toBeNull()
+        ->and($this->editor->fresh()->getRoleNames()->all())->toBe(['editor']);
+
+    $this->editor->syncRoles([]);
+    delete("/admin/roles/{$this->editorRole->id}")->assertRedirect()->assertSessionHas('success');
+    expect($this->editorRole->fresh())->toBeNull();
 });
 
-it('ranks users by their permissions', function () {
+it('ranks users by their permissions, strictly', function () {
     $rank = app(PermissionRank::class);
+    $peer = person('Peer', 'manager');
 
     expect($rank->canManageUser($this->super, $this->boss))->toBeTrue()
         ->and($rank->canManageUser($this->boss, $this->manager))->toBeTrue()
         ->and($rank->canManageUser($this->manager, $this->boss))->toBeFalse()
+        ->and($rank->canManageUser($this->manager, $peer))->toBeFalse()
         ->and($rank->canManageUser($this->boss, $this->super))->toBeFalse()
         ->and($rank->canManageRole($this->boss, $this->managerRole))->toBeTrue()
+        ->and($rank->canManageRole($this->manager, $this->managerRole))->toBeFalse()
         ->and($rank->canManageRole($this->manager, $this->bossRole))->toBeFalse()
         ->and($rank->canGrantPermissions($this->manager, ['reports.export']))->toBeFalse()
+        ->and($rank->canGrantPermissions($this->manager, MANAGES_USERS))->toBeTrue()
+        ->and($rank->isStrictlyBelow($this->manager, MANAGES_USERS))->toBeFalse()
+        ->and($rank->isStrictlyBelow($this->manager, [Panel::ACCESS]))->toBeTrue()
+        ->and($rank->isStrictlyBelow($this->super, [...MANAGES_USERS, 'reports.export']))->toBeTrue()
         ->and($rank->permissionsOf($this->editor))->toEqualCanonicalizing([Panel::ACCESS, 'sunrice.users.view']);
+});
+
+it('deletes a user and gives their content to someone else, keeps it or deletes it', function () {
+    actingAs($this->super);
+    $uploads = fn (User $user) => Media::query()->where('uploaded_by', (string) $user->id)->count();
+    $photo = fn (User $user) => Media::query()->create(['disk' => 'public', 'path' => uniqid().'.jpg', 'filename' => 'x.jpg', 'mime_type' => 'image/jpeg', 'size' => 1, 'sizes' => [], 'version' => 1, 'uploaded_by' => (string) $user->id]);
+    $photo($this->editor);
+    $photo($this->editor);
+    $photo($this->manager);
+    KeptEdit::query()->create(['type' => 'shop.product', 'item_id' => '1', 'locale' => '', 'user_id' => (string) $this->editor->id, 'content' => []]);
+
+    // The row's Delete replaces the built-in one and asks what to do.
+    get('/admin/users')->assertInertia(fn (Assert $page) => $page
+        ->where('rowActions', fn ($actions) => collect($actions)->firstWhere('key', 'delete')['fields'][0]['name'] === 'content'
+            && collect($actions)->firstWhere('key', 'delete')['fields'][0]['default'] === 'keep'
+            && collect(collect($actions)->firstWhere('key', 'delete')['fields'][1]['options'])->pluck('label')->contains('Boss'))
+        ->where('rows.data', fn ($rows) => collect($rows)->every(fn ($row) => $row['title'] === 'Super' ? ! in_array('delete', $row['actions'], true) : in_array('delete', $row['actions'], true))));
+
+    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'nope'])->assertSessionHasErrors('content');
+    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign'])->assertSessionHas('error', 'Choose another user to give their content to.');
+    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign', 'heir' => $this->editor->id])->assertSessionHas('error');
+    expect($this->editor->fresh())->not->toBeNull();
+
+    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign', 'heir' => $this->boss->id])
+        ->assertSessionHas('success', 'Editor deleted. Their 2 uploads went to Boss.');
+    expect($this->editor->fresh())->toBeNull()
+        ->and($uploads($this->boss))->toBe(2)
+        ->and(KeptEdit::query()->count())->toBe(0)
+        ->and(Activity::query()->where('action', 'deleted')->where('subject_type', 'users')->count())->toBe(1);
+
+    post("/admin/users/{$this->manager->id}/actions/delete", ['content' => 'delete'])->assertSessionHas('success', 'Manager deleted. Their 1 upload got deleted, apart from uploads, which stay without an uploader.');
+    expect(Media::query()->whereNull('uploaded_by')->count())->toBe(1);
+
+    // The edit page's and bulk delete keep the content without an owner.
+    $photo($this->boss);
+    delete("/admin/users/{$this->boss->id}")->assertRedirect('/admin/users');
+    expect($this->boss->fresh())->toBeNull()
+        ->and(Media::query()->whereNull('uploaded_by')->count())->toBe(4);
+    post("/admin/users/{$this->super->id}/actions/delete", ['content' => 'keep'])->assertForbidden();
+
+    expect(fn () => app(DeleteUser::class)->handle($this->super, 'shred'))->toThrow(InvalidArgumentException::class);
+});
+
+it('lets plugins register what users own, under their own id', function () {
+    $panel = Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->userContent('shop.orders', 'orders', fn () => 3, fn () => null)));
+    $panel->boot();
+    expect(array_keys($panel->getUserContent()))->toBe(['media', 'shop.orders'])
+        ->and(app(DeleteUser::class)->labels())->toBe(['uploads']);
+
+    expect(fn () => Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->userContent('orders', 'orders', fn () => 0, fn () => null)))->boot())
+        ->toThrow(PanelMisconfigured::class, 'start with its id');
+    expect(fn () => Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->userContent('shop.a', 'a', fn () => 0, fn () => null)->userContent('shop.a', 'a', fn () => 0, fn () => null)))->boot())
+        ->toThrow(PanelMisconfigured::class, 'twice');
 });

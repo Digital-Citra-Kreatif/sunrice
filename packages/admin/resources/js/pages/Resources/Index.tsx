@@ -73,7 +73,14 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
     };
 
     const runRowAction = (row: Row, action: ActionInfo) =>
-        confirm(action.confirm, () => router.post(`${base}/${row.id}/actions/${action.key}`, {}, { preserveScroll: true }), action.destructive);
+        confirm(action.confirm, (values) => action.fields.length === 0
+            ? router.post(`${base}/${row.id}/actions/${action.key}`, {}, { preserveScroll: true })
+            // With fields, the dialog stays open until the action is accepted.
+            : new Promise<boolean>((resolve) => router.post(`${base}/${row.id}/actions/${action.key}`, values, {
+                preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
+            })), action.destructive, action.fields);
+    // A row action keyed "delete" replaces the built-in Delete in the row's menu.
+    const customDelete = rowActions.some((action) => action.key === 'delete');
     const deleteRow = (row: Row) =>
         confirm(`Delete ${row.title}? This can't be undone.`, () => router.delete(`${base}/${row.id}`, { preserveScroll: true }), true);
     const runBulk = (action: ActionInfo) =>
@@ -204,7 +211,7 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
                                                             {action.label}
                                                         </DropdownMenuItem>
                                                     ))}
-                                                    {row.can.delete && (
+                                                    {row.can.delete && !customDelete && (
                                                         <>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem variant="destructive" onSelect={() => deleteRow(row)}>Delete</DropdownMenuItem>

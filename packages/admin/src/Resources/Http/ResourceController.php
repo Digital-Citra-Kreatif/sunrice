@@ -139,7 +139,11 @@ final class ResourceController
         $model = $this->find($resource, $record);
         $this->authorize($request, $resource, 'delete', $model);
 
-        $model->delete();
+        try {
+            $resource->class::deleteRecord($model);
+        } catch (ActionFailed $failed) {
+            return back()->with('error', $failed->getMessage());
+        }
         $this->activity->record('deleted', $resource->key(), $model, $resource->class::title($model));
 
         return redirect()->route("sunrice.admin.resources.{$resource->key()}.index")
@@ -154,9 +158,9 @@ final class ResourceController
         $this->authorize($request, $resource, $definition->getAbility(), $model);
         abort_unless($definition->isVisibleFor($model), 403);
 
-        return $this->run(function () use ($definition, $model, $resource): ?string {
-            $message = $definition->run($model);
-            $this->activity->record($definition->key, $resource->key(), $model, $resource->class::title($model));
+        return $this->run(function () use ($definition, $model, $resource, $request): ?string {
+            $message = $definition->run($model, $request->all());
+            $this->activity->record($definition->key === 'delete' ? 'deleted' : $definition->key, $resource->key(), $model, $resource->class::title($model));
 
             return $message;
         });
@@ -178,14 +182,18 @@ final class ResourceController
         }
 
         if ($definition === null) {
-            DB::transaction(fn () => $records->each(fn (Model $record) => $record->delete()));
+            try {
+                DB::transaction(fn () => $records->each(fn (Model $record) => $resource->class::deleteRecord($record)));
+            } catch (ActionFailed $failed) {
+                return back()->with('error', $failed->getMessage());
+            }
             $records->each(fn (Model $record) => $this->activity->record('deleted', $resource->key(), $record, $resource->class::title($record)));
 
             return back()->with('success', $records->count().' deleted.');
         }
 
-        return $this->run(function () use ($definition, $records, $resource): ?string {
-            $message = $definition->run($records);
+        return $this->run(function () use ($definition, $records, $resource, $request): ?string {
+            $message = $definition->run($records, $request->all());
             $records->each(fn (Model $record) => $this->activity->record($definition->key, $resource->key(), $record, $resource->class::title($record)));
 
             return $message;

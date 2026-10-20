@@ -80,3 +80,27 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 ## Shared page data
 
 `$panel->share($key, fn () => ...)` adds data every admin page receives. The closure runs per request, only when a page is rendered, so it can be expensive without slowing anything else.
+
+## What users own
+
+When a user is [deleted](users.md#deleting-a-user), whoever deletes them chooses what happens to what they own. Register each kind with a key (a plugin's start with its id), a label for the dialog, how to count a user's, and what to do with it: `$mode` is `reassign` (with `$heir`), `keep` or `delete`.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+
+$panel->userContent('shop.orders', 'orders',
+    fn (Model $user): int => Order::query()->where('user_id', $user->getKey())->count(),
+    function (Model $user, string $mode, ?Model $heir): void {
+        Order::query()->where('user_id', $user->getKey())->update(['user_id' => $heir?->getKey()]);
+    });
+```
+
+It runs inside the delete's transaction, before the user row goes. `delete` means whatever fits the kind: trash it, delete it, or keep it when it can't go.
+
+## Privileged permissions
+
+Some permissions are worth an [email alert](security.md#email-alerts) when someone gets them, directly or through a role. The panel's own are `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.connect` and `sunrice.activity.*`; a plugin adds names or patterns of its own (starting with its id):
+
+```php
+$panel->privilegedPermissions('shop.settings.*', 'shop.payouts.manage');
+```
