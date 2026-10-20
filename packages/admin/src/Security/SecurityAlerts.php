@@ -24,12 +24,13 @@ use Throwable;
  * `sunrice-admin.security.alerts`): an account locked after wrong
  * passwords, one address trying many accounts, a powerful account
  * signing in from a new address or after a long absence, someone gaining
- * power over users and roles, a dangerous upload, and bursts of exports
- * or deletes.
+ * a privileged permission (`$panel->privilegedPermissions()`), a
+ * dangerous upload, someone kept out of pages again and again, and
+ * bursts of exports or deletes.
  *
  * Each alert says what happened and what to do. The same alert (rule and
- * account) is sent once per `cooldown_minutes`, and each one sent is an
- * "alert sent" security event.
+ * account) is sent once per `cooldown_minutes`, each recipient's mail is
+ * queued, and each alert sent is an "alert sent" security event.
  *
  * Plugins raise alerts of their own with raise():
  *
@@ -43,14 +44,8 @@ use Throwable;
  */
 final class SecurityAlerts
 {
-    /** Permissions that give power over people and what they may do. */
-    public const PRIVILEGED_PERMISSIONS = [
-        'sunrice.users.create', 'sunrice.users.update', 'sunrice.users.delete',
-        'sunrice.roles.create', 'sunrice.roles.update', 'sunrice.roles.delete',
-    ];
-
-    /** Activity log actions that take things away. */
-    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed'];
+    /** Activity log actions that take things away (the `mass_deletes` rule). */
+    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed', 'unpublished'];
 
     public function __construct(private SecurityLog $log, private PermissionRank $rank, private Panel $panel) {}
 
@@ -92,7 +87,7 @@ final class SecurityAlerts
             if ($count >= $limit) {
                 $who = $line->user_name ?? $line->via ?? 'Someone';
                 $this->alert('mass-deletes', $actor, 'Many things deleted in a short time',
-                    "{$who} deleted or trashed {$count} things within 10 minutes (the last: {$line->subject_label}).",
+                    "{$who} deleted, trashed or unpublished {$count} things within 10 minutes (the last: {$line->subject_label}).",
                     'If this wasn\'t planned clean-up, the account may be in someone else\'s hands: lock it on the Users screen, then restore what you need from the trash or a backup.',
                     ['Who' => $who.($line->via !== null ? " (AI agent {$line->via})" : '')]);
             }
@@ -125,7 +120,7 @@ final class SecurityAlerts
                 break;
             case 'roles changed':
             case 'permissions changed':
-                $this->gainedPower($e, $note, $details);
+                $this->gainedPower($e, $details);
                 break;
             case 'upload blocked':
                 $key = $e->account?->getKey();
@@ -145,6 +140,9 @@ final class SecurityAlerts
                 break;
             case 'exported':
                 $this->exports($e, $details);
+                break;
+            case 'page refused':
+                $this->refused($e, $note, $details);
                 break;
             case 'two-factor turned off':
                 $this->alert('two-factor-off', 'two-factor', 'Two-factor login was turned off',
@@ -183,28 +181,33 @@ final class SecurityAlerts
         }
         if ($this->isPrivileged($e->account) && ! $earlier->contains(fn (Activity $line) => $line->ip_address === $e->ip)) {
             $this->alert('new-ip', (string) $e->label.'|'.$e->ip, 'A powerful account signed in from a new address',
-                "{$e->label}, who can manage users or roles, signed in from {$e->ip}, an address not used before.",
+                "{$e->label}, who has privileged permissions, signed in from {$e->ip}, an address not used before.",
                 'If this wasn\'t them (a new network or device), sign the account out everywhere and lock it on the Users screen.', $details);
         }
     }
 
-    /** @param array<string, string> $details */
-    private function gainedPower(SecurityEventRecorded $e, string $note, array $details): void
+    /**
+     * Someone got the super admin role, a privileged permission, or a
+     * role that has one; read from the event's `added` list.
+     *
+     * @param  array<string, string>  $details
+     */
+    private function gainedPower(SecurityEventRecorded $e, array $details): void
     {
-        if (! str_contains($note, 'added:')) {
+        $added = is_array($e->properties['added'] ?? null) ? array_values(array_filter($e->properties['added'], 'is_string')) : [];
+        if ($added === []) {
             return;
         }
-        $added = trim(explode(';', explode('added:', $note, 2)[1])[0]);
-        $names = array_map('trim', explode(',', $added));
-        $powerful = in_array(SyncPermissions::superAdminRole(), $names, true)
-            || array_intersect($names, self::PRIVILEGED_PERMISSIONS) !== []
+        $powerful = in_array(SyncPermissions::superAdminRole(), $added, true)
+            || array_filter($added, $this->panel->isPrivilegedPermission(...)) !== []
             || ($e->action === 'roles changed' && $e->account !== null && $this->isPrivileged($e->account));
         if (! $powerful) {
             return;
         }
-        $this->alert('gained-power', (string) $e->label.'|'.$added, $e->action === 'roles changed' ? 'Someone was given power over users or roles' : 'A role was given power over users or roles',
-            "{$e->label} now has: {$added}.",
-            'Whoever has this can give themselves or others any access. If nobody on your team meant to do this, undo it on the Users or Roles screen and check who did it in the activity log.', $details);
+        $list = implode(', ', $added);
+        $this->alert('gained-power', (string) $e->label.'|'.$list, $e->action === 'roles changed' ? 'Someone was given privileged access' : 'A role was given privileged access',
+            "{$e->label} now has: {$list}.",
+            'Whoever has this can change who may do what, or what the site runs. If nobody on your team meant to do this, undo it on the Users or Roles screen and check who did it in the activity log.', $details);
     }
 
     /** @param array<string, string> $details */
@@ -223,9 +226,25 @@ final class SecurityAlerts
         }
     }
 
+    /** @param array<string, string> $details */
+    private function refused(SecurityEventRecorded $e, string $note, array $details): void
+    {
+        $actor = $e->account?->getKey();
+        if (! is_scalar($actor)) {
+            return;
+        }
+        $count = Activity::query()->where('source', 'security')->where('action', 'page refused')
+            ->where('subject_id', (string) $actor)->where('created_at', '>=', now()->subMinutes(10))->count();
+        if ($count >= self::number('forbidden', 15)) {
+            $this->alert('forbidden', (string) $actor, 'Someone keeps opening pages they may not see',
+                "{$e->label} was refused {$count} admin pages within 10 minutes (the last: {$note}).",
+                'People rarely do this by accident. It may be someone exploring what the account can reach. Ask them, and check the security events.', $details);
+        }
+    }
+
     private function isPrivileged(Model $account): bool
     {
-        return $this->rank->isSuperAdmin($account) || array_intersect($this->rank->permissionsOf($account), self::PRIVILEGED_PERMISSIONS) !== [];
+        return $this->rank->isSuperAdmin($account) || array_filter($this->rank->permissionsOf($account), $this->panel->isPrivilegedPermission(...)) !== [];
     }
 
     /**
@@ -262,9 +281,10 @@ final class SecurityAlerts
 
         $mail = new SecurityAlert($headline, $what, $advice, [...$details, 'When' => now()->toDayDateTimeString()],
             $this->panel->getBrand(), route('sunrice.admin.activity.index', ['source' => 'security']));
+        // One mail per person, on the queue: sending mustn't slow the request down.
         foreach ($recipients as $email) {
             try {
-                Mail::to($email)->send(clone $mail);
+                Mail::to($email)->queue(clone $mail);
             } catch (Throwable $e) {
                 report($e);
             }

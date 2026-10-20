@@ -33,6 +33,9 @@ class KeptEdit extends Model
     /** Days they're kept. */
     public const KEEP_DAYS = 30;
 
+    /** How many one person may have for one item; older ones go. */
+    public const KEEP_PER_EDITOR = 5;
+
     protected $table = 'sunrice_kept_edits';
 
     protected $guarded = [];

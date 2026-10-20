@@ -14,6 +14,7 @@ use Sunrice\Admin\Http\Middleware\EnsureAccountActive;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Http\Middleware\HandleInertiaRequests;
 use Sunrice\Admin\Http\Middleware\PanelSecurityHeaders;
+use Sunrice\Admin\Http\Middleware\RecordRefusedPages;
 use Sunrice\Admin\Http\Middleware\RedirectIfAuthenticated;
 use Sunrice\Admin\Resources\Http\ResourceController;
 use Sunrice\Admin\Resources\RegisteredResource;
@@ -30,7 +31,7 @@ final class PanelRoutes
     /** @return list<string|class-string> */
     public static function middleware(Panel $panel): array
     {
-        return ['web', PanelSecurityHeaders::class, HandleInertiaRequests::class, ...$panel->getMiddleware()];
+        return ['web', PanelSecurityHeaders::class, HandleInertiaRequests::class, RecordRefusedPages::class, ...$panel->getMiddleware()];
     }
 
     /** Route names reachable without Panel::ACCESS: the guest pages and logout. */

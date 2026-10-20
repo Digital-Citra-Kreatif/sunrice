@@ -83,7 +83,16 @@ it('uploads into a folder, edits details and replaces the file', function () {
         ->assertRedirect()->assertSessionHasNoErrors();
     $media = Media::query()->sole();
     expect($media->folder_id)->toBe($folder->id)
+        ->and($media->title)->toBe('Logo')
         ->and($media->uploaded_by)->toBe((string) auth()->id());
+
+    // A title and alternative text may come with the file; empty ones mean none.
+    post('/admin/media', ['file' => UploadedFile::fake()->image('sun.jpg', 20, 20), 'title' => ' The sun ', 'alt' => 'A sun over the sea'])->assertSessionHasNoErrors();
+    expect(Media::query()->latest('id')->first())->title->toBe('The sun')->alt->toBe('A sun over the sea');
+    post('/admin/media', ['file' => UploadedFile::fake()->image('moon.jpg', 20, 20), 'title' => '', 'alt' => ''])->assertSessionHasNoErrors();
+    expect(Media::query()->latest('id')->first())->title->toBe('moon')->alt->toBeNull();
+    post('/admin/media', ['file' => UploadedFile::fake()->image('x.jpg', 20, 20), 'title' => str_repeat('x', 251)])->assertSessionHasErrors('title');
+    post('/admin/media', ['file' => UploadedFile::fake()->image('x.jpg', 20, 20), 'alt' => ['no']])->assertSessionHasErrors('alt');
 
     post('/admin/media', ['file' => UploadedFile::fake()->createWithContent('x.php', '<?php')])->assertSessionHasErrors('file');
     put("/admin/media/{$media->id}", ['title' => 'Logo'])->assertForbidden();

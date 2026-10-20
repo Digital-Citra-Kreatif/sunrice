@@ -67,6 +67,17 @@ it('takes over, tells the previous editor once, and keeps their changes', functi
     expect(KeptEdit::query()->count())->toBe(0);
 });
 
+it('keeps only the last few of one person\'s changes to an item', function () {
+    foreach (range(1, 7) as $i) {
+        lockAs($this->ana, 'tab-a', '/keep', ['content' => ['title' => "Mine {$i}"]])->assertOk();
+    }
+    lockAs($this->budi, 'tab-b', '/keep', ['content' => ['title' => 'His']])->assertOk();
+
+    expect(KeptEdit::query()->where('user_id', (string) $this->ana->id)->orderBy('id')->pluck('content')->map(fn ($c) => $c['title'])->all())
+        ->toBe(['Mine 3', 'Mine 4', 'Mine 5', 'Mine 6', 'Mine 7'])
+        ->and(KeptEdit::query()->where('user_id', (string) $this->budi->id)->count())->toBe(1);
+});
+
 it('checks the type and who may edit', function () {
     $viewer = adminUser(Panel::ACCESS);
     lockAs($viewer, 'tab-v')->assertForbidden();

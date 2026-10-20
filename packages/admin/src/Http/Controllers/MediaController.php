@@ -150,12 +150,26 @@ final class MediaController
     public function store(Request $request, UploadMedia $upload): RedirectResponse|JsonResponse
     {
         $user = $this->authorize($request, 'upload');
-        $request->validate(['file' => ['required', 'file'], 'folder_id' => ['nullable', 'integer', Rule::exists(MediaFolder::class, 'id')]]);
+        /** @var array{title?: string|null, alt?: string|null} $details */
+        $details = $request->validate([
+            'file' => ['required', 'file'],
+            'folder_id' => ['nullable', 'integer', Rule::exists(MediaFolder::class, 'id')],
+            // Optional, sent with the file: a title other than the file's name, and alternative text.
+            'title' => ['nullable', 'string', 'max:250'],
+            'alt' => ['nullable', 'string', 'max:250'],
+        ]);
         $file = $request->file('file');
         abort_unless($file instanceof UploadedFile, 422);
         $folder = $request->integer('folder_id') ?: null;
+        $title = trim($details['title'] ?? '');
+        $alt = trim($details['alt'] ?? '');
 
-        $media = $upload->handle($file, ['folder_id' => $folder, 'uploaded_by' => self::userId($request)]);
+        $media = $upload->handle($file, [
+            'folder_id' => $folder,
+            'title' => $title === '' ? null : $title,
+            'alt' => $alt === '' ? null : $alt,
+            'uploaded_by' => self::userId($request),
+        ]);
 
         // The media picker uploads with fetch() and wants the new media back.
         if ($request->expectsJson() && ! $request->hasHeader('X-Inertia')) {

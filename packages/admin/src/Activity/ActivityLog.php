@@ -41,8 +41,11 @@ final class ActivityLog
     /** @var array<string, Activity> this request's "created"/"updated" lines by subject, for merging */
     private array $written = [];
 
-    /** The request $written belongs to (the service may outlive one, e.g. in tests). */
-    private ?int $request = null;
+    /** The request $written belongs to (the service may outlive one: a queue worker, tests). */
+    private ?string $request = null;
+
+    /** Where a request keeps its id (set on first use: object ids are reused, this never is). */
+    public const REQUEST_ID = 'sunrice.request_id';
 
     /**
      * @param  Model|string|int|null  $subject  the model, or its id
@@ -62,8 +65,9 @@ final class ActivityLog
         $subjectId = is_scalar($subjectId) ? Str::limit((string) $subjectId, 64, '') : null;
 
         try {
-            if ($this->request !== spl_object_id(request())) {
-                $this->request = spl_object_id(request());
+            $requestId = self::requestId();
+            if ($this->request !== $requestId) {
+                $this->request = $requestId;
                 $this->written = [];
             }
             $key = "{$subjectType}:{$subjectId}";
@@ -155,6 +159,19 @@ final class ActivityLog
     public function enabled(): bool
     {
         return $this->paused === 0 && config('sunrice-admin.activity.enabled', true) !== false;
+    }
+
+    /** The current request's own id, given on first use. */
+    private static function requestId(): string
+    {
+        $request = request();
+        $id = $request->attributes->get(self::REQUEST_ID);
+        if (! is_string($id)) {
+            $id = (string) Str::uuid();
+            $request->attributes->set(self::REQUEST_ID, $id);
+        }
+
+        return $id;
     }
 
     /** @return array{0: string, 1: string|null}|null */

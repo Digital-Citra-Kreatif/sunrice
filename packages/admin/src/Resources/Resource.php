@@ -111,6 +111,17 @@ abstract class Resource
     }
 
     /**
+     * Deletes a record: the row's Delete, the edit page's and bulk
+     * delete, once authorized. Override it to delete through an action of
+     * your own, or throw `Sunrice\Admin\Resources\Tables\ActionFailed` to
+     * refuse with a message.
+     */
+    public static function deleteRecord(Model $record): void
+    {
+        $record->delete();
+    }
+
+    /**
      * A further check after the policy or permissions allowed `$ability`
      * ("view", "create", "update", "delete" or an action's ability): it can
      * only refuse. `$record` is null for the list, the create form and

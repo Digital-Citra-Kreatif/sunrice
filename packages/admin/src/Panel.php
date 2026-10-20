@@ -7,11 +7,13 @@ namespace Sunrice\Admin;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Resources\RegisteredResource;
@@ -20,6 +22,7 @@ use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Users\RoleResource;
+use Sunrice\Admin\Users\UserContent;
 use Sunrice\Admin\Users\UserResource;
 
 /**
@@ -102,6 +105,12 @@ final class Panel
 
     /** @var array<string, Closure(string, string, Authorizable): bool> */
     private array $lockables = [];
+
+    /** @var array<string, UserContent> keyed by its key */
+    private array $userContent = [];
+
+    /** @var list<string> permission names or patterns ("sunrice.users.*") that give power worth alerting about */
+    private array $privilegedPermissions = [];
 
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
@@ -470,6 +479,64 @@ final class Panel
         return $this;
     }
 
+    /**
+     * Something users own, so deleting a user (Sunrice\Admin\Actions\Users\DeleteUser)
+     * can give it to someone else, keep it without an owner or delete it:
+     * a key (a plugin's start with its id), a label for the dialog
+     * ("orders"), how to count a user's, and what to do with it. `$mode`
+     * is "reassign" (with `$heir`), "keep" or "delete".
+     *
+     *     $panel->userContent('shop.orders', 'orders',
+     *         fn (Model $user): int => Order::query()->where('user_id', $user->getKey())->count(),
+     *         fn (Model $user, string $mode, ?Model $heir) => Order::query()->where('user_id', $user->getKey())
+     *             ->update(['user_id' => $heir?->getKey()]));
+     *
+     * @param  Closure(Model): int  $count
+     * @param  Closure(Model, string, ?Model): void  $handle
+     */
+    public function userContent(string $key, string $label, Closure $count, Closure $handle): self
+    {
+        $this->assertRegistering();
+        if (preg_match('/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/', $key) !== 1) {
+            throw new PanelMisconfigured("The user content key \"{$key}\": use lowercase letters, numbers, dots and dashes.");
+        }
+        $owner = $this->registering?->id();
+        if ($owner !== null && ! str_starts_with($key, $owner.'.')) {
+            throw new PanelMisconfigured("The plugin \"{$owner}\" registered the user content \"{$key}\": a plugin's keys start with its id (\"{$owner}.…\").");
+        }
+        if (isset($this->userContent[$key])) {
+            throw new PanelMisconfigured("The user content \"{$key}\" is registered twice{$this->owner()}.");
+        }
+        $this->userContent[$key] = new UserContent($key, $label, $count, $handle);
+
+        return $this;
+    }
+
+    /**
+     * Permissions that give power worth an email alert when someone gets
+     * them (see Sunrice\Admin\Security\SecurityAlerts): names, or patterns
+     * with `*`. The panel's own are managing users, roles and settings,
+     * connecting AI agents and reading the activity log. A plugin's start
+     * with its id.
+     *
+     *     $panel->privilegedPermissions('shop.settings.*', 'shop.payouts.manage');
+     */
+    public function privilegedPermissions(string ...$names): self
+    {
+        $this->assertRegistering();
+        $owner = $this->registering?->id();
+        foreach ($names as $name) {
+            if ($owner !== null && ! str_starts_with($name, $owner.'.')) {
+                throw new PanelMisconfigured("The plugin \"{$owner}\" marked the permission \"{$name}\" as privileged: a plugin's permissions start with its id (\"{$owner}.…\").");
+            }
+            if (! in_array($name, $this->privilegedPermissions, true)) {
+                $this->privilegedPermissions[] = $name;
+            }
+        }
+
+        return $this;
+    }
+
     /** More instructions for AI agents: how to work with what you added. */
     public function aiInstructions(string $markdown): self
     {
@@ -547,7 +614,15 @@ final class Panel
                 Permission::make('sunrice.media.delete', 'Delete media', 'Media'),
             );
             $this->navigation(NavigationItem::make('media')->label('Media')->url('media')->icon('image')->sort(50)->permission('sunrice.media.view'));
+            // Deleting a user: their uploads move to the heir or stay without an uploader (other content may use them).
+            $this->userContent('media', 'uploads',
+                fn (Model $user): int => Media::query()->where('uploaded_by', self::id($user))->count(),
+                function (Model $user, string $mode, ?Model $heir): void {
+                    Media::withTrashed()->where('uploaded_by', self::id($user))->update(['uploaded_by' => $heir === null ? null : self::id($heir)]);
+                });
         }
+        // Getting one of these is an email alert (SecurityAlerts); plugins add theirs.
+        $this->privilegedPermissions('sunrice.users.*', 'sunrice.roles.*', 'sunrice.settings.*', 'sunrice.ai.connect', 'sunrice.activity.*');
         if ($this->userResource !== null) {
             $this->registerResource($this->userResource, self::CORE.'.users');
         }
@@ -646,6 +721,38 @@ final class Panel
     public function getLockables(): array
     {
         return $this->lockables;
+    }
+
+    /** @return array<string, UserContent> keyed by its key */
+    public function getUserContent(): array
+    {
+        return $this->userContent;
+    }
+
+    /** @return list<string> names or patterns */
+    public function getPrivilegedPermissions(): array
+    {
+        return $this->privilegedPermissions;
+    }
+
+    /** Whether getting this permission is worth an alert (see privilegedPermissions()). */
+    public function isPrivilegedPermission(string $name): bool
+    {
+        foreach ($this->privilegedPermissions as $pattern) {
+            if (Str::is($pattern, $name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** A user's key as it is stored in the panel's tables. */
+    private static function id(Model $user): string
+    {
+        $key = $user->getKey();
+
+        return is_scalar($key) ? (string) $key : '';
     }
 
     /** @return list<string> */

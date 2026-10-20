@@ -126,7 +126,7 @@ it('prints the site code, and alerts when it changes', function () {
 
     get('/blog/hello')->assertSee('<script src="https://stats.example.com/a.js"></script>', false)->assertSee('<div id="chat"></div>', false);
     expect(Activity::query()->where('action', 'site code changed')->sole()->properties['note'])->toBe('head, end of the body');
-    Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline === 'The site\'s code was changed' && $mail->hasTo('security@example.com'));
+    Mail::assertQueued(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline === 'The site\'s code was changed' && $mail->hasTo('security@example.com'));
     expect(app(CodeSettings::class)->at('body-start'))->toBe('')->and(app(CodeSettings::class)->at('nowhere'))->toBe('');
 
     // Saving it unchanged is no event.

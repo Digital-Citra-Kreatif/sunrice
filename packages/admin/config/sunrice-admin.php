@@ -145,8 +145,11 @@ return [
             'dormant_days' => 90,
             // CSV exports by one person in an hour.
             'exports' => 5,
-            // Deletes and trashes by one person (or AI agent) in 10 minutes.
+            // Deletes, trashes and unpublishes by one person (or AI agent) in 10 minutes.
             'mass_deletes' => 20,
+            // Pages refused (403) to one signed-in account in 10 minutes; also
+            // how many "page refused" events are recorded per account in that time.
+            'forbidden' => 15,
         ],
     ],
 

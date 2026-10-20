@@ -172,7 +172,7 @@ it('records a token used from a new address, alerts, and lets admins revoke a us
     mcp($plain, 'tools/list', ip: '10.0.0.2');
 
     expect(Activity::query()->where('action', 'token used from new IP')->sole()->properties['note'])->toBe('"Claude" from 10.0.0.2 (before: 10.0.0.1)');
-    Mail::assertSent(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline === 'An AI access token was used from a new address');
+    Mail::assertQueued(SecurityAlert::class, fn (SecurityAlert $mail) => $mail->headline === 'An AI access token was used from a new address');
 
     actingAs($admin);
     post("/admin/users/{$this->rina->id}/actions/revoke-tokens")->assertSessionHas('success', '1 AI access token revoked.');

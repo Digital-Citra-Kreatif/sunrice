@@ -8,14 +8,18 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Traits\HasRoles;
 use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
+use Sunrice\Admin\Actions\Users\DeleteUser;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Password;
 use Sunrice\Admin\Resources\Forms\Section;
+use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Resources\Tables\Action;
@@ -30,8 +34,13 @@ use Sunrice\Admin\Security\SecurityLog;
  * The panel's Users screen: the users of the panel's guard, their
  * passwords and roles. Its permissions are "sunrice.users.view" …; on top
  * of them, PermissionRank decides whom each user may manage and which
- * roles they may give out. Nobody can delete their own account or change
- * their own roles here.
+ * roles they may give out. Everyone may edit their own name, email and
+ * password; nobody can delete their own account or change their own
+ * roles here.
+ *
+ * Deleting a user goes through DeleteUser: the row's Delete asks what
+ * happens to what they own; the edit page's and bulk delete keep it
+ * without an owner.
  *
  * Extend it to change the form or the list, and register yours with
  * `$panel->userResource(MyUserResource::class)`.
@@ -94,7 +103,7 @@ class UserResource extends Resource
                 Password::make('password')->required()->span(2)
                     ->help('When editing, leave it empty to keep the current password.'),
             ]),
-            Section::make('Roles')->description('What the user may do in the panel. You can give out roles whose permissions you have yourself.')->schema([
+            Section::make('Roles')->description('What the user may do in the panel. You can give out roles with less access than yours, and together they must leave the user with less than yours.')->schema([
                 static::rolesField(),
             ]),
         ]);
@@ -147,8 +156,64 @@ class UserResource extends Resource
 
                         return 'Account unlocked.';
                     }),
+                static::deleteAction(),
             ])
             ->defaultSort('name');
+    }
+
+    /** The row's Delete: it replaces the built-in one to ask what happens to what the user owns. */
+    protected static function deleteAction(): Action
+    {
+        $owned = app(DeleteUser::class)->labels();
+
+        return Action::make('delete')->label('Delete…')->ability('delete')->destructive()
+            ->confirm('Delete this user? This can\'t be undone.'.($owned === [] ? '' : ' Choose what happens to their '.self::list($owned).'.'))
+            ->form(
+                Select::make('content')->label('Their content')->required()->default(DeleteUser::KEEP)->options([
+                    DeleteUser::REASSIGN => 'Give it to another user',
+                    DeleteUser::KEEP => 'Keep it, without an owner',
+                    DeleteUser::DELETE => 'Delete it (entries and comments go to the trash; uploads stay)',
+                ]),
+                Select::make('heir')->label('Give it to')->options(static::heirs())
+                    ->help('Only when giving their content to another user.'),
+            )
+            ->handle(function (Model $user, array $input): string {
+                $heir = isset($input['heir']) && is_scalar($input['heir']) ? static::model()::query()->find($input['heir']) : null;
+                $mode = is_string($input['content'] ?? null) ? $input['content'] : DeleteUser::KEEP;
+                $counts = app(DeleteUser::class)->handle($user, $mode, $heir);
+                $what = self::list(array_map(fn (int $count, string $label) => $count.' '.($count === 1 ? Str::singular($label) : $label), $counts, array_keys($counts)));
+                $heirName = $heir instanceof Model ? static::title($heir) : '';
+
+                return static::title($user).' deleted.'.match (true) {
+                    $what === '' => '',
+                    $mode === DeleteUser::REASSIGN => " Their {$what} went to {$heirName}.",
+                    $mode === DeleteUser::DELETE => " Their {$what} got deleted".(isset($counts['uploads']) ? ', apart from uploads, which stay without an uploader.' : '.'),
+                    default => " Their {$what} have no owner now.",
+                };
+            });
+    }
+
+    public static function deleteRecord(Model $record): void
+    {
+        app(DeleteUser::class)->handle($record, DeleteUser::KEEP);
+    }
+
+    /**
+     * Who may receive a deleted user's content: every user, by name.
+     *
+     * @return array<string, string> id => name
+     */
+    protected static function heirs(): array
+    {
+        $heirs = [];
+        foreach (static::model()::query()->orderBy('name')->limit(1000)->get() as $user) {
+            $key = $user->getKey();
+            if (is_scalar($key)) {
+                $heirs[(string) $key] = static::title($user);
+            }
+        }
+
+        return $heirs;
     }
 
     protected static function isCurrentUser(Model $user): bool
@@ -163,8 +228,9 @@ class UserResource extends Resource
         if ($record === null || ! $user instanceof Model) {
             return true;
         }
-        if ($ability === 'delete' && $record->is($user)) {
-            return false;
+        if ($record->is($user)) {
+            // Their own account: name, email and password, never delete.
+            return $ability !== 'delete';
         }
 
         return app(PermissionRank::class)->canManageUser($user, $record);
@@ -192,6 +258,18 @@ class UserResource extends Resource
                 $keep = static::rolesOf($user)->filter(fn (Model $role) => ! in_array(static::name($role), $offered, true));
                 $roles = static::roles()->filter(fn (Model $role) => in_array(static::name($role), $chosen, true))->merge($keep);
 
+                // Together with what the user has directly, the roles must leave them strictly below the editor.
+                $actor = auth(app(Panel::class)->getGuard())->user();
+                if ($actor instanceof Model) {
+                    $permissions = static::namesOf($user->getRelationValue('permissions'));
+                    foreach ($roles as $role) {
+                        $permissions = [...$permissions, ...static::namesOf($role->getRelationValue('permissions'))];
+                    }
+                    if (! app(PermissionRank::class)->isStrictlyBelow($actor, array_values(array_unique($permissions)))) {
+                        throw ValidationException::withMessages(['roles' => 'Together these roles would give as much access as yours or more. Ask someone with more access.']);
+                    }
+                }
+
                 $before = array_map(static::name(...), [...static::rolesOf($user)]);
                 $user->syncRoles($roles->all()); // @phpstan-ignore method.notFound (model() checks the user model uses HasRoles)
                 $after = array_map(static::name(...), [...$roles]);
@@ -206,7 +284,8 @@ class UserResource extends Resource
     }
 
     /**
-     * A security event when what someone may do changed: "added: editor; removed: author".
+     * A security event when what someone may do changed, with `added` and
+     * `removed` lists in its properties and a note: "added: editor; removed: author".
      *
      * @param  list<string>  $before
      * @param  list<string>  $after
@@ -222,7 +301,7 @@ class UserResource extends Resource
             $added === [] ? null : 'added: '.implode(', ', $added),
             $removed === [] ? null : 'removed: '.implode(', ', $removed),
         ]));
-        app(SecurityLog::class)->record($action, $subject, null, ['note' => $note]);
+        app(SecurityLog::class)->record($action, $subject, null, ['note' => $note, 'added' => $added, 'removed' => $removed]);
     }
 
     /**
@@ -248,5 +327,27 @@ class UserResource extends Resource
         $name = $role->getAttribute('name');
 
         return is_string($name) ? $name : '';
+    }
+
+    /** @return list<string> the names of a collection of roles or permissions */
+    protected static function namesOf(mixed $models): array
+    {
+        if (! $models instanceof Collection) {
+            return [];
+        }
+
+        return array_values(array_filter($models->map(fn (Model $m) => $m->getAttribute('name'))->all(), 'is_string'));
+    }
+
+    /**
+     * "a, b and c".
+     *
+     * @param  list<string>  $items
+     */
+    private static function list(array $items): string
+    {
+        $last = array_pop($items);
+
+        return $last === null ? '' : ($items === [] ? $last : implode(', ', $items).' and '.$last);
     }
 }

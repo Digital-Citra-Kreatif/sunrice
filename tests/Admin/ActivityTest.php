@@ -108,6 +108,21 @@ it('merges updates to the same thing in one request, and records sources', funct
         ->and(Activity::query()->latest('id')->first())->source->toBe('ai')->via->toBe('Claude Desktop')->user_name->toBe('Rina')->subject_id->toBe('7');
 });
 
+it('merges by an id each request gets, so a worker\'s next request never continues the last one\'s lines', function () {
+    actingAs($this->admin);
+    $log = app(ActivityLog::class);
+    $product = Product::query()->create(['name' => 'Pan', 'sku' => 'P-1', 'price' => 5]);
+
+    $log->updated('products', $product, 'Pan', ['name']);
+    expect(request()->attributes->get(ActivityLog::REQUEST_ID))->toBeString();
+
+    // The same request object again, as a reused one in a long-running worker: a fresh id, no merging.
+    request()->attributes->remove(ActivityLog::REQUEST_ID);
+    $log->updated('products', $product, 'Pan', ['price']);
+
+    expect(Activity::query()->where('action', 'updated')->count())->toBe(2);
+});
+
 it('shows the log to those allowed, with filters and links', function () {
     actingAs($this->admin);
     post('/admin/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft']);

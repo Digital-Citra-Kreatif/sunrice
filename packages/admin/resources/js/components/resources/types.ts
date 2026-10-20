@@ -26,6 +26,8 @@ export interface ActionInfo {
     label: string;
     confirm: string | null;
     destructive: boolean;
+    /** Fields the dialog asks for (Action::form()), each with its `default`. */
+    fields: FieldInfo[];
 }
 
 export interface Row {
