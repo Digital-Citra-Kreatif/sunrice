@@ -161,7 +161,7 @@ It also has these interaction components, the ones the panel's own pages use:
   </SortableList>
   ```
 
-- **`DatePicker`**: a calendar in a popover, with a time input when `withTime`. Its value is what a native date input gives (`"2026-10-19"`, or `"2026-10-19T14:30"`), so it drops in where a date input was. The calendar is a keyboard grid: arrows move by a day or a week, PageUp/PageDown by a month (a year with Shift), Home/End to the ends of the week, Enter or Space picks the day.
+- **`DatePicker`**: a calendar in a popover, with a time input when `withTime`. Its value is what a native date input gives (`"2026-10-19"`, or `"2026-10-19T14:30"`), so it drops in where a date input was. It opens with focus on the selected day (else today, marked with a dot). The calendar is a keyboard grid: arrows move by a day or a week, PageUp/PageDown by a month (a year with Shift), Home/End to the ends of the week, Enter or Space picks the day.
 
 - **`Command`**, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`, `CommandEmpty`, `CommandSeparator`: a filterable list with a search box, for comboboxes and pickers. Items match on their `value` (their text when none is given) and `keywords` with the command palette's ranking, best first; `<Command shouldFilter={false}>` shows them as given (when a server already searched). The input is a combobox: Up/Down (wrapping round; `loop={false}` stops at the ends), Home/End move the active item, Enter or a click runs its `onSelect(value)`, hovering makes it active; `disabled` items are skipped. `CommandInput` takes `value`/`onValueChange`, `CommandGroup` a `heading`, and `CommandEmpty` shows when nothing matches.
 

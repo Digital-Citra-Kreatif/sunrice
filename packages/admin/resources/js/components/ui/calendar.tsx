@@ -19,11 +19,13 @@ export interface CalendarProps extends Omit<React.ComponentProps<"div">, "onSele
   defaultMonth?: Date
   /** date-fns locale: names, and the first day of the week (en-US by default). */
   locale?: Locale
+  /** Focus the day in the tab order (the selected day, else today) when shown. */
+  autoFocus?: boolean
 }
 
 const dayKey = (day: Date) => format(day, "yyyy-MM-dd")
 
-function Calendar({ selected = null, onSelect, defaultMonth, locale = enUS, className, ...props }: CalendarProps) {
+function Calendar({ selected = null, onSelect, defaultMonth, locale = enUS, autoFocus = false, className, ...props }: CalendarProps) {
   const today = startOfToday()
   const weekStartsOn = firstDayOfWeek(locale)
   const [month, setMonth] = React.useState(() => startOfMonth(defaultMonth ?? selected ?? today))
@@ -38,6 +40,12 @@ function Calendar({ selected = null, onSelect, defaultMonth, locale = enUS, clas
     moveFocusTo.current = false
     root.current?.querySelector<HTMLButtonElement>(`[data-day="${dayKey(focused)}"]`)?.focus()
   }, [focused])
+
+  React.useEffect(() => {
+    if (autoFocus) root.current?.querySelector<HTMLButtonElement>('[data-day][tabindex="0"]')?.focus({ preventScroll: true })
+    // Only when first shown.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const focusDay = (day: Date) => {
     setFocused(day)
@@ -111,7 +119,7 @@ function Calendar({ selected = null, onSelect, defaultMonth, locale = enUS, clas
                         tabIndex={isSameDay(day, tabbable) ? 0 : -1}
                         aria-label={format(day, "PPPP", { locale })}
                         aria-current={isToday ? "date" : undefined}
-                        className="flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal focus-visible:relative focus-visible:z-10 data-[outside=true]:text-muted-foreground data-[today=true]:bg-accent data-[today=true]:text-accent-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground dark:hover:text-accent-foreground"
+                        className="relative flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal tabular-nums focus-visible:z-10 data-[outside=true]:text-muted-foreground/70 data-[today=true]:font-semibold data-[today=true]:after:absolute data-[today=true]:after:bottom-1 data-[today=true]:after:size-1 data-[today=true]:after:rounded-full data-[today=true]:after:bg-primary data-[selected-single=true]:bg-primary data-[selected-single=true]:font-medium data-[selected-single=true]:text-primary-foreground data-[selected-single=true]:hover:bg-primary/90 dark:hover:text-accent-foreground dark:data-[selected-single=true]:hover:text-primary-foreground"
                         onClick={() => {
                           focusDay(day)
                           onSelect?.(day)

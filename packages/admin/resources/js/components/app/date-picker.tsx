@@ -51,6 +51,7 @@ export function DatePicker({ id, value, onChange, withTime = false, disabled = f
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
+                    autoFocus
                     selected={date}
                     defaultMonth={date ?? undefined}
                     onSelect={(picked) => {
