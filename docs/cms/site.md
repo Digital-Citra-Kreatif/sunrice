@@ -57,7 +57,7 @@ On the CMS's pages it reads the page shown (entry, term or listing page; or name
 
 Past the first page of a listing, term or search page, the canonical and `hreflang` URLs (and `Cms::localeUrls()`) carry the page number (`/blog?page=2`), so each page is its own, not a copy of the first.
 
-`/sitemap.xml` lists every live entry of a collection with a URL, with its other languages, term and listing pages, but those hidden from search engines (at most 50,000).
+`/sitemap.xml` lists every live entry of a collection with a URL (with `lastmod` and its other languages), term pages (with `lastmod`) and listing pages, but those hidden from search engines. It's built in chunks and kept in the cache until the content changes. Search engines read at most 50,000 addresses from one file, so past that `/sitemap.xml` becomes an index of `/sitemap-1.xml`, `/sitemap-2.xml`, … (route `sunrice.cms.sitemap.part`); `/sitemap-1.xml` always works.
 
 ### Structured data
 

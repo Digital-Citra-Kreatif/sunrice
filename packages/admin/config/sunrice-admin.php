@@ -72,8 +72,10 @@ return [
             'large' => [1600, null, 'fit'],
         ],
 
-        // Make the sizes on the queue instead of during the upload.
-        'queue' => false,
+        // Make the sizes on the queue instead of during the upload: true,
+        // false, or null to queue them whenever the default queue connection
+        // isn't sync (a file keeps only its original until the job ran).
+        'queue' => null,
 
         // Images larger than this (width x height) get no sizes: decoding
         // them could run out of memory.
