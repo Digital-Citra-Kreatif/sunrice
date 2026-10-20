@@ -210,3 +210,30 @@ it('explains a template setting with the files tried in order when it is empty',
         '3. the built-in template',
     ]));
 });
+
+it('creates a term on its own page, then goes to its page or back to the list', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    $news = term($this->categories, 'News');
+
+    get("/admin/cms/taxonomies/categories/terms/create?parent={$news->id}")->assertInertia(fn (Assert $page) => $page
+        ->component('Cms/Terms/Create', shouldExist: false)
+        ->where('taxonomy.hierarchical', true)
+        ->where('parent', $news->id)
+        ->where('terms.0.title', 'News'));
+
+    // No pages or fields: back to the list.
+    post('/admin/cms/taxonomies/categories/terms', ['title' => 'Local', 'parent_id' => $news->id])
+        ->assertRedirect('/admin/cms/taxonomies/categories/terms?locale=en');
+    expect(Term::query()->where('parent_id', $news->id)->count())->toBe(1);
+
+    // With pages: to the new term's page.
+    $this->tags->forceFill(['route' => '/tags/{slug}'])->save();
+    post('/admin/cms/taxonomies/tags/terms', ['title' => 'Laravel'])->assertRedirectContains('/admin/cms/taxonomies/tags/terms/');
+    $laravel = Term::query()->where('taxonomy_id', $this->tags->id)->firstOrFail();
+    expect(session('success'))->toBe('"Laravel" added.');
+    get("/admin/cms/taxonomies/tags/terms/{$laravel->id}/edit")->assertOk();
+
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin/cms/taxonomies/categories/terms/create')->assertForbidden();
+});
