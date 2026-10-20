@@ -74,6 +74,17 @@ $panel->permissionsUsing(fn () => Shop::query()->get()->map(
 
 When the data changes, call `$panel->flushPermissions()` and `SyncPermissions::handle()` to create and delete them (the CMS does when collections, taxonomies and forms come and go).
 
+When the data a permission is named after is **renamed**, rename the stored permissions instead, before anything syncs, so roles and people keep them:
+
+```php
+use Sunrice\Admin\Actions\Permissions\RenamePermissions;
+
+app(RenamePermissions::class)->handle(['shop.north.orders' => 'shop.northwest.orders']);   // old => new; returns the old names renamed
+$panel->flushPermissions();
+```
+
+A permission whose new name is already stored is left alone. The CMS does this when a collection's, taxonomy's or form's handle changes.
+
 ## Managing roles in the panel
 
 The Users and Roles screens give out roles and permissions, and nobody can give out more than they have: see [Users and roles](users.md).

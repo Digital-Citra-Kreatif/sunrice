@@ -4,7 +4,7 @@ A **taxonomy** groups entries: categories, tags, topics. Its **terms** ("News", 
 
 ## Setting up
 
-Under **Structure → Taxonomies** (permissions `cms.taxonomies.view`, `.create`, `.update`, `.delete`): a title, a handle that can't change later, whether terms nest, and the collections whose entries it groups. Deleting a taxonomy keeps its terms, out of sight.
+Under **Structure → Taxonomies** (permissions `cms.taxonomies.view`, `.create`, `.update`, `.delete`): a title, a handle (it can be changed later, with a warning: terms fields and templates that name it need the new one, roles keep their permissions), whether terms nest, and the collections whose entries it groups. Deleting a taxonomy keeps its terms, out of sight.
 
 Under **Content → Terms** (`cms.terms.manage`): add, rename, nest, reorder and trash a taxonomy's terms, in each language (see [Trash](#trash)). A term not yet translated shows the main language's title.
 

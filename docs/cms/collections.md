@@ -8,7 +8,7 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 
 | | |
 | --- | --- |
-| `handle` | Lowercase letters, digits and underscores, starting with a letter. Set when created; it can't change, and a deleted collection's handle stays taken. |
+| `handle` | Lowercase letters, digits and underscores, starting with a letter. It can be changed on the edit form (with a warning): roles keep their permissions for the collection (see [renaming](#renaming-a-handle)), but templates and code that name it need the new one. A deleted collection's handle stays taken. |
 | `title` | The name editors see. |
 | `blueprint` | A blueprint's handle, or none. Changing it keeps entries' data: values of fields the new blueprint lacks stay stored, out of sight, and come back with the field. A blueprint can't be deleted while a collection uses it. |
 | `blueprints` | More blueprints its entries may use instead of its own (**Other blueprints**); see [per-entry blueprints](#per-entry-blueprints). |
@@ -59,7 +59,11 @@ Editors write entries under **Content → Entries**: a list per collection (sear
 | `cms.entries.update-own`, `.delete-own` | The same, for entries they created, in collections they may view. |
 | `cms.entries.translate` | Save drafts of entries' other languages (not the main one), in collections they may view. |
 
-Each of the first six also comes for one collection: `cms.entries.blog.publish` publishes only in Blog. They're created with the collection (and deleted with it), and the role editor shows them under "Entries: Blog". The same goes for terms (`cms.terms.{taxonomy}.manage`) and form submissions (`cms.submissions.{form}.view`, `.export`, `.delete`). People see only the collections, taxonomies and forms they may work in. In code: `Sunrice\Cms\Support\Access::entries($user, 'publish', $collection, $entry, $locale)`.
+Each of the first six also comes for one collection: `cms.entries.blog.publish` publishes only in Blog. They're created with the collection (and deleted with it), renamed with its handle, and the role editor shows them under "Entries: Blog". The same goes for terms (`cms.terms.{taxonomy}.manage`) and form submissions (`cms.submissions.{form}.view`, `.export`, `.delete`). People see only the collections, taxonomies and forms they may work in. In code: `Sunrice\Cms\Support\Access::entries($user, 'publish', $collection, $entry, $locale)`.
+
+### Renaming a handle
+
+Scoped permissions are named after handles, so when a collection's, taxonomy's or form's handle changes on its edit form, its stored permissions are renamed in place (`cms.entries.blog.view` becomes `cms.entries.journal.view`, through `ScopedPermissions::renamed()` and the panel's `RenamePermissions`): every role and person keeps what they were given. What the CMS can't rename for you is shown as a warning under the field: Blade views named after the handle (`cms.{handle}`, `cms.taxonomy-{handle}`), `Cms::entries('…')`, `whereTerm('…')`, `<x-sunrice-cms::form handle="…" />`, and entries fields limited to a collection. `SaveCollection` still refuses a new handle; rename through the admin.
 
 `sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
 
