@@ -15,6 +15,7 @@ use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Support\Locales;
 use Workbench\App\Models\User;
 
 use function Pest\Laravel\actingAs;
@@ -127,7 +128,7 @@ it('lists another language\'s translations', function () {
         ->and(listed('locale=id'))->toBe(['Teh'])
         ->and(listed('locale=fr'))->toBe(['Mug', 'Tea']);
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('entries.data.1.locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'draft', 'outdated' => false]])
+        ->where('entries.data.1.locales', [['code' => 'en', 'name' => Locales::displayName('en'), 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'name' => Locales::displayName('id'), 'main' => false, 'status' => 'draft', 'outdated' => false]])
         ->where('filters.locales', ['en', 'id']));
 });
 
