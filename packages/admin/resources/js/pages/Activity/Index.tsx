@@ -109,8 +109,8 @@ export default function ActivityIndex({ query, types, sources, rows }: Props) {
                         {rows.data.length === 0 && (
                             <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Nothing recorded{query.search || query.source || query.type || query.from || query.to ? ' that matches' : ' yet'}.</TableCell></TableRow>
                         )}
-                        {rows.data.map((row) => (
-                            <TableRow key={row.id}>
+                        {rows.data.map((row, i) => (
+                            <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties}>
                                 <TableCell className="align-top whitespace-nowrap text-muted-foreground">{row.at ? new Date(row.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : ''}</TableCell>
                                 <TableCell className="align-top">
                                     {row.userId ? (

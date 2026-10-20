@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
 
@@ -47,6 +48,7 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
     const [search, setSearch] = React.useState(query.search);
     const [selected, setSelected] = React.useState<(string | number)[]>([]);
     const base = adminUrl(resource.key);
+    const loading = useListLoading(base);
 
     React.useEffect(() => setSelected([]), [rows.data]);
 
@@ -174,8 +176,15 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {rows.data.map((row) => (
-                            <TableRow key={row.id}>
+                        {loading && Array.from({ length: Math.max(rows.data.length, 3) }, (_, i) => (
+                            <TableRow key={`skeleton-${i}`} className="sunrice-row-in hover:bg-transparent" style={{ '--i': i } as React.CSSProperties} aria-hidden="true">
+                                {bulkActions.length > 0 && <TableCell><Skeleton className="size-4" /></TableCell>}
+                                {columns.map((column) => <TableCell key={column.name}><Skeleton className="h-4 w-[60%] max-w-48" /></TableCell>)}
+                                {hasRowMenu && <TableCell />}
+                            </TableRow>
+                        ))}
+                        {!loading && rows.data.map((row, i) => (
+                            <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties} data-state={selected.includes(row.id) ? 'selected' : undefined}>
                                 {bulkActions.length > 0 && (
                                     <TableCell>
                                         <Checkbox aria-label={`Select ${row.title}`} checked={selected.includes(row.id)}
@@ -220,7 +229,7 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
                                 )}
                             </TableRow>
                         ))}
-                        {rows.data.length === 0 && (
+                        {!loading && rows.data.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={columns.length + 2} className="h-24 text-center text-muted-foreground">
                                     {query.search || Object.keys(query.filters).length ? 'Nothing matches.' : `No ${resource.label.toLowerCase()} yet.`}
@@ -253,6 +262,31 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
             </Card>
         </div>
     );
+}
+
+/**
+ * Whether a visit to this list is in flight (search, filters, sorting, paging),
+ * after a short grace period so a quick answer never flashes placeholders.
+ */
+function useListLoading(base: string): boolean {
+    const [loading, setLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        let timer: number | undefined;
+        const offStart = router.on('start', (event) => {
+            const visit = event.detail.visit;
+            if (visit.method !== 'get' || !visit.url.href.startsWith(base)) return;
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => setLoading(true), 150);
+        });
+        const offFinish = router.on('finish', () => {
+            window.clearTimeout(timer);
+            setLoading(false);
+        });
+        return () => { window.clearTimeout(timer); offStart(); offFinish(); };
+    }, [base]);
+
+    return loading;
 }
 
 function PageLink({ url, label, children }: { url: string | null; label: string; children: React.ReactNode }) {
