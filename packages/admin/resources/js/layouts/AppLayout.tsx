@@ -33,10 +33,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [paletteOpen]);
 
+    // Each message once: keyed by its id, so the same text twice toasts twice.
     React.useEffect(() => {
-        if (flash.success) toast.success(flash.success);
-        if (flash.error) toast.error(flash.error);
-    }, [flash.success, flash.error]);
+        if (flash.success) toast.success(flash.success, flash.id ? { id: `${flash.id}:success` } : undefined);
+        if (flash.error) toast.error(flash.error, flash.id ? { id: `${flash.id}:error` } : undefined);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [flash.id, flash.success, flash.error]);
 
     // A rejected form is never silent: pages show field errors inline, this covers the rest.
     React.useEffect(

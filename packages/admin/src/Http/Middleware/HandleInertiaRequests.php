@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Http\Middleware;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Middleware;
 use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Assets\PluginBundle;
@@ -48,11 +49,31 @@ final class HandleInertiaRequests extends Middleware
                 ],
             ],
             'navigation' => fn (): array => $user instanceof Authorizable ? $this->panel->navigationFor($user) : [],
-            'flash' => fn (): array => [
-                'success' => $request->hasSession() ? $request->session()->get('success') : null,
-                'error' => $request->hasSession() ? $request->session()->get('error') : null,
-            ],
+            'flash' => fn (): array => self::flash($request),
             ...$this->panel->getSharedData(),
         ];
+    }
+
+    /**
+     * This request's messages, with an id that is new for each one shown
+     * (the same text twice is two toasts), or null without messages.
+     *
+     * @return array{id: string|null, success: mixed, error: mixed}
+     */
+    private static function flash(Request $request): array
+    {
+        $success = $request->hasSession() ? $request->session()->get('success') : null;
+        $error = $request->hasSession() ? $request->session()->get('error') : null;
+        if ($success === null && $error === null) {
+            return ['id' => null, 'success' => null, 'error' => null];
+        }
+        // Once per request, however often the closure runs.
+        $id = $request->attributes->get('sunrice.flash_id');
+        if (! is_string($id)) {
+            $id = (string) Str::uuid();
+            $request->attributes->set('sunrice.flash_id', $id);
+        }
+
+        return ['id' => $id, 'success' => $success, 'error' => $error];
     }
 }

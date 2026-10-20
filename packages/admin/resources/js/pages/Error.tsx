@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout';
 import { adminUrl } from '@/lib/admin-url';
@@ -20,6 +21,7 @@ export function errorMessage(status: number): { title: string; body: string } {
 /** An error page under the panel's path, in the admin layout when someone is signed in. */
 export default function ErrorPage({ status }: { status: number }) {
     const message = errorMessage(status);
+    useBreadcrumbs([{ label: message.title }]);
 
     return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">

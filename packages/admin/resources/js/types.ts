@@ -27,6 +27,7 @@ export interface SharedProps {
     sunrice: { brand: string; path: string; bundles: BundleInfo[] };
     auth: { user: { id: string | number; name: string | null; email: string | null } | null };
     navigation: NavGroup[];
-    flash: { success: string | null; error: string | null };
+    /** `id` is new for each message shown, so the same text twice toasts twice. */
+    flash: { id: string | null; success: string | null; error: string | null };
     [key: string]: unknown;
 }

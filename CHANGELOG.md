@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Shell: flash messages carry an `id` (`flash.id`, new for each message shown) so the same text twice toasts twice; breadcrumbs fall back to the navigation item matching the address when a page declares none (`lib/nav-match.ts`); copying a link in the media details works on plain-http hosts too (`lib/clipboard.ts`, `copyText()`, with a textarea fallback).
 - Activity log: an **action** filter (`action`), a page-size choice (`per_page`: 25, 50, 100 or 200), and **Prune…** in the panel (`POST admin/activity/prune`, new permission `sunrice.activity.prune`, `PruneActivity`) that deletes lines older than the days given, records a `log pruned` security event and sends the alert *The activity log was pruned*.
 - Media: `Media::thumbnail()` (the `thumbnail` size, the smallest one, or the original; the library's thumbnails use it) and `Media::srcset(string ...$sizes)` for `<img srcset>` (`@api`); the Media page warns uploaders when the public disk's storage link is missing (`MediaConfig::storageLinkMissing()`).
 - Error pages in the panel: 403, 404, 419 and 500 under the panel's path render the Inertia `Error` page inside the admin layout (`Http\ErrorPages`; JSON requests, debug 500s and other paths unchanged), and unknown panel addresses reach the panel's fallback route `sunrice.admin.missing` (signed in) for a 404 in the layout. Refused pages are still recorded (`RecordRefusedPages`). Bundles can't claim the page `Error`.
