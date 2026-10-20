@@ -83,7 +83,7 @@ export default function ResourceForm({ resource, record, sections, values, can, 
             />
 
             <ResourceKeyContext value={resource.key}>
-                <FormSections sections={sections} data={form.data} errors={form.errors} onChange={change} />
+                <FormSections sections={sections} data={form.data} errors={form.errors} storageKey={`sunrice:resource:${resource.key}`} onChange={change} />
             </ResourceKeyContext>
         </form>
     );

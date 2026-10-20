@@ -1,5 +1,7 @@
 import { InputError } from '@/components/app/input-error';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CollapsibleCard } from '@/components/app/collapsible-card';
+import { Card, CardContent } from '@/components/ui/card';
+import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { FieldInput, type FieldValue } from './fields';
@@ -10,23 +12,22 @@ const spans: Record<number, string> = { 1: '', 2: 'sm:col-span-2', 3: 'sm:col-sp
 
 interface Props {
     sections: SectionInfo[];
+    /** Remembers which titled sections are folded, under this key plus the title. */
+    storageKey?: string;
     data: Record<string, FieldValue>;
     errors: Partial<Record<string, string>>;
     onChange: (name: string, value: FieldValue) => void;
 }
 
 /** A form's sections as cards of fields (resources and settings). */
-export function FormSections({ sections, data, errors, onChange }: Props) {
-    return sections.map((section, index) => (
-        <Card key={index}>
-            {section.title && (
-                <CardHeader>
-                    <CardTitle>{section.title}</CardTitle>
-                    {section.description && <CardDescription>{section.description}</CardDescription>}
-                </CardHeader>
-            )}
-            <CardContent className={cn('grid gap-5', gridColumns[section.columns])}>
-                {section.fields.map((field) => {
+export function FormSections({ sections, data, errors, storageKey, onChange }: Props) {
+    return sections.map((section, index) => {
+        // Fields whose condition isn't met are hidden (showWhen), a section of only those too.
+        const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data));
+        if (fields.length === 0) return null;
+        const content = (
+            <div className={cn('grid gap-5', gridColumns[section.columns])}>
+                {fields.map((field) => {
                     const error = errors[field.name];
                     // A section's only field named like the section: the card's title says it already.
                     const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
@@ -55,7 +56,17 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
                         </div>
                     );
                 })}
-            </CardContent>
-        </Card>
-    ));
+            </div>
+        );
+
+        // A titled section folds away (remembered), and opens on an error inside.
+        return section.title ? (
+            <CollapsibleCard key={index} title={section.title} description={section.description ?? undefined} titleClassName="text-base"
+                storageKey={storageKey ? `${storageKey}:${section.title}` : undefined} hasErrors={fields.some((field) => errors[field.name] !== undefined)}>
+                {content}
+            </CollapsibleCard>
+        ) : (
+            <Card key={index}><CardContent>{content}</CardContent></Card>
+        );
+    });
 }

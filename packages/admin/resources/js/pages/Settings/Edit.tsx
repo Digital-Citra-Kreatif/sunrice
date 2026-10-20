@@ -86,7 +86,7 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
                         </Button>
                     )}
                 />
-                {editable && <FormSections sections={shown} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />}
+                {editable && <FormSections sections={shown} data={form.data} errors={form.errors} storageKey={`sunrice:settings:${section.key}`} onChange={(name, value) => form.setData(name, value)} />}
                 <InfoCards cards={cards} />
             </form>
         </div>

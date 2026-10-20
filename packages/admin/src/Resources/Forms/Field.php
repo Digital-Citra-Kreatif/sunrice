@@ -52,6 +52,9 @@ abstract class Field implements Component
     /** @var (Closure(Model, mixed): void)|null */
     protected ?Closure $saveUsing = null;
 
+    /** @var array{field: string, value: string|int|bool|null}|null */
+    private ?array $showWhen = null;
+
     final public function __construct(public readonly string $name)
     {
         if (preg_match('/^[a-z_][a-z0-9_]*$/i', $name) !== 1) {
@@ -175,6 +178,19 @@ abstract class Field implements Component
      *
      * @param  bool|Closure(?Model): bool  $disabled
      */
+    /**
+     * Shown only while another field of the form is filled in (switched
+     * on, chosen, typed in), or holds `$value`: ->showWhen('route'),
+     * ->showWhen('kind', 'link'). It's only hidden on screen: what it
+     * holds is still sent, checked and saved.
+     */
+    public function showWhen(string $field, string|int|bool|null $value = null): static
+    {
+        $this->showWhen = ['field' => $field, 'value' => $value];
+
+        return $this;
+    }
+
     public function disabled(bool|Closure $disabled = true): static
     {
         $this->disabled = $disabled;
@@ -320,6 +336,7 @@ abstract class Field implements Component
             'help' => $this->help,
             'placeholder' => $this->placeholder,
             'span' => $this->span,
+            'showWhen' => $this->showWhen,
             ...$this->props(),
         ];
     }
