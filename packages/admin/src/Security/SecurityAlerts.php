@@ -285,7 +285,7 @@ final class SecurityAlerts
         }
 
         $mail = new SecurityAlert($headline, $what, $advice, [...$details, 'When' => now()->toDayDateTimeString()],
-            $this->panel->getBrand(), route('sunrice.admin.activity.index', ['source' => 'security']));
+            $this->panel->brandName(), route('sunrice.admin.activity.index', ['source' => 'security']));
         // One mail per person, on the queue: sending mustn't slow the request down.
         foreach ($recipients as $email) {
             try {

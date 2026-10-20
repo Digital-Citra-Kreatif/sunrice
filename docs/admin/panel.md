@@ -24,7 +24,7 @@ final class AdminPanelProvider extends PanelProvider
 
 An app has one panel. Once it boots, the panel is locked: changing it later throws `PanelMisconfigured`.
 
-`brand()` names the panel in the sidebar, on the sign-in page and in emails. Admins can give it another name, a logo, a font, a colour and their own sign-in page in Settings → Branding: see [Branding](branding.md).
+`brand()` is the panel's own name. Admins can give it another name, a logo, a font, a colour and their own sign-in page in Settings → Branding: see [Branding](branding.md). The name people see (in the sidebar, on the sign-in page, in emails and to AI agents) is `$panel->brandName()`.
 
 ## Writing a plugin
 

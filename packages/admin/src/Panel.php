@@ -25,6 +25,7 @@ use Sunrice\Admin\Settings\BrandingSettings;
 use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
+use Sunrice\Admin\Support\Branding;
 use Sunrice\Admin\Users\RoleResource;
 use Sunrice\Admin\Users\UserContent;
 use Sunrice\Admin\Users\UserResource;
@@ -168,7 +169,10 @@ final class Panel
         return $this;
     }
 
-    /** The name shown in the sidebar, the login page and emails. */
+    /**
+     * The panel's own name: the default for Settings → Branding's name.
+     * Read the name people see with brandName().
+     */
     public function brand(string $brand): self
     {
         $this->assertConfigurable();
@@ -824,9 +828,20 @@ final class Panel
         return $model;
     }
 
+    /** The name given with brand(); what people see is brandName(). */
     public function getBrand(): string
     {
         return $this->brand;
+    }
+
+    /**
+     * The name people see in the sidebar, browser tabs, emails and the AI
+     * server: Settings → Branding's name, else brand(). Reads the settings
+     * (one cached query per request for all sections).
+     */
+    public function brandName(): string
+    {
+        return (new Branding($this, app(BrandingSettings::class)))->name();
     }
 
     /** @return list<string> */

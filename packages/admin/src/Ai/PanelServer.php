@@ -126,8 +126,9 @@ MD;
     {
         $context = parent::createContext();
         $panel = app(Panel::class);
-        $context->instructions = implode("\n\n", [self::INSTRUCTIONS, ...$panel->getAiInstructions()]);
-        $context->implementation->name = $panel->getBrand();
+        $name = $panel->brandName();
+        $context->instructions = implode("\n\n", ["The panel is called {$name}.", self::INSTRUCTIONS, ...$panel->getAiInstructions()]);
+        $context->implementation->name = $name;
 
         return $context;
     }

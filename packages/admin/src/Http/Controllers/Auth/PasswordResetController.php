@@ -20,6 +20,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Admin\Notifications\ResetPanelPassword;
+use Sunrice\Admin\Panel;
 use Sunrice\Admin\Security\SecurityLog;
 
 /**
@@ -45,7 +46,7 @@ final class PasswordResetController
             ['email' => $request->string('email')->toString()],
             function (CanResetPassword $user, string $token): void {
                 $email = $user->getEmailForPasswordReset();
-                Notification::route('mail', $email)->notify(new ResetPanelPassword($token, $email));
+                Notification::route('mail', $email)->notify(new ResetPanelPassword($token, $email, app(Panel::class)->brandName()));
             },
         );
 

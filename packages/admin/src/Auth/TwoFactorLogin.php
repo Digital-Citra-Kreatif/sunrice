@@ -170,7 +170,7 @@ final class TwoFactorLogin
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         // Not queued: this throws when the mail can't be sent.
-        Notification::route('mail', $email)->notifyNow(new LoginCode($code, $this->panel->getBrand()));
+        Notification::route('mail', $email)->notifyNow(new LoginCode($code, $this->panel->brandName()));
 
         $request->session()->put(self::SESSION_KEY, [
             'user_id' => $pending['user_id'],

@@ -4,7 +4,7 @@
 
 | Setting | Shown | When empty |
 | --- | --- | --- |
-| Panel name | The sidebar, the sign-in page, browser tabs | `$panel->brand()` |
+| Panel name | The sidebar, the sign-in page, browser tabs, emails (login codes, password resets, test emails, security alerts) and the AI server's name | `$panel->brand()` |
 | Tagline | Under the name in the sidebar and above the sign-in form | Nothing |
 | Logo (an image from the media library) | The sidebar and the sign-in page | The name's first letter on the brand colour |
 | Font | Everywhere in the admin | The `sunrice-admin.font` config (Inter) |
@@ -40,8 +40,13 @@ Only a validated `#rrggbb` colour and a font from the list are ever printed; any
 
 ## In code
 
+The name people see is `$panel->brandName()` (`@api`): the branding's name, else `$panel->brand()`. Use it wherever a plugin names the panel (in an email, say); it reads the settings, one cached query per request for all sections. `$panel->getBrand()` is only the name given in code.
+
 ```php
+use Sunrice\Admin\Panel;
 use Sunrice\Admin\Settings\BrandingSettings;
+
+app(Panel::class)->brandName();              // 'Kebun Studio', or 'Acme' from ->brand('Acme')
 
 $branding = app(BrandingSettings::class);   // the stored values; empty strings and nulls where unset
 $branding->color;                            // '' or '#1e66f5'
@@ -55,7 +60,7 @@ const { branding } = usePage<{ sunrice: { branding: Branding } }>().props.sunric
 //   login: { layout, eyebrow, headline, text, footer, image: url | null } }
 ```
 
-`sunrice.brand` (the name) is still shared too. Emails (security alerts, login codes) and the AI server keep using `$panel->brand()`.
+`sunrice.brand` (the name) is still shared too.
 
 ## The user menu
 

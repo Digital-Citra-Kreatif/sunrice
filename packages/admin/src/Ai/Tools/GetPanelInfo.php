@@ -32,7 +32,7 @@ final class GetPanelInfo extends Tool
         $permissions = array_values(array_filter($panel->getPermissions(), fn (Permission $p) => $user->can($p->name)));
 
         return $this->json([
-            'panel' => $panel->getBrand(),
+            'panel' => $panel->brandName(),
             'you' => ['name' => data_get($user, 'name'), 'email' => data_get($user, 'email')],
             'read_only_token' => app(TokenScope::class)->readOnly(),
             'permissions' => array_map(fn (Permission $p) => ['name' => $p->name, 'label' => $p->label, 'group' => $p->group], $permissions),
