@@ -142,12 +142,16 @@ function ColorInput({ common, value, onChange }: {
 
     return (
         <div className="flex items-center gap-2">
-            <input type="color" aria-label="Pick a colour" disabled={common.disabled} value={valid ? value.toLowerCase() : '#000000'}
-                onChange={(e) => onChange(e.target.value)}
-                className="size-9 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-1 disabled:cursor-not-allowed" />
+            {/* The swatch is ours (the native one shows black when empty); the picker sits invisibly on top. */}
+            <span className="relative size-10 shrink-0 overflow-hidden rounded-lg border border-input bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out-quart focus-within:border-ring/70 focus-within:ring-4 focus-within:ring-ring-glow hover:border-ring/45"
+                style={{ background: valid ? value : 'linear-gradient(to top right, transparent calc(50% - 0.75px), var(--border) 50%, transparent calc(50% + 0.75px)), var(--card)' }}>
+                <input type="color" aria-label="Pick a colour" disabled={common.disabled} value={valid ? value.toLowerCase() : '#000000'}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed" />
+            </span>
             <Input {...common} type="text" maxLength={7} spellCheck={false} className="font-mono" value={value} onChange={(e) => onChange(e.target.value.trim())} />
             {valid && (
-                <span aria-hidden="true" className="flex h-9 shrink-0 items-center rounded-md px-3 text-sm font-medium" style={{ background: value, color: readableOn(value) }}>Aa</span>
+                <span aria-hidden="true" className="flex h-10 shrink-0 items-center rounded-lg px-3 text-sm font-medium shadow-xs" style={{ background: value, color: readableOn(value) }}>Aa</span>
             )}
         </div>
     );

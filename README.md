@@ -64,4 +64,14 @@ composer analyse     # Larastan, level max
 npm run typecheck && npm run test:frontend   # the admin's TypeScript and its node tests
 ```
 
+After UI work, sweep every admin page in a real browser (desktop and phone, light and dark): `tests/Browser/smoke.mjs` fails on JavaScript errors, console errors, failed requests and pages wider than the screen, and can save a screenshot of each page. It isn't part of `composer test` and Playwright isn't a dependency: install `playwright-core` anywhere and point the script at it and at a Chromium.
+
+```bash
+mkdir -p /tmp/pw && (cd /tmp/pw && npm init -y && npm i playwright-core)
+composer serve   # in another terminal
+PLAYWRIGHT_DIR=/tmp/pw CHROMIUM_PATH=/path/to/chrome SMOKE_SCREENSHOTS=/tmp/shots node tests/Browser/smoke.mjs
+```
+
+The script's header lists its options (`SUNRICE_URL`, `SMOKE_VIEWPORTS`, `SMOKE_SCHEMES`, `SMOKE_ONLY`, ...). Upload an image to the media library first, so the media details sheet has something to open.
+
 Read [AGENTS.md](AGENTS.md) before contributing: the boundaries between the packages, the approved dependencies and the conventions.

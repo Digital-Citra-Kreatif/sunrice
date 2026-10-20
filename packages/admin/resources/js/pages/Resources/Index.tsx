@@ -288,7 +288,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                         <span>{rows.total === 0 ? 'No rows' : `${rows.from}–${rows.to} of ${rows.total}`}</span>
                         {rows.total > perPageOptions[0]! && (
                             <Select value={String(rows.perPage)} onValueChange={(value) => { void setPerPage(Number(value)); visit({ per_page: Number(value) }); }}>
-                                <SelectTrigger className="h-8 w-28" aria-label="Rows per page"><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="h-8 w-auto" aria-label="Rows per page"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {perPageOptions.map((option) => <SelectItem key={option} value={String(option)}>{option} per page</SelectItem>)}
                                 </SelectContent>

@@ -174,6 +174,8 @@ It also has these interaction components, the ones the panel's own pages use:
   });
   ```
 
+Checking pages in a browser: the repository's `tests/Browser/smoke.mjs` visits every page of the workbench at phone and desktop sizes, light and dark, and fails on console errors, failed requests and horizontal overflow (see the README's "Developing this repository"). Plugin authors can copy it and swap in their own page list.
+
 ## Compatibility
 
 `definePlugin()` checks the panel's runtime version and refuses to load a bundle built for another major version, with an error that says to rebuild it. The modules shared with plugins are listed in `@sunrice/admin-sdk/shared`.

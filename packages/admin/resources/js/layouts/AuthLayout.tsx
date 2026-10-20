@@ -45,8 +45,9 @@ export default function AuthLayout({ title, description, children }: { title: st
                     <p className="relative z-10 text-xs opacity-60">{login.footer}</p>
                 </aside>
             )}
-            <div className="flex flex-col items-center justify-center px-4 py-12 sm:px-8">
-                <div className="sunrice-page-enter w-full max-w-sm">
+            <div className="flex min-h-[calc(100svh-2rem)] flex-col items-center justify-center px-4 py-12 sm:px-8">
+                {/* Centered: the form floats on a card; beside the side panel it stands on the page. */}
+                <div className={cn('sunrice-page-enter w-full max-w-sm', !split && 'sm:max-w-[26rem] sm:rounded-2xl sm:bg-card sm:p-10 sm:shadow-pop')}>
                     <div className={cn('mb-10', split && 'lg:hidden')}>{mark}</div>
                     <div className="flex flex-col gap-8">
                         <div className="space-y-2">

@@ -193,7 +193,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             )}
 
             {media.data.length === 0 ? (
-                <div className="rounded-md border border-dashed p-12 text-center text-sm text-muted-foreground">
+                <div className="rounded-xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
                     {query.trash ? 'The trash is empty.' : query.search || query.type ? 'Nothing matches.' : canUpload ? 'No files here yet. Drop files on this page or use Upload.' : 'No files here yet.'}
                 </div>
             ) : (
