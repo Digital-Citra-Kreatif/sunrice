@@ -72,6 +72,12 @@ abstract class Resource
         return Str::headline(class_basename(static::model()));
     }
 
+    /** The sidebar item's text; the plural label unless overridden. */
+    public static function navigationLabel(): string
+    {
+        return static::label();
+    }
+
     public static function navigationGroup(): ?string
     {
         return null;

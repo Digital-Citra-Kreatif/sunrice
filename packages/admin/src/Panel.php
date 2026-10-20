@@ -1155,7 +1155,7 @@ final class Panel
             ? [Permission::make("{$prefix}.export", "Export {$label}", $label)]
             : []];
         $this->navigation(
-            NavigationItem::make("resources.{$key}")->label($label)->url($key)->icon($class::navigationIcon())
+            NavigationItem::make("resources.{$key}")->label($class::navigationLabel())->url($key)->icon($class::navigationIcon())
                 ->group($class::navigationGroup())->sort($class::navigationSort())->visible($resource->visibleTo()),
         );
     }

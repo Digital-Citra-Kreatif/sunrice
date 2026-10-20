@@ -50,6 +50,8 @@ $panel->resources(ProductResource::class);
 
 That adds a sidebar item, the routes (`/admin/products`, named `sunrice.admin.resources.products.*`) and four permissions, five when the table is `->exportable()`.
 
+The names come from the model: `label()` ("Products", the page title and the permissions' group), `singularLabel()` ("Product") and `navigationLabel()` (the sidebar item, `label()` unless you override it). Override them as static methods, like `navigationGroup()`, `navigationIcon()` (a lucide name) and `navigationSort()`.
+
 ## Who may do what
 
 - If the model has a **policy**, it decides: `viewAny` and `view`, `create`, `update`, `delete` (and `updateAny`/`deleteAny`, if present, to offer bulk actions).

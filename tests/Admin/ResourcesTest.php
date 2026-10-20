@@ -50,7 +50,8 @@ it('registers permissions, a sidebar item and routes', function () {
     shopUser('view');
     get('/admin')->assertInertia(fn (Assert $page) => $page
         ->where('navigation.0.group', 'Shop')
-        ->where('navigation.0.items.0.url', 'products'));
+        ->where('navigation.0.items.0.url', 'products')
+        ->where('navigation.0.items.0.label', 'Products'));
 
     actingAs(adminUser(Panel::ACCESS));
     get('/admin')->assertInertia(fn (Assert $page) => $page->where('navigation', []));

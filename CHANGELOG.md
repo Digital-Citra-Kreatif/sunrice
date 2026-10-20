@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- The sidebar no longer shows two "Menus": the menus resource is **Menu settings** under Structure (the links stay **Menus** under Content), through the new `Resource::navigationLabel()` (`@api`, the sidebar item's text; `label()` unless overridden; page titles and permission labels still use `label()`). The guide, the docs and the menus page's empty state name it.
 - The workbench follows the address it is served on (`testbench serve --port=…`): the CMS bundle and media URLs no longer point at `APP_URL`'s port 8000.
 - `sunrice:references [--dry-run]` rebuilds references (`sunrice_references`) and the media library's usages of entries and global sets from what is stored, in chunks (`Actions\References\RebuildReferences`, `@api`); the new data migration `2026_02_01_000022_backfill_sunrice_references` runs it once, so content saved before references were recorded gets them on `migrate`. `References::entry()`, `term()` and `global()` take `$dryRun` and return how many references they hold.
 - `RenameFieldHandle` (and `sunrice:rename-field`) refuses a fieldset field's new handle when a blueprint or fieldset that includes the fieldset (through other includes too) already has a field with it where the fieldset's fields land, naming that blueprint or fieldset.

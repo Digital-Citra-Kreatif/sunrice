@@ -169,3 +169,16 @@ it('links untranslated pages at the language\'s address, or the main page with t
     app(SiteCache::class)->changed('test');
     expect(array_column(app(Menus::class)->get('main', 'id'), 'url'))->toBe([url('/about'), url('/tags/news')]);
 });
+
+it('labels the menus resource apart from the menu editor in the sidebar', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
+
+    get('/admin/cms/menus')->assertOk()->assertInertia(function (Assert $page) {
+        $items = collect($page->toArray()['props']['navigation'])->pluck('items')->flatten(1)->keyBy('key');
+
+        expect($items['cms-menus']['label'])->toBe('Menus')
+            ->and($items['resources.menus']['label'])->toBe('Menu settings');
+    });
+    expect(app(Panel::class)->getPermissions()['cms.menus.view']->label)->toBe('View Menus');
+});
