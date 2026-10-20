@@ -141,6 +141,26 @@ return [
         'path' => 'mcp',
         // Requests per minute per token.
         'requests_per_minute' => 120,
+
+        // Tools for working on the app itself: read and change Blade views,
+        // run the console commands listed below and read the error log.
+        // Changing a view or running a command runs code on the server, so
+        // they're off until you turn them on, and only people given the
+        // "Developer tools" permissions (which "*" never gives) may use them.
+        'developer_tools' => [
+            'enabled' => env('SUNRICE_AI_DEVELOPER_TOOLS', false),
+            // Where views are read and written (resource_path('views')).
+            'views_path' => null,
+            // Where log files are read (storage_path('logs')).
+            'logs_path' => null,
+            // Commands agents may run: names, or patterns like "cache:*".
+            'commands' => [
+                'about', 'migrate:status', 'route:list', 'schedule:list',
+                'cache:clear', 'config:clear', 'event:clear', 'route:clear', 'view:clear', 'optimize:clear',
+                'config:cache', 'event:cache', 'route:cache', 'view:cache', 'optimize',
+                'queue:failed', 'queue:retry',
+            ],
+        ],
     ],
 
 ];

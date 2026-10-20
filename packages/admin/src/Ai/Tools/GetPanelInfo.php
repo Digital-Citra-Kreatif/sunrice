@@ -9,6 +9,7 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+use Sunrice\Admin\Ai\DeveloperTools;
 use Sunrice\Admin\Ai\TokenScope;
 use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Panel;
@@ -44,6 +45,9 @@ final class GetPanelInfo extends Tool
             'settings' => array_values(array_map(fn (RegisteredSettings $s) => ['key' => $s->key(), 'label' => $s->class::label()],
                 array_filter($panel->getSettings(), fn (RegisteredSettings $s) => $s->allows($user)))),
             'plugins' => array_keys($panel->getPlugins()),
+            'developer_tools' => DeveloperTools::enabled() && array_intersect(array_column($permissions, 'name'), DeveloperTools::PERMISSIONS) !== []
+                ? ['commands' => $user->can('sunrice.commands.run') ? DeveloperTools::commands() : []]
+                : null,
         ]);
     }
 }

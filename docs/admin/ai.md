@@ -39,6 +39,28 @@ Exactly what its user can, and no more: every tool checks the user's permissions
 
 They check the same permissions, policies and [who may manage whom](users.md#who-may-manage-whom) as the screens, validate with the same rules (`SaveRecord`, `UpdateSettings`), and write the same activity log lines.
 
+## Developer tools
+
+Agents can also work on the app itself: read and change its Blade views (templates), run console commands and read the error log. **Changing a view or running a command runs code on your server**, so these tools are off until you turn them on, and only people you give their permissions may use them:
+
+```dotenv
+SUNRICE_AI_DEVELOPER_TOOLS=true
+```
+
+| Tool | Permission | |
+| --- | --- | --- |
+| `list_views`, `read_view` | `sunrice.views.view` | The views under `resources/views`, by name (`cms.article`), and the earlier versions of one. |
+| `save_view`, `delete_view` | `sunrice.views.update` | Create, replace or delete a view. |
+| `run_command` | `sunrice.commands.run` | Run an allowed console command, like `view:clear` or `queue:retry all`. |
+| `read_log` | `sunrice.logs.view` | The newest entries of a log file in `storage/logs`, errors and worse by default. |
+
+- **Permissions:** they're in the role editor under *Developer tools*. A default role's `*` never includes them, so `sunrice:roles` doesn't give them to administrators: name them, or give them by hand. Super admins have them. A read-only token gets only `list_views`, `read_view` and `read_log`.
+- **Views:** names may only use lowercase letters, numbers, `-` and `_` between the dots, so an agent can't reach files outside the views folder. A view must compile before it's saved, and is live at once. The content it replaces (or deletes) is kept: the newest 20 versions of each view, under `storage/app/sunrice/view-versions`. `read_view` lists them and reads one, so the agent can undo a change by saving it again. A change made on the server is lost on your next deploy unless you put it in the app's code too.
+- **Commands:** only those named in `ai.developer_tools.commands`, with patterns like `cache:*`. By default these are the cache, config, route, view and event `clear` and `cache` commands, `optimize`, `about`, `migrate:status`, `route:list`, `schedule:list`, `queue:failed` and `queue:retry`. Add others, such as `migrate` or your own, only if agents should run them. Commands can't ask questions (they run with `--no-interaction`), and only the last 20,000 characters of their output come back.
+- **The log:** only the last megabyte of a file is read. Bearer and AI tokens, and values that follow `password`, `secret`, `token` or `api_key`, are hidden. Logs can still hold personal data, so give `sunrice.logs.view` with care.
+- Every view saved or deleted and every command run is in the [activity log](activity.md), with the agent's token.
+- Config, under `ai.developer_tools`: `enabled`, `views_path` (`resource_path('views')`), `logs_path` (`storage_path('logs')`) and `commands`.
+
 ## Tools from plugins and apps
 
 A tool is a class extending `Sunrice\Admin\Ai\Tool` (a [laravel/mcp](https://github.com/laravel/mcp) tool):

@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Actions\Permissions;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Sunrice\Admin\Ai\DeveloperTools;
 use Sunrice\Admin\Panel;
 
 /**
@@ -28,7 +29,10 @@ final class SeedRoles
         $all = array_keys($this->panel->getPermissions());
         $given = [];
         foreach ($this->panel->getDefaultRoles() as $name => $patterns) {
-            $wanted = array_values(array_filter($all, fn (string $permission): bool => Str::is($patterns, $permission)));
+            // The developer tools' permissions run code on the server: only by name.
+            $wanted = array_values(array_filter($all, fn (string $permission): bool => in_array($permission, DeveloperTools::PERMISSIONS, true)
+                ? in_array($permission, $patterns, true)
+                : Str::is($patterns, $permission)));
             $role = Role::findOrCreate($name, $guard);
             $has = [];
             foreach ($role->permissions as $permission) {
