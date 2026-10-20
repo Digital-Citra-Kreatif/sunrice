@@ -62,6 +62,8 @@ Read it back with the model: `Media::find($product->image_id)?->url('medium')`.
 
 ## Uploading from code
 
+The page and the picker post each file to `POST /admin/media` (`file`, an optional `folder_id`, and optionally a `title` and `alt` to set with the file; empty ones mean the file's name and no alternative text). In PHP:
+
 ```php
 use Sunrice\Admin\Actions\Media\{UploadMedia, ReplaceMedia, DeleteMedia, MoveMedia, UpdateMedia, SaveMediaFolder, DeleteMediaFolder};
 

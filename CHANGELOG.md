@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `ActivityLog` merges a request's lines by an id it gives each request (`ActivityLog::REQUEST_ID` in the request's attributes), not by the request object's id, which long-running workers reuse.
+- Kept edits: at most 5 per person and item (`KeptEdit::KEEP_PER_EDITOR`); keeping another deletes the oldest.
+- Media uploads (`POST /admin/media`) accept an optional `title` and `alt` with the file.
 - Repeated refusals: a panel page refused (403) to someone signed in is a `page refused` security event (at most `security.alerts.forbidden`, 15, per account in 10 minutes), and reaching that many sends the alert *Someone keeps opening pages they may not see*.
 - The `mass_deletes` alert also counts `unpublished` activity (`SecurityAlerts::DESTRUCTIVE_ACTIONS`).
 - Security alert mails are queued, one per recipient (`Mail::queue()`), instead of sent during the request.

@@ -10,6 +10,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\RestoreEntry;
@@ -84,7 +85,9 @@ it('doesn\'t store fields the blueprint doesn\'t have', function () {
 it('saves drafts without touching the live version', function () {
     $translation = app(PublishEntry::class)->handle(article());
     // A later request: the log merges edits into a line written in the same one.
-    app()->instance('request', request()->duplicate());
+    $later = request()->duplicate();
+    $later->attributes->remove(ActivityLog::REQUEST_ID);
+    app()->instance('request', $later);
     app(SaveDraft::class)->handle($translation, ['title' => 'Hello again', 'data' => ['featured' => true]]);
 
     expect($translation->title)->toBe('Hello world')

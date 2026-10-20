@@ -68,6 +68,12 @@ final class EditLocksController
             'taken_by' => is_string($takenBy) ? $takenBy : null,
             'content' => $content,
         ]);
+        // At most a few per person and item: the older ones go.
+        $older = KeptEdit::query()->where('type', $type)->where('item_id', $id)->where('user_id', (string) self::userId($request))
+            ->orderByDesc('id')->skip(KeptEdit::KEEP_PER_EDITOR)->take(100)->pluck('id');
+        if ($older->isNotEmpty()) {
+            KeptEdit::query()->whereKey($older)->delete();
+        }
 
         return response()->json(['kept' => $kept->id]);
     }
