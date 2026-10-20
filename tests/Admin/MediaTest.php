@@ -11,6 +11,7 @@ use Sunrice\Admin\Actions\Media\ReplaceMedia;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Media\Jobs\GenerateImageSizes;
 use Sunrice\Admin\Media\Media;
+use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\SafeSvg;
 
 use function Pest\Laravel\artisan;
@@ -163,6 +164,24 @@ it('makes sizes on the queue when asked, and again from the console', function (
     artisan('sunrice:media-sizes', ['--id' => [$media->id]])->assertSuccessful();
     expect(array_keys($media->fresh()->sizes))->toBe(['wide']);
     expect(Storage::disk('public')->allFiles())->toEqualCanonicalizing($media->fresh()->files());
+});
+
+it('makes sizes on the queue by default, unless jobs would run in the request anyway', function () {
+    expect(config('sunrice-admin.media.queue'))->toBeNull()->and(config('queue.default'))->toBe('sync')->and(MediaConfig::queue())->toBeFalse();
+    $now = upload(UploadedFile::fake()->image('now.jpg', 900, 600));
+    expect(array_keys($now->sizes))->toBe(['thumbnail', 'medium', 'large']);
+
+    config(['queue.default' => 'redis']);
+    expect(MediaConfig::queue())->toBeTrue();
+    Queue::fake();
+    $later = upload(UploadedFile::fake()->image('later.jpg', 900, 600));
+    expect($later->sizes)->toBe([])->and($later->url('thumbnail'))->toBe($later->url()); // the original, until the job ran
+    Queue::assertPushed(GenerateImageSizes::class, fn (GenerateImageSizes $job) => $job->mediaId === $later->id);
+
+    config(['sunrice-admin.media.queue' => false]);
+    expect(MediaConfig::queue())->toBeFalse();
+    config(['sunrice-admin.media.queue' => null, 'queue.connections.redis.driver' => 'null']);
+    expect(MediaConfig::queue())->toBeFalse();
 });
 
 it('keeps only the original of images it can\'t read or that are too large', function () {

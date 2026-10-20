@@ -82,9 +82,17 @@ final class MediaConfig
         return $result;
     }
 
+    /** Make image sizes on the queue: as `media.queue` says, or (null) whenever jobs don't run in the request anyway. */
     public static function queue(): bool
     {
-        return config('sunrice-admin.media.queue') === true;
+        $queue = config('sunrice-admin.media.queue');
+        if (is_bool($queue)) {
+            return $queue;
+        }
+        $connection = config('queue.default');
+        $driver = is_string($connection) ? config("queue.connections.{$connection}.driver") : null;
+
+        return is_string($driver) && ! in_array($driver, ['sync', 'null'], true);
     }
 
     public static function maxPixels(): int
