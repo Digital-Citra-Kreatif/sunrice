@@ -80,6 +80,13 @@ app(\Sunrice\Cms\Site\PageCache::class)->skipWhen(fn (Request $request, ?Page $p
 
 The callback is asked twice: before a kept page is served (`$page` is null then: only the request is known), and after a page renders, before it's kept.
 
+Pages are kept for `cache.ttl` at most. Keep some for less with `lifetimeUsing()`: return seconds, or null for no opinion; the shortest answer wins, and 0 doesn't keep the page at all. Drafts and previews are never kept.
+
+```php
+app(\Sunrice\Cms\Site\PageCache::class)->lifetimeUsing(fn (Request $request, ?Page $page): ?int =>
+    $page?->collection?->handle === 'events' ? 300 : null);
+```
+
 The CMS sets responsecache's `cache_profile` (`Sunrice\Cms\Site\PageCacheProfile`), `serializer` (one that drops cookies) and `hasher` (`Sunrice\Cms\Site\PageCacheHasher`) unless your `config/responsecache.php` names its own: then extend them, and keep cookies out of what's stored. Where pages are kept is responsecache's `cache.store` (`RESPONSE_CACHE_DRIVER`, `file` by default). With `APP_DEBUG` on, responses say `X-Cache-Status: HIT` or `MISS`.
 
 A kept page is told apart by its host, path, language and only the query parameters the site reads: `page`, `q` and those in `sunrice-cms.cache.query`. `?utm_source=…` or `?x=<anything>` gets the same kept page, so nobody can fill the store with copies of one page. Add a parameter to `cache.query` when a template reads it (`['sort']`), or skip those pages.

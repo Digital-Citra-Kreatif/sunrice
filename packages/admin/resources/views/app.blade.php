@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
-    <title inertia>{{ $sunricePanel->getBrand() }}</title>
+    @php($sunriceBranding = \Sunrice\Admin\Support\Branding::make())
+    <title inertia>{{ $sunriceBranding->name() }}</title>
     {{-- The saved appearance, before paint, so dark mode doesn't flash light. --}}
     <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
         (function () {
@@ -15,14 +16,15 @@
             } catch (e) {}
         })();
     </script>
-    @if ($sunriceFont = \Sunrice\Admin\Assets\AdminAssets::fontStylesheet())
-        @if ($sunriceFontOrigin = \Sunrice\Admin\Assets\AdminAssets::fontOrigin())
+    @if ($sunriceFont = $sunriceBranding->fontStylesheet())
+        @if ($sunriceFontOrigin = $sunriceBranding->fontOrigin())
             <link rel="preconnect" href="{{ $sunriceFontOrigin }}" crossorigin>
         @endif
         <link rel="stylesheet" href="{{ $sunriceFont }}">
     @endif
-    @if ($sunriceFontFamily = \Sunrice\Admin\Assets\AdminAssets::fontFamily())
-        <style @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>:root { --sunrice-font: "{{ $sunriceFontFamily }}"; }</style>
+    @if ($sunriceBrandCss = $sunriceBranding->css())
+        {{-- Known fonts and validated #rrggbb colours only (Branding::css()), so printed as is. --}}
+        <style @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>{!! $sunriceBrandCss !!}</style>
     @endif
     {{ \Sunrice\Admin\Assets\AdminAssets::tags() }}
     @inertiaHead

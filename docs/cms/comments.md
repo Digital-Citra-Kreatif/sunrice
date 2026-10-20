@@ -32,6 +32,7 @@ The markup's classes: `sunrice-comments` (`#comments`), `sunrice-comments-list`,
 | Close comments after | never | Days after the entry's publish date. |
 | Reply levels shown | 3 | Deeper replies line up at the last level. |
 | Email moderators about new comments | on | Users with `cms.comments.moderate`, and the extra addresses. |
+| Also email roles | none | Everyone with these roles too (`notifyRoles`), one email each; a role deleted later is skipped. |
 | Let commenters get an email when someone replies | on | A box on the form. A guest could type anyone's address, so a guest is signed up only when a moderator sees the comment (it's held), or when the comment that earned their trust asked too; with comments published at once, only signed-in users get it. |
 
 Every comment also needs the honeypot. Spam is deleted after `sunrice-cms.comments.prune_spam_after_days` (30) by the daily `model:prune`.
@@ -45,7 +46,7 @@ Both are queued: run a queue worker.
 
 ## Moderating
 
-**Content → Comments** (`cms.comments.view`) lists comments newest first, in tabs: All (pending and approved), Pending, Approved, Spam and Trash, with search over the text, name and email and a collection filter (the editor's Page settings link to an entry's own). Each shows the entry, the comment it answers and its language.
+**Content → Comments** (`cms.comments.view`) lists comments newest first, in tabs: All (pending and approved), Pending, Approved, Spam and Trash, with search over the text, name and email, a collection filter, and an entry filter (`?entry=`, which the entry editor's **Comments** card and Page settings link to; the card also shows the latest five with Approve, Spam and Reply). Each shows the entry, the comment it answers and its language.
 
 - **Approve**, **Unapprove**, **Spam** (`cms.comments.moderate`), one by one or for the selected ones.
 - **Reply**: published at once under your name, even when the entry is closed; replying to a held comment approves it.

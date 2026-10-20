@@ -84,7 +84,7 @@ it('lets an agent in with a valid token only, as its owner', function () {
 
     postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'])->assertUnauthorized();
     mcp('sra_wrong', 'tools/list')->assertUnauthorized();
-    expect(toolNames(mcp($plain, 'tools/list')->assertOk()))->toBe(['delete_record', 'get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'run_action', 'save_record', 'shop_read', 'shop_write', 'update_settings']);
+    expect(toolNames(mcp($plain, 'tools/list')->assertOk()))->toBe(['delete_record', 'get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'manage_media', 'read_docs', 'read_error_log', 'run_action', 'run_command', 'save_record', 'shop_read', 'shop_write', 'update_media', 'update_settings', 'upload_media']);
 
     $info = json_decode(mcp($plain, 'tools/call', ['name' => 'get_panel_info', 'arguments' => []])->json('result.content.0.text'), true);
     expect($info)->panel->toBe('Admin')->you->toBe(['name' => 'Rina', 'email' => 'rina@example.com'])->read_only_token->toBeFalse()
@@ -135,7 +135,7 @@ it('keeps read-only tokens to reading, even for super admins', function () {
     $this->rina->assignRole('super-admin');
     [, $plain] = AiToken::issue((string) $this->rina->id, 'Reader', readOnly: true);
 
-    expect(toolNames(mcp($plain, 'tools/list')))->toBe(['get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'shop_read']);
+    expect(toolNames(mcp($plain, 'tools/list')))->toBe(['get_activity', 'get_panel_info', 'get_record', 'get_settings', 'list_media', 'list_records', 'read_docs', 'read_error_log', 'shop_read']);
     mcp($plain, 'tools/call', ['name' => 'shop_write', 'arguments' => []])->assertJsonPath('error.code', -32602);
 
     $info = json_decode(mcp($plain, 'tools/call', ['name' => 'get_panel_info', 'arguments' => []])->json('result.content.0.text'), true);
@@ -159,6 +159,8 @@ it('refuses a read-only token every ability but viewing, also ones the panel doe
         ->and(Gate::allows('viewAny'))->toBeTrue()
         ->and(Gate::allows(Panel::ACCESS))->toBeTrue()
         ->and(Gate::allows('sunrice.ai.connect'))->toBeTrue()
+        ->and(Gate::allows('sunrice.ai.error-log'))->toBeTrue()
+        ->and(Gate::allows('sunrice.ai.run-commands'))->toBeFalse()
         ->and(Gate::allows('shop.orders.refund'))->toBeFalse()
         ->and(Gate::allows('publish'))->toBeFalse()
         ->and(Gate::allows('shop.products.update'))->toBeFalse()

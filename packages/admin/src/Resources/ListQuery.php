@@ -99,8 +99,10 @@ final class ListQuery
         return $query;
     }
 
-    public static function perPage(Request $request, int $default): int
+    /** Rows per page: ?per_page= when it's one of PER_PAGE, else the user's saved choice, else the table's. */
+    public static function perPage(Request $request, int $default, ?int $saved = null): int
     {
+        $default = $saved !== null && in_array($saved, self::PER_PAGE, true) ? $saved : $default;
         $perPage = $request->integer('per_page', $default);
 
         return in_array($perPage, self::PER_PAGE, true) ? $perPage : $default;

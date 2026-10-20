@@ -95,7 +95,7 @@ it('exports the collection as CSV', function () {
     get('/admin/cms/collections/articles/entries')->assertInertia(fn (Assert $page) => $page->where('can.export', true));
     $csv = get('/admin/cms/collections/articles/entries/export')->assertOk()->streamedContent();
 
-    expect($csv)->toStartWith('ID,Title,Slug,Status,Published,URL,Updated,Intro,Kind')
+    expect($csv)->toStartWith('ID,Title,Slug,Status,Published,URL,Updated,Author,Intro,Kind')
         ->toContain("'=Sum")->toContain('published')->toContain(url('/articles/sum'))->toContain('News')
         ->not->toContain('Gone');
     expect(Activity::query()->where('action', 'exported')->exists())->toBeTrue();
@@ -121,7 +121,7 @@ it('deletes for good only from the trash', function () {
     delete("/admin/cms/entries/{$hello->entry_id}/force")->assertSessionHasErrors('entry');
 
     $hello->entry->delete();
-    delete("/admin/cms/entries/{$hello->entry_id}/force")->assertRedirect('/admin/cms/collections/articles/entries?trashed=1');
+    delete("/admin/cms/entries/{$hello->entry_id}/force")->assertRedirect('/admin/cms/collections/articles/entries?status=trashed');
     expect(Entry::query()->withTrashed()->count())->toBe(0)->and(EntryTranslation::query()->count())->toBe(0);
 });
 

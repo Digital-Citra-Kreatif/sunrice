@@ -79,7 +79,8 @@ it('changes the handle when editing, only to a free and valid one', function () 
     Collection::query()->create(['handle' => 'posts', 'title' => 'Posts'])->delete();
     collectionsUser('view', 'update');
 
-    put("/admin/collections/{$pages->id}", ['title' => 'Site pages'])->assertSessionHasErrors('handle');
+    put("/admin/collections/{$pages->id}", ['title' => 'Pages'])->assertSessionHasNoErrors(); // left out: kept
+    expect($pages->fresh()?->handle)->toBe('pages');
     put("/admin/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'posts'])->assertSessionHasErrors('handle'); // a deleted one's
     put("/admin/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'other'])->assertSessionHasNoErrors();
 

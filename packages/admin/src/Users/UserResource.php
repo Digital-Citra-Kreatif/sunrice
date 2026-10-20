@@ -13,6 +13,9 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Traits\HasRoles;
 use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
 use Sunrice\Admin\Actions\Users\DeleteUser;
+use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Ai\AiToken;
+use Sunrice\Admin\Auth\LoginThrottle;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
@@ -29,6 +32,7 @@ use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
+use Sunrice\Admin\Support\Card;
 
 /**
  * The panel's Users screen: the users of the panel's guard, their
@@ -140,12 +144,13 @@ class UserResource extends Resource
                     }),
                 Action::make('lock')->label('Lock account')->destructive()
                     ->confirm('Lock this account? They are signed out everywhere and can\'t log in until someone unlocks it. Nothing is deleted.')
+                    ->form(TextInput::make('reason')->label('Reason (optional)')->maxLength(250)->placeholder('e.g. Password may have leaked'))
                     ->visible(fn (Model $user) => ! app(AccountGuard::class)->isLocked($user) && ! static::isCurrentUser($user))
-                    ->handle(function (Model $user): string {
+                    ->handle(function (Model $user, array $input): string {
                         if (static::isCurrentUser($user)) {
                             throw new ActionFailed('You can\'t lock your own account.');
                         }
-                        app(AccountGuard::class)->lock($user);
+                        app(AccountGuard::class)->lock($user, is_string($input['reason'] ?? null) ? $input['reason'] : null);
 
                         return 'Account locked.';
                     }),
@@ -159,6 +164,59 @@ class UserResource extends Resource
                 static::deleteAction(),
             ])
             ->defaultSort('name');
+    }
+
+    /**
+     * The Security card: lock state, wrong-password lock, sign-outs, AI
+     * tokens, the last login and the latest security events. Four queries.
+     */
+    public static function aside(Model $record, Authorizable $user): array
+    {
+        $id = (string) (is_scalar($record->getKey()) ? $record->getKey() : '');
+        $state = app(AccountGuard::class)->state($record);
+        $email = $record->getAttribute('email');
+        $passwordLock = is_string($email) ? app(LoginThrottle::class)->accountLockedFor($email) : 0;
+        $events = Activity::query()->where('source', 'security')->where('subject_type', 'account')->where('subject_id', $id)
+            ->where('action', '!=', 'alert sent')
+            ->orderByDesc('id')->limit(8)->get();
+        $lastLogin = Activity::query()->where('source', 'security')->where('subject_type', 'account')->where('subject_id', $id)
+            ->where('action', 'logged in')->orderByDesc('id')->first();
+
+        $card = Card::make('Security')->description('If this account may be in the wrong hands: sign it out everywhere, revoke its AI tokens or lock it from the users list.');
+        if ($state?->locked_at !== null) {
+            $card->notice(
+                'Locked '.$state->locked_at->toDayDateTimeString().($state->locked_by === null ? '' : ' by '.$state->locked_by),
+                Card::DANGER,
+                trim(($state->locked_reason === null ? '' : $state->locked_reason.' · ').'This account can\'t log in, open the panel or use its AI tokens until it\'s unlocked.'),
+            );
+        } elseif ($passwordLock > 0) {
+            $minutes = (int) ceil($passwordLock / 60);
+            $card->notice('Locked after too many wrong passwords', Card::WARNING, "It unlocks by itself in {$minutes} ".Str::plural('minute', $minutes).'.');
+        }
+
+        $card->rows([
+            'Last login' => $lastLogin === null ? 'No login recorded' : ($lastLogin->created_at?->toDayDateTimeString() ?? '').($lastLogin->ip_address === null ? '' : ' from '.$lastLogin->ip_address),
+            'AI access tokens' => AiToken::query()->where('user_id', $id)->count(),
+            'Signed out everywhere' => $state?->signed_out_at,
+        ]);
+        $card->list('Latest security events', $events->map(fn (Activity $event) => [
+            'label' => Str::ucfirst($event->action),
+            'meta' => implode(' · ', array_filter([
+                is_string($event->properties['note'] ?? null) ? $event->properties['note'] : null,
+                $event->user_id !== null && $event->user_id !== $id && $event->user_name !== null ? 'by '.$event->user_name : null,
+                $event->ip_address === null ? null : 'IP '.$event->ip_address,
+            ])) ?: null,
+            'at' => $event->created_at,
+        ]));
+        // The list's row actions, which check the right to update this user again.
+        $actions = '/'.trim(route('sunrice.admin.resources.users.index', [], false), '/')."/{$id}/actions";
+        $card->button('Sign out everywhere', "{$actions}/sign-out", 'End all of this user\'s sessions? They can log in again with their password.');
+        $card->button('Revoke AI tokens', "{$actions}/revoke-tokens", 'Revoke all of this user\'s AI access tokens? AI agents using them stop working at once.');
+        if ($user->can('sunrice.activity.view')) {
+            $card->link('See all in the activity log', route('sunrice.admin.activity.index', ['type' => 'account', 'subject' => $id], false));
+        }
+
+        return [$card];
     }
 
     /** The row's Delete: it replaces the built-in one to ask what happens to what the user owns. */

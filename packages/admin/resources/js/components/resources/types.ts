@@ -65,3 +65,17 @@ export interface SectionInfo {
     columns: number;
     fields: FieldInfo[];
 }
+
+/** A read-only card from `Resource::aside()` or `Settings::cards()` (Sunrice\Admin\Support\Card). */
+export type InfoBlock =
+    | { type: 'notice'; text: string; tone: 'info' | 'warning' | 'danger'; detail: string | null }
+    | { type: 'rows'; rows: { label: string; value: string; type: 'text' | 'datetime' }[] }
+    | { type: 'list'; heading: string; empty: string; items: { label: string; meta: string | null; at: string | null }[] };
+
+export interface InfoCard {
+    title: string;
+    description: string | null;
+    blocks: InfoBlock[];
+    links: { label: string; url: string }[];
+    buttons: { label: string; url: string; confirm: string | null }[];
+}

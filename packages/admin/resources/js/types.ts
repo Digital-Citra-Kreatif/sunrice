@@ -23,10 +23,30 @@ export interface BundleInfo {
     pages: string[];
 }
 
+/** Settings → Branding with the panel's defaults filled in (Support\Branding::toArray()). */
+export interface Branding {
+    name: string;
+    tagline: string;
+    /** The logo image's URL, or null for the lettermark. */
+    logo: string | null;
+    /** The name's first letter, shown without a logo. */
+    lettermark: string;
+    color: string | null;
+    login: {
+        layout: 'split' | 'centered';
+        eyebrow: string;
+        headline: string;
+        text: string;
+        footer: string;
+        image: string | null;
+    };
+}
+
 export interface SharedProps {
-    sunrice: { brand: string; path: string; bundles: BundleInfo[] };
+    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[] };
     auth: { user: { id: string | number; name: string | null; email: string | null } | null };
     navigation: NavGroup[];
-    flash: { success: string | null; error: string | null };
+    /** `id` is new for each message shown, so the same text twice toasts twice. */
+    flash: { id: string | null; success: string | null; error: string | null };
     [key: string]: unknown;
 }

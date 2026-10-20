@@ -38,9 +38,9 @@ it('syncs the registered permissions and leaves the app\'s own alone', function 
 
     $result = app(SyncPermissions::class)->handle();
 
-    expect($result['created'])->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.settings.security', 'shop.orders.view'])
+    expect($result['created'])->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.activity.prune', 'sunrice.settings.branding', 'sunrice.settings.security', 'sunrice.settings.mail', 'shop.orders.view'])
         ->and($result['deleted'])->toEqualCanonicalizing(['shop.old-feature', 'sunrice.removed'])
-        ->and(storedPermissions())->toBe(['reports.export', 'shop.orders.view', Panel::ACCESS, 'sunrice.activity.view', 'sunrice.settings.security'])
+        ->and(storedPermissions())->toBe(['reports.export', 'shop.orders.view', Panel::ACCESS, 'sunrice.activity.prune', 'sunrice.activity.view', 'sunrice.settings.branding', 'sunrice.settings.mail', 'sunrice.settings.security'])
         ->and(Role::query()->where('name', 'super-admin')->exists())->toBeTrue();
 
     // Running it again changes nothing.

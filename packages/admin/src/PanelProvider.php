@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Sunrice\Admin;
 
 use Illuminate\Support\ServiceProvider;
+use Laravel\Mcp\Facades\Mcp;
+use Sunrice\Admin\Ai\PanelServer;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 
 /**
@@ -43,6 +45,10 @@ abstract class PanelProvider extends ServiceProvider
 
         if (! $this->app->routesAreCached()) {
             PanelRoutes::register($panel);
+        }
+        // For an agent on the server itself: `php artisan mcp:start sunrice` (stdio), as sunrice-admin.ai.local_user.
+        if ($this->app->runningInConsole() && $panel->hasAiAccess() && config('sunrice-admin.ai.enabled', true) !== false) {
+            Mcp::local('sunrice', PanelServer::class);
         }
     }
 }

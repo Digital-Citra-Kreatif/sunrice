@@ -11,6 +11,7 @@ use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\PanelRoutes;
+use Sunrice\Admin\Settings\BrandingSettings;
 use Workbench\App\Models\User;
 
 use function Pest\Laravel\actingAs;
@@ -52,6 +53,23 @@ it('shows the dashboard with the shell\'s page data', function () {
         ->where('navigation.0.group', 'Tools')
         ->where('navigation.0.items.0.key', 'reports')
         ->where('shop.currency', 'IDR'));
+});
+
+it('shows the brand\'s first letter where there is no logo', function () {
+    usePanel(fn (Panel $panel) => $panel->brand('élan'));
+    signIn();
+
+    get('/admin')->assertInertia(fn (Assert $page) => $page
+        ->where('sunrice.branding.name', 'élan')
+        ->where('sunrice.branding.logo', null)
+        ->where('sunrice.branding.lettermark', 'É'));
+
+    // A logo id whose file is gone (or isn't an image) falls back too.
+    app(BrandingSettings::class)->fill(['logo' => 12345, 'name' => ' '])->save();
+    get('/admin')->assertInertia(fn (Assert $page) => $page
+        ->where('sunrice.branding.name', 'élan')
+        ->where('sunrice.branding.logo', null)
+        ->where('sunrice.branding.lettermark', 'É'));
 });
 
 it('puts plugin routes behind sign-in, under the panel path and names', function () {
@@ -118,5 +136,22 @@ it('loads the panel font, or the one configured instead', function () {
     config(['sunrice-admin.font' => ['stylesheet' => null, 'family' => 'Instrument "Sans"']]);
     get('/admin/login')->assertOk()
         ->assertDontSee('fonts.bunny.net')
-        ->assertSee(':root { --sunrice-font: "Instrument Sans"; }', false);
+        ->assertSee('html:root{--sunrice-font:"Instrument Sans";}', false);
+});
+
+it('gives each flash message an id, so the same text twice shows twice', function () {
+    usePanel();
+    signIn();
+
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('flash', ['id' => null, 'success' => null, 'error' => null]));
+
+    $ids = [];
+    foreach ([1, 2] as $_) {
+        session()->flash('success', 'Saved.');
+        get('/admin')->assertInertia(function (Assert $page) use (&$ids) {
+            $page->where('flash.success', 'Saved.')->where('flash.error', null);
+            $ids[] = $page->toArray()['props']['flash']['id'];
+        });
+    }
+    expect($ids[0])->toBeString()->not->toBe($ids[1]);
 });

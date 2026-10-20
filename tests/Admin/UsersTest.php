@@ -10,11 +10,15 @@ use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Actions\Users\DeleteUser;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Ai\AiToken;
+use Sunrice\Admin\Auth\LoginThrottle;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Locks\KeptEdit;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Permissions\Permission as PanelPermission;
+use Sunrice\Admin\Security\AccountGuard;
+use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Users\PermissionRank;
 use Sunrice\Admin\Users\UserResource;
 use Sunrice\Tests\Admin\Fixtures\TestPlugin;
@@ -77,12 +81,12 @@ it('can leave the screens out or use subclasses', function () {
     $panel = Panel::make()->userResource(null)->roleResource(null)->mediaLibrary(false)->aiAccess(false);
     $panel->boot();
     expect($panel->getResources())->toBe([])
-        ->and(array_keys($panel->getPermissions()))->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.settings.security']);
+        ->and(array_keys($panel->getPermissions()))->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.activity.prune', 'sunrice.settings.branding', 'sunrice.settings.security', 'sunrice.settings.mail']);
 
     // The panel's own permissions come first, whoever registers theirs earlier.
     $panel = Panel::make()->mediaLibrary(false)->aiAccess(false)->permissions(PanelPermission::make('app.export', 'Export'));
     $panel->boot();
-    expect(array_keys($panel->getPermissions()))->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.settings.security', 'sunrice.users.view', 'sunrice.users.create', 'sunrice.users.update', 'sunrice.users.delete', 'sunrice.roles.view', 'sunrice.roles.create', 'sunrice.roles.update', 'sunrice.roles.delete', 'app.export'])
+    expect(array_keys($panel->getPermissions()))->toBe([Panel::ACCESS, 'sunrice.activity.view', 'sunrice.activity.prune', 'sunrice.settings.branding', 'sunrice.settings.security', 'sunrice.settings.mail', 'sunrice.users.view', 'sunrice.users.create', 'sunrice.users.update', 'sunrice.users.delete', 'sunrice.roles.view', 'sunrice.roles.create', 'sunrice.roles.update', 'sunrice.roles.delete', 'app.export'])
         ->and(fn () => Panel::make()->permissions(PanelPermission::make('sunrice.users.view', 'Mine'))->boot())->toThrow(PanelMisconfigured::class, 'registered twice');
 
     expect(fn () => Panel::make()->userResource(Panel::class))->toThrow(PanelMisconfigured::class, 'extend '.UserResource::class);
@@ -314,4 +318,48 @@ it('lets plugins register what users own, under their own id', function () {
         ->toThrow(PanelMisconfigured::class, 'start with its id');
     expect(fn () => Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->userContent('shop.a', 'a', fn () => 0, fn () => null)->userContent('shop.a', 'a', fn () => 0, fn () => null)))->boot())
         ->toThrow(PanelMisconfigured::class, 'twice');
+});
+
+it('shows a Security card on the user\'s page, and locks with a reason', function () {
+    actingAs($this->super);
+    app(SecurityLog::class)->record('logged in', $this->editor);
+    Activity::query()->where('action', 'logged in')->update(['ip_address' => '203.0.113.9']);
+    AiToken::query()->create(['user_id' => (string) $this->editor->id, 'name' => 'Agent', 'token_hash' => hash('sha256', 'x')]);
+
+    post("/admin/users/{$this->editor->id}/actions/lock", ['reason' => str_repeat('x', 251)])->assertSessionHasErrors('reason');
+    post("/admin/users/{$this->editor->id}/actions/lock", ['reason' => 'Password leaked'])->assertSessionHas('success', 'Account locked.');
+    expect(app(AccountGuard::class)->state($this->editor))
+        ->locked_reason->toBe('Password leaked')
+        ->locked_by->toBe('Super');
+
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->component('Resources/Form', false)
+        ->has('aside', 1)
+        ->where('aside.0.title', 'Security')
+        ->where('aside.0.blocks.0.type', 'notice')
+        ->where('aside.0.blocks.0.tone', 'danger')
+        ->where('aside.0.blocks.0.text', fn (string $text) => str_starts_with($text, 'Locked ') && str_ends_with($text, ' by Super'))
+        ->where('aside.0.blocks.0.detail', fn (string $detail) => str_starts_with($detail, 'Password leaked · '))
+        ->where('aside.0.blocks.1.rows', fn ($rows) => collect($rows)->pluck('value', 'label')->only(['Last login', 'AI access tokens'])->map(fn ($v) => str_contains($v, ' from ') ? 'from' : $v)->all() === ['Last login' => 'from', 'AI access tokens' => '0']
+            && collect($rows)->firstWhere('label', 'Signed out everywhere')['type'] === 'datetime')
+        ->where('aside.0.blocks.2.heading', 'Latest security events')
+        ->where('aside.0.blocks.2.items', fn ($items) => collect($items)->firstWhere('label', 'Account locked by admin')['meta'] === 'Password leaked · by Super · IP 127.0.0.1')
+        ->where('aside.0.buttons.0.url', "/admin/users/{$this->editor->id}/actions/sign-out")
+        ->where('aside.0.links.0.url', "/admin/activity?type=account&subject={$this->editor->id}"));
+
+    // Creating a user has no card; a plain resource has none.
+    get('/admin/users/create')->assertInertia(fn (Assert $page) => $page->where('aside', []));
+});
+
+it('shows the wrong-password lock on the Security card', function () {
+    config(['sunrice-admin.auth.throttle.per_account' => 2]);
+    $throttle = app(LoginThrottle::class);
+    $throttle->failed('editor@example.com', '1.1.1.1');
+    $throttle->failed('editor@example.com', '1.1.1.2');
+
+    actingAs($this->super);
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('aside.0.blocks.0.text', 'Locked after too many wrong passwords')
+        ->where('aside.0.blocks.0.tone', 'warning')
+        ->where('aside.0.blocks.1.rows.0', ['label' => 'Last login', 'value' => 'No login recorded', 'type' => 'text']));
 });

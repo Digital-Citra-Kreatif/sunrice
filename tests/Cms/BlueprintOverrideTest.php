@@ -6,19 +6,24 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Blueprints\RenameFieldHandle;
 use Sunrice\Cms\Actions\Collections\SaveCollection;
 use Sunrice\Cms\Actions\Entries\ChangeBlueprint;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\DuplicateEntry;
+use Sunrice\Cms\Actions\Entries\ForceDeleteEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Query\EntryQuery;
+use Sunrice\Cms\Structure\StructureExporter;
+use Sunrice\Cms\Structure\StructureImporter;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -144,10 +149,11 @@ it('exports every blueprint\'s fields, each entry filling its own', function () 
 
     $csv = get('/admin/cms/collections/pages/entries/export')->assertOk()->streamedContent();
     $rows = array_map(str_getcsv(...), array_values(array_filter(explode("\n", trim($csv)))));
+    $byTitle = array_column(array_slice($rows, 1), null, 1);
 
-    expect(array_slice($rows[0], 7))->toBe(['Intro', 'Body', 'Headline', 'Topics'])
-        ->and(array_slice($rows[1], 7))->toBe(['Hi', 'Body text', '', ''])
-        ->and(array_slice($rows[2], 7))->toBe(['Lead', '', 'Big', '']); // its hidden "body" stays out
+    expect(array_slice($rows[0], 8))->toBe(['Intro', 'Body', 'Headline', 'Topics'])
+        ->and(array_slice($byTitle['Plain'], 8))->toBe(['Hi', 'Body text', '', ''])
+        ->and(array_slice($byTitle['Landing'], 8))->toBe(['Lead', '', 'Big', '']); // its hidden "body" stays out
 });
 
 it('keeps the blueprint when duplicating, and edits the allowed list on the collection', function () {
@@ -169,4 +175,36 @@ it('saves the blueprints offered with SaveCollection', function () {
     expect(fn () => app(SaveCollection::class)->handle(['title' => 'Pages', 'blueprints' => ['missing']], $this->pages))->toThrow(ValidationException::class);
     app(SaveCollection::class)->handle(['title' => 'Pages', 'blueprints' => []], $this->pages);
     expect($this->pages->fresh()?->blueprints)->toBeNull();
+});
+
+it('renames a field in the entries that use the blueprint, theirs or their collection\'s', function () {
+    $plain = overridePage('Plain');
+    $landing = overridePage('Landing', ['intro' => 'Lead']);
+    app(ChangeBlueprint::class)->handle($landing->entry, 'landing');
+
+    app(RenameFieldHandle::class)->handle(Blueprint::query()->where('handle', 'landing')->firstOrFail(), 'intro', 'lead');
+
+    expect($landing->fresh()?->draft_data)->toHaveKey('lead')->not->toHaveKey('intro')
+        ->and($plain->fresh()?->draft_data)->toHaveKey('intro')->not->toHaveKey('lead')
+        ->and(Entry::usingBlueprint('page')->pluck('id')->all())->toBe([$plain->entry_id])
+        ->and(Entry::usingBlueprint('landing')->pluck('id')->all())->toBe([$landing->entry_id]);
+});
+
+it('exports and imports the blueprints offered and an entry\'s own', function () {
+    $landing = overridePage('Landing');
+    app(ChangeBlueprint::class)->handle($landing->entry, 'landing');
+    app(SaveDraft::class)->handle($landing->fresh(), ['title' => 'Landing', 'data' => ['headline' => 'Big']]);
+
+    $structure = json_decode(json_encode(app(StructureExporter::class)->export(content: true), JSON_THROW_ON_ERROR), true); // as the file holds it
+    expect(collect($structure['collections'])->firstWhere('handle', 'pages')['blueprints'] ?? null)->toBe(['landing'])
+        ->and(collect($structure['entries'])->firstWhere('slug', 'landing')['blueprint'] ?? null)->toBe('landing');
+
+    $landing->entry->delete();
+    app(ForceDeleteEntry::class)->handle($landing->entry);
+    $this->pages->update(['blueprints' => null]);
+    app(StructureImporter::class)->import($structure);
+
+    $imported = Entry::query()->where('collection_id', $this->pages->id)->where('blueprint', 'landing')->firstOrFail();
+    expect($this->pages->fresh()?->blueprints)->toBe(['landing'])
+        ->and($imported->translations()->firstOrFail()->draft_data)->toMatchArray(['headline' => 'Big']);
 });

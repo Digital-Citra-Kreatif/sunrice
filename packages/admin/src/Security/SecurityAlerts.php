@@ -25,8 +25,8 @@ use Throwable;
  * passwords, one address trying many accounts, a powerful account
  * signing in from a new address or after a long absence, someone gaining
  * a privileged permission (`$panel->privilegedPermissions()`), a
- * dangerous upload, someone kept out of pages again and again, and
- * bursts of exports or deletes.
+ * dangerous upload, someone kept out of pages again and again, the
+ * activity log pruned in the panel, and bursts of exports or deletes.
  *
  * Each alert says what happened and what to do. The same alert (rule and
  * account) is sent once per `cooldown_minutes`, each recipient's mail is
@@ -143,6 +143,11 @@ final class SecurityAlerts
                 break;
             case 'page refused':
                 $this->refused($e, $note, $details);
+                break;
+            case 'log pruned':
+                $this->alert('log-pruned', (string) $e->label, 'The activity log was pruned',
+                    ($e->label ?? 'Someone').' deleted activity log lines in the panel ('.($note === '' ? 'old lines' : $note).').',
+                    'If nobody meant to clean up the log, someone may be covering their tracks: check what this account did recently and lock it on the Users screen if in doubt.', $details);
                 break;
             case 'two-factor turned off':
                 $this->alert('two-factor-off', 'two-factor', 'Two-factor login was turned off',

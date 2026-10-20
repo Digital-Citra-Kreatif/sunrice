@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
 import { Cell } from '@/components/resources/cell';
@@ -11,13 +11,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { toggleColumn, type TablePreferences } from '@/lib/table-preferences';
+import { useTablePreferences } from '@/lib/use-table-preferences';
 
 interface Props {
     resource: ResourceInfo;
@@ -39,17 +41,23 @@ interface Props {
         nextUrl: string | null;
     };
     perPageOptions: number[];
+    /** The user's saved columns and page size for this table. */
+    preferences: TablePreferences & { key: string };
 }
 
 const ALL = '__all';
 
-export default function ResourceIndex({ resource, columns, filters, rowActions, bulkActions, can, query, rows, perPageOptions }: Props) {
+export default function ResourceIndex({ resource, columns: allColumns, filters, rowActions, bulkActions, can, query, rows, perPageOptions, preferences: initialPreferences }: Props) {
     useBreadcrumbs([{ label: resource.label }]);
     const [confirm, confirmDialog] = useConfirm();
     const [search, setSearch] = React.useState(query.search);
     const [selected, setSelected] = React.useState<(string | number)[]>([]);
     const base = adminUrl(resource.key);
     const loading = useListLoading(base);
+    const { preferences, setColumns, setPerPage } = useTablePreferences(initialPreferences.key, initialPreferences);
+    // The first column (the record's link) is always shown.
+    const visible = preferences.columns ?? allColumns.map((column) => column.name);
+    const columns = allColumns.filter((column, index) => index === 0 || visible.includes(column.name));
 
     React.useEffect(() => setSelected([]), [rows.data]);
 
@@ -154,8 +162,25 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
                         </SelectContent>
                     </Select>
                 ))}
+                {allColumns.length > 1 && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="ml-auto"><Columns3 /> Columns</Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Show columns</DropdownMenuLabel>
+                            {allColumns.slice(1).map((column) => (
+                                <DropdownMenuCheckboxItem key={column.name} checked={visible.includes(column.name)}
+                                    onSelect={(event) => event.preventDefault()}
+                                    onCheckedChange={() => void setColumns(toggleColumn(visible, column.name, allColumns.map((c) => c.name)))}>
+                                    {column.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
                 {selected.length > 0 && bulkActions.length > 0 && (
-                    <div className="ml-auto flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">{selected.length} selected</span>
                         {bulkActions.map((action) => (
                             <Button key={action.key} variant={action.destructive ? 'destructive' : 'outline'} onClick={() => runBulk(action)}>{action.label}</Button>
@@ -262,7 +287,7 @@ export default function ResourceIndex({ resource, columns, filters, rowActions, 
                     <div className="flex items-center gap-4">
                         <span>{rows.total === 0 ? 'No rows' : `${rows.from}–${rows.to} of ${rows.total}`}</span>
                         {rows.total > perPageOptions[0]! && (
-                            <Select value={String(rows.perPage)} onValueChange={(value) => visit({ per_page: Number(value) })}>
+                            <Select value={String(rows.perPage)} onValueChange={(value) => { void setPerPage(Number(value)); visit({ per_page: Number(value) }); }}>
                                 <SelectTrigger className="h-8 w-28" aria-label="Rows per page"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {perPageOptions.map((option) => <SelectItem key={option} value={String(option)}>{option} per page</SelectItem>)}

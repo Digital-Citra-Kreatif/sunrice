@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ChevronRight, ChevronsUpDown, LayoutGrid, LogOut } from 'lucide-react';
+import { ChevronRight, LayoutGrid } from 'lucide-react';
 import {
     Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
     SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AppLogo } from '@/components/app/app-logo';
+import { NavUser } from '@/components/app/nav-user';
 import { navIcon } from '@/components/app/nav-icon';
 import { adminUrl } from '@/lib/admin-url';
 import type { NavItem, SharedProps } from '@/types';
@@ -18,7 +19,7 @@ function isCurrent(currentPath: string, url: string): boolean {
 }
 
 export function AppSidebar() {
-    const { navigation, sunrice, auth } = usePage<SharedProps>().props;
+    const { navigation, sunrice } = usePage<SharedProps>().props;
     const path = usePage().url.split('?')[0] ?? '';
     const { isMobile, setOpenMobile } = useSidebar();
 
@@ -72,13 +73,8 @@ export function AppSidebar() {
             <SidebarHeader className="pt-4 pb-5">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={adminUrl()} prefetch>
-                                <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
-                                    {sunrice.brand.slice(0, 1).toUpperCase()}
-                                </span>
-                                <span className="truncate font-semibold">{sunrice.brand}</span>
-                            </Link>
+                        <SidebarMenuButton size="lg" asChild tooltip={sunrice.branding.name}>
+                            <Link href={adminUrl()} prefetch><AppLogo /></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
@@ -106,32 +102,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter className="border-t border-sidebar-border/60 py-3">
-                {auth.user && (
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <SidebarMenuButton size="lg" tooltip={auth.user.name ?? auth.user.email ?? ''}>
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                                            {(auth.user.name ?? auth.user.email ?? '?').slice(0, 1).toUpperCase()}
-                                        </span>
-                                        <span className="grid min-w-0 text-left leading-tight">
-                                            <span className="truncate font-medium">{auth.user.name ?? auth.user.email}</span>
-                                            {auth.user.name && <span className="truncate text-xs text-muted-foreground">{auth.user.email}</span>}
-                                        </span>
-                                        <ChevronsUpDown className="ml-auto size-4" />
-                                    </SidebarMenuButton>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent side="top" align="start" className="w-56">
-                                    <DropdownMenuItem onSelect={() => router.post(adminUrl('logout'))}>
-                                        <LogOut />
-                                        Log out
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                )}
+                <NavUser />
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Comments\PostComment;
@@ -198,7 +199,8 @@ it('emails moderators, and commenters about replies once, with a way to stop', f
 
     $unsubscribe = URL::signedRoute('sunrice.cms.comments.unsubscribe', ['comment' => $question->id]);
     get(str_replace('signature=', 'signature=x', $unsubscribe))->assertForbidden();
-    get($unsubscribe)->assertOk();
+    get($unsubscribe)->assertOk()->assertHeader('Content-Type', 'text/html; charset=utf-8')->assertHeader('X-Robots-Tag', 'noindex')
+        ->assertSee('<h1>You&#039;re unsubscribed</h1>', false)->assertSee('href="'.$this->post->url().'"', false);
     expect($question->fresh()?->notify_replies)->toBeFalse();
 
     // Guests can't sign anyone up when nothing is held.
@@ -269,4 +271,21 @@ it('prunes old spam and deletes an entry\'s comments with it', function () {
     app(TrashEntry::class)->handle($this->post->entry);
     app(ForceDeleteEntry::class)->handle($this->post->entry);
     expect(Comment::withTrashed()->count())->toBe(0);
+});
+
+it('emails the members of the roles Settings → Comments names too', function () {
+    $role = Role::findOrCreate('reviewers', 'web');
+    $reviewer = adminUser(Panel::ACCESS);
+    $reviewer->update(['email' => 'reviewer@example.com']);
+    $reviewer->assignRole($role);
+    adminUser(Panel::ACCESS)->update(['email' => 'other@example.com']);
+    commentSettings(['notifyRoles' => ['reviewers', 'gone']]);
+
+    commentOn($this->post);
+
+    Mail::assertQueued(CommentPosted::class, 1);
+    Mail::assertQueued(CommentPosted::class, fn (CommentPosted $mail) => $mail->hasTo('reviewer@example.com'));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.comments'));
+    get('/admin/settings/comments')->assertOk()->assertSee('reviewers');
 });

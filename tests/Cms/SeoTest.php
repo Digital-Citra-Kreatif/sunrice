@@ -11,6 +11,7 @@ use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
+use Sunrice\Cms\Actions\Terms\SaveTermContent;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -249,4 +250,108 @@ it('guards redirects with their permissions', function () {
         ->assertSessionHasErrors(['from_path', 'to_url']);
 
     get('/old')->assertRedirect('/new');
+});
+
+it('fills in what the SEO card leaves empty from the fields the collection names', function () {
+    $image = seoImage();
+    $pdf = seoImage('application/pdf');
+    Blueprint::query()->create(['handle' => 'article', 'title' => 'Article', 'fields' => [
+        ['handle' => 'headline', 'type' => 'text'],
+        ['handle' => 'summary', 'type' => 'textarea'],
+        ['handle' => 'cover', 'type' => 'media', 'config' => ['multiple' => true]],
+    ]]);
+    $this->blog->update(['blueprint' => 'article', 'seo_title_field' => 'headline', 'seo_description_field' => 'summary', 'seo_image_field' => 'cover']);
+
+    seoPost($this->blog, 'Hello', ['data' => ['headline' => 'A <em>better</em> headline', 'summary' => "Two\nlines", 'cover' => [$image->id]]]);
+    get('/blog/hello')->assertOk()
+        ->assertSee('<title>A better headline | Acme</title>', false)
+        ->assertSee('<meta name="description" content="Two lines">', false)
+        ->assertSee('<meta property="og:image" content="'.$image->url().'">', false);
+
+    // The SEO card wins; a file that isn't an image is no share image.
+    seoPost($this->blog, 'Own', ['data' => ['headline' => 'Ignored', 'cover' => [$pdf->id]], 'seo' => ['title' => 'Own title']]);
+    get('/blog/own')->assertOk()->assertSee('<title>Own title | Acme</title>', false)->assertDontSee('og:image', false);
+});
+
+it('fills in a term page\'s SEO from the fields its taxonomy names', function () {
+    Blueprint::query()->create(['handle' => 'topic', 'title' => 'Topic', 'fields' => [['handle' => 'blurb', 'type' => 'textarea']]]);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'route' => '/topics/{slug}', 'blueprint' => 'topic', 'seo_description_field' => 'blurb']);
+    $news = app(SaveTerm::class)->handle($topics, ['title' => 'News']);
+    app(SaveTermContent::class)->handle($news, ['data' => ['blurb' => 'All the news']]);
+
+    expect(Seo::forTerm($news->translations()->firstOrFail())['description'])->toBe('All the news');
+});
+
+it('offers the blueprints\' fields for SEO in Structure → Collections and Taxonomies', function () {
+    Blueprint::query()->create(['handle' => 'article', 'title' => 'Article', 'fields' => [
+        ['handle' => 'headline', 'type' => 'text', 'label' => 'Headline'],
+        ['handle' => 'cover', 'type' => 'media'],
+    ]]);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.taxonomies.view', 'cms.taxonomies.create'));
+
+    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'blueprint' => 'article', 'seo_title_field' => 'headline', 'seo_image_field' => 'cover'])->assertSessionHasNoErrors();
+    expect($this->blog->fresh()?->seo_title_field)->toBe('headline')->and($this->blog->fresh()?->seo_image_field)->toBe('cover');
+    // Only fields of the right kind.
+    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'seo_image_field' => 'headline'])->assertSessionHasErrors('seo_image_field');
+    post('/admin/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'seo_title_field' => 'headline'])->assertSessionHasNoErrors();
+    expect(Taxonomy::query()->where('handle', 'topics')->value('seo_title_field'))->toBe('headline');
+});
+
+it('gives listing pages SEO of their own, per language', function () {
+    $image = seoImage();
+    $this->blog->update(['listing_route' => '/blog']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
+
+    get('/admin/cms/collections/blog/listing')->assertOk()->assertInertia(fn ($page) => $page->where('seo', null));
+    put('/admin/cms/collections/blog/listing', ['locale' => 'en', 'data' => [], 'seo' => ['title' => 'All our posts', 'description' => 'Read them', 'image' => $image->id]])->assertSessionHasNoErrors();
+    put('/admin/cms/collections/blog/listing', ['locale' => 'id', 'data' => [], 'seo' => ['title' => 'Semua tulisan']])->assertSessionHasNoErrors();
+    put('/admin/cms/collections/blog/listing', ['locale' => 'en', 'data' => [], 'seo' => ['title' => str_repeat('a', 300)]])->assertSessionHasErrors('seo.title');
+    get('/admin/cms/collections/blog/listing')->assertInertia(fn ($page) => $page->where('seo.title', 'All our posts')->missing('values.seo'));
+
+    get('/blog')->assertOk()
+        ->assertSee('<title>All our posts | Acme</title>', false)
+        ->assertSee('<meta name="description" content="Read them">', false)
+        ->assertSee('<meta property="og:image" content="'.$image->url().'">', false);
+    get('/id/blog')->assertOk()->assertSee('<title>Semua tulisan | Acme</title>', false);
+    // Saving the fields alone keeps it.
+    put('/admin/cms/collections/blog/listing', ['locale' => 'en', 'data' => []])->assertSessionHasNoErrors();
+    expect(Seo::forListing($this->blog->fresh() ?? $this->blog, 'en')['page_title'])->toBe('All our posts');
+});
+
+it('adds alternate locales, article times and X card tags', function () {
+    $image = seoImage();
+    $this->blog->update(['dated' => true]);
+    $hello = seoPost($this->blog, 'Hello', ['seo' => ['description' => 'Words', 'image' => $image->id]]);
+    $id = app(CreateTranslation::class)->handle($hello->entry, 'id');
+    app(SaveDraft::class)->handle($id, ['title' => 'Halo', 'slug' => 'halo']);
+    app(PublishEntry::class)->handle($id);
+    $hello->refresh();
+
+    get('/blog/hello')->assertOk()
+        ->assertSee('<meta property="og:locale:alternate" content="id">', false)
+        ->assertDontSee('og:locale:alternate" content="en"', false)
+        ->assertDontSee('x-default" content', false)
+        ->assertSee('<meta property="article:published_time" content="'.$hello->published_at?->toIso8601String().'">', false)
+        ->assertSee('<meta property="article:modified_time" content="'.$hello->updated_at?->toIso8601String().'">', false)
+        ->assertSee('<meta name="twitter:title" content="Hello | Acme">', false)
+        ->assertSee('<meta name="twitter:description" content="Words">', false)
+        ->assertSee('<meta name="twitter:image" content="'.$image->url().'">', false);
+
+    // Not dated: no article times.
+    $this->blog->update(['dated' => false]);
+    get('/blog/hello')->assertDontSee('article:published_time', false);
+});
+
+it('points a page shown in the main language at the main page, without hreflang links', function () {
+    seoPost($this->blog, 'Hello');
+
+    get('/id/blog/hello')->assertOk()
+        ->assertSee('<link rel="canonical" href="'.url('/blog/hello').'">', false)
+        ->assertDontSee('hreflang', false);
+    expect(Seo::forPage(Page::current())['canonical'])->toBe(url('/blog/hello'))
+        ->and(Seo::forPage(Page::current())['alternates'])->toBe([]);
+
+    // The main page doesn't list the language it isn't translated into, nor does the sitemap.
+    get('/blog/hello')->assertOk()->assertDontSee('hreflang="id"', false);
+    get('/sitemap.xml')->assertOk()->assertDontSee(url('/id/blog/hello'));
 });

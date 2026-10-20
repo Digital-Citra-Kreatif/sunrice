@@ -102,14 +102,14 @@ it('refuses settings without a supported type or a default', function () {
 
 it('registers sections with a permission each and one sidebar item', function () {
     $panel = app(Panel::class);
-    expect($panel->getPermissions())->toHaveKeys(['settings.mail', 'shop.settings.shop'])
+    expect($panel->getPermissions())->toHaveKeys(['settings.outbox', 'shop.settings.shop'])
         ->and($panel->getPermissions()['shop.settings.shop']->label)->toBe('Edit Shop settings');
 
     actingAs(adminUser(Panel::ACCESS, 'shop.settings.shop'));
     get('/admin')->assertInertia(fn (Assert $page) => $page->where('navigation.0.items.0.url', 'settings'));
     get('/admin/settings')->assertRedirect('/admin/settings/shop');
-    get('/admin/settings/mail')->assertForbidden();
-    put('/admin/settings/mail', ['from' => 'x@example.com'])->assertForbidden();
+    get('/admin/settings/outbox')->assertForbidden();
+    put('/admin/settings/outbox', ['from' => 'x@example.com'])->assertForbidden();
     get('/admin/settings/nope')->assertNotFound();
 
     actingAs(adminUser(Panel::ACCESS));
@@ -121,12 +121,12 @@ it('registers sections with a permission each and one sidebar item', function ()
 
 it('edits a section: validated, typed, secrets kept when left empty', function () {
     Event::fake([SettingsSaved::class]);
-    actingAs(adminUser(Panel::ACCESS, 'shop.settings.shop', 'settings.mail'));
+    actingAs(adminUser(Panel::ACCESS, 'shop.settings.shop', 'settings.outbox'));
 
     get('/admin/settings/shop')->assertInertia(fn (Assert $page) => $page
         ->component('Settings/Edit', shouldExist: false)
         ->where('section', ['key' => 'shop', 'label' => 'Shop', 'description' => 'How the shop sells.'])
-        ->where('sections', [['key' => 'mail', 'label' => 'Mail'], ['key' => 'shop', 'label' => 'Shop']])
+        ->where('sections', [['key' => 'outbox', 'label' => 'Outbox'], ['key' => 'shop', 'label' => 'Shop']])
         ->where('values', ['name' => 'Shop', 'currency' => 'IDR', 'guestCheckout' => true, 'freeShippingFrom' => null, 'taxRate' => 0.11, 'countries' => ['ID'], 'paymentKey' => null])
         ->where('secrets', ['paymentKey' => false])
         ->has('form', 2));
@@ -178,4 +178,12 @@ it('refuses settings forms with fields that aren\'t properties or can\'t be sett
 
     $this->withoutExceptionHandling();
     expect(fn () => get('/admin/settings/bad'))->toThrow(PanelMisconfigured::class, 'use Secret for secrets');
+});
+
+it('lists the panel\'s Security and Mail sections first, for those allowed', function () {
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.security', 'sunrice.settings.mail', 'settings.outbox'));
+
+    get('/admin/settings/outbox')->assertInertia(fn (Assert $page) => $page
+        ->where('sections', [['key' => 'security', 'label' => 'Security'], ['key' => 'mail', 'label' => 'Mail'], ['key' => 'outbox', 'label' => 'Outbox']])
+        ->where('cards', []));
 });

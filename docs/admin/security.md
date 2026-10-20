@@ -21,6 +21,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `two-factor turned on`, `two-factor turned off` | [Two-factor login](auth.md#two-factor-login) was switched, in Settings → Security or from the console. |
 | `token created`, `token revoked`, `tokens revoked`, `token used from new IP` | [AI access](ai.md) tokens. |
 | `signed out everywhere`, `account locked by admin`, `account unlocked` | An administrator acted on an account (see below). |
+| `log pruned` | Someone deleted old activity log lines with **Prune…** on the activity log page (how many, and the days kept). |
 
 Each line keeps the IP and, in its properties, the browser's user agent.
 
@@ -29,10 +30,10 @@ Each line keeps the IP and, in its properties, the browser's user agent.
 On **Users**, each row's menu has:
 
 - **Sign out everywhere**: ends all of the user's sessions and "remember me" logins, and revokes their [AI access tokens](ai.md) (a `tokens revoked` event of its own, so the log says what stopped). Sessions that signed in before end on their next page, whatever your session driver; with the `database` driver they're deleted at once. They can log in again with their password (change it first if it may have leaked) and create new tokens. Signing out yourself keeps your current session.
-- **Lock account**: signs them out everywhere, and they can't log in or open a panel page until someone unlocks the account. Nothing is deleted. Nobody can lock their own account.
+- **Lock account**: signs them out everywhere, and they can't log in or open a panel page until someone unlocks the account. Its dialog asks for an optional reason (up to 250 characters), shown on the user's page. Nothing is deleted. Nobody can lock their own account.
 - **Unlock account**: lets them log in again; it also lifts a lock after too many wrong passwords. From the console: `php artisan sunrice:unlock rina@example.com`.
 
-The list's **Locked** column shows locked accounts. Who may do this follows the Users screen: the `sunrice.users.update` permission and [who may manage whom](users.md#who-may-manage-whom). Each is a security event (`signed out everywhere`, `account locked by admin`, `account unlocked`), and a locked account's attempts are `login blocked`.
+The list's **Locked** column shows locked accounts. The user's edit page has a **Security** card beside the form: whether the account is locked (when, by whom and why) or locked for a while after wrong passwords, when it was signed out everywhere, how many AI access tokens it has, its last login and IP, its latest 8 security events (with a link to all of them in the activity log), and the **Sign out everywhere** and **Revoke AI tokens** buttons. Who may do this follows the Users screen: the `sunrice.users.update` permission and [who may manage whom](users.md#who-may-manage-whom). Each is a security event (`signed out everywhere`, `account locked by admin`, `account unlocked`), and a locked account's attempts are `login blocked`.
 
 In code: `Sunrice\Admin\Security\AccountGuard` has `signOutEverywhere($user)`, `lock($user, $reason)`, `unlock($user)` and `isLocked($user)`. Which accounts are locked or signed out is kept in the app's default cache (an hour at most) and forgotten by each of these, so panel pages don't ask the database; with several servers, use a shared cache store.
 
@@ -76,11 +77,12 @@ When something may be a break-in, the panel emails super admins, users with the 
 | A new AI access token was created | `token created` |
 | An AI access token was used from a new address | `token used from new IP` |
 | Two-factor login was turned off | `two-factor turned off` |
+| The activity log was pruned | `log pruned` |
 | Someone keeps opening pages they may not see | `forbidden` (15) panel pages refused (`page refused`) to one signed-in account within 10 minutes. |
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
 | Many things deleted in a short time | `mass_deletes` (20) deletes, trashes or unpublishes by one person or AI agent within 10 minutes. |
 
-**Privileged permissions** are the panel's `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.connect` and `sunrice.activity.*`, plus what plugins register with `$panel->privilegedPermissions()` (the CMS: `cms.settings.code` and `cms.blueprints.manage`); `Panel::isPrivilegedPermission()` tells.
+**Privileged permissions** are the panel's `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.*` (connecting agents, letting them read the error log and run commands) and `sunrice.activity.*`, plus what plugins register with `$panel->privilegedPermissions()` (the CMS: `cms.settings.code` and `cms.blueprints.manage`); `Panel::isPrivilegedPermission()` tells.
 
 The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. Each recipient's mail is queued (`Mail::queue()`), so set up a queue worker or the `sync` driver; they need your app's mail settings.
 

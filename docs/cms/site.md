@@ -4,7 +4,7 @@ The CMS serves entries as pages: each collection with a **URL** (`route`) shows 
 
 ## URLs
 
-Set a collection's URL under Structure → Collections: a path with `{slug}` once, like `/blog/{slug}`, or `/{slug}` for pages at the root. Collections without one have no pages of their own (their entries can still be shown by your templates).
+Set a collection's URL under Structure → Collections: a path with `{slug}` once, like `/blog/{slug}`, or `/{slug}` for pages at the root (and [related entries' slugs](#related-entries-in-the-url) if you like). Collections without one have no pages of their own (their entries can still be shown by your templates).
 
 - The main language has no prefix; others start with their code: `/blog/hello`, `/id/blog/halo`. The app's locale is set from the address as soon as the CMS's route takes over, so 404 pages, redirects and the search page are in that language too. The main language's own prefix (`/en/about`, from before the main language changed) redirects (301) to the plain address, query string kept; your app's own routes aren't touched.
 - The more specific pattern is tried first (more fixed characters): `/blog/{slug}` before `/{slug}`. The first pattern that matches decides: `/blog/about` looks for a blog entry "about", and is a 404 if there's none, even when a page "about" exists.
@@ -13,6 +13,25 @@ Set a collection's URL under Structure → Collections: a path with `{slug}` onc
 - The CMS's route is the app's **fallback**: your own routes (`routes/web.php`) always come first. Turn the site off with `sunrice-cms.site.enabled` (the admin and previews keep working); its middleware is `sunrice-cms.site.middleware` (`web`).
 
 `$translation->url()` gives an entry's address (null without a route).
+
+### Untranslated pages
+
+An entry that isn't live in a language other than the main one (no translation there, or one still a draft or scheduled) shows its main language's content at that language's address, with the main language's slug: `/id/blog/hello`. The same goes for term pages without a translation and for the homepage (`/id`). On such a page:
+
+- the app's locale and `$locale` are the address's language, so the layout's own words are in it; templates get `$fallback = true` (and `Cms::page()->fallback`), to say "Not translated yet" if you like;
+- `<x-sunrice-cms::seo />` gives the main language's page as the canonical URL and no `hreflang` links, and the main page's `hreflang` links leave the language out; the sitemap lists only the main page;
+- menus, entry links and `Cms::localeUrls()` link it in that language, so visitors stay in it; site search in that language doesn't find it (only what's translated).
+
+A translation's own slug works once it's live, and the main language's slug then no longer does in that language. Turn this off with `sunrice-cms.site.fallback` (`SUNRICE_FALLBACK=false`): untranslated pages are then 404s in other languages, and menus and links go to the main language's page.
+
+### Related entries in the URL
+
+A collection's URL may also hold the slug of an entry its entries link to: put the handle of a single-value **Entries** field of its blueprint in braces, `/projects/{project}/{slug}`. The URL is checked when the collection is saved (each `{field}` must be an Entries field without *Several entries*).
+
+- URLs are filled from the linked entry's slug in the same language (else its main language's slug); an entry that links to nothing live gets `-` there: `/projects/-/unit-1`.
+- A path matches only with the linked entry's current slug: `/projects/bridge/unit-1` is a 404 when unit 1 belongs to Tower.
+- When the linked entry's slug changes, or an entry links to another one, publishing adds redirects from the old URLs (`Site::moved()`), as for a slug of its own.
+- Listing pages, the sitemap, menus, links and structured data all use the filled URLs. The slugs are read once per request for every entry a field may link to (and kept in the [site cache](caching.md)), not once per entry.
 
 ## Templates
 
@@ -36,8 +55,37 @@ Views get:
 | `$collection` | the `Collection` |
 | `$locale` | the language; the app's locale is set to it too |
 | `$preview` | whether this is a preview of the draft |
+| `$fallback` | whether this is the main language's content in another language ([untranslated pages](#untranslated-pages)) |
 
 Rich text is cleaned when it's saved, so print it as is: `{!! $values['body'] !!}`. Print everything else escaped: `{{ $values['intro'] }}`.
+
+### Starter templates
+
+A working set of templates to start from, and edit freely:
+
+```bash
+php artisan vendor:publish --tag=sunrice-cms-templates
+```
+
+It copies them into `resources/views/cms/`, where the rules above pick them up, the error pages into `resources/views/errors/`, and a small stylesheet to `public/cms/site.css`:
+
+| File | Used for | Shows how to |
+| --- | --- | --- |
+| `cms/layout.blade.php` | every page (`@extends('cms.layout')`, `@section('content')`, `@push('head')`) | `<x-sunrice-cms::seo>`, site code, the `main` and `footer` menus, the language switcher, a footer (the `footer` global's `text`), `@bodyClass`, a skip link |
+| `cms/entry.blade.php` | any entry | the title, date and fields; a note on [untranslated pages](#untranslated-pages); comments |
+| `cms/listing.blade.php` | listing pages | the listing's fields, cards, pagination |
+| `cms/term.blade.php` | term pages | the term's fields and its entries |
+| `cms/search.blade.php` | the search page | the search box, results |
+| `cms/partials/fields.blade.php` | the pages above | text, rich text, images, galleries, links and flexible blocks, by kind |
+| `cms/partials/blocks.blade.php`, `block.blade.php` | flexible blocks | `cms/blocks/{fieldset}.blade.php` per kind of block when you make one (it gets `$block`), else the block's fields |
+| `cms/partials/card.blade.php` | lists of entries | title, date, and an `image` and `excerpt` field when there are |
+| `cms/partials/pagination.blade.php` | lists of entries | previous and next links |
+| `cms/partials/language-switcher.blade.php` | the layout | `cms_locale_urls()`, with `hreflang` and `lang` |
+| `cms/partials/menu.blade.php` | the layout | a menu with its sub-menus, `aria-current` on the page shown |
+| `errors/404.blade.php`, `errors/500.blade.php` | error pages | the 404 in the layout with a search box; the 500 on its own (whatever failed would fail again in the layout) |
+| `public/cms/site.css` | all of the above | plain CSS with light and dark colours; replace it with your own build and change the `<link>` in the layout |
+
+Every template works on a fresh install: missing menus, globals and fields render nothing. Layouts and partials read the page from `cms_page()`, not from `$entry` or `$term`: Blade hands a page's variables to its layout, so after a listing's `@foreach` those would be its last card. Words are wrapped in `__()`, so a `lang/{locale}.json` translates them.
 
 ## SEO
 
@@ -49,7 +97,9 @@ Each entry's **Search and sharing** card holds an SEO title, a description, a sh
 </head>
 ```
 
-On the CMS's pages it reads the page shown (entry, term or listing page; or name it: `:entry="$entry" :preview="$preview"`, `:term="$term"`), and on your app's own pages it gives the site's tags with `title="Contact"`. It prints the `<title>` (the SEO title, else the page's, then the site name: "About | Acme"), the description, `robots` noindex (always in previews), the canonical URL, `hreflang` links to the page's other languages with `x-default` (the main language), Open Graph tags (`og:type` *article* for dated collections, else *website*; `og:site_name`, `og:locale`) and an X (Twitter) card. `Sunrice\Cms\Support\Seo::for($entry)` (and `forTerm()`, `forListing()`, `forPage()`) gives the same as an array if you'd rather write the tags yourself.
+On the CMS's pages it reads the page shown (entry, term or listing page; or name it: `:entry="$entry" :preview="$preview"`, `:term="$term"`), and on your app's own pages it gives the site's tags with `title="Contact"`. It prints the `<title>` (the SEO title, else the page's, then the site name: "About | Acme"), the description, `robots` noindex (always in previews), the canonical URL, `hreflang` links to the page's other languages with `x-default` (the main language), Open Graph tags (`og:type` *article* for dated collections, else *website*; `og:site_name`, `og:locale` and `og:locale:alternate` for each other language; `article:published_time` and `article:modified_time` for dated entries) and an X (Twitter) card (`twitter:card`, `twitter:site`, `twitter:title`, `twitter:description`, `twitter:image`). Attributes: `title` (instead of the page's), `default-title` (when the page has no SEO title of its own), `description`, `noindex`, and `:collection` for a listing page; see [the components](#components). `Sunrice\Cms\Support\Seo::for($entry)` (and `forTerm()`, `forListing()`, `forPage()`) gives the same as an array if you'd rather write the tags yourself.
+
+**SEO from fields**: a collection (Structure → Collections) and a taxonomy (Structure → Taxonomies) may name the fields that fill in what an entry's or term page's SEO card leaves empty: a text field for the title, a text or textarea field for the description (plain text, at most 300 characters) and a media field whose first image is the share image (`seo_title_field`, `seo_description_field`, `seo_image_field`). A listing page has a **Search and sharing** card of its own on its page in the admin (stored per language with the listing page's fields, under `seo`), read by `Seo::forListing()`; its title falls back to the collection's.
 
 **Settings → Site** (`cms.settings.site`) holds what pages don't set: the site name (else `app.name`), a description, a share image, the title separator and whether titles get the site name, and the site's X account (`twitter:site`). The homepage's title is the site name. `Cms::site()` gives these settings to templates (`->name()`, `->title('About')`).
 
@@ -109,8 +159,29 @@ Code there runs in every visitor's browser, so give the permission only to peopl
 ```
 
 - `Cms::bodyClass($extra)`: what the page is, for CSS and scripts. Entries: `page-entry collection-{handle} entry-{id} entry-{slug}`, with `home`, `has-parent parent-{id}` and `is-preview` when they apply; listing pages: `page-listing collection-{handle}`; term pages: `page-term taxonomy-{handle} term-{id} term-{slug}`; pages past the first: `paged paged-{n}`; always `template-{view} lang-{locale}`, and `logged-in` for people signed in to the panel. On your app's own pages: `lang-{locale}` and your extras.
-- `Cms::localeUrls()`: the page shown in each language it's live in, in the order of `sunrice-cms.locales`, for a language switcher (none on your app's own pages).
-- `Cms::page()`: the page shown (`Sunrice\Cms\Site\Page`: `type`, `locale`, `view`, `entry`, `collection`, `term`, `preview`, `home`, `pageNumber`), or null.
+- `Cms::localeUrls()`: the page shown in each language it's live in (and, with the [main-language fallback](#untranslated-pages), the others), in the order of `sunrice-cms.locales`, for a language switcher (none on your app's own pages).
+- `Cms::page()`: the page shown (`Sunrice\Cms\Site\Page`: `type`, `locale`, `view`, `entry`, `collection`, `term`, `preview`, `home`, `pageNumber`, `fallback`), or null.
+
+`@bodyClass` prints the whole attribute: `<body @bodyClass>` or `<body @bodyClass('dark')>` gives `<body class="page-entry … dark">`.
+
+The same as functions, for templates that prefer them (each defined only if the app hasn't defined it first): `cms_entries(...$collections)`, `cms_menu($handle, $locale = null)`, `cms_global($handle, $locale = null)`, `cms_locale_urls()`, `cms_body_class($extra = [])` and `cms_page()`.
+
+### Hooks
+
+In a service provider's `boot()`, change what every page of the CMS does (entries, listing, term and search pages):
+
+```php
+use Sunrice\Cms\Content as Cms;
+use Sunrice\Cms\Site\Page;
+
+// The view: return another one's name, or null to keep $page->view (what the rules above chose, or an earlier hook).
+Cms::resolveTemplateUsing(fn (Page $page): ?string => $page->entry?->entry->parent_id !== null ? 'cms.child-page' : null);
+
+// More body classes (Cms::bodyClass(), @bodyClass), after the CMS's own.
+Cms::bodyClassUsing(fn (Page $page): array => $page->collection?->dated ? ['has-date'] : []);
+```
+
+Hooks run in the order they were registered, on every request; keep them cheap. How long the page cache keeps a page has its own hook, [`PageCache::lifetimeUsing()`](caching.md).
 
 ## Redirects
 
@@ -146,7 +217,7 @@ In any view, `Cms::entries()` finds live entries in the current language (`Sunri
 {{ Cms::global('contact')['phone'] ?? '' }}
 ```
 
-`entries(...$collections)` (none: every collection), then `locale()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate()` or `toBase()`.
+`entries(...$collections)` (none: every collection), then `locale()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereContains()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate($perPage, $pageName = 'page')` or `toBase()`.
 
 ```php
 Cms::entries('events')->where('featured', true)->where('date', '>=', today())->orderBy('date')->get();
@@ -162,6 +233,7 @@ Cms::entries('blog')->search($request->query('q', ''))->paginate(10);
 - `whereTerm($term, ...)`: entries with a term (or any of several): `Term` models or ids (`whereTerm($news, $tips)`, `whereTerm([$news, $tips])`), or a taxonomy handle and a slug or list of slugs (`whereTerm('topics', 'news')`, `whereTerm('topics', ['news', 'tips'])`); `includeChildren: true` takes the terms under them too. Looks at the terms of every terms field.
 - `whereFieldTerm($field, $terms, includeChildren: false)`: the same for one terms field, with slugs looked up in that field's taxonomy.
 - `whereEntry($field, $entries)`: entries whose entries field links to an entry (or any of a list).
+- `whereContains($field, $values)`: entries whose list field (a select with several choices) holds any of the values.
 - `search($text)`: entries whose title or field text holds the words, as the site's search matches them; title matches first, then in the query's order.
 - `orderBy($field, 'asc'|'desc')`: a column or a field; numbers and dates sort as such.
 - `except(...$entries)`: leave these out.
@@ -174,7 +246,7 @@ A result's entries share one `HydrationContext`: whatever their fields point at 
 
 ### Components
 
-For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice-cms::terms>` run the query and leave the markup to you, as `$component->entries` and `$component->terms`:
+For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice-cms::terms>` run the query and leave the markup to you, as `$component->entries` and `$component->terms`. Every component and its attributes are listed below.
 
 ```blade
 <x-sunrice-cms::entries collection="blog" :limit="3" :term="$news" :except="$entry" order="-date">
@@ -191,9 +263,127 @@ For a part of a template without PHP, `<x-sunrice-cms::entries>` and `<x-sunrice
 </x-sunrice-cms::terms>
 ```
 
-`entries`: `collection` (handles, comma-separated; none for all), `limit`, `paginate` (per page: a paginator, `$component->entries->links()`), `order` (`latest`, `oldest`, `alphabetical`, `ordered`, or a field, `-field` for descending), `term` (one or a list), `parent` (an entry, or `top`), `where` (`['featured' => true]`), `except`, `search` (words to find) and `remember` (keep the matched ids in the site's cache).
+#### `<x-sunrice-cms::entries>`
 
-`terms`: `taxonomy`, in the editors' order, each with `entries_count` (its live entries in the current language, of `collection` when given); `hide-empty`; `tree` (the top-level terms, each with `children`); `:entry` (only that entry's terms).
+| Attribute | |
+| --- | --- |
+| `collection` | Handles, comma-separated (`"blog,news"`) or a list; none for every collection. |
+| `limit` | At most this many. |
+| `paginate` | Entries per page (1–100): `$component->entries` is then a paginator (`->links()`), keeping the rest of the query string. |
+| `page-name` | The query string's page number for `paginate` (`page`): give two lists on one page their own. |
+| `order` | `latest` (default), `oldest`, `alphabetical`, `ordered` (Manual order), or fields: `price`, `-price` for descending, several comma-separated (`-date,title`). |
+| `term` | A `Term` or id, or a list: entries with any of them. |
+| `terms` | Terms by slug, per taxonomy: `:terms="['topics' => ['news', 'tips']]"` or `terms="topics:news,tips"`. Each slug takes the terms under it too; each taxonomy narrows the list further. |
+| `where` | `:where="['featured' => true]"`, or rows with an operator: `:where="[['price', '<', 100], ['city', 'in', ['Jakarta', 'Bandung']]]"` (operators as `where()`). |
+| `parent` | An entry (or id): those directly under it; `top`: the top-level ones. |
+| `except` | Entries to leave out (the one shown, in a "related" list). |
+| `search` | Words to find, as `search()`. |
+| `remember` | Keep the matched ids in the site's cache. |
+
+#### `<x-sunrice-cms::terms>`
+
+| Attribute | |
+| --- | --- |
+| `taxonomy` | Its handle (required). |
+| `collection` | Count only that collection's entries in `entries_count`. |
+| `hide-empty` | Leave out terms without live entries. |
+| `tree` | Only the top-level terms, each with `children` (to any depth). |
+| `parent` | The terms directly under a term (its slug, in any language, or id); `top`: the top-level ones. |
+| `order-by` | `manual` (the editors' order, default), `title`, `entries` (by `entries_count`), `created_at`; `-title` for the other way round. |
+| `limit` | At most this many (of the top level, with `tree`). |
+| `entry` | Only that entry's terms. |
+
+Each term has `entries_count` (its live entries in the current language). `$component->isCurrent($term)` says whether it's the term page shown, for an `aria-current` link.
+
+#### `<x-sunrice-cms::seo>`
+
+See [SEO](#seo): `entry` with `preview`, `term`, `collection` (a `Collection` or handle: its listing page), or none (the page shown); `title` (instead of the page's), `default-title` (when the page has no SEO title of its own), `description` (instead of the page's), `noindex` (keep this page out of search results), `schema` (JSON-LD nodes of your own). Titles and descriptions given are taken as plain text.
+
+#### `<x-sunrice-cms::search>`
+
+See [Search](#search): `results`, `collection`, `per-page`, `name` (the query string's name, `q`) and `page-name` (`page`). In the slot: `$component->action`, `->name`, `->query`, `->results`.
+
+#### `<x-sunrice-cms::entry-filter>`
+
+See [Filtering entries](#filtering-entries): `collection`, `filters`, `sorts`, `per-page`, `page-name`, `sort-name`, `where`, `terms`.
+
+#### `<x-sunrice-cms::form>`
+
+See [Forms](forms.md#on-the-site): `handle`, `submit`, `replace`, other attributes on the `<form>`; empty, it prints the fields, with a slot the markup is yours (`$component->old()`, `->error()`, `->success()`, `->captcha()`).
+
+#### `<x-sunrice-cms::comments>`
+
+See [Comments](comments.md#on-the-site): `entry` (an `Entry` or `EntryTranslation`).
+
+#### `<x-sunrice-cms::code>`
+
+See [Site code](#site-code): `place` (`head`, `body-start`, `body-end`).
+
+### Filtering entries
+
+`<x-sunrice-cms::entry-filter>` lists a collection's entries filtered, sorted and paginated by the address (`/shop?q=kettle&topic[]=kitchen&price_max=100&sort=cheap`), so a result can be shared or bookmarked and works without JavaScript. Put it on a listing page's template:
+
+```blade
+<x-sunrice-cms::entry-filter collection="shop" :per-page="12"
+    :filters="[
+        'q' => 'search',
+        'topic' => ['type' => 'terms', 'taxonomy' => 'topics', 'hide_empty' => true],
+        'color' => ['type' => 'select', 'multiple' => true],
+        'price' => ['type' => 'range', 'label' => 'Price'],
+        'made' => ['type' => 'date_range', 'field' => 'made_on'],
+        'sale' => ['type' => 'toggle', 'label' => 'On sale'],
+    ]"
+    :sorts="['new' => ['label' => 'Newest', 'order' => 'latest'], 'cheap' => ['label' => 'Price, low to high', 'order' => 'price'], 'dear' => '-price']" />
+```
+
+Without a slot it prints a plain, accessible form (labels for every input, fieldsets with legends for groups, a `role="search"` form), the applied filters as links that remove each one and *Clear all*, the number of results (`role="status"`), the entries as links and the page links. Its classes start `sunrice-entry-filter`; it has no styles of its own. With a slot, the markup is yours:
+
+```blade
+<x-sunrice-cms::entry-filter collection="shop" :filters="['q' => 'search', 'color' => 'select']" :sorts="['cheap' => 'price', 'dear' => '-price']">
+    <form action="{{ $component->action }}">
+        <label for="q">Search</label>
+        <input id="q" type="search" name="q" value="{{ $component->filter('q')->value }}">
+        <label for="color">Colour</label>
+        <select id="color" name="color">
+            <option value="">Any</option>
+            @foreach ($component->filter('color')->options as $option)
+                <option value="{{ $option['value'] }}" @selected($option['selected'])>{{ $option['label'] }}</option>
+            @endforeach
+        </select>
+        <button>Show</button>
+    </form>
+    @if ($component->filtered())
+        @foreach ($component->active as $chip)
+            <a href="{{ $chip->removeUrl }}">{{ $chip->label }}: {{ $chip->value }} ×</a>
+        @endforeach
+        <a href="{{ $component->clearUrl() }}">Clear all</a>
+    @endif
+    @foreach ($component->entries as $product) … @endforeach
+    {{ $component->entries->links() }}
+</x-sunrice-cms::entry-filter>
+```
+
+| Attribute | |
+| --- | --- |
+| `collection` | The collection's handle (required). |
+| `filters` | Query string name => type, or an array with `type`, `field` (default: the name), `label` (default: the name as a headline) and the type's own keys. |
+| `sorts` | Query string value => order (`latest`, `oldest`, `alphabetical`, `ordered`, a field, `-field`, or several comma-separated), or `['label' => …, 'order' => …]`. The first is the default; none: the collection's own order. |
+| `per-page` | Entries per page (default: the collection's *Entries per listing page*). |
+| `page-name`, `sort-name` | The query string's page number (`page`) and sort (`sort`) names. |
+| `where`, `terms` | Fixed conditions, as on `entries`. |
+
+| Type | Reads | Filters |
+| --- | --- | --- |
+| `search` | `?q=words` | `search()`: title and field text. |
+| `terms` | `?topic[]=slug` (`multiple: false`: `?topic=slug`) | Entries with any of the terms, or the terms under them (`whereTerm(..., includeChildren: true)`). Options: the taxonomy's terms (`taxonomy`, default the name) by slug in the page's language, each with `count` and `depth`; `hide_empty` leaves out terms without entries. |
+| `select` | `?color=red` (`multiple: true`: `?color[]=red&color[]=blue`) | The field equals one of the values; a select field with several choices holds any of them. Options: `options` given (value => label, or `[value, label]` rows), else the field's own; without either, any value. |
+| `range` | `?price_min=10&price_max=100` | Number fields between the two (either may be left out). |
+| `date_range` | `?made_from=2026-01-01&made_to=2026-01-31` | Date fields from the start of one day to the end of the other. |
+| `toggle` | `?sale=1` | The field is on. |
+
+Only the filters declared are read, and only values among a filter's options (numbers for ranges, `YYYY-MM-DD` dates); anything else is ignored, so a link can't make it query what you didn't offer. Other query string parameters are kept by the links and the form.
+
+In the slot: `$component->entries` (a paginator of `EntryTranslation`s), `->filters` (`Filter\FilterControl`: `name`, `type`, `field`, `label`, `multiple`, `value`, `options` with `value`, `label`, `selected` (and `count`, `depth` for terms), `inputs` (input names: `['value' => 'topic[]']`, `['min' => 'price_min', 'max' => 'price_max']`), `id()`, `applied()`), `->filter('q')`, `->sorts` (`Filter\SortChoice`: `value`, `label`, `order`, `selected`) with `->sortName`, `->active` (`Filter\ActiveFilter`: `filter`, `label`, `value`, `removeUrl`), `->filtered()`, `->clearUrl()`, `->action` (this page), `->others` (the other query parameters) and `->query()` (the filtered `EntryQuery`, for a count or a map).
 
 In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancestors()` (top-down) give breadcrumbs and sub-menus:
 
@@ -242,6 +432,21 @@ Each database searches its own way, with the index of migration `000017`: MySQL 
 
 In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perPage: 20, locale: 'id')`. Field text is kept when an entry is published (`search_text`, its first 20,000 characters).
 
+## The site's words
+
+What the CMS's own views say to visitors (the plain pages' **Newer** and **Older**, the search page, comments, the forms' **Send**, the reply emails, and the messages after posting) are translation keys, `sunrice-cms::site.*`, in English and Indonesian, shown in the page's language. To change them or add a language, put your own lines in `lang/vendor/sunrice-cms/{locale}/site.php` (only the keys you change):
+
+```php
+// lang/vendor/sunrice-cms/id/site.php
+return ['comments' => ['post' => 'Kirim']];
+```
+
+Laravel's own lines (`pagination`, `validation`, `auth`, `passwords`, and the pagination view's words) come in English only; the CMS brings Indonesian ones, used for each file the app has none of: your `lang/id/validation.php` always wins, as do the lines in `lang/id.json`. Form and comment errors, and paginator links, are then in Indonesian on Indonesian pages.
+
 ## Previews
 
 The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex` and `Cache-Control: no-store, private`, so no cache keeps a draft. Save first to see changes.
+
+### Drafts on the site
+
+Signed-in panel users with `cms.entries.view-drafts` (and view access to the collection; the author and editor roles have it) see a small banner on a live page whose entry has a newer draft, with a **View draft** link. `?draft` renders the draft the way a preview does: the view gets `$draft = true`, `Cms::page()->draft` is set, the body class gets `is-draft`, and the response is `noindex` and `Cache-Control: no-store, private`, never kept by the page cache. The banner is `sunrice-cms::draft-banner`, inserted right after `<body>`, so it works with any template.

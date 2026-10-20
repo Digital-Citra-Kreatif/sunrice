@@ -6,7 +6,10 @@ namespace Sunrice\Admin\Resources\Http;
 
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +19,7 @@ use Inertia\Response;
 use Sunrice\Admin\Actions\Resources\SaveRecord;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Preferences\Preferences;
 use Sunrice\Admin\Resources\Forms\RelationSelect;
 use Sunrice\Admin\Resources\ListQuery;
 use Sunrice\Admin\Resources\RegisteredResource;
@@ -24,6 +28,7 @@ use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Security\SecurityLog;
+use Sunrice\Admin\Support\Card;
 use Sunrice\Admin\Support\Csv;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -36,7 +41,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class ResourceController
 {
-    public function __construct(private Panel $panel, private ActivityLog $activity) {}
+    public function __construct(private Panel $panel, private ActivityLog $activity, private Preferences $preferences) {}
 
     public function index(Request $request): Response
     {
@@ -44,8 +49,11 @@ final class ResourceController
         $user = $this->authorize($request, $resource, 'view');
         $table = $resource->table();
         $list = new ListQuery($resource, $request);
+        // The user's columns and page size for this table (useTablePreferences).
+        $preferencesKey = 'table.resources.'.$resource->key();
+        $preferences = $user instanceof Authenticatable ? $this->preferences->table($user, $preferencesKey) : ['columns' => null, 'perPage' => null];
 
-        $page = $list->builder()->paginate(ListQuery::perPage($request, $table->getPerPage()))->withQueryString();
+        $page = $list->builder()->paginate(ListQuery::perPage($request, $table->getPerPage(), $preferences['perPage']))->withQueryString();
         $rowActions = array_values(array_filter($table->getActions(), fn (Action $action) => ! $action->isBulk));
         $bulkActions = array_values(array_filter($table->getActions(), fn (Action $action) => $action->isBulk));
 
@@ -97,6 +105,7 @@ final class ResourceController
                 'nextUrl' => $page->nextPageUrl(),
             ],
             'perPageOptions' => ListQuery::PER_PAGE,
+            'preferences' => ['key' => $preferencesKey, 'columns' => $preferences['columns'], 'perPage' => $preferences['perPage']],
         ]);
     }
 
@@ -162,9 +171,9 @@ final class ResourceController
     public function action(Request $request, string $record, string $action): RedirectResponse
     {
         $resource = $this->resource($request);
-        $model = $this->find($resource, $record);
         $definition = $this->findAction($resource, $action, bulk: false);
         abort_if($definition->isUrl(), 404);
+        $model = $this->find($resource, $record, $definition->isForTrashed());
         $user = $this->authorize($request, $resource, $definition->getAbility(), $model);
         abort_unless($definition->isVisibleFor($model) && $definition->allows($user, $model), 403);
 
@@ -184,8 +193,11 @@ final class ResourceController
         $ids = array_values(array_filter((array) $request->input('ids'), fn (mixed $id) => is_int($id) || is_string($id)));
 
         // Only records the resource can reach, and only if the user may act on each.
-        $records = $resource->class::query()->whereKey($ids)->get();
         $definition = $action === 'delete' ? null : $this->findAction($resource, $action, bulk: true);
+        $records = $this->query($resource, $definition?->isForTrashed() ?? false)->whereKey($ids)->get();
+        if ($definition?->isForTrashed() === true) {
+            $records = $records->filter(fn (Model $record): bool => $definition->isVisibleFor($record))->values();
+        }
         $ability = $definition?->getAbility() ?? 'delete';
         foreach ($records as $record) {
             abort_unless($resource->allows($user, $ability, $record) && ($definition === null || $definition->allows($user, $record)), 403);
@@ -277,6 +289,7 @@ final class ResourceController
             'sections' => $sections,
             'values' => $values,
             'can' => ['delete' => $record !== null && $resource->allows($this->user(), 'delete', $record)],
+            'aside' => $record === null ? [] : array_map(fn (Card $card) => $card->toArray(), $resource->class::aside($record, $this->user())),
         ]);
     }
 
@@ -301,9 +314,21 @@ final class ResourceController
         return $resource;
     }
 
-    private function find(RegisteredResource $resource, string $id): Model
+    private function find(RegisteredResource $resource, string $id, bool $trashed = false): Model
     {
-        return $resource->class::query()->whereKey($id)->firstOrFail();
+        return $this->query($resource, $trashed)->whereKey($id)->firstOrFail();
+    }
+
+    /**
+     * The resource's records; with $trashed, those in the trash too.
+     *
+     * @return Builder<Model>
+     */
+    private function query(RegisteredResource $resource, bool $trashed): Builder
+    {
+        $query = $resource->class::query();
+
+        return $trashed ? $query->withoutGlobalScope(SoftDeletingScope::class) : $query;
     }
 
     private function findAction(RegisteredResource $resource, string $key, bool $bulk): Action

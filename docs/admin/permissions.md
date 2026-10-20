@@ -54,7 +54,7 @@ Every admin route needs `sunrice.access` ("Open the admin panel"); give it to th
 | --- | --- |
 | `administrator` | Every permission, without the super admin's bypass of your app's own checks. |
 | `editor` (the CMS) | The panel, media, and all content: entries, terms, globals, menus, comments, reading and exporting form submissions. Not structure, settings, users or roles. |
-| `author` (the CMS) | The panel, viewing and uploading media, viewing and creating entries, and editing and trashing their own. Publishes nothing. |
+| `author` (the CMS) | The panel, viewing and uploading media, viewing and creating entries, editing and trashing their own, and seeing drafts on the site (`cms.entries.view-drafts`). Publishes nothing. |
 | `translator` (the CMS) | The panel, viewing media and entries, and editing entries' other languages. |
 
 Run it again after adding plugins or collections: it gives these roles the permissions they're missing. It only adds, so permissions you give these roles in the panel stay, but one you take away comes back the next time. Plugins and your app add roles, or add to them, while the panel registers:

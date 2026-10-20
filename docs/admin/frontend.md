@@ -60,6 +60,10 @@ definePlugin({ pages: { 'Shop/Orders/Index': OrdersIndex } });
 
 Pages get the admin layout (sidebar and header). Set `Component.bare = true` for a page without it.
 
+The header's breadcrumbs are what the page declares with `useBreadcrumbs()`; a page that declares none gets the navigation item whose address is the longest prefix of the page's (with its parent, for a submenu link), so `/admin/shop/orders/12` under an *Orders* item shows *Orders*.
+
+Messages flashed as `success` or `error` (`back()->with('success', 'Saved.')`) become toasts. Each one shown carries an `id` in the page's `flash` data (`{ id, success, error }`, `id` null without a message), so the same text twice shows twice.
+
 ## 3. Registering the bundle
 
 Publish the built file to `public/` (for example with `$this->publishes([...], 'shop-assets')`) and tell the panel which pages it provides:
@@ -108,7 +112,7 @@ Your bundle can split: a dynamic `import()` (or `React.lazy`) becomes a chunk ne
 
 ## UI components
 
-`@sunrice/admin-sdk/ui` gives the panel's own components: `PageHeader` (the title block at the top of every page: `title`, `description`, `back={{ href, label }}`, `actions`, and children beside the title), buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, and saves on Ctrl/Cmd+S, as the panel's own forms do), `useEditLock`, `KeptEditsNotice` and `ViewingNotice` ([edit locks](locks.md)), `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file), and `RichTextEditor` (the editor of the panel's `RichText` field: `id`, `value`, `onChange(html | null)`, `invalid`, `labelledBy`, `images`, `disabled`; TipTap loads in its own chunk when the first editor shows, so neither the panel's main script nor a plugin bundle carries it; sanitise the HTML on the server, as `RichText::sanitize()` does).
+`@sunrice/admin-sdk/ui` gives the panel's own components: `PageHeader` (the title block at the top of every page: `title`, `description`, `back={{ href, label }}`, `actions`, and children beside the title), buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, and saves on Ctrl/Cmd+S, as the panel's own forms do), `useEditLock`, `KeptEditsNotice` and `ViewingNotice` ([edit locks](locks.md)), `useTablePreferences(key, initial)` (a table's saved columns and page size, per user: see [preferences](preferences.md)), `DropdownMenuCheckboxItem` (for a Columns menu), `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file), and `RichTextEditor` (the editor of the panel's `RichText` field: `id`, `value`, `onChange(html | null)`, `invalid`, `labelledBy`, `images`, `disabled`; TipTap loads in its own chunk when the first editor shows, so neither the panel's main script nor a plugin bundle carries it; sanitise the HTML on the server, as `RichText::sanitize()` does).
 
 ## Design language
 
@@ -125,7 +129,8 @@ The panel is calm and warm: neutral surfaces with a hint of warmth, one accent u
 | `--shadow-pop` (`shadow-pop`) | Deeper: dialogs, menus, popovers, tooltips, toasts. |
 | `--ease-out-quart` (`ease-out-quart`) | `cubic-bezier(0.22, 1, 0.36, 1)`: nearly everything that moves (150–300 ms). |
 | `--ease-spring` (`ease-spring`) | A `linear()` spring with a touch of overshoot: dialogs entering, the switch thumb, the checkbox tick. |
-| `--sunrice-font` | The typeface (Inter unless the app sets `sunrice-admin.font`). |
+| `--sunrice-font` | The typeface (Inter unless Settings → Branding or `sunrice-admin.font` sets another; see [Branding](branding.md)). |
+| `--primary`, `--primary-foreground`, `--sidebar-primary` | The brand colour when one is set in Settings → Branding, with black or white text on it. |
 
 Add the ones you use to your `@theme inline reference` block, as the CMS does (`--shadow-card: var(--shadow-card)`, `--ease-spring: var(--ease-spring)`, `--color-ring-glow: var(--ring-glow)`), and they become `shop:shadow-card`, `shop:ease-spring` and `shop:ring-ring-glow`.
 

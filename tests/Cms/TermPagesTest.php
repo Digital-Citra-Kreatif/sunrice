@@ -17,6 +17,7 @@ use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+use function Pest\Laravel\postJson;
 use function Pest\Laravel\put;
 
 beforeEach(function () {
@@ -41,7 +42,9 @@ it('gives terms pages listing their live entries, with their fields and SEO', fu
     expect($this->news->fresh()?->url('en'))->toBe(url('/topics/news'));
     get('/sitemap.xml')->assertSee(url('/topics/news'));
     get('/topics/nothing')->assertNotFound();
+    config(['sunrice-cms.site.fallback' => false]);
     get('/id/topics/news')->assertNotFound(); // not translated
+    config(['sunrice-cms.site.fallback' => true]);
 });
 
 it('takes terms in the trash off the site', function () {
@@ -83,4 +86,23 @@ it('edits a term\'s page per language, and checks the template', function () {
         ->and($this->news->fresh()?->template)->toBe('cms.topic');
     put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Mine anyway']])->assertSessionHasNoErrors();
     expect(fn () => app(SaveTermContent::class)->handle($this->news, ['data' => []], 'fr'))->toThrow(ValidationException::class);
+});
+
+it('locks a term\'s page for those who manage its taxonomy', function () {
+    actingAs(adminUser(Panel::ACCESS));
+    postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertForbidden();
+
+    Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.tags.manage'));
+    postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertForbidden();
+
+    $rina = adminUser(Panel::ACCESS, 'cms.terms.topics.manage');
+    actingAs($rina);
+    postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertJson(['status' => 'ok']);
+    postJson('/admin/locks/cms.term/999', ['editor' => 'tab-a', 'locale' => 'en'])->assertForbidden();
+
+    // Someone else opening it meanwhile is told who's editing.
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-b', 'locale' => 'en'])->assertJson(['status' => 'locked']);
+    postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-b', 'locale' => 'id'])->assertJson(['status' => 'ok']);
 });
