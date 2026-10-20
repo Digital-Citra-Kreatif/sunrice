@@ -11,6 +11,9 @@ import { createServer, type ViteDevServer } from 'vite';
 
 let server: Promise<ViteDevServer> | undefined;
 
+// Registered at import time, so the server outlives every test in the file.
+after(async () => { await (await server)?.close(); });
+
 function vite(): Promise<ViteDevServer> {
     server ??= createServer({
         configFile: false,
@@ -19,9 +22,6 @@ function vite(): Promise<ViteDevServer> {
         server: { middlewareMode: true, watch: null },
         appType: 'custom',
         logLevel: 'silent',
-    }).then((created) => {
-        after(() => created.close());
-        return created;
     });
 
     return server;
