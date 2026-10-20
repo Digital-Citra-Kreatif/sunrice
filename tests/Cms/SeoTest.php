@@ -18,6 +18,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Redirect;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Site\Sitemap;
 use Sunrice\Cms\Support\SafeUrl;
@@ -282,19 +283,42 @@ it('fills in a term page\'s SEO from the fields its taxonomy names', function ()
     expect(Seo::forTerm($news->translations()->firstOrFail())['description'])->toBe('All the news');
 });
 
-it('offers the blueprints\' fields for SEO in Structure → Collections and Taxonomies', function () {
+it('sets the site\'s SEO and each collection\'s and taxonomy\'s SEO fields in Settings → SEO', function () {
     Blueprint::query()->create(['handle' => 'article', 'title' => 'Article', 'fields' => [
         ['handle' => 'headline', 'type' => 'text', 'label' => 'Headline'],
         ['handle' => 'cover', 'type' => 'media'],
     ]]);
-    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.taxonomies.view', 'cms.taxonomies.create'));
+    $this->blog->update(['blueprint' => 'article']);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'blueprint' => 'article']);
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin/cms/seo')->assertForbidden();
 
-    put("/admin/cms/collections/{$this->blog->id}", ['title' => 'Blog', 'blueprint' => 'article', 'seo_title_field' => 'headline', 'seo_image_field' => 'cover'])->assertSessionHasNoErrors();
-    expect($this->blog->fresh()?->seo_title_field)->toBe('headline')->and($this->blog->fresh()?->seo_image_field)->toBe('cover');
-    // Only fields of the right kind.
-    put("/admin/cms/collections/{$this->blog->id}", ['title' => 'Blog', 'seo_image_field' => 'headline'])->assertSessionHasErrors('seo_image_field');
-    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'seo_title_field' => 'headline'])->assertSessionHasNoErrors();
-    expect(Taxonomy::query()->where('handle', 'topics')->value('seo_title_field'))->toBe('headline');
+    // Without the structure permissions: only the site's settings.
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    get('/admin/cms/seo')->assertOk()->assertInertia(fn ($page) => $page->component('Cms/Seo/Edit', shouldExist: false)
+        ->where('collections', null)->where('taxonomies', null)->where('site.appendName', true));
+    put('/admin/cms/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '·', 'twitter' => 'not a handle!']])->assertSessionHasErrors('site.twitter');
+    put('/admin/cms/seo', ['site' => ['noindex' => true, 'appendName' => true, 'separator' => '·', 'twitter' => '@acme'],
+        'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'title' => 'headline']]])->assertSessionHasNoErrors();
+    expect(app(SiteSettings::class)->title('About'))->toBe('About · Acme')
+        ->and(app(SiteSettings::class)->noindex)->toBeTrue()
+        ->and($this->blog->fresh()?->seo_title_field)->toBeNull();
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.collections.update', 'cms.taxonomies.update'));
+    get('/admin/cms/seo')->assertInertia(fn ($page) => $page
+        ->where('collections.0.title', 'Blog')->where('collections.0.blueprint', 'Article')
+        ->where('collections.0.options.title', [['value' => 'headline', 'label' => 'Headline']])
+        ->where('collections.0.options.image', [['value' => 'cover', 'label' => 'Cover']])
+        ->where('taxonomies.0.title', 'Topics'));
+    $site = ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => ''];
+    put('/admin/cms/seo', ['site' => $site, 'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'image' => 'headline']]])->assertSessionHasErrors('mappings.0.image');
+    put('/admin/cms/seo', ['site' => $site, 'mappings' => [
+        ['kind' => 'collection', 'id' => $this->blog->id, 'title' => 'headline', 'image' => 'cover'],
+        ['kind' => 'taxonomy', 'id' => $topics->id, 'title' => 'headline'],
+    ]])->assertSessionHasNoErrors();
+    expect($this->blog->fresh()?->only(['seo_title_field', 'seo_description_field', 'seo_image_field']))->toBe(['seo_title_field' => 'headline', 'seo_description_field' => null, 'seo_image_field' => 'cover'])
+        ->and($topics->fresh()?->seo_title_field)->toBe('headline')
+        ->and(app(SiteSettings::class)->noindex)->toBeFalse();
 });
 
 it('gives listing pages SEO of their own, per language', function () {
