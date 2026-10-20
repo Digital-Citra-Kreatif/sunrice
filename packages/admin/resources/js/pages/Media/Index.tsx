@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import {
-    ChevronLeft, ChevronRight, CircleAlert, Folder, FolderPlus, LoaderCircle, MoreHorizontal, RotateCcw, Search, Trash2, Upload as UploadIcon, X,
+    ChevronLeft, ChevronRight, CircleAlert, Folder, FolderOpen, FolderPlus, Images, LoaderCircle, MoreHorizontal, RotateCcw, Search, Trash2, Upload as UploadIcon, X,
 } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { adminUrl } from '@/lib/admin-url';
+import { MEDIA_DRAG, parseDraggedIds } from '@/lib/media-drag';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -64,8 +65,34 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             ...(next.trash ? { trash: 1 } : {}),
         }, { preserveState: true, preserveScroll: true });
     };
-    const bulk = (action: 'move' | 'trash' | 'restore' | 'delete', extra: Record<string, unknown> = {}) =>
-        router.post(`${base}/bulk`, { action, ids: selected, ...extra }, { preserveScroll: true, onSuccess: () => setSelected([]) });
+    const bulk = (action: 'move' | 'trash' | 'restore' | 'delete', extra: Record<string, unknown> = {}, ids: number[] = selected) =>
+        router.post(`${base}/bulk`, { action, ids, ...extra }, { preserveScroll: true, onSuccess: () => setSelected([]) });
+
+    // Files dragged onto a folder (a tile or a step of the path) move there.
+    const canMove = can.update && !query.trash;
+    const [dropTarget, setDropTarget] = React.useState<string | null>(null);
+    const dragFiles = (event: React.DragEvent, id: number) => {
+        const ids = selected.includes(id) ? selected : [id];
+        event.dataTransfer.setData(MEDIA_DRAG, JSON.stringify(ids));
+        event.dataTransfer.effectAllowed = 'move';
+    };
+    const dropTargetProps = (key: string, folderId: number | null) => (canMove ? {
+        onDragOver: (event: React.DragEvent) => {
+            if (!event.dataTransfer.types.includes(MEDIA_DRAG)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            setDropTarget(key);
+        },
+        onDragLeave: () => setDropTarget((current) => (current === key ? null : current)),
+        onDrop: (event: React.DragEvent) => {
+            const ids = parseDraggedIds(event.dataTransfer.getData(MEDIA_DRAG));
+            setDropTarget(null);
+            if (ids.length === 0) return;
+            event.preventDefault();
+            event.stopPropagation();
+            bulk('move', { folder_id: folderId }, ids);
+        },
+    } : {});
     const toggle = (id: number, checked: boolean) => setSelected((ids) => (checked ? [...ids, id] : ids.filter((other) => other !== id)));
 
     const drop = (event: React.DragEvent) => {
@@ -77,7 +104,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
     return (
         <div
             className="relative flex flex-col gap-4"
-            onDragOver={(e) => { if (canUpload && e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true); } }}
+            onDragOver={(e) => { if (canUpload && e.dataTransfer.types.includes('Files') && !e.dataTransfer.types.includes(MEDIA_DRAG)) { e.preventDefault(); setDragging(true); } }}
             onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
             onDrop={drop}
         >
@@ -129,6 +156,33 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 )}
             </div>
 
+            {!query.trash && !query.search && (
+                <nav aria-label="Folder" className="flex flex-wrap items-center gap-1 text-sm">
+                    {[{ id: null as number | null, name: 'All media' }, ...path].map((step, i, steps) => {
+                        const last = i === steps.length - 1;
+                        const key = `path-${step.id ?? 'top'}`;
+                        return (
+                            <React.Fragment key={key}>
+                                {i > 0 && <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />}
+                                {last ? (
+                                    <span aria-current="page" className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-medium">
+                                        {i === 0 ? <Images className="size-4 text-muted-foreground" /> : <FolderOpen className="size-4 text-muted-foreground" />}{step.name}
+                                    </span>
+                                ) : (
+                                    <Link href={step.id === null ? base : `${base}?folder=${step.id}`} {...dropTargetProps(key, step.id)}
+                                        className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground', dropTarget === key && 'bg-primary/10 text-foreground ring-2 ring-primary')}>
+                                        {i === 0 ? <Images className="size-4" /> : <Folder className="size-4" />}{step.name}
+                                    </Link>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                    {canMove && (media.data.length > 0 && (folders.length > 0 || path.length > 0)) && (
+                        <span className="ml-auto text-xs text-muted-foreground">Drag files onto a folder to move them.</span>
+                    )}
+                </nav>
+            )}
+
             {uploads.length > 0 && (
                 <div className="rounded-md border bg-card p-3 text-sm">
                     <div className="mb-2 flex items-center justify-between">
@@ -170,7 +224,8 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             {folders.length > 0 && (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                     {folders.map((f) => (
-                        <div key={f.id} className="group flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 transition-colors duration-150 ease-out-quart hover:bg-muted/40">
+                        <div key={f.id} {...dropTargetProps(`folder-${f.id}`, f.id)}
+                            className={cn('group flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 transition-colors duration-150 ease-out-quart hover:bg-muted/40', dropTarget === `folder-${f.id}` && 'border-primary bg-primary/5 ring-2 ring-primary')}>
                             <Link href={`${base}?folder=${f.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
                                 <Folder className="size-4 shrink-0 text-muted-foreground" /><span className="truncate">{f.name}</span>
                             </Link>
@@ -201,12 +256,12 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                     {media.data.map((item, i) => {
                         const checked = selected.includes(item.id);
                         return (
-                            <div key={item.id} style={{ '--i': i } as React.CSSProperties}
+                            <div key={item.id} style={{ '--i': i } as React.CSSProperties} draggable={canMove} onDragStart={(event) => dragFiles(event, item.id)}
                                 className={cn('sunrice-row-in group relative overflow-hidden rounded-lg border bg-card transition-[transform,box-shadow,border-color] duration-200 ease-out-quart hover:-translate-y-0.5 hover:border-border hover:shadow-card', checked && 'ring-2 ring-primary')}>
                                 <button type="button" className="block w-full text-left" onClick={() => setOpenId(item.id)} aria-label={`Open ${item.title || item.filename}`}>
                                     <div className="flex aspect-square items-center justify-center bg-muted">
                                         {item.thumbnail
-                                            ? <img src={item.thumbnail} alt="" loading="lazy" className="size-full object-cover" />
+                                            ? <img src={item.thumbnail} alt="" loading="lazy" draggable={false} className="size-full object-cover" />
                                             : <FileIcon mimeType={item.mimeType} className="size-10 text-muted-foreground" />}
                                     </div>
                                     <div className="px-2 py-1.5">

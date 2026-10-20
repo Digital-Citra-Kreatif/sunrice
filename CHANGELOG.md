@@ -29,6 +29,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Media shows where you are as a path (All media › Photos › 2026), each step a link, and files move by dragging them (the selected ones, or the one dragged) onto a folder or a step of the path; selecting and **Move** still works.
 - The entry editor's Status card shows the status and the publish date, with a **Publish date** to set or change: publish now or on a past date, schedule a future one, change a live entry's date, or unpublish.
 - Each language can have its own address prefix (Settings → Languages' **Address** column, `code: Name | prefix`, or config `sunrice-cms.locale_prefixes`), the main one too: `/en/about`, `/indonesia/tentang`. Unset, nothing changes. With every language prefixed, plain addresses redirect to the main language's. `Locales::prefix()` follows it, with the new `Locales::segments()`, `segmentsFor()` and `split()`; `sunrice:switch-main-language` keeps the set prefixes. `Pairs::extra()` adds an optional third column.
 - The user form: roles are offered by readable name (*Super Admin*), with a plain explanation, more room between them, and no second "Roles" label under the Roles card (a section's only field named like the section shows no label). Cards beside a form list their rows label-left, value-right, events as a list (what and when, details under; five, then *Show more*), with full-width buttons.
