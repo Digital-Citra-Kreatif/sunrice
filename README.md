@@ -39,11 +39,11 @@ final class AdminPanelProvider extends PanelProvider
 php artisan sunrice:install --roles   # config, migrations, assets, storage link, permissions, roles, a super admin
 ```
 
-Sign in at `/admin`. Run the scheduler and a queue worker on the server: see [Installation](docs/admin/installation.md).
+Sign in at `/admin`. Run the scheduler and a queue worker on the server: see [Installation](packages/admin/docs/installation.md).
 
 ## Documentation
 
-- [The docs index](docs/README.md): every page, for the panel and the CMS.
+- [The docs index](docs/README.md): every page, for the panel ([`packages/admin/docs`](packages/admin/docs)) and the CMS ([`packages/cms/docs`](packages/cms/docs)).
 - [Architecture](docs/architecture.md): how the packages fit together.
 - The user guide for editors, in English and Indonesian, is inside the panel under **Help → Guide** (`packages/*/guide`).
 

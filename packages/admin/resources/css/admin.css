@@ -9,7 +9,7 @@
 /*
  * Design tokens. Warm neutrals with one accent used sparingly; the CMS and
  * plugin stylesheets read these variables, so a change here reaches every
- * page (see docs/admin/frontend.md, "Design language").
+ * page (see packages/admin/docs/frontend.md, "Design language").
  */
 :root {
     --background: oklch(0.985 0.004 80);

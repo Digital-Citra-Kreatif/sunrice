@@ -36,7 +36,7 @@ $counts = app(RebuildReferences::class)->handle(dryRun: false, media: true);
 // ['entries' => 120, 'terms' => 14, 'globals' => 2, 'references' => 310]
 ```
 
-Media files are tracked by the panel's `MediaUsages` instead ([media](../admin/media.md)).
+Media files are tracked by the panel's `MediaUsages` instead ([media](../../admin/docs/media.md)).
 
 ## Renaming a field
 

@@ -123,7 +123,7 @@ return [
         // Headers on every panel response. X-Frame-Options: DENY, Referrer-Policy:
         // same-origin and X-Content-Type-Options: nosniff are always sent; a
         // Content-Security-Policy only when set here (Inertia and Vite setups
-        // vary, see docs/admin/security.md#security-headers).
+        // vary, see packages/admin/docs/security.md#security-headers).
         'headers' => [
             'csp' => env('SUNRICE_CSP'),
         ],
@@ -133,7 +133,7 @@ return [
         // service. null: only the activity log.
         'log_channel' => env('SUNRICE_SECURITY_LOG_CHANNEL'),
 
-        // Emails when something may be a break-in (see docs/admin/security.md).
+        // Emails when something may be a break-in (see packages/admin/docs/security.md).
         // Sent to super admins, users with these roles, and these addresses.
         'alerts' => [
             'enabled' => env('SUNRICE_SECURITY_ALERTS', true),

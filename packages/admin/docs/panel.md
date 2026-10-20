@@ -24,7 +24,7 @@ final class AdminPanelProvider extends PanelProvider
 
 An app has one panel. Once it boots, the panel is locked: changing it later throws `PanelMisconfigured`.
 
-`brand()` names the panel in the sidebar, on the sign-in page and in emails. Admins can give it another name, a logo, a font, a colour and their own sign-in page in Settings → Branding: see [Branding](branding.md).
+`brand()` is the panel's own name. Admins can give it another name, a logo, a font, a colour and their own sign-in page in Settings → Branding: see [Branding](branding.md). The name people see (in the sidebar, on the sign-in page, in emails and to AI agents) is `$panel->brandName()`.
 
 ## Writing a plugin
 
@@ -119,7 +119,7 @@ URLs are relative to the panel's path (`shop/orders`), or start with `/` or `htt
 
 The page arrives with the widgets' definitions and paints at once; `data` runs afterwards, in a deferred request (`Inertia::defer`), one request per plugin and one for the panel's and the app's widgets, with placeholders meanwhile. It runs only for users who may see the widget, so it may query what it needs, but keep it to a query or two (no queries per row). A widget whose `data` throws, or returns something of the wrong shape, is reported (`report()`, so it's logged) and shown as unavailable; the rest of the dashboard is unaffected.
 
-`$panel->widgetsFor($user)` gives the widgets a user sees, in order, and `$widget->resolve($user)` runs and checks one's data, for tests. The panel's own widgets are `sunrice.media` (the media library's size, with `sunrice.media.view`) and `sunrice.activity` (the last eight lines of the activity log, with `sunrice.activity.view`). The CMS adds its own (see [Collections](../cms/collections.md#the-dashboard)).
+`$panel->widgetsFor($user)` gives the widgets a user sees, in order, and `$widget->resolve($user)` runs and checks one's data, for tests. The panel's own widgets are `sunrice.media` (the media library's size, with `sunrice.media.view`) and `sunrice.activity` (the last eight lines of the activity log, with `sunrice.activity.view`). The CMS adds its own (see [Collections](../../cms/docs/collections.md#the-dashboard)).
 
 ## Routes and pages
 
@@ -143,7 +143,7 @@ $panel->docs('Shop', dirname(__DIR__).'/docs');     // docs/orders.md → "shop/
 $panel->guide('Shop', dirname(__DIR__).'/guide');   // guide/en/orders.md, guide/id/orders.md → "shop/orders"
 ```
 
-- A page is named `{slug of the title}/{file name}` and titled by its first `# ` heading. The panel registers its own as "Panel" (`docs/admin` and `packages/admin/guide`), the CMS as "CMS" (docs) and "Website" (guide). A directory that doesn't exist is skipped; two registrations with one title are a `PanelMisconfigured`.
+- A page is named `{slug of the title}/{file name}` and titled by its first `# ` heading. The panel registers its own as "Panel" (its package's `docs` and `guide` folders, so they ship with it), the CMS as "CMS" (`docs`) and "Website" (`guide`). A directory that doesn't exist is skipped; two registrations with one title are a `PanelMisconfigured`.
 - **Guides** hold a folder per language (`en`, `id`, …). The reader picks the language with the switch at the top (`?lang=id`), and the choice is kept in the session; before that it's the app's locale or the browser's. A page missing in that language is shown in English, with a note. A leading number orders the files (`01-welcome.md` is the page `welcome`). `{panel}` reads as the panel's branded name (Settings → Branding).
 - **Links** between pages are written as relative Markdown links (`[Menus](menus.md#links)`, `../admin/panel.md`) and open the page in the panel; `docs:cms/site` and `guide:website/entries` link the other set, shown as links only to readers who may open it. Links to files that aren't help pages keep only their text.
 - **Images** for a guide go in its `images` folder, shared by the languages (`![The menu editor](images/menus.webp)`), and are served by `GET admin/guide/images/{section}/{file}` (`sunrice.admin.guide.image`, `sunrice.guide.view`): only `webp`, `png`, `jpg`, `gif` and `avif` files directly in that folder. Other images are left out.

@@ -6,7 +6,7 @@ One person edits an item at a time. While an editor page is open, it holds the i
 - **View only** (the page stays read-only, with a notice), or
 - **Take over**: the other editor is told on their next renewal, their unsaved changes are kept for a month, and they're sent back. Whoever opens the item later sees the kept changes with **Load into the form** and **Discard**.
 
-A person's own tabs never lock each other out. Saves are still checked against the item's version (see the CMS's [Save mine anyway](../cms/collections.md#editing-entries)), so an expired lock can't silently overwrite someone's work.
+A person's own tabs never lock each other out. Saves are still checked against the item's version (see the CMS's [Save mine anyway](../../cms/docs/collections.md#editing-entries)), so an expired lock can't silently overwrite someone's work.
 
 The CMS locks entries (`cms.entry`), global sets (`cms.global`) and terms' pages (`cms.term`, for those who manage the term's taxonomy), each per language.
 

@@ -37,6 +37,7 @@ it('registers the panel\'s own docs and guide, and the Help permissions', functi
 
     expect(array_keys($panel->getDocs()))->toBe(['panel', 'shop'])
         ->and(array_keys($panel->getGuides()))->toBe(['panel', 'shop'])
+        ->and($panel->getDocs()['panel']['directory'])->toBe(dirname(__DIR__, 2).'/packages/admin/docs')
         ->and($panel->getGuides()['panel']['directory'])->toBe(dirname(__DIR__, 2).'/packages/admin/guide')
         ->and($panel->getPermissions())->toHaveKeys(['sunrice.docs.view', 'sunrice.guide.view'])
         ->and($panel->isPrivilegedPermission('sunrice.docs.view'))->toBeFalse();

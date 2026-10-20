@@ -147,7 +147,7 @@ What's printed can't end the script (`<`, `>`, `&` and quotes are escaped). `Sun
 </body>
 ```
 
-Code there runs in every visitor's browser, so give the permission only to people you trust with the whole site. Each change is a `site code changed` security event and emails the [security alerts](../admin/security.md#email-alerts).
+Code there runs in every visitor's browser, so give the permission only to people you trust with the whole site. Each change is a `site code changed` security event and emails the [security alerts](../../admin/docs/security.md#email-alerts).
 
 ## Layout helpers
 

@@ -59,7 +59,7 @@ Editors write entries under **Content → Entries**: a list per collection (see 
 | `cms.entries.export` | Download a collection's entries as CSV (with `view`). |
 | `cms.entries.update-own`, `.delete-own` | The same, for entries they created, in collections they may view. |
 | `cms.entries.translate` | Save drafts of entries' other languages (not the main one), in collections they may view. |
-| `cms.entries.view-drafts` | While signed in, see on the site that a live page has unpublished changes, and open them (`?draft`), in collections they may view. See [draft viewing](site.md#draft-viewing). |
+| `cms.entries.view-drafts` | While signed in, see on the site that a live page has unpublished changes, and open them (`?draft`), in collections they may view. See [draft viewing](site.md#drafts-on-the-site). |
 
 Each of the first six also comes for one collection: `cms.entries.blog.publish` publishes only in Blog. They're created with the collection (and deleted with it), renamed with its handle, and the role editor shows them under "Entries: Blog". The same goes for terms (`cms.terms.{taxonomy}.manage`) and form submissions (`cms.submissions.{form}.view`, `.export`, `.delete`). People see only the collections, taxonomies and forms they may work in. In code: `Sunrice\Cms\Support\Access::entries($user, 'publish', $collection, $entry, $locale)`.
 
@@ -67,14 +67,14 @@ Each of the first six also comes for one collection: `cms.entries.blog.publish` 
 
 Scoped permissions are named after handles, so when a collection's, taxonomy's or form's handle changes on its edit form, its stored permissions are renamed in place (`cms.entries.blog.view` becomes `cms.entries.journal.view`, through `ScopedPermissions::renamed()` and the panel's `RenamePermissions`): every role and person keeps what they were given. What the CMS can't rename for you is shown as a warning under the field: Blade views named after the handle (`cms.{handle}`, `cms.taxonomy-{handle}`), `Cms::entries('…')`, `whereTerm('…')`, `<x-sunrice-cms::form handle="…" />`, and entries fields limited to a collection. `SaveCollection` still refuses a new handle; rename through the admin.
 
-`sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing, sees drafts on the site) and `translator` (writes the other languages): see [default roles](../admin/permissions.md#default-roles).
+`sunrice:roles` creates `editor` (all content), `author` (writes entries and edits and trashes their own, publishes nothing, sees drafts on the site) and `translator` (writes the other languages): see [default roles](../../admin/docs/permissions.md#default-roles).
 
 In the editor:
 
 - **Ctrl/Cmd+S** saves the draft, and leaving the page with unsaved changes asks first.
 - **Page settings**: the parent (in hierarchical collections; never the entry itself or one below it, at most 10 deep), a Blade view for this entry alone (`SaveEntrySettings`) and, when the collection offers more than one, its blueprint (`ChangeBlueprint`), for every language. Deleting an entry for good moves its children up to its parent.
 - **Duplicate** copies every language's draft as a new draft entry ("Hello (copy)", slug `hello-copy`).
-- Only one person edits an entry in a language at a time: others are told who's editing and can view it or take over (see [edit locks](../admin/locks.md)).
+- Only one person edits an entry in a language at a time: others are told who's editing and can view it or take over (see [edit locks](../../admin/docs/locks.md)).
 - When someone else saved since you opened the page, saving says so: **Load theirs**, or **Save mine anyway** over their version.
 - Group fields, **Search and sharing** and the sidebar's cards (status, page settings, comments, revisions) fold away; each remembers being open or closed in the browser, and opens by itself when a field inside has an error.
 - Repeater rows, flexible blocks and an entries field's chosen entries are dragged into order by their handle (or with the keyboard: focus the handle, space, arrows, space).
@@ -101,7 +101,7 @@ Each collection's list (`EntryController::index`, built by `Sunrice\Cms\Admin\En
 | `sort` | `title`, `slug`, `status`, `published_at`, `updated_at`, `created_at`, `author` or `field.{handle}`, with `-` first for descending. None: the collection's order (manual, newest first when dated, else by title). |
 | `per_page` | 10, 25, 50 or 100. |
 
-Besides the title, the **Columns** menu shows the slug, the status (with a badge per other language), the author, the dates, and **field columns**: the blueprint's top-level text, textarea, number, date, select, toggle and entries fields (custom fields built on them too), shown as short text (select labels, Yes/No, linked entries' titles). Field columns sort by the draft's value (shared fields: the main language's), numbers and dates as such; entries fields and multiple selects don't sort. The chosen columns and page size are kept per person ([preferences](../admin/preferences.md), key `table.cms.entries.{collection}`); a `per_page` in the address wins.
+Besides the title, the **Columns** menu shows the slug, the status (with a badge per other language), the author, the dates, and **field columns**: the blueprint's top-level text, textarea, number, date, select, toggle and entries fields (custom fields built on them too), shown as short text (select labels, Yes/No, linked entries' titles). Field columns sort by the draft's value (shared fields: the main language's), numbers and dates as such; entries fields and multiple selects don't sort. The chosen columns and page size are kept per person ([preferences](../../admin/docs/preferences.md), key `table.cms.entries.{collection}`); a `per_page` in the address wins.
 
 **Go to** links to what an editor tends to need next, where they may go: the listing page (edit and view), the collection's taxonomies' terms (`cms.terms.*`), the collection's settings (`cms.collections.update`) and its blueprint (`cms.blueprints.manage`). In a collection with manual order, Move up and Move down appear while the list is in that order, unfiltered.
 
@@ -209,11 +209,11 @@ Every publish keeps a `Revision` (title, slug, fields and who published it); the
 
 Every save records which entries and terms an entry's fields point at, and the editor's sidebar lists what points at this one under **Used by**; trashing a used entry says where it's used, and `ForceDeleteEntry` refuses it unless `force` is passed. See [references](structure.md#references).
 
-Every action is written to the [activity log](../admin/activity.md): created, duplicated, updated (with the fields that changed), published, unpublished, reverted, trashed, restored and deleted.
+Every action is written to the [activity log](../../admin/docs/activity.md): created, duplicated, updated (with the fields that changed), published, unpublished, reverted, trashed, restored and deleted.
 
 ## The dashboard
 
-The CMS adds these widgets to the panel's [dashboard](../admin/panel.md#dashboard-widgets), each showing only what the user may see (per collection and per form, as `Support\Access` decides):
+The CMS adds these widgets to the panel's [dashboard](../../admin/docs/panel.md#dashboard-widgets), each showing only what the user may see (per collection and per form, as `Support\Access` decides):
 
 | Widget | Shows | Who sees it |
 | --- | --- | --- |

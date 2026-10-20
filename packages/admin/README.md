@@ -27,7 +27,7 @@ composer require sunrice/admin
 php artisan sunrice:install --roles
 ```
 
-Your user model needs `Spatie\Permission\Traits\HasRoles`, and your app a panel provider (`Sunrice\Admin\PanelProvider`). The full steps: [Installation](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/admin/installation.md).
+Your user model needs `Spatie\Permission\Traits\HasRoles`, and your app a panel provider (`Sunrice\Admin\PanelProvider`). The full steps: [Installation](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/installation.md).
 
 ## Assets
 
@@ -39,6 +39,6 @@ php artisan sunrice:assets
 
 ## Documentation
 
-- [Installation](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/admin/installation.md), [Configuration](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/admin/configuration.md), [Commands](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/admin/commands.md)
-- [The panel and plugins](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/admin/panel.md), [Writing a plugin](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/admin/plugins.md), [Resources](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/admin/resources.md), [Admin pages in React](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/admin/frontend.md)
+- [Installation](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/installation.md), [Configuration](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/configuration.md), [Commands](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/commands.md)
+- [The panel and plugins](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/panel.md), [Writing a plugin](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/plugins.md), [Resources](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/resources.md), [Admin pages in React](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/frontend.md)
 - [All the docs](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/README.md) and [Upgrading](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/docs/upgrading.md)

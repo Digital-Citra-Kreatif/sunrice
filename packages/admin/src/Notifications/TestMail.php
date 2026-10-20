@@ -28,6 +28,7 @@ final class TestMail extends Notification
         return (new MailMessage)
             ->subject("Test email from {$this->brand}")
             ->line("This is a test email from the {$this->brand} admin panel.")
-            ->line('If you can read it, outgoing mail works: login codes, password resets and security alerts can be delivered.');
+            ->line('If you can read it, outgoing mail works: login codes, password resets and security alerts can be delivered.')
+            ->salutation("Regards,  \n{$this->brand}");
     }
 }

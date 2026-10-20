@@ -25,6 +25,7 @@ use Sunrice\Admin\Settings\BrandingSettings;
 use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
+use Sunrice\Admin\Support\Branding;
 use Sunrice\Admin\Users\RoleResource;
 use Sunrice\Admin\Users\UserContent;
 use Sunrice\Admin\Users\UserResource;
@@ -168,7 +169,10 @@ final class Panel
         return $this;
     }
 
-    /** The name shown in the sidebar, the login page and emails. */
+    /**
+     * The panel's own name: the default for Settings → Branding's name.
+     * Read the name people see with brandName().
+     */
     public function brand(string $brand): self
     {
         $this->assertConfigurable();
@@ -719,12 +723,12 @@ final class Panel
             $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')
                 ->group('Administration')->sort(970)->permission('sunrice.ai.connect'));
         }
-        // Help: the developer docs (this repository's docs/admin) and the user guide (packages/admin/guide).
+        // Help: the developer docs and the user guide, shipped with the package (docs/, guide/).
         $this->permissions(
             Permission::make('sunrice.guide.view', 'Read the user guide', 'Help'),
             Permission::make('sunrice.docs.view', 'Read the developer docs', 'Help'),
         );
-        $this->docs('Panel', dirname(__DIR__, 3).'/docs/admin');
+        $this->docs('Panel', dirname(__DIR__).'/docs');
         $this->guide('Panel', dirname(__DIR__).'/guide');
         if ($this->mediaLibrary) {
             $this->permissions(
@@ -824,9 +828,20 @@ final class Panel
         return $model;
     }
 
+    /** The name given with brand(); what people see is brandName(). */
     public function getBrand(): string
     {
         return $this->brand;
+    }
+
+    /**
+     * The name people see in the sidebar, browser tabs, emails and the AI
+     * server: Settings → Branding's name, else brand(). Reads the settings
+     * (one cached query per request for all sections).
+     */
+    public function brandName(): string
+    {
+        return (new Branding($this, app(BrandingSettings::class)))->name();
     }
 
     /** @return list<string> */

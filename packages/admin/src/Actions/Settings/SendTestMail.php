@@ -34,7 +34,7 @@ final class SendTestMail
         RateLimiter::hit($key, 60);
 
         try {
-            Notification::route('mail', $email)->notifyNow(new TestMail($this->panel->getBrand()));
+            Notification::route('mail', $email)->notifyNow(new TestMail($this->panel->brandName()));
         } catch (Throwable $e) {
             report($e);
 
