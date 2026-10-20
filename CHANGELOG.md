@@ -28,6 +28,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Activity log: the history button says what it does on hover, the filter it sets is named after the item ("History of account Admin"), and it's hidden on the lines of the item whose history is shown, where it did nothing.
 - Submissions with no forms yet offers **Create a form** to those who may (`cms.forms.create`) instead of pointing at Structure → Forms.
 - The sidebar's groups fold away when their title is clicked, remembered per browser; the group of the current page stays open, and every group shows its icons when the sidebar is shrunk.
 - The sidebar lists each collection under **Content** (`cms/collections/{handle}/entries`) and each taxonomy under **Taxonomies** (`cms/taxonomies/{handle}/terms`), for those who may see it, instead of one **Entries** and one **Terms** item; through the new `Panel::navigationUsing()` (`@api`), for navigation made from data on each page.

@@ -67,6 +67,9 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
     const [search, setSearch] = React.useState(query.search);
     const [confirm, confirmDialog] = useConfirm();
     const base = adminUrl('activity');
+    // Showing one item's history: which one, from its lines.
+    const first = rows.data[0];
+    const historyOf = query.subject && first ? `${first.typeLabel.toLowerCase()} ${first.subject ?? ''}`.trim() : null;
 
     const visit = (changes: Partial<Query>) => {
         const next: Query = { ...query, ...changes };
@@ -126,7 +129,7 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                 </div>
                 {(query.subject || query.user) && (
                     <Button variant="secondary" size="sm" onClick={() => visit({ subject: null, user: null })}>
-                        {query.subject ? 'One item\'s history' : 'One person\'s activity'}<X />
+                        {query.subject ? `History of ${historyOf ?? 'one item'}` : 'One person\'s activity'}<X />
                     </Button>
                 )}
             </div>
@@ -160,8 +163,9 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                                     <span className="font-medium">{row.action}</span>{' '}
                                     <span className="text-muted-foreground">{row.typeLabel.toLowerCase()}</span>{' '}
                                     {row.url ? <Link href={row.url} className="underline-offset-4 hover:underline">{row.subject}</Link> : <span>{row.subject}</span>}
-                                    {row.subjectId && (
+                                    {row.subjectId && !(query.subject === row.subjectId && query.type === row.type) && (
                                         <Button variant="ghost" size="icon" className="ml-1 size-6 align-middle" aria-label={`History of ${row.subject ?? 'this item'}`}
+                                            title={`Show only the history of ${row.subject ?? 'this item'}`}
                                             onClick={() => visit({ type: row.type, subject: row.subjectId })}>
                                             <History className="size-3.5" />
                                         </Button>
