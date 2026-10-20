@@ -29,6 +29,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Each language can have its own address prefix (Settings → Languages' **Address** column, `code: Name | prefix`, or config `sunrice-cms.locale_prefixes`), the main one too: `/en/about`, `/indonesia/tentang`. Unset, nothing changes. With every language prefixed, plain addresses redirect to the main language's. `Locales::prefix()` follows it, with the new `Locales::segments()`, `segmentsFor()` and `split()`; `sunrice:switch-main-language` keeps the set prefixes. `Pairs::extra()` adds an optional third column.
 - The user form: roles are offered by readable name (*Super Admin*), with a plain explanation, more room between them, and no second "Roles" label under the Roles card (a section's only field named like the section shows no label). Cards beside a form list their rows label-left, value-right, events as a list (what and when, details under; five, then *Show more*), with full-width buttons.
 - Settings → Languages lists the languages as rows of a code and a name, with **Add a language** (common languages suggested, the name filled in), arrows to reorder and the first marked *Main*, starting from the languages in use; through the new `Pairs` form field (`@api`, `key: value` lines edited as rows). The stored value didn't change.
 - The entry editor switches language with short codes (EN · ID), a green dot for live and amber for outdated, the full name and status on hover; a missing language is a dashed **+ ID**.

@@ -8,4 +8,6 @@ test('reads and writes "key: value" lines as rows', () => {
     ]);
     assert.equal(formatPairs([{ key: ' id ', value: 'Bahasa Indonesia' }, { key: '', value: '' }, { key: 'fr', value: '' }]), 'id: Bahasa Indonesia\nfr');
     assert.equal(formatPairs(parsePairs('en: English: UK')), 'en: English: UK');
+    assert.deepEqual(parsePairs('id: Bahasa Indonesia | indonesia\nen: English |'), [{ key: 'id', value: 'Bahasa Indonesia', extra: 'indonesia' }, { key: 'en', value: 'English' }]);
+    assert.equal(formatPairs([{ key: 'en', value: 'English', extra: ' en ' }, { key: 'id', value: 'Indonesian', extra: '' }]), 'en: English | en\nid: Indonesian');
 });

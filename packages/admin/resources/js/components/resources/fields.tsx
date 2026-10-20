@@ -187,16 +187,18 @@ function PairsInput({ id, field, value, disabled, invalid, onChange }: {
         update(next);
     };
     const listId = `${id}-suggestions`;
+    const extra = field.extra as { label: string; placeholder: string | null; firstPlaceholder: string | null } | null | undefined;
+    const columns = extra ? 'grid-cols-[7rem_1fr_9rem_6.5rem]' : 'grid-cols-[8rem_1fr_6.5rem]';
 
     return (
         <div id={id} role="group" aria-invalid={invalid} className="grid gap-2">
             {rows.length > 0 && (
-                <div className="grid grid-cols-[8rem_1fr_auto] gap-2 text-xs font-medium text-muted-foreground">
-                    <span>{String(field.keyLabel ?? 'Key')}</span><span>{String(field.valueLabel ?? 'Value')}</span><span className="sr-only">Order</span>
+                <div className={`grid ${columns} gap-2 text-xs font-medium text-muted-foreground`}>
+                    <span>{String(field.keyLabel ?? 'Key')}</span><span>{String(field.valueLabel ?? 'Value')}</span>{extra && <span>{extra.label}</span>}<span className="sr-only">Order</span>
                 </div>
             )}
             {rows.map((row, index) => (
-                <div key={index} className="grid grid-cols-[8rem_1fr_auto] items-center gap-2">
+                <div key={index} className={`grid ${columns} items-center gap-2`}>
                     <Input aria-label={`${String(field.keyLabel ?? 'Key')} ${index + 1}`} list={listId} disabled={disabled} className="font-mono" value={row.key}
                         onChange={(e) => {
                             const key = e.target.value;
@@ -208,6 +210,11 @@ function PairsInput({ id, field, value, disabled, invalid, onChange }: {
                             onChange={(e) => set(index, { ...row, value: e.target.value })} />
                         {index === 0 && typeof field.firstBadge === 'string' && <Badge variant="secondary">{field.firstBadge}</Badge>}
                     </div>
+                    {extra && (
+                        <Input aria-label={`${extra.label} ${index + 1}`} disabled={disabled} className="font-mono" value={row.extra ?? ''}
+                            placeholder={(index === 0 && extra.firstPlaceholder !== null ? extra.firstPlaceholder : extra.placeholder ?? '').replace('{key}', row.key || 'code')}
+                            onChange={(e) => set(index, { ...row, extra: e.target.value })} />
+                    )}
                     <div className="flex items-center">
                         <Button type="button" variant="ghost" size="icon" className="size-8" disabled={disabled || index === 0} aria-label="Move up" onClick={() => move(index, -1)}><ArrowUp /></Button>
                         <Button type="button" variant="ghost" size="icon" className="size-8" disabled={disabled || index === rows.length - 1} aria-label="Move down" onClick={() => move(index, 1)}><ArrowDown /></Button>

@@ -11,7 +11,9 @@ namespace Sunrice\Admin\Resources\Forms;
  *     Pairs::make('languages')->labels('Code', 'Name')
  *         ->suggest(['en' => 'English', 'id' => 'Indonesian'])->firstBadge('Main')
  *
- * Picking a suggested key fills an empty value with its suggestion.
+ * Picking a suggested key fills an empty value with its suggestion. With
+ * ->extra('Address') each row has a third, optional column, kept after a
+ * bar: "id: Bahasa Indonesia | indonesia".
  *
  * @api
  */
@@ -29,6 +31,9 @@ final class Pairs extends Field
     private string $addLabel = 'Add';
 
     private int $maxLength = 5000;
+
+    /** @var array{label: string, placeholder: string|null, firstPlaceholder: string|null}|null */
+    private ?array $extra = null;
 
     public function type(): string
     {
@@ -55,6 +60,17 @@ final class Pairs extends Field
     public function firstBadge(?string $badge): self
     {
         $this->firstBadge = $badge;
+
+        return $this;
+    }
+
+    /**
+     * A third, optional column. Its placeholder may name the row's key,
+     * "/{key}"; the first row may have its own.
+     */
+    public function extra(string $label, ?string $placeholder = null, ?string $firstPlaceholder = null): self
+    {
+        $this->extra = ['label' => $label, 'placeholder' => $placeholder, 'firstPlaceholder' => $firstPlaceholder];
 
         return $this;
     }
@@ -86,6 +102,7 @@ final class Pairs extends Field
             'suggestions' => array_map(fn (string $key, string $value): array => ['key' => $key, 'value' => $value], array_keys($this->suggestions), $this->suggestions),
             'firstBadge' => $this->firstBadge,
             'addLabel' => $this->addLabel,
+            'extra' => $this->extra,
         ];
     }
 }
