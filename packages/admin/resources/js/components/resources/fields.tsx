@@ -1,3 +1,4 @@
+import { DatePicker } from '@/components/app/date-picker';
 import { MediaPickerInput } from '@/components/media/media-picker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -65,8 +66,8 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
             );
         }
         case 'date':
-            return <Input {...common} type={field.withTime ? 'datetime-local' : 'date'}
-                value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)} />;
+            return <DatePicker id={id} disabled={disabled} invalid={invalid} required={field.required === true} withTime={field.withTime === true}
+                placeholder={field.placeholder ?? undefined} value={value === null ? null : String(value)} onChange={onChange} />;
         default:
             return <Input {...common} type={String(field.inputType ?? 'text')} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
