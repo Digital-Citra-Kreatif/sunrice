@@ -33,5 +33,5 @@ Term pages and entries share URL patterns: the most specific matching pattern de
 
 ## Trash
 
-Deleting a term moves it, and the terms under it, to the trash (`TrashTerm`): off the site, out of pickers and entries. In the terms list's **Trash**, restore it (`RestoreTerm`; under a parent still in the trash it goes to the top level) or delete it for good (`DeleteTerm`; terms under it move up, entries lose it).
+Deleting a term moves it, and the terms under it, to the trash (`TrashTerm`): off the site, out of pickers and entries. In the terms list's **Trash**, restore it (`RestoreTerm`; under a parent still in the trash it goes to the top level) or delete it for good (`DeleteTerm`; terms under it move up, entries lose it). A term other content points at (`Term::referencedBy()`, see [references](collections.md#references)) is named in the confirmation, and `DeleteTerm` refuses it unless `force` is passed.
 

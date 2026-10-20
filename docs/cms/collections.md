@@ -111,6 +111,19 @@ Every publish keeps a `Revision` (title, slug, fields and who published it); the
 
 ## Trash
 
-`TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms. `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
+`TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms; one that other content points at is refused unless `force` is passed (see [References](#references)). `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
+
+## References
+
+Every save of an entry (draft or publish), a term's page and a global set records which entries and terms its fields point at (entries and terms fields, inside groups, repeaters and flexible blocks too) in `sunrice_references`, per language: one delete and one insert per save. The editor's sidebar lists them under **Used by**, as does a term's page; trashing an entry or a term that's used names where in the confirmation, and deleting one for good is refused unless forced (the admin asks first; bulk deletes skip them).
+
+```php
+$entry->referencedBy();   // Collection of ContentReference: source_type (entry, term, global), source_id, locale, field
+$term->referencedBy();
+app(ForceDeleteEntry::class)->handle($entry, force: true);
+app(DeleteTerm::class)->handle($term, force: true);
+```
+
+An entry pointing at itself doesn't count. Content saved before references were recorded is picked up on its next save. `sunrice:orphans` lists references to entries and terms that are gone ([commands](commands.md)).
 
 Every action is written to the [activity log](../admin/activity.md): created, duplicated, updated (with the fields that changed), published, unpublished, reverted, trashed, restored and deleted.

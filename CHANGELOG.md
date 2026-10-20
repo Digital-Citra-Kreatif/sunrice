@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Entry and term references (migration `000019`, `sunrice_references`, `Models\ContentReference`): entry drafts and publishes, term pages and global sets record which entries and terms their fields point at; `Entry::referencedBy()` and `Term::referencedBy()`; **Used by** in the entry editor and on a term's page; trashing one names where it's used, and **`ForceDeleteEntry` and `DeleteTerm` refuse a referenced one unless `force`** (bulk deletes skip it). `SaveGlobals` now also keeps the media library's "Used by" on an update.
 - Login attempts made while blocked are `login blocked` security events too (`tried while blocked`), at most once a minute per email and IP; and an unknown email costs a password check like a wrong password does, so the timing doesn't tell who has an account (`AttemptLogin`).
 - Tests prove plugin routes guarded: every `sunrice.admin.*` route, the CMS's included, is behind `Authenticate` and `EnsureCanAccessPanel` (but the guest pages and logout), and every `sunrice.admin.cms.*` route names a `can:` permission or `AuthorizeContent` (`tests/Cms/AdminRoutesGuardTest.php`).
 - Security headers on every panel response (`PanelSecurityHeaders` in `PanelRoutes::middleware()`): `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, and a `Content-Security-Policy` from `sunrice-admin.security.headers.csp` (`SUNRICE_CSP`) when set.
