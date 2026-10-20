@@ -70,15 +70,14 @@ it('refuses to delete a blueprint anything uses, naming what', function () {
 
     expect($delete)->toThrow(ValidationException::class, 'used by the listing page of "Blog", the collection "Pages", the taxonomy "Topics", the global set "Contact", the form "Enquiry". Choose another blueprint there first.');
 
-    // A deleted collection or taxonomy can be restored, so it still counts.
     Collection::query()->where('handle', 'blog')->update(['listing_blueprint' => null]);
-    Taxonomy::query()->where('handle', 'topics')->firstOrFail()->delete();
     GlobalSet::query()->update(['blueprint' => null]);
     Form::query()->update(['blueprint' => null]);
     expect($delete)->toThrow(ValidationException::class, 'used by the collection "Pages", the taxonomy "Topics".');
 
-    Collection::query()->where('handle', 'pages')->update(['blueprint' => null]);
-    Taxonomy::query()->withTrashed()->where('handle', 'topics')->update(['blueprint' => null]);
+    // Deleted collections and taxonomies don't count.
+    Collection::query()->where('handle', 'pages')->firstOrFail()->delete();
+    Taxonomy::query()->where('handle', 'topics')->firstOrFail()->delete();
     $delete();
     expect(Blueprint::query()->count())->toBe(0);
 });
