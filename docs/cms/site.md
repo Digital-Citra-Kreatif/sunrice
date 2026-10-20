@@ -146,7 +146,7 @@ In any view, `Cms::entries()` finds live entries in the current language (`Sunri
 {{ Cms::global('contact')['phone'] ?? '' }}
 ```
 
-`entries(...$collections)` (none: every collection), then `locale()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate($perPage, $pageName = 'page')` or `toBase()`.
+`entries(...$collections)` (none: every collection), then `locale()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereContains()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate($perPage, $pageName = 'page')` or `toBase()`.
 
 ```php
 Cms::entries('events')->where('featured', true)->where('date', '>=', today())->orderBy('date')->get();
@@ -162,6 +162,7 @@ Cms::entries('blog')->search($request->query('q', ''))->paginate(10);
 - `whereTerm($term, ...)`: entries with a term (or any of several): `Term` models or ids (`whereTerm($news, $tips)`, `whereTerm([$news, $tips])`), or a taxonomy handle and a slug or list of slugs (`whereTerm('topics', 'news')`, `whereTerm('topics', ['news', 'tips'])`); `includeChildren: true` takes the terms under them too. Looks at the terms of every terms field.
 - `whereFieldTerm($field, $terms, includeChildren: false)`: the same for one terms field, with slugs looked up in that field's taxonomy.
 - `whereEntry($field, $entries)`: entries whose entries field links to an entry (or any of a list).
+- `whereContains($field, $values)`: entries whose list field (a select with several choices) holds any of the values.
 - `search($text)`: entries whose title or field text holds the words, as the site's search matches them; title matches first, then in the query's order.
 - `orderBy($field, 'asc'|'desc')`: a column or a field; numbers and dates sort as such.
 - `except(...$entries)`: leave these out.
@@ -230,6 +231,72 @@ See [SEO](#seo): `entry` with `preview`, `term`, `collection` (a `Collection` or
 #### `<x-sunrice-cms::search>`
 
 See [Search](#search): `results`, `collection`, `per-page`, `name` (the query string's name, `q`) and `page-name` (`page`).
+
+### Filtering entries
+
+`<x-sunrice-cms::entry-filter>` lists a collection's entries filtered, sorted and paginated by the address (`/shop?q=kettle&topic[]=kitchen&price_max=100&sort=cheap`), so a result can be shared or bookmarked and works without JavaScript. Put it on a listing page's template:
+
+```blade
+<x-sunrice-cms::entry-filter collection="shop" :per-page="12"
+    :filters="[
+        'q' => 'search',
+        'topic' => ['type' => 'terms', 'taxonomy' => 'topics', 'hide_empty' => true],
+        'color' => ['type' => 'select', 'multiple' => true],
+        'price' => ['type' => 'range', 'label' => 'Price'],
+        'made' => ['type' => 'date_range', 'field' => 'made_on'],
+        'sale' => ['type' => 'toggle', 'label' => 'On sale'],
+    ]"
+    :sorts="['new' => ['label' => 'Newest', 'order' => 'latest'], 'cheap' => ['label' => 'Price, low to high', 'order' => 'price'], 'dear' => '-price']" />
+```
+
+Without a slot it prints a plain, accessible form (labels for every input, fieldsets with legends for groups, a `role="search"` form), the applied filters as links that remove each one and *Clear all*, the number of results (`role="status"`), the entries as links and the page links. Its classes start `sunrice-entry-filter`; it has no styles of its own. With a slot, the markup is yours:
+
+```blade
+<x-sunrice-cms::entry-filter collection="shop" :filters="['q' => 'search', 'color' => 'select']" :sorts="['cheap' => 'price', 'dear' => '-price']">
+    <form action="{{ $component->action }}">
+        <label for="q">Search</label>
+        <input id="q" type="search" name="q" value="{{ $component->filter('q')->value }}">
+        <label for="color">Colour</label>
+        <select id="color" name="color">
+            <option value="">Any</option>
+            @foreach ($component->filter('color')->options as $option)
+                <option value="{{ $option['value'] }}" @selected($option['selected'])>{{ $option['label'] }}</option>
+            @endforeach
+        </select>
+        <button>Show</button>
+    </form>
+    @if ($component->filtered())
+        @foreach ($component->active as $chip)
+            <a href="{{ $chip->removeUrl }}">{{ $chip->label }}: {{ $chip->value }} ×</a>
+        @endforeach
+        <a href="{{ $component->clearUrl() }}">Clear all</a>
+    @endif
+    @foreach ($component->entries as $product) … @endforeach
+    {{ $component->entries->links() }}
+</x-sunrice-cms::entry-filter>
+```
+
+| Attribute | |
+| --- | --- |
+| `collection` | The collection's handle (required). |
+| `filters` | Query string name => type, or an array with `type`, `field` (default: the name), `label` (default: the name as a headline) and the type's own keys. |
+| `sorts` | Query string value => order (`latest`, `oldest`, `alphabetical`, `ordered`, a field, `-field`, or several comma-separated), or `['label' => …, 'order' => …]`. The first is the default; none: the collection's own order. |
+| `per-page` | Entries per page (default: the collection's *Entries per listing page*). |
+| `page-name`, `sort-name` | The query string's page number (`page`) and sort (`sort`) names. |
+| `where`, `terms` | Fixed conditions, as on `entries`. |
+
+| Type | Reads | Filters |
+| --- | --- | --- |
+| `search` | `?q=words` | `search()`: title and field text. |
+| `terms` | `?topic[]=slug` (`multiple: false`: `?topic=slug`) | Entries with any of the terms, or the terms under them (`whereTerm(..., includeChildren: true)`). Options: the taxonomy's terms (`taxonomy`, default the name) by slug in the page's language, each with `count` and `depth`; `hide_empty` leaves out terms without entries. |
+| `select` | `?color=red` (`multiple: true`: `?color[]=red&color[]=blue`) | The field equals one of the values; a select field with several choices holds any of them. Options: `options` given (value => label, or `[value, label]` rows), else the field's own; without either, any value. |
+| `range` | `?price_min=10&price_max=100` | Number fields between the two (either may be left out). |
+| `date_range` | `?made_from=2026-01-01&made_to=2026-01-31` | Date fields from the start of one day to the end of the other. |
+| `toggle` | `?sale=1` | The field is on. |
+
+Only the filters declared are read, and only values among a filter's options (numbers for ranges, `YYYY-MM-DD` dates); anything else is ignored, so a link can't make it query what you didn't offer. Other query string parameters are kept by the links and the form.
+
+In the slot: `$component->entries` (a paginator of `EntryTranslation`s), `->filters` (`Filter\FilterControl`: `name`, `type`, `field`, `label`, `multiple`, `value`, `options` with `value`, `label`, `selected` (and `count`, `depth` for terms), `inputs` (input names: `['value' => 'topic[]']`, `['min' => 'price_min', 'max' => 'price_max']`), `id()`, `applied()`), `->filter('q')`, `->sorts` (`Filter\SortChoice`: `value`, `label`, `order`, `selected`) with `->sortName`, `->active` (`Filter\ActiveFilter`: `filter`, `label`, `value`, `removeUrl`), `->filtered()`, `->clearUrl()`, `->action` (this page), `->others` (the other query parameters) and `->query()` (the filtered `EntryQuery`, for a count or a map).
 
 In hierarchical collections, `$entry->entry->parent`, `->children` and `->ancestors()` (top-down) give breadcrumbs and sub-menus:
 
