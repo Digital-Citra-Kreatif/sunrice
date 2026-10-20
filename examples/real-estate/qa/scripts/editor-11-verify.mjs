@@ -1,0 +1,10 @@
+import { launch, session, shot, BASE } from './editor-lib.mjs';
+const b = await launch(); const { c, p } = await session(b, 'budi');
+const id = process.argv[2] || '11';
+await p.goto(BASE + `/admin/cms/entries/${id}/edit`, { waitUntil: 'networkidle' });
+const vals = await p.$$eval('input[id^=data-], textarea[id^=data-], button[id^=data-][role=combobox], button[id^=data-][role=switch]', els => els.map(e => e.id + '=' + (e.value ?? '') + (e.getAttribute('role') ? ' [' + e.innerText.trim() + (e.getAttribute('aria-checked') ? ' ' + e.getAttribute('aria-checked') : '') + ']' : '')));
+console.log(vals.join('\n'));
+console.log('checked', await p.$$eval('button[role=checkbox][aria-checked=true]', e => e.map(x => x.parentElement.innerText.trim())));
+console.log((await p.locator('main main').innerText()).match(/Agent[\s\S]{0,200}/)?.[0]);
+await shot(p, `20-property-${id}-saved`, true);
+await b.close();

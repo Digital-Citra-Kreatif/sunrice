@@ -1,0 +1,30 @@
+{{-- The team (/team): every agent in the editors' order (the collection is ordered). --}}
+@extends('cms.layout')
+
+{{--
+    The CMS hands listing pages $entries, but each card's values() then loads that entry's translations, links and
+    terms on its own (about five queries a card). Cms::entries() hydrates a whole page in one go, so the cards are
+    read through it (same order and page size as the collection's).
+--}}
+@php($entries = \Sunrice\Cms\Content::entries('agents')->ordered()->paginate($collection->per_page))
+
+@section('content')
+    @include('cms.partials.page-header', [
+        'crumbs' => \App\Support\Breadcrumbs::forListing(\App\Support\Breadcrumbs::listingTitle($collection, $locale)),
+        'eyebrow' => __('site.team.eyebrow'),
+        'title' => \App\Support\Breadcrumbs::listingTitle($collection, $locale),
+        'intro' => $values['intro'] ?? null,
+    ])
+    <section class="container-site pb-24">
+        @if ($entries->isEmpty())
+            <p class="muted">{{ __('site.empty') }}</p>
+        @else
+            <ul class="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+                @foreach ($entries as $agent)
+                    <li class="reveal">@include('cms.partials.agent-card', ['agent' => $agent])</li>
+                @endforeach
+            </ul>
+            @include('cms.partials.pagination', ['paginator' => $entries])
+        @endif
+    </section>
+@endsection

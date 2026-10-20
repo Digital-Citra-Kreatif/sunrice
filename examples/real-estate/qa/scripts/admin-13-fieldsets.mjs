@@ -1,0 +1,11 @@
+import { launch, ctx, BASE, logErrors, createDef } from './admin-lib.mjs';
+const b = await launch(); const c = await ctx(b); const p = await c.newPage(); logErrors(p);
+const T = (label, handle, extra = {}) => ({ type: 'Text', label, handle, ...extra });
+await createDef(p, 'fieldsets', 'Contact person', 'contact_person', [T('Name','name'), T('Role','role'), T('Phone','phone'), T('Email','email')], '35-fs-contact-person');
+await createDef(p, 'fieldsets', 'Call to action', 'cta', [T('Heading','heading'), { type: 'Textarea', label: 'Text', handle: 'text' }, { type: 'Link', label: 'Button', handle: 'button' }], '36-fs-cta');
+await createDef(p, 'fieldsets', 'Hero', 'hero', [T('Heading','heading'), { type: 'Textarea', label: 'Subheading', handle: 'subheading' }, { type: 'Media', label: 'Image', handle: 'image', types: ['Images'] }, { type: 'Link', label: 'Button', handle: 'button' }, { type: 'Link', label: 'Secondary button', handle: 'secondary_button' }], '37-fs-hero');
+await createDef(p, 'fieldsets', 'Rich text', 'rich_text', [{ type: 'Rich text', label: 'Body', handle: 'body' }]);
+await createDef(p, 'fieldsets', 'Image and text', 'image_text', [T('Heading','heading'), { type: 'Rich text', label: 'Body', handle: 'body' }, { type: 'Media', label: 'Image', handle: 'image', types: ['Images'] }, { type: 'Select', label: 'Image side', handle: 'image_side', options: [['left','Left'],['right','Right']], default: 'left' }], '38-fs-image-text');
+await createDef(p, 'fieldsets', 'Stats', 'stats', [{ type: 'Repeater', label: 'Items', handle: 'items', children: [T('Value','value'), T('Label','label')] }], '39-fs-stats');
+await createDef(p, 'fieldsets', 'FAQ', 'faq', [{ type: 'Repeater', label: 'Items', handle: 'items', children: [T('Question','question'), { type: 'Rich text', label: 'Answer', handle: 'answer' }] }]);
+await b.close();

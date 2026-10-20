@@ -1,0 +1,14 @@
+import { launch, session, shot, BASE, toasts } from './editor-lib.mjs';
+const b = await launch(); const { c, p } = await session(b, 'budi');
+await p.goto(BASE + '/admin/cms/entries/10/edit', { waitUntil: 'networkidle' });
+const card = p.locator('div', { has: p.getByRole('button', { name: 'Undo the restore' }) }).last();
+await p.getByRole('button', { name: 'Undo the restore' }).scrollIntoViewIfNeeded();
+console.log('card:', (await p.locator('aside, main main').last().innerText()).split('Revisions')[1]?.slice(0, 500));
+await shot(p, '28-revisions-card');
+await p.getByRole('button', { name: 'Undo the restore' }).click();
+await p.waitForLoadState('networkidle');
+console.log(await toasts(p), 'price', await p.inputValue('#data-price'));
+console.log('status', (await p.locator('main main').innerText()).match(/Status\n[\s\S]{0,140}/)?.[0]);
+console.log('h3?', (await p.locator('#data-description').innerHTML()).includes('<h3>Location'));
+await shot(p, '29-after-undo-restore');
+await b.close();

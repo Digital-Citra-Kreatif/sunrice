@@ -1,0 +1,18 @@
+import { launch, ctx, shot, BASE, logErrors, toasts } from './admin-lib.mjs';
+const b = await launch(); const c = await ctx(b); const p = await c.newPage(); logErrors(p);
+await p.goto(BASE + '/admin/media', { waitUntil: 'networkidle' });
+await p.locator('input[type=file]').first().setInputFiles('/home/user/realestate/public/images/lumina-logo.svg');
+await p.waitForTimeout(3000); await shot(p, '94-media-logo-uploaded');
+console.log((await p.locator('main main').innerText()).slice(0, 400));
+await p.goto(BASE + '/admin/settings/branding', { waitUntil: 'networkidle' });
+await p.getByRole('button', { name: 'Choose' }).first().click(); await p.waitForTimeout(1200);
+await p.locator('[role=dialog]').getByText('lumina-logo', { exact: false }).first().click(); await p.waitForTimeout(300);
+await p.locator('[role=dialog]').getByRole('button', { name: 'Choose', exact: true }).click(); await p.waitForTimeout(500);
+await p.locator('button[type=submit]').first().click(); console.log('save', await toasts(p));
+await p.reload({ waitUntil: 'networkidle' });
+await shot(p, '95-branding-with-logo');
+const c2 = await b.newContext({ viewport: { width: 1440, height: 900 } }); const q = await c2.newPage();
+await q.goto(BASE + '/admin/login', { waitUntil: 'networkidle' }); await shot(q, '96-signin-with-logo');
+console.log(await q.$$eval('link[rel*=icon]', l => l.map(x => x.outerHTML)));
+await q.setViewportSize({ width: 390, height: 844 }); await shot(q, '97-signin-with-logo-mobile');
+await b.close();

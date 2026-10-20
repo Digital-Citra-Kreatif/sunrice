@@ -1,0 +1,11 @@
+import { launch, ctx, shot, BASE, logErrors } from './admin-lib.mjs';
+const b = await launch(); const c = await ctx(b); const p = await c.newPage(); logErrors(p);
+await p.goto(BASE + '/admin/settings/comments', { waitUntil: 'networkidle' });
+await p.fill('#field-closeAfterDays', ''); await p.click('button[type=submit]'); await p.waitForTimeout(1500);
+console.log('after clearing', await p.inputValue('#field-closeAfterDays'));
+await p.fill('#field-closeAfterDays', '365'); await p.click('button[type=submit]'); await p.waitForTimeout(1500);
+console.log('after setting 365 from empty', JSON.stringify(await p.inputValue('#field-closeAfterDays')));
+await shot(p, '21-comments-close-days-blank-after-save');
+await p.reload({ waitUntil: 'networkidle' });
+console.log('after reload', await p.inputValue('#field-closeAfterDays'));
+await b.close();

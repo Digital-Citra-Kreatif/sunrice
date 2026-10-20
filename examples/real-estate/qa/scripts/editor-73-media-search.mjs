@@ -1,0 +1,10 @@
+import { launch, session, shot, BASE } from './editor-lib.mjs';
+const b = await launch(); const { c, p } = await session(b, 'budi');
+p.on('request', r => { if (r.url().includes('/admin/media') && r.resourceType() !== 'image') console.log('REQ', r.method(), r.url()); });
+await p.goto(BASE + '/admin/media', { waitUntil: 'networkidle' });
+await p.locator('input[placeholder^="Search everywhere"]').pressSequentially('portrait', { delay: 80 }); await p.waitForTimeout(2500);
+console.log('typed', (await p.locator('main main').innerText()).slice(0, 300).replace(/\n/g, ' | '));
+await p.keyboard.press('Enter'); await p.waitForTimeout(2000);
+console.log('enter', (await p.locator('main main').innerText()).slice(0, 300).replace(/\n/g, ' | '));
+await shot(p, '126-media-search');
+await b.close();
