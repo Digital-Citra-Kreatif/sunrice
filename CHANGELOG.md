@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Panel controls line up: buttons, icon buttons and selects are all 40 px tall with the inputs' 10 px radius (icon buttons were 36 px, selects 36 px); placeholders in monospace inputs are set in the UI font; the colour field draws its own swatch (empty, not black, when unset); the rows-per-page selects no longer clip their text.
 - Panel: a favicon, the lettermark on the brand colour (`Branding::favicon()`), instead of a 404 for `/favicon.ico` on every first visit.
 - Fix: the dashboard crashed on load (`<Deferred fallback={null}>` throws in Inertia 3); a frontend test checks every `<Deferred>` has a fallback.
 - READMEs: the root `README.md` (what Sunrice is, the two packages, requirements, a quick start, the docs and developing the monorepo), and proper introductions, features, installing, assets and docs links in `packages/admin/README.md` and `packages/cms/README.md`.
