@@ -38,6 +38,10 @@ With several servers, use a shared store (redis, memcached, database). Cache you
 app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:bestsellers', fn () => $ids);
 ```
 
+`Cms::entries()->remember()` keeps a query's matched ids this way (see [Querying entries](site.md#querying-entries)).
+
+The admin keeps the handles of the collections, taxonomies and forms and their scoped permissions in the app's default cache (for `ttl` seconds at most), so the sidebar costs no queries; creating, changing, deleting or restoring one forgets them.
+
 ## Whole pages
 
 The whole-page cache uses [spatie/laravel-responsecache](https://github.com/spatie/laravel-responsecache) (PHP 8.4). Install it and turn it on:

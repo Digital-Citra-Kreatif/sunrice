@@ -33,7 +33,7 @@ On **Users**, each row's menu has:
 
 The list's **Locked** column shows locked accounts. Who may do this follows the Users screen: the `sunrice.users.update` permission and [who may manage whom](users.md#who-may-manage-whom). Each is a security event (`signed out everywhere`, `account locked by admin`, `account unlocked`), and a locked account's attempts are `login blocked`.
 
-In code: `Sunrice\Admin\Security\AccountGuard` has `signOutEverywhere($user)`, `lock($user, $reason)`, `unlock($user)` and `isLocked($user)`.
+In code: `Sunrice\Admin\Security\AccountGuard` has `signOutEverywhere($user)`, `lock($user, $reason)`, `unlock($user)` and `isLocked($user)`. Which accounts are locked or signed out is kept in the app's default cache (an hour at most) and forgotten by each of these, so panel pages don't ask the database; with several servers, use a shared cache store.
 
 ## Elsewhere too
 

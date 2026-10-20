@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Security;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -32,27 +34,17 @@ final class AccountGuard
     /** Session key: when this session signed in (a Unix time). */
     public const LOGIN_AT = 'sunrice.login_at';
 
-    /** @var list<string>|null this request's locked account ids */
-    private ?array $locked = null;
+    /** Cache key: the locked accounts and when each was signed out everywhere, read on every panel page. */
+    private const CACHE = 'sunrice-admin:account-security';
+
+    /** @var array{locked: list<string>, signed_out: array<string, int>}|null this request's copy */
+    private ?array $states = null;
 
     public function __construct(private SecurityLog $security) {}
 
     public function isLocked(Model|Authenticatable $user): bool
     {
-        if ($this->locked === null) {
-            $this->locked = [];
-            try {
-                foreach (AccountSecurity::query()->whereNotNull('locked_at')->pluck('user_id') as $id) {
-                    if (is_scalar($id)) {
-                        $this->locked[] = (string) $id;
-                    }
-                }
-            } catch (Throwable) {
-                // Not migrated yet: nothing is locked.
-            }
-        }
-
-        return in_array($this->key($user), $this->locked, true);
+        return in_array($this->key($user), $this->states()['locked'], true);
     }
 
     public function state(Model|Authenticatable $user): ?AccountSecurity
@@ -63,19 +55,55 @@ final class AccountGuard
     /** Whether this request's session may stay signed in as `$user`. */
     public function sessionAllowed(Request $request, Authenticatable $user): bool
     {
-        $state = $this->state($user);
-        if ($state === null) {
-            return true;
-        }
-        if ($state->locked_at !== null) {
+        if ($this->isLocked($user)) {
             return false;
         }
-        if ($state->signed_out_at === null || ! $request->hasSession()) {
+        $signedOutAt = $this->states()['signed_out'][$this->key($user)] ?? null;
+        if ($signedOutAt === null || ! $request->hasSession()) {
             return true;
         }
         $loginAt = $request->session()->get(self::LOGIN_AT);
 
-        return is_numeric($loginAt) && (int) $loginAt >= $state->signed_out_at->getTimestamp();
+        return is_numeric($loginAt) && (int) $loginAt >= $signedOutAt;
+    }
+
+    /**
+     * Every account that is locked or was signed out everywhere, cached
+     * until one changes (lock, unlock, sign out everywhere), so panel
+     * pages don't ask the database.
+     *
+     * @return array{locked: list<string>, signed_out: array<string, int>}
+     */
+    private function states(): array
+    {
+        if ($this->states !== null) {
+            return $this->states;
+        }
+        try {
+            return $this->states = Cache::remember(self::CACHE, 3600, function (): array {
+                $states = ['locked' => [], 'signed_out' => []];
+                foreach (AccountSecurity::query()->where(fn (EloquentBuilder $q) => $q->whereNotNull('locked_at')->orWhereNotNull('signed_out_at'))->get() as $account) {
+                    if ($account->locked_at !== null) {
+                        $states['locked'][] = $account->user_id;
+                    }
+                    if ($account->signed_out_at !== null) {
+                        $states['signed_out'][$account->user_id] = $account->signed_out_at->getTimestamp();
+                    }
+                }
+
+                return $states;
+            });
+        } catch (Throwable) {
+            // Not migrated yet: nothing is locked.
+            return $this->states = ['locked' => [], 'signed_out' => []];
+        }
+    }
+
+    /** An account's state changed: read them again. */
+    private function changed(): void
+    {
+        $this->states = null;
+        Cache::forget(self::CACHE);
     }
 
     /**
@@ -88,6 +116,7 @@ final class AccountGuard
         $current = $this->isCurrentUser($user) ? request()->session() : null;
         $now = now();
         AccountSecurity::query()->updateOrCreate(['user_id' => $this->key($user)], ['signed_out_at' => $now]);
+        $this->changed();
         $current?->put(self::LOGIN_AT, $now->getTimestamp());
 
         $deleted = null;
@@ -131,7 +160,7 @@ final class AccountGuard
             'locked_by' => is_string($byName) ? Str::limit($byName, 250, '') : null,
             'locked_reason' => $reason,
         ]);
-        $this->locked = null;
+        $this->changed();
         $this->signOutEverywhere($user, record: false);
         $this->security->record('account locked by admin', $user, null, $reason === null ? [] : ['note' => $reason]);
     }
@@ -140,7 +169,7 @@ final class AccountGuard
     public function unlock(Model $user): void
     {
         AccountSecurity::query()->where('user_id', $this->key($user))->update(['locked_at' => null, 'locked_by' => null, 'locked_reason' => null]);
-        $this->locked = null;
+        $this->changed();
         $email = $user->getAttribute('email');
         if (is_string($email)) {
             app(LoginThrottle::class)->clearAccount($email);

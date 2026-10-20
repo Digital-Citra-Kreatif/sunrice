@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Less work per admin page: the handles of collections, taxonomies and forms (`Support\Handles`) and the scoped permissions (`ScopedPermissions::all()`) are cached until one is created, changed, deleted or restored, and `AccountGuard` keeps which accounts are locked or signed out in the cache until a lock, unlock or sign-out. The sidebar and the account check run no queries.
 - `EntryQuery` (`Cms::entries()`): `locale()`, `preview()` (drafts, as the site's preview shows them), `search()` (the site search's matching, title first), `whereTerm()` by taxonomy handle and slugs with `includeChildren`, `whereFieldTerm()`, `where()` with `in` and `not in`, number and date fields compared and sorted as such (`FieldType::sortCast()`, per database), `toBase()`, and `remember()` to keep the matched ids in the `SiteCache` until the content changes. `<x-sunrice-cms::entries>` takes `search` and `remember`.
 - `Cms::entries()` results (and `<x-sunrice-cms::entries>`) share one `HydrationContext` with the media, entries and terms their fields point at loaded up front: `values()` in a loop runs no queries per entry. `HydrationContext::preload()`, `preloadTerms()`, `preloadEntries()`; `EntryTranslation::hydrateWith()` and `storedValues()`.
 - Menus link to term pages (`term_id`) and listing pages (`collection_id`) too (migration `000016`; Term and Listing in the menu editor), and each link says whether it's the page shown (`active`) or leads to it (`active_trail`). **Menu links have two new keys.**
