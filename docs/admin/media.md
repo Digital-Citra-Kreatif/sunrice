@@ -108,3 +108,22 @@ Media is served from your app's own domain, so a file that runs code there could
 - files over the size limit are refused with a clear message.
 
 Stored names are new and random, never the uploader's.
+
+### Headers at the web server
+
+The `allowed_extensions` list includes files that aren't images, such as `json`, `txt`, `csv` and `zip`, and a file's content is checked only as far as its type can be: an image can carry text a browser might read as something else if it guessed. The public disk is served by your web server, not by PHP, so set these headers there for the media directory (`storage/media` with the defaults):
+
+- `X-Content-Type-Options: nosniff` on everything, so browsers use the declared type and never guess;
+- `Content-Disposition: attachment` for everything but images (and video and audio, if you embed them), so documents and archives are downloaded rather than opened on your domain.
+
+For nginx, for example:
+
+```nginx
+location /storage/media/ {
+    add_header X-Content-Type-Options nosniff always;
+    location ~* \.(json|txt|csv|zip|pdf|docx?|xlsx?|pptx?)$ {
+        add_header X-Content-Type-Options nosniff always;
+        add_header Content-Disposition attachment always;
+    }
+}
+```
