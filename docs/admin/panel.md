@@ -75,7 +75,7 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 
 ## Routes and pages
 
-`$panel->routes(fn () => ...)` adds routes for signed-in users who may open the panel (the `sunrice.access` permission), under the panel's path and named `sunrice.admin.…`. Plugin pages in React are explained in [Admin pages in React](frontend.md).
+`$panel->routes(fn () => ...)` adds routes for signed-in users who may open the panel (the `sunrice.access` permission), under the panel's path and named `sunrice.admin.…`. Give each one its own permission as well (`->middleware('can:shop.orders.view')`, or a middleware of yours that decides): the panel's tests assert that every `sunrice.admin.*` route is behind sign-in and panel access, and the CMS's that each of its routes names a permission or content check. Plugin pages in React are explained in [Admin pages in React](frontend.md).
 
 ## Shared page data
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Tests prove plugin routes guarded: every `sunrice.admin.*` route, the CMS's included, is behind `Authenticate` and `EnsureCanAccessPanel` (but the guest pages and logout), and every `sunrice.admin.cms.*` route names a `can:` permission or `AuthorizeContent` (`tests/Cms/AdminRoutesGuardTest.php`).
 - Security headers on every panel response (`PanelSecurityHeaders` in `PanelRoutes::middleware()`): `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, and a `Content-Security-Policy` from `sunrice-admin.security.headers.csp` (`SUNRICE_CSP`) when set.
 - The password reset form answers an email without an account exactly like a wrong token (`PasswordResetController` maps `Password::INVALID_USER` to `INVALID_TOKEN`).
 - Read-only AI tokens refuse every ability but `view`, `viewAny`, `*.view`, `sunrice.access` and `sunrice.ai.connect`, so a plugin's own policy abilities (`publish`, `refund`) no longer pass (`TokenScope::refuses()` takes the ability only).
