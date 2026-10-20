@@ -10,6 +10,7 @@ import type { InfoCard, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
+import { useScrollFade } from '@/hooks/use-scroll-fade';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -57,6 +58,7 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
         save();
     };
     useUnsavedChanges(form.isDirty, save);
+    const tabs = useScrollFade<HTMLElement>('x', '[aria-current="page"]', section.key);
     // A section of cards only (Settings → Mail) has nothing to save.
     const editable = schema.some((s) => s.fields.length > 0);
 
@@ -64,10 +66,10 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
         <div className="flex flex-col gap-6 lg:flex-row">
             <Head title={`${section.label} settings`} />
             {sections.length > 1 && (
-                <nav aria-label="Settings sections" className="flex shrink-0 gap-1 overflow-x-auto lg:w-48 lg:flex-col">
+                <nav ref={tabs} aria-label="Settings sections" className="sunrice-scroll-fade-x -mx-1 flex shrink-0 snap-x snap-proximity scroll-px-1 gap-1 overflow-x-auto px-1 [scrollbar-width:none] lg:mx-0 lg:w-48 lg:flex-col lg:px-0">
                     {sections.map((s) => (
                         <Link key={s.key} href={adminUrl(`settings/${s.key}`)} aria-current={s.key === section.key ? 'page' : undefined}
-                            className={cn('rounded-md px-3 py-2 text-sm whitespace-nowrap hover:bg-muted', s.key === section.key && 'bg-muted font-medium')}>
+                            className={cn('shrink-0 snap-start rounded-md px-3 py-2 text-sm whitespace-nowrap hover:bg-muted', s.key === section.key && 'bg-muted font-medium')}>
                             {s.label}
                         </Link>
                     ))}

@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { adminUrl } from '@/lib/admin-url';
 import { currentHeading, helpVisit, type HelpHeading } from '@/lib/help';
+import { useScrollFade } from '@/hooks/use-scroll-fade';
 import { cn } from '@/lib/utils';
 import type { SharedProps } from '@/types';
 
@@ -47,6 +48,8 @@ export function HelpReader({ kind, page, title, html, headings, sections, previo
     const { sunrice } = usePage<SharedProps>().props;
     const [active, setActive] = React.useState<string | null>(headings[0]?.id ?? null);
     const href = (target: string) => adminUrl(`${kind}/${target}`);
+    const pagesNav = useScrollFade<HTMLElement>('y', '[aria-current="page"]', page);
+    const headingsNav = useScrollFade<HTMLElement>('y', undefined, page);
 
     // Links to other help pages are plain <a> tags in the HTML: visit them through Inertia.
     const onClick = (event: React.MouseEvent) => {
@@ -107,7 +110,7 @@ export function HelpReader({ kind, page, title, html, headings, sections, previo
                 </SelectContent>
             </Select>
 
-            <nav aria-label={labels.pages} className="hidden flex-col gap-6 lg:sticky lg:top-20 lg:flex lg:max-h-[calc(100svh-6rem)] lg:overflow-y-auto lg:pb-6">
+            <nav ref={pagesNav} aria-label={labels.pages} className="sunrice-scroll-fade-y hidden flex-col gap-6 overscroll-contain lg:sticky lg:top-20 lg:flex lg:max-h-[calc(100svh-7rem)] lg:overflow-y-auto lg:py-1 lg:pb-8">
                 {sections.map((section) => (
                     <div key={section.key} className="flex flex-col gap-0.5">
                         <p className={cn(eyebrow, 'mb-1')}>{section.title}</p>
@@ -155,7 +158,7 @@ export function HelpReader({ kind, page, title, html, headings, sections, previo
             </div>
 
             {headings.length > 0 && (
-                <nav aria-label={labels.onThisPage} className="hidden flex-col gap-0.5 xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100svh-6rem)] xl:overflow-y-auto">
+                <nav ref={headingsNav} aria-label={labels.onThisPage} className="sunrice-scroll-fade-y hidden flex-col gap-0.5 overscroll-contain xl:sticky xl:top-20 xl:flex xl:max-h-[calc(100svh-7rem)] xl:overflow-y-auto xl:pb-8">
                     <p className={cn(eyebrow, 'mb-1')}>{labels.onThisPage}</p>
                     {headings.map((h) => (
                         <a

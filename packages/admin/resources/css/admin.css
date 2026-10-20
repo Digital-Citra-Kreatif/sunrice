@@ -177,6 +177,31 @@
 }
 
 /* Placeholders sweep while the page loads. */
+/* A scrolling list fades out at an edge with more past it (hooks/use-scroll-fade.ts). */
+.sunrice-scroll-fade-x,
+.sunrice-scroll-fade-y {
+    --sunrice-fade-start: 0px;
+    --sunrice-fade-end: 0px;
+}
+.sunrice-scroll-fade-y[data-fade-start="true"] {
+    --sunrice-fade-start: 1.5rem;
+}
+.sunrice-scroll-fade-y[data-fade-end="true"] {
+    --sunrice-fade-end: 1.5rem;
+}
+.sunrice-scroll-fade-x[data-fade-start="true"] {
+    --sunrice-fade-start: 3rem;
+}
+.sunrice-scroll-fade-x[data-fade-end="true"] {
+    --sunrice-fade-end: 3rem;
+}
+.sunrice-scroll-fade-x {
+    mask-image: linear-gradient(to right, transparent, #000 var(--sunrice-fade-start), #000 calc(100% - var(--sunrice-fade-end)), transparent);
+}
+.sunrice-scroll-fade-y {
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--sunrice-fade-start), #000 calc(100% - var(--sunrice-fade-end)), transparent);
+}
+
 @keyframes sunrice-shimmer {
     from { background-position: 200% 0; }
     to { background-position: -200% 0; }
