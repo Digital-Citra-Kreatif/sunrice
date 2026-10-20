@@ -24,7 +24,7 @@ Other packages (sunrice-commerce, its payment and shipping gateways, sunrice-vis
 
 ## Approved dependencies
 
-- Composer, `sunrice/admin`: `illuminate/*`, `spatie/laravel-package-tools`, `inertiajs/inertia-laravel`, `spatie/laravel-permission`, `intervention/image` (v3+), `spatie/simple-excel`, `symfony/html-sanitizer`, `laravel/mcp`.
+- Composer, `sunrice/admin`: `illuminate/*`, `spatie/laravel-package-tools`, `inertiajs/inertia-laravel`, `spatie/laravel-permission`, `intervention/image` (v3+), `spatie/simple-excel`, `symfony/html-sanitizer`, `laravel/mcp`, `league/commonmark` (Markdown for the Help pages; ships with every Laravel install).
 - Composer, `sunrice/cms`: the above plus `spatie/laravel-honeypot`, `spatie/laravel-sitemap`, `spatie/laravel-responsecache` (optional, suggested).
 - Dev: `orchestra/testbench`, `pestphp/pest`, `pestphp/pest-plugin-laravel`, `laravel/pint`, `larastan/larastan`.
 - npm (admin): React 19, Inertia, TypeScript, Vite, Tailwind v4, shadcn/ui components with their Radix dependencies, `lucide-react`, `@tanstack/react-table`, `@dnd-kit/*`, TipTap, `sonner`, `date-fns`.
