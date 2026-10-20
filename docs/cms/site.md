@@ -265,3 +265,9 @@ In code: `app(\Sunrice\Cms\Site\Search::class)->entries('coffee', ['blog'], perP
 ## Previews
 
 The entry editor's **Preview** opens the saved draft in its template through a signed link that works for 30 minutes, for anyone who has it. Previews are marked `noindex` and `Cache-Control: no-store, private`, so no cache keeps a draft. Save first to see changes.
+
+### Draft viewing
+
+People signed in to the panel with `cms.entries.view-drafts` (in the `editor` and `author` roles), who may view the entry's collection, see a **Draft** banner at the top of a live page whose entry has unpublished changes in that language, with links to **View the draft** (the same address with `?draft`) and to edit it. The draft shows in the page's template, as a preview does: its title and fields (`$preview` and `$draft` are true), the body class `is-draft`, `noindex` (meta tag and `X-Robots-Tag`) and `Cache-Control: no-store, private`; it's never kept by the page cache. Everyone else, and the same address without the permission, gets the live page.
+
+The banner (`resources/views/draft-banner.blade.php`, styled inline so it doesn't depend on the site's CSS) is put right after `<body>`, so it works with any template.
