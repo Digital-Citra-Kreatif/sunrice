@@ -593,7 +593,10 @@ final class Panel
         $declared = $this->permissions;
         $this->permissions = [];
         $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
-        $this->permissions(Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'));
+        $this->permissions(
+            Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'),
+            Permission::make('sunrice.activity.prune', 'Delete old activity log lines', 'Panel'),
+        );
         // Settings → Security (two-factor login) and Mail (how mail goes, a test email), in every panel.
         foreach ([SecuritySettings::class, MailSettings::class] as $own) {
             if (isset($this->settings[$own::key()])) {

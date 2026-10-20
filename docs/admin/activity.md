@@ -1,6 +1,6 @@
 # Activity log
 
-**Administration → Activity log** shows who changed what in the panel, and when, newest first. Filter it by source, by kind of thing, by dates or by searching; click a person to see only their activity, or the history icon to see one item's history. It needs the `sunrice.activity.view` permission.
+**Administration → Activity log** shows who changed what in the panel, and when, newest first. Filter it by source, by kind of thing, by action (`deleted`, `logged in` …), by dates or by searching, and choose how many lines a page shows (25, 50, 100 or 200; kept in the address as `per_page`); click a person to see only their activity, or the history icon to see one item's history. It needs the `sunrice.activity.view` permission.
 
 ## What the panel records
 
@@ -32,3 +32,5 @@ The subject type is a short name (`order`); use a resource's key (`products`) to
 ## Keeping it small
 
 Lines older than `activity.keep_days` (365 by default, `null` for forever) in `config/sunrice-admin.php` are deleted daily by `sunrice:activity-prune`, scheduled by the panel (your app needs Laravel's scheduler running). `activity.enabled => false` stops recording.
+
+Users with `sunrice.activity.prune` also get **Prune…** on the activity log page: it asks how many days to keep (the configured `keep_days` is suggested) and deletes older lines for good, as the command does. Pruning from the panel is a `log pruned` [security event](security.md) and sends an alert, since deleting the log can cover someone's tracks; the daily command records nothing.

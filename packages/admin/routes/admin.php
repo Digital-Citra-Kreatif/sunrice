@@ -21,6 +21,7 @@ Route::get('settings/{section}', [SettingsController::class, 'edit'])->name('set
 Route::put('settings/{section}', [SettingsController::class, 'update'])->name('settings.update');
 
 Route::get('activity', ActivityController::class)->name('activity.index');
+Route::post('activity/prune', [ActivityController::class, 'prune'])->middleware('can:sunrice.activity.prune')->name('activity.prune');
 
 // Edit locks of the types plugins register with $panel->lockable(); each item is checked there.
 Route::prefix('locks/{type}/{id}')->name('locks.')->controller(EditLocksController::class)->group(function (): void {

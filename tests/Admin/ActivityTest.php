@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
@@ -11,6 +12,7 @@ use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
 use Sunrice\Tests\Admin\Fixtures\MailSettings;
 use Sunrice\Tests\Admin\Fixtures\Product;
@@ -162,4 +164,48 @@ it('prunes old lines, daily with the scheduler', function () {
 
     $events = collect(app(Schedule::class)->events())->map(fn ($e) => $e->command)->implode(' ');
     expect($events)->toContain('sunrice:activity-prune');
+});
+
+it('filters by action and pages by the chosen size', function () {
+    actingAs($this->admin);
+    foreach (range(1, 30) as $i) {
+        app(ActivityLog::class)->record($i % 3 === 0 ? 'deleted' : 'created', 'products', $i, "Product {$i}");
+    }
+
+    get('/admin/activity?action=deleted')->assertInertia(fn (Assert $page) => $page
+        ->where('rows.total', 10)
+        ->where('query.action', 'deleted')
+        ->where('actions', fn ($actions) => collect($actions)->contains('deleted') && collect($actions)->contains('created'))
+        ->where('query.perPage', 50)
+        ->where('perPageOptions', [25, 50, 100, 200]));
+    get('/admin/activity?per_page=25')->assertInertia(fn (Assert $page) => $page->where('query.perPage', 25)->where('rows.lastPage', 2)->has('rows.data', 25));
+    get('/admin/activity?per_page=7')->assertSessionHasErrors('per_page');
+});
+
+it('prunes old lines from the panel, with a permission, a security event and an alert', function () {
+    Mail::fake();
+    config(['sunrice-admin.security.alerts.emails' => ['security@example.com']]);
+    app(ActivityLog::class)->record('created', 'products', 1, 'Old');
+    app(ActivityLog::class)->record('created', 'products', 2, 'New');
+    Activity::query()->where('subject_label', 'Old')->update(['created_at' => now()->subDays(40)]);
+
+    $viewer = User::query()->create(['name' => 'Viewer', 'email' => 'viewer@example.com', 'password' => 'x']);
+    $viewer->givePermissionTo([Panel::ACCESS, 'sunrice.activity.view']);
+    actingAs($viewer);
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page->where('prune', null));
+    post('/admin/activity/prune', ['days' => 30])->assertForbidden();
+
+    actingAs($this->admin);
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page->where('prune', ['keepDays' => 365]));
+    post('/admin/activity/prune', ['days' => 0])->assertSessionHasErrors('days');
+    post('/admin/activity/prune', ['days' => 30])->assertSessionHas('success', 'Deleted 1 activity log line.');
+
+    expect(Activity::query()->where('subject_label', 'Old')->exists())->toBeFalse()
+        ->and(Activity::query()->where('subject_label', 'New')->exists())->toBeTrue();
+    $event = Activity::query()->where('action', 'log pruned')->sole();
+    expect($event->source)->toBe('security')
+        ->and($event->subject_id)->toBe((string) $this->admin->id)
+        ->and($event->properties['note'])->toBe('1 line older than 30 days');
+    Mail::assertQueued(SecurityAlert::class, fn ($mail) => $mail->headline === 'The activity log was pruned');
+    expect(app(Panel::class)->getPermissions())->toHaveKey('sunrice.activity.prune');
 });

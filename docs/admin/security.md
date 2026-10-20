@@ -21,6 +21,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `two-factor turned on`, `two-factor turned off` | [Two-factor login](auth.md#two-factor-login) was switched, in Settings → Security or from the console. |
 | `token created`, `token revoked`, `tokens revoked`, `token used from new IP` | [AI access](ai.md) tokens. |
 | `signed out everywhere`, `account locked by admin`, `account unlocked` | An administrator acted on an account (see below). |
+| `log pruned` | Someone deleted old activity log lines with **Prune…** on the activity log page (how many, and the days kept). |
 
 Each line keeps the IP and, in its properties, the browser's user agent.
 
@@ -76,6 +77,7 @@ When something may be a break-in, the panel emails super admins, users with the 
 | A new AI access token was created | `token created` |
 | An AI access token was used from a new address | `token used from new IP` |
 | Two-factor login was turned off | `two-factor turned off` |
+| The activity log was pruned | `log pruned` |
 | Someone keeps opening pages they may not see | `forbidden` (15) panel pages refused (`page refused`) to one signed-in account within 10 minutes. |
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
 | Many things deleted in a short time | `mass_deletes` (20) deletes, trashes or unpublishes by one person or AI agent within 10 minutes. |
