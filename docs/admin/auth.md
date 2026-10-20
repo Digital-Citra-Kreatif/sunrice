@@ -34,6 +34,6 @@ Laravel's auth events fire as usual (`Illuminate\Auth\Events\Failed`, `Login`, `
 
 ## Password reset
 
-"Forgot password?" emails a link to the panel's reset page (not the app's own `password.reset` route), through Laravel's password broker: set `auth.passwords` in `config/sunrice-admin.php` to use another broker. The form answers the same whether or not the email has an account. New passwords follow `Password::defaults()`, and resetting signs out "remember me" sessions.
+"Forgot password?" emails a link to the panel's reset page (not the app's own `password.reset` route), through Laravel's password broker: set `auth.passwords` in `config/sunrice-admin.php` to use another broker. Both forms answer the same whether or not the email has an account (the reset form treats an unknown email as a wrong token). New passwords follow `Password::defaults()`, and resetting signs out "remember me" sessions.
 
 Publish the config with `php artisan vendor:publish --tag=sunrice-admin-config`.

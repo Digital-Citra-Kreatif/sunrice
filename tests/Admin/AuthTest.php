@@ -139,7 +139,10 @@ it('resets the password', function () {
         ->assertInertia(fn (Assert $page) => $page->component('Auth/ResetPassword', shouldExist: false)->where('email', 'rina@example.com'));
 
     post('/admin/reset-password', ['token' => 'wrong', 'email' => 'rina@example.com', 'password' => 'new-password-1', 'password_confirmation' => 'new-password-1'])
-        ->assertSessionHasErrors('email');
+        ->assertSessionHasErrors(['email' => __(Password::INVALID_TOKEN)]);
+    // An email with no account gets the same answer: the form doesn't tell who has one.
+    post('/admin/reset-password', ['token' => $token, 'email' => 'nobody@example.com', 'password' => 'new-password-1', 'password_confirmation' => 'new-password-1'])
+        ->assertSessionHasErrors(['email' => __(Password::INVALID_TOKEN)]);
     post('/admin/reset-password', ['token' => $token, 'email' => 'rina@example.com', 'password' => 'new-password-1', 'password_confirmation' => 'new-password-1'])
         ->assertRedirect('/admin/login');
 
