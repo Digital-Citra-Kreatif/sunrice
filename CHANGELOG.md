@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Per-user preferences (`@api`): a `sunrice_user_preferences` table (new migration), `Sunrice\Admin\Preferences\Preferences` (`get()`, `set()`, `forget()`, `table()`), routes `sunrice.admin.preferences.show` and `.update` (`GET`/`PUT admin/preferences/{key}`, the signed-in user's own only), and `useTablePreferences(key, initial)` and `DropdownMenuCheckboxItem` in `@sunrice/admin-sdk/ui`. Resource tables keep each user's page size and get a **Columns** menu (key `table.resources.{key}`; `?per_page=` still wins); `DeleteUser` forgets the user's preferences. See `docs/admin/preferences.md`.
 - Login attempts made while blocked are `login blocked` security events too (`tried while blocked`), at most once a minute per email and IP; and an unknown email costs a password check like a wrong password does, so the timing doesn't tell who has an account (`AttemptLogin`).
 - Tests prove plugin routes guarded: every `sunrice.admin.*` route, the CMS's included, is behind `Authenticate` and `EnsureCanAccessPanel` (but the guest pages and logout), and every `sunrice.admin.cms.*` route names a `can:` permission or `AuthorizeContent` (`tests/Cms/AdminRoutesGuardTest.php`).
 - Security headers on every panel response (`PanelSecurityHeaders` in `PanelRoutes::middleware()`): `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, and a `Content-Security-Policy` from `sunrice-admin.security.headers.csp` (`SUNRICE_CSP`) when set.
