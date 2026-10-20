@@ -11,6 +11,7 @@ Manage them in the admin under **Structure → Collections** (permissions `cms.c
 | `handle` | Lowercase letters, digits and underscores, starting with a letter. Set when created; it can't change, and a deleted collection's handle stays taken. |
 | `title` | The name editors see. |
 | `blueprint` | A blueprint's handle, or none. Changing it keeps entries' data: values of fields the new blueprint lacks stay stored, out of sight, and come back with the field. A blueprint can't be deleted while a collection uses it. |
+| `blueprints` | More blueprints its entries may use instead of its own (**Other blueprints**); see [per-entry blueprints](#per-entry-blueprints). |
 | `dated` | Entries show a date and list newest first. |
 | `route` | The entries' URL, like `/blog/{slug}`; none: no pages. See [the site](site.md). |
 | `template` | The Blade view entries render with; none: `cms.{handle}`, then `cms.entry`. |
@@ -26,6 +27,22 @@ $articles = app(SaveCollection::class)->handle(['handle' => 'articles', 'title' 
 ```
 
 Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave the admin and the site.
+
+### Per-entry blueprints
+
+A collection may offer more than one blueprint: its own, plus those ticked under **Other blueprints** (`Collection::$blueprints`, a list of handles). An entry then picks one in its **Page settings** (the **Blueprint** select, shown only when there's a choice), for every language at once:
+
+```php
+use Sunrice\Cms\Actions\Entries\ChangeBlueprint;
+
+app(ChangeBlueprint::class)->handle($entry, 'landing');   // null (or the collection's own) for the collection's
+```
+
+- `Entry::$blueprint` holds the choice (null: the collection's). A handle the collection no longer offers is ignored: the entry has the collection's fields again. `Entry::blueprintHandle()` says which one applies.
+- **No value is moved or dropped.** Fields both blueprints have keep their values; the others stay stored, out of sight, and come back if the entry switches back.
+- Every translation's version counts up, so an editor opened on the old fields can't save over the change (the editor reloads after the switch). The change is logged.
+- Choosing needs the right to edit the entry itself (`cms.entries.update`, or `update-own` for one's own), not only `translate`.
+- **`Entry::schema()`** is the entry's fields. Use it, not `$entry->collection->schema()`, for anything about one entry: the editor, validation, `values()`, shared fields, search text, references, media usage, term syncing and duplicates all do. `Collection::schemaFor($handle)` and `Collection::allSchemas()` (every blueprint it offers: field queries such as `whereField()` and sorting look through all of them) load each blueprint once. The CSV export has a column per field of every blueprint offered; each entry fills its own.
 
 ## Editing entries
 
@@ -49,7 +66,7 @@ Each of the first six also comes for one collection: `cms.entries.blog.publish` 
 In the list, tick entries to publish, unpublish or trash them together (in the trash: restore or delete for good); entries one may not act on, or that can't be published as they are, are skipped and counted. **Export CSV** (`cms.entries.export`) downloads the collection's entries in the main language, a column per field (an `exported` security event). In the editor:
 
 - **Ctrl/Cmd+S** saves the draft, and leaving the page with unsaved changes asks first.
-- **Page settings**: the parent (in hierarchical collections; never the entry itself or one below it, at most 10 deep) and a Blade view for this entry alone, for every language (`SaveEntrySettings`). Deleting an entry for good moves its children up to its parent.
+- **Page settings**: the parent (in hierarchical collections; never the entry itself or one below it, at most 10 deep), a Blade view for this entry alone (`SaveEntrySettings`) and, when the collection offers more than one, its blueprint (`ChangeBlueprint`), for every language. Deleting an entry for good moves its children up to its parent.
 - **Duplicate** copies every language's draft as a new draft entry ("Hello (copy)", slug `hello-copy`).
 - Only one person edits an entry in a language at a time: others are told who's editing and can view it or take over (see [edit locks](../admin/locks.md)).
 - When someone else saved since you opened the page, saving says so: **Load theirs**, or **Save mine anyway** over their version.
