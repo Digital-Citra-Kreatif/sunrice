@@ -3,11 +3,16 @@
 declare(strict_types=1);
 
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Blueprints\DeleteBlueprint;
 use Sunrice\Cms\Actions\Collections\DeleteCollection;
 use Sunrice\Cms\Actions\Collections\SaveCollection;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
+use Sunrice\Cms\Actions\Entries\CreateTranslation;
+use Sunrice\Cms\Admin\EntryList;
+use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 
@@ -55,3 +60,30 @@ it('refuses to delete a blueprint a collection uses', function () {
 
     app(DeleteBlueprint::class)->handle($blueprint);
 })->throws(ValidationException::class, 'used by the collection "Pages"');
+
+it('switches entry pages and the listing page on and off, with default addresses', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $blog = app(SaveCollection::class)->handle(['handle' => 'blog', 'title' => 'Blog']);
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update'));
+    Pest\Laravel\get("/admin/cms/collections/{$blog->id}/edit")->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('values.pages', false)->where('values.listing', false)->where('values.translatable', true));
+
+    // On without an address: the defaults, from the handle.
+    Pest\Laravel\put("/admin/cms/collections/{$blog->id}", ['title' => 'Blog', 'per_page' => 10, 'pages' => true, 'listing' => true])->assertSessionHasNoErrors();
+    expect($blog->refresh()->route)->toBe('/blog/{slug}')->and($blog->listing_route)->toBe('/blog');
+
+    // Given ones are kept; off clears them.
+    Pest\Laravel\put("/admin/cms/collections/{$blog->id}", ['title' => 'Blog', 'per_page' => 10, 'pages' => true, 'route' => '/news/{slug}', 'listing' => false, 'listing_route' => '/news'])->assertSessionHasNoErrors();
+    expect($blog->refresh()->route)->toBe('/news/{slug}')->and($blog->listing_route)->toBeNull();
+});
+
+it('keeps the entries of a collection that is not translatable in the main language', function () {
+    $faq = app(SaveCollection::class)->handle(['handle' => 'faq', 'title' => 'FAQ', 'translatable' => false]);
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $entry = app(CreateEntry::class)->handle($faq, ['title' => 'Shipping'])->entry;
+
+    expect(fn () => app(CreateTranslation::class)->handle($entry, 'id'))
+        ->toThrow(ValidationException::class, "FAQ isn't translatable")
+        ->and(array_column(EntryList::locales($entry->refresh()), 'code'))->toBe(['en']);
+});
