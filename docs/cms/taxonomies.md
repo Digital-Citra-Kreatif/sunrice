@@ -8,7 +8,7 @@ Under **Structure → Taxonomies** (permissions `cms.taxonomies.view`, `.create`
 
 Under **Content → Terms** (`cms.terms.manage`): add, rename, nest, reorder and trash a taxonomy's terms, in each language (see [Trash](#trash)). A term not yet translated shows the main language's title.
 
-In code: `SaveTerm` (title, slug, locale, parent_id, version), `TrashTerm`, `RestoreTerm`, `DeleteTerm`, `MoveTerm`. Slugs are unique per taxonomy and language; left empty, they're made from the title. Each term translation has a `version`, counted up on each save of its title, slug or page content: `SaveTerm` and `SaveTermContent` given the `version` the editor opened refuse a save over someone else's newer one with an error on `version` (the term's page offers **Load theirs** or **Save mine anyway**, as for entries).
+In code: `SaveTerm` (title, slug, locale, parent_id, version), `TrashTerm`, `RestoreTerm`, `DeleteTerm`, `MoveTerm`, `ReorderTerms` (one level in the order given: `handle($taxonomy, $ids, $parentId)`). Slugs are unique per taxonomy and language; left empty, they're made from the title. Each term translation has a `version`, counted up on each save of its title, slug or page content: `SaveTerm` and `SaveTermContent` given the `version` the editor opened refuse a save over someone else's newer one with an error on `version` (the term's page offers **Load theirs** or **Save mine anyway**, as for entries).
 
 ## Giving entries terms
 
