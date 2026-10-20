@@ -154,6 +154,23 @@ export const PageHeader = m.PageHeader as ComponentType<{
     children?: ReactNode;
     className?: string;
 }>;
+
+/**
+ * The panel's rich text editor (TipTap): headings, lists, quotes, code,
+ * links and, with `images` (the default), media library images. Its code
+ * loads when an editor first shows. Sanitise the HTML on the server.
+ */
+export const RichTextEditor = m.RichTextEditor as ComponentType<{
+    id: string;
+    value: string;
+    /** The new HTML, or null when the text is empty. */
+    onChange: (html: string | null) => void;
+    invalid?: boolean;
+    /** The label's id, for the editing area's name. */
+    labelledBy?: string;
+    images?: boolean;
+    disabled?: boolean;
+}>;
 export const Select = m.Select as AnyComponent;
 export const SelectContent = m.SelectContent as AnyComponent;
 export const SelectItem = m.SelectItem as AnyComponent;

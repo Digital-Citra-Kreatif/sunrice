@@ -91,6 +91,9 @@ public static function query(): Builder
 | `Secret` | a string | never sent to the browser; empty keeps the current value; store it encrypted (`encrypted` cast) |
 | `MediaPicker` | a media id, or a list with `->multiple()` | `->images()`, `->types(['image', 'document'])`, `->multiple(max)` (cast the attribute to `array`); see [Media](media.md#picking-media-in-forms) |
 | `CheckboxList` | an array of values | `->options([value => label])`, or groups `[group => [value => label]]`, or a closure returning them |
+| `BelongsToSelect` | the relation's foreign key | named after a `BelongsTo` relation; searchable (see below) |
+| `BelongsToManySelect` | the relation, synced after saving | named after a `BelongsToMany` relation; searchable, in the order chosen; `->orderColumn('sort_order')` (a pivot column for the order), `->max(…)` |
+| `RichText` | sanitised HTML | `->maxLength(…)` (500,000), `->images(false)`; see below |
 
 Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `->default()` (the create form's value), `->rules([...])` (more Laravel rules), `->unique()` (except the record being edited), `->onlyOnCreate()` / `->onlyOnEdit()` and `->span(2)` (columns in a section's grid). `Section::make('Title')->columns(2)->schema([...])` groups fields in a card.
 
@@ -105,6 +108,29 @@ CheckboxList::make('tags')
     ->saveUsing(fn (Product $product, array $ids) => $product->tags()->sync($ids));
 ```
 
+### Relation fields
+
+`BelongsToSelect` and `BelongsToManySelect` are named after a relation of the model, and search the related records as the person types:
+
+```php
+BelongsToSelect::make('category')->title('name')->required(),
+BelongsToSelect::make('author')
+    ->title(fn (User $user) => "{$user->name} ({$user->email})")->searchColumns('name', 'email'),
+BelongsToManySelect::make('tags')->orderColumn('sort_order')
+    ->query(fn (Builder $query) => $query->where('active', true)),
+```
+
+- `->title()` names a related record: a column (searched and sorted by; `name` by default), or a closure (then `->searchColumns()` says where to search).
+- `->query()` narrows the records that can be found **and** chosen: anything else is refused when the form is saved.
+- The form searches `GET /admin/resources/{key}/options/{field}?q=…` (route `sunrice.admin.resources.{key}.options`), which needs the resource's `view` ability and returns at most 50 options. Anyone who may view the list may see the related records' titles, so narrow `->query()` when that matters.
+- They work in resource forms (not in action dialogs or settings).
+
+### Rich text
+
+`RichText::make('description')` is the panel's rich text editor: headings, lists, quotes, code, links and images from the media library (`->images(false)` to leave them out). The HTML is **sanitised on the server when it's saved**, with `symfony/html-sanitizer`: only that formatting is kept, links may be `http(s)`, `mailto:`, `tel:` or relative and get `rel="noopener noreferrer"`, and no script, style or event handler is stored. Empty text is stored as null. `RichText::sanitize($html)` cleans HTML the same way elsewhere. The editor's code (TipTap) loads when an editor first shows, never with the panel's main script; plugins use the same editor as `RichTextEditor` from `@sunrice/admin-sdk/ui` (see [Frontend](frontend.md)).
+
+Fields may turn the validated value into what they store with `dehydrate()` (that's where `RichText` sanitises); it runs for resource forms, action dialogs and settings alike.
+
 Override `newRecord()` to prepare the record the create form fills (`$record->team_id = …`).
 
 **Only fields in the form are written.** Anything else a request sends (an `id`, a timestamp, an attribute that isn't on the form) is ignored, so the model doesn't need `$fillable` for the panel.
@@ -113,6 +139,7 @@ Override `newRecord()` to prepare the record the create form fills (`$record->te
 
 - `Column::make('name')`, or a relationship's attribute `Column::make('category.name')` (eager loaded; for a to-many relationship, `Column::make('tags.name')` lists the values). `->sortable()` (the model's own attributes), `->searchable()`, `->badge()`, `->boolean()`, `->date('d/m/Y')`, `->label()`.
 - `Filter::make('status')->options([...])` (or a closure returning them), `Filter::make('active')->boolean()`, or any query: `->query(fn (Builder $q, string $value) => ...)`. Only the listed option values are applied.
+- `Filter::dateRange('created_at')->label('Created')`: two dates, either end open, both days included (`whereDate`). Its value is `from,to` (`2026-01-01,2026-01-31`, `2026-01-01,`); anything else is ignored. With `->query()` the closure gets that value, and `Filter::range($value)` reads it as `[$from, $to]`.
 - `Column::make('overdue')->state(fn (Invoice $i) => $i->due_on->isPast())->boolean()` shows a value worked out from the record (not sortable or searchable; keep it free of queries).
 - `->defaultSort('-created_at')`, `->perPage(50)`, `->exportable()` (CSV of the filtered, sorted list; values that spreadsheets would run as formulas are escaped). For CSV of your own, `Sunrice\Admin\Support\Csv::write($stream, $cells)` escapes the same way (`Csv::cell()` for one value).
 
@@ -137,7 +164,9 @@ Edit and delete are built in. Add your own, per row or for the selected rows:
 ])
 ```
 
-`->visible(fn (Product $p) => ! $p->isLive())` offers a row action only for some records (and refuses it for the others). `->ability()` is the resource ability the action needs (`update` by default), checked for each record. A handler returns the message to show, or throws `ActionFailed` with one to show as an error.
+`->visible(fn (Product $p) => ! $p->isLive())` offers a row action only for some records (and refuses it for the others). `->ability()` is the resource ability the action needs (`update` by default), checked for each record. `->authorize(fn (User $user, Product $p) => $user->can('shop.products.feature'))` adds a check of your own, per record, after the ability: the action is offered and run (row, bulk and AI) only when it returns true. A handler returns the message to show, or throws `ActionFailed` with one to show as an error.
+
+A row action can open an address instead of running anything: `Action::make('invoice')->url(fn (Order $order) => route('invoices.pdf', $order), newTab: true)` (or a fixed string). It's a link in the row's menu; only `http(s)` and relative addresses are offered, and bulk actions can't have one.
 
 An action can ask for something in its dialog with `->form(Field ...)`: the fields (a `Select`, a `TextInput` …) are shown under the question, validated with their rules, and given to the handler as its second argument. The dialog stays open, showing the errors, until the action is accepted:
 

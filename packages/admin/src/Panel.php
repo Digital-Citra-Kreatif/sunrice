@@ -119,7 +119,7 @@ final class Panel
     private ?string $roleResource = RoleResource::class;
 
     /** URL segments the panel uses itself; resources can't take them. */
-    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai'];
+    private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai', 'resources'];
 
     /** The plugin whose register() is running, if any: it owns what is declared meanwhile. */
     private ?Plugin $registering = null;

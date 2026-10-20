@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Resources\Tables;
 
 use Closure;
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
@@ -31,6 +32,12 @@ use Sunrice\Admin\Resources\Forms\Field;
  *     Action::make('reject')->form(Select::make('reason')->options([...])->required())
  *         ->handle(fn (Order $order, array $input) => $order->reject($input['reason']));
  *
+ * A row action may open an address instead of running anything (a PDF,
+ * the record on the site), and may need more than the resource ability:
+ *
+ *     Action::make('invoice')->url(fn (Order $order) => route('invoices.show', $order), newTab: true)
+ *         ->authorize(fn (User $user, Order $order) => $user->can('shop.orders.invoice'));
+ *
  * A row action with the key "delete" replaces the built-in Delete in the
  * row's menu. A handler may return a message to show, and may throw
  * ActionFailed with one to show as an error.
@@ -54,6 +61,14 @@ final class Action
 
     /** @var list<Field> */
     private array $fields = [];
+
+    /** @var (Closure(Model): string)|string|null */
+    private Closure|string|null $url = null;
+
+    private bool $newTab = false;
+
+    /** @var (Closure(Authorizable, Model): bool)|null */
+    private ?Closure $authorize = null;
 
     private function __construct(public readonly string $key, public readonly bool $isBulk)
     {
@@ -122,6 +137,61 @@ final class Action
         $this->visible = $visible;
 
         return $this;
+    }
+
+    /**
+     * Open this address instead of running a handler (row actions only): a
+     * string, or a closure given the record. Only http(s) and relative
+     * addresses are opened.
+     *
+     * @param  (Closure(Model): string)|string  $url
+     */
+    public function url(Closure|string $url, bool $newTab = false): self
+    {
+        if ($this->isBulk) {
+            throw new InvalidArgumentException("Action \"{$this->key}\": a bulk action can't open an address.");
+        }
+        $this->url = $url;
+        $this->newTab = $newTab;
+
+        return $this;
+    }
+
+    public function isUrl(): bool
+    {
+        return $this->url !== null;
+    }
+
+    /** The address it opens for a record (null when it runs a handler, or the address isn't safe). */
+    public function urlFor(Model $record): ?string
+    {
+        if ($this->url === null) {
+            return null;
+        }
+        $url = $this->url instanceof Closure ? ($this->url)($record) : $this->url;
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+
+        return $scheme === null || $scheme === false
+            ? (str_starts_with(ltrim($url), '//') || str_contains($url, '\\') ? null : $url)
+            : (in_array(strtolower($scheme), ['http', 'https'], true) ? $url : null);
+    }
+
+    /**
+     * A further check for each record, after the resource ability: it can
+     * only refuse. Offered, and run, only when it returns true.
+     *
+     * @param  Closure(Authorizable, Model): bool  $authorize
+     */
+    public function authorize(Closure $authorize): self
+    {
+        $this->authorize = $authorize;
+
+        return $this;
+    }
+
+    public function allows(Authorizable $user, Model $record): bool
+    {
+        return $this->authorize === null || ($this->authorize)($user, $record) === true;
     }
 
     public function isVisibleFor(Model $record): bool
@@ -199,15 +269,22 @@ final class Action
         }
         /** @var array<string, mixed> $validated */
         $validated = Validator::make($input, $rules, [], $attributes)->validate();
+        foreach ($this->fields as $field) {
+            if (array_key_exists($field->name, $validated)) {
+                $validated[$field->name] = $field->dehydrate($validated[$field->name]);
+            }
+        }
 
         return $validated;
     }
 
-    /** @return array{key: string, label: string, confirm: string|null, destructive: bool, fields: list<array<string, mixed>>} */
+    /** @return array{key: string, label: string, confirm: string|null, destructive: bool, url: bool, newTab: bool, fields: list<array<string, mixed>>} */
     public function toArray(): array
     {
         return [
             'key' => $this->key,
+            'url' => $this->url !== null,
+            'newTab' => $this->newTab,
             'label' => $this->label,
             'confirm' => $this->confirm,
             'destructive' => $this->destructive,

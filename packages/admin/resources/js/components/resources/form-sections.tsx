@@ -35,11 +35,11 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
                             {field.type === 'toggle' ? (
                                 <div className="flex items-center gap-3">
                                     {input}
-                                    <Label htmlFor={`field-${field.name}`}>{field.label}</Label>
+                                    <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>{field.label}</Label>
                                 </div>
                             ) : (
                                 <>
-                                    <Label htmlFor={`field-${field.name}`}>
+                                    <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>
                                         {field.label}
                                         {field.required && <span className="text-destructive" aria-hidden>*</span>}
                                     </Label>
