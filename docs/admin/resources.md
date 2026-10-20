@@ -109,6 +109,31 @@ Override `newRecord()` to prepare the record the create form fills (`$record->te
 
 **Only fields in the form are written.** Anything else a request sends (an `id`, a timestamp, an attribute that isn't on the form) is ignored, so the model doesn't need `$fillable` for the panel.
 
+## Cards beside the form
+
+`aside(Model $record, Authorizable $user)` returns read-only cards shown beside a record's edit form (not on the create form), for whoever may update it: its status, history, related records. Nothing by default. It runs once per edit page, so load what the cards need there, without a query per item. The Users screen shows its Security card this way.
+
+```php
+use Sunrice\Admin\Support\Card;
+
+public static function aside(Model $record, Authorizable $user): array
+{
+    return [
+        Card::make('Orders')
+            ->description('What this customer bought.')
+            ->notice('This customer is blocked.', Card::DANGER, 'Since the chargeback in May.') // or Card::INFO, Card::WARNING
+            ->rows(['Orders' => $record->orders()->count(), 'Last order' => $record->last_order_at]) // null leaves a row out
+            ->list('Latest', $record->orders()->latest()->limit(5)->get()->map(fn (Order $o) => [
+                'label' => '#'.$o->number, 'meta' => $o->status, 'at' => $o->created_at,
+            ]), empty: 'No orders yet.')
+            ->link('All orders', route('shop.orders.index', ['customer' => $record->id]))
+            ->button('Send a reminder', "/admin/customers/{$record->id}/actions/remind", 'Send them a reminder?'),
+    ];
+}
+```
+
+Text is escaped, and times (in rows and list items) are shown in the viewer's own date format. A button POSTs to its URL (after the question, when given): point it at a row action (`…/actions/{key}`) or a route of your own, which checks its own permission.
+
 ## Lists
 
 - `Column::make('name')`, or a relationship's attribute `Column::make('category.name')` (eager loaded; for a to-many relationship, `Column::make('tags.name')` lists the values). `->sortable()` (the model's own attributes), `->searchable()`, `->badge()`, `->boolean()`, `->date('d/m/Y')`, `->label()`.

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Users: a **Security** card on the user's edit page (lock state with when, by whom and why, a lock after wrong passwords, signed out everywhere, AI token count, last login and IP, the latest 8 security events, Sign out everywhere and Revoke AI tokens), and **Lock account** asks for a reason (`AccountGuard::lock()`). For any resource, `Resource::aside(Model $record, Authorizable $user)` (`@api`) returns read-only cards beside the edit form, built with `Sunrice\Admin\Support\Card` (`@api`: notices, rows, lists, links, buttons).
 - Login attempts made while blocked are `login blocked` security events too (`tried while blocked`), at most once a minute per email and IP; and an unknown email costs a password check like a wrong password does, so the timing doesn't tell who has an account (`AttemptLogin`).
 - Tests prove plugin routes guarded: every `sunrice.admin.*` route, the CMS's included, is behind `Authenticate` and `EnsureCanAccessPanel` (but the guest pages and logout), and every `sunrice.admin.cms.*` route names a `can:` permission or `AuthorizeContent` (`tests/Cms/AdminRoutesGuardTest.php`).
 - Security headers on every panel response (`PanelSecurityHeaders` in `PanelRoutes::middleware()`): `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, and a `Content-Security-Policy` from `sunrice-admin.security.headers.csp` (`SUNRICE_CSP`) when set.

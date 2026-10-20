@@ -6,7 +6,8 @@ import { PageHeader } from '@/components/app/page-header';
 import { useConfirm } from '@/components/resources/confirm';
 import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
-import type { ResourceInfo, SectionInfo } from '@/components/resources/types';
+import { InfoCards } from '@/components/resources/info-cards';
+import type { InfoCard, ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
@@ -17,9 +18,11 @@ interface Props {
     sections: SectionInfo[];
     values: Record<string, FieldValue>;
     can: { delete: boolean };
+    /** Read-only cards beside the form (Resource::aside()). */
+    aside?: InfoCard[];
 }
 
-export default function ResourceForm({ resource, record, sections, values, can }: Props) {
+export default function ResourceForm({ resource, record, sections, values, can, aside = [] }: Props) {
     const base = adminUrl(resource.key);
     const title = record ? record.title : `New ${resource.singularLabel.toLowerCase()}`;
     useBreadcrumbs([{ label: resource.label, href: base }, { label: title }]);
@@ -43,8 +46,8 @@ export default function ResourceForm({ resource, record, sections, values, can }
 
     const remove = () => record && confirm(`Delete ${record.title}? This can't be undone.`, () => router.delete(`${base}/${record.id}`), true);
 
-    return (
-        <form onSubmit={submit} className="flex max-w-3xl flex-col gap-6">
+    const page = (
+        <form onSubmit={submit} className="flex max-w-3xl min-w-0 flex-1 flex-col gap-6">
             <Head title={title} />
             {confirmDialog}
 
@@ -68,5 +71,13 @@ export default function ResourceForm({ resource, record, sections, values, can }
 
             <FormSections sections={sections} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
         </form>
+    );
+    if (aside.length === 0) return page;
+
+    return (
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+            {page}
+            <InfoCards cards={aside} className="xl:sticky xl:top-24 xl:w-80 xl:shrink-0" />
+        </div>
     );
 }
