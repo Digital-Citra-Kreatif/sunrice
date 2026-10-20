@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Security headers on every panel response (`PanelSecurityHeaders` in `PanelRoutes::middleware()`): `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, and a `Content-Security-Policy` from `sunrice-admin.security.headers.csp` (`SUNRICE_CSP`) when set.
 - The password reset form answers an email without an account exactly like a wrong token (`PasswordResetController` maps `Password::INVALID_USER` to `INVALID_TOKEN`).
 - Read-only AI tokens refuse every ability but `view`, `viewAny`, `*.view`, `sunrice.access` and `sunrice.ai.connect`, so a plugin's own policy abilities (`publish`, `refund`) no longer pass (`TokenScope::refuses()` takes the ability only).
 - AI access tokens need `sunrice.access` as well as `sunrice.ai.connect`; **Sign out everywhere** and **Lock account** (`AccountGuard::signOutEverywhere()`) revoke the account's tokens (`tokens revoked`); and a new token expires after 90 days unless **Never** or another time is chosen (`AiAccessController` reads a missing `expires_in_days` as 90).

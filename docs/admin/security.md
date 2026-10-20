@@ -35,6 +35,18 @@ The list's **Locked** column shows locked accounts. Who may do this follows the 
 
 In code: `Sunrice\Admin\Security\AccountGuard` has `signOutEverywhere($user)`, `lock($user, $reason)`, `unlock($user)` and `isLocked($user)`.
 
+## Security headers
+
+Every panel response (`PanelRoutes::middleware()`, so plugin routes too) carries `X-Frame-Options: DENY` (no other site can frame the panel), `Referrer-Policy: same-origin` and `X-Content-Type-Options: nosniff`. The site's own pages aren't touched.
+
+A `Content-Security-Policy` is sent only when you set one, because what it must allow depends on how your app serves the panel's assets (Vite, a CDN, inline scripts in your layout). Set `SUNRICE_CSP` or `security.headers.csp` in `config/sunrice-admin.php` to the policy string:
+
+```
+SUNRICE_CSP="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+```
+
+Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
+
 ## Elsewhere too
 
 - **A log file:** set `SUNRICE_SECURITY_LOG_CHANNEL` (`security.log_channel` in `config/sunrice-admin.php`) to a log channel, e.g. `daily`, to also write each event there as a warning, for fail2ban or a log service.

@@ -109,6 +109,14 @@ return [
     ],
 
     'security' => [
+        // Headers on every panel response. X-Frame-Options: DENY, Referrer-Policy:
+        // same-origin and X-Content-Type-Options: nosniff are always sent; a
+        // Content-Security-Policy only when set here (Inertia and Vite setups
+        // vary, see docs/admin/security.md#security-headers).
+        'headers' => [
+            'csp' => env('SUNRICE_CSP'),
+        ],
+
         // Also write security events (logins, failed and blocked logins, blocked
         // uploads …) to this log channel, e.g. 'daily', for fail2ban or a log
         // service. null: only the activity log.
