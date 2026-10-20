@@ -38,6 +38,15 @@ function term(Taxonomy $taxonomy, string $title, array $input = []): Term
     return app(SaveTerm::class)->handle($taxonomy, ['title' => $title] + $input);
 }
 
+it('refuses changing a term over someone else\'s newer save', function () {
+    $news = term($this->tags, 'News');
+    app(SaveTerm::class)->handle($this->tags, ['title' => 'Daily news', 'version' => 1], $news);
+
+    expect($news->translation()?->version)->toBe(2)
+        ->and(fn () => app(SaveTerm::class)->handle($this->tags, ['title' => 'Stale', 'version' => 1], $news))->toThrow(ValidationException::class, 'Someone else saved')
+        ->and($news->fresh()?->title())->toBe('Daily news');
+});
+
 it('creates terms with slugs unique in their taxonomy and language', function () {
     $news = term($this->categories, 'News');
 

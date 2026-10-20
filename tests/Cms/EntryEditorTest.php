@@ -116,7 +116,7 @@ it('opens an entry with its draft, status and revisions', function () {
     get("/admin/cms/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('entry.status', 'published')
         ->where('entry.hasUnpublishedChanges', true)
-        ->where('entry.version', 2)
+        ->where('entry.version', 3)
         ->where('values.title', 'Hello again')
         ->where('revisions.0.title', 'Hello')
         ->where('can.update', false));

@@ -108,7 +108,7 @@ it('saves drafts without touching the live version', function () {
         ->and($translation->draft_title)->toBe('Hello again')
         ->and($translation->draft_data)->toEqual(['intro' => 'Hi', 'featured' => true, 'day' => null])
         ->and($translation->data['featured'])->toBeFalse()
-        ->and($translation->version)->toBe(2)
+        ->and($translation->version)->toBe(3) // created 1, published 2, saved 3
         ->and($translation->hasUnpublishedChanges())->toBeTrue()
         ->and(Activity::query()->latest('id')->first()?->properties)->toMatchArray(['changed' => ['title', 'featured']]);
 });
@@ -120,6 +120,14 @@ it('refuses a save over a newer one', function () {
 
     expect(fn () => app(SaveDraft::class)->handle($stale, ['title' => 'Theirs', 'version' => 1]))->toThrow(ValidationException::class, 'Someone else saved')
         ->and($translation->fresh()?->draft_title)->toBe('Mine');
+});
+
+it('counts the version up on publish, so an editor opened before can\'t save over it unknowingly', function () {
+    $translation = article();
+    app(PublishEntry::class)->handle($translation);
+
+    expect($translation->fresh()?->version)->toBe(2)
+        ->and(fn () => app(SaveDraft::class)->handle($translation->fresh() ?? $translation, ['title' => 'Stale', 'version' => 1]))->toThrow(ValidationException::class, 'Someone else saved');
 });
 
 it('does nothing when nothing changed', function () {
@@ -190,7 +198,7 @@ it('restores a revision into the draft', function () {
 
     expect($translation->draft_title)->toBe('Hello world')
         ->and($translation->draft_slug)->toBe('hello-world')
-        ->and($translation->version)->toBe(3)
+        ->and($translation->version)->toBe(4) // created 1, published 2, saved 3, restored 4
         ->and(Activity::query()->latest('id')->first()?->action)->toBe('reverted');
 });
 

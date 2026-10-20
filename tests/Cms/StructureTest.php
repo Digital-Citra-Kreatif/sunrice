@@ -121,6 +121,14 @@ it('serves listing pages with their fields, paginated, in each language', functi
     put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Semua berita']])->assertSessionHasNoErrors();
     get('/id/articles')->assertSee('Semua berita');
     get('/admin/cms/collections/pages/listing')->assertNotFound();
+
+    // A save over someone else's newer one is refused.
+    get('/admin/cms/collections/articles/listing?locale=id')->assertInertia(fn (Assert $page) => $page->where('version', 1));
+    put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Berita'], 'version' => 1])->assertSessionHasNoErrors();
+    put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Stale'], 'version' => 1])->assertSessionHasErrors('version');
+    expect(fn () => app(SaveListing::class)->handle($articles, ['intro' => 'Stale'], 'id', 1))->toThrow(ValidationException::class, 'Someone else saved')
+        ->and($articles->listings()->where('locale', 'id')->firstOrFail()->only(['version']))->toBe(['version' => 2]);
+    get('/id/articles')->assertSee('Berita');
 });
 
 it('serves the homepage at /, in each language, and redirects its own address', function () {

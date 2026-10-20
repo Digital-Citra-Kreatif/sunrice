@@ -69,5 +69,15 @@ it('edits a term\'s page per language, and checks the template', function () {
 
     get('/id/topics/berita')->assertOk()->assertSee('Semua berita');
     expect($this->news->fresh()?->template)->toBe('cms.topic');
+
+    // A save over someone else's newer one is refused, template included.
+    $translation = $this->news->translations()->where('locale', 'id')->firstOrFail();
+    get("/admin/cms/terms/{$this->news->id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('version', $translation->version));
+    put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Berita'], 'version' => $translation->version])->assertSessionHasNoErrors();
+    put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Stale'], 'template' => 'cms.stale', 'version' => $translation->version])->assertSessionHasErrors('version');
+    expect($translation->fresh()?->only(['version']))->toBe(['version' => $translation->version + 1])
+        ->and($translation->fresh()?->data['about'] ?? null)->toBe('Berita')
+        ->and($this->news->fresh()?->template)->toBe('cms.topic');
+    put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Mine anyway']])->assertSessionHasNoErrors();
     expect(fn () => app(SaveTermContent::class)->handle($this->news, ['data' => []], 'fr'))->toThrow(ValidationException::class);
 });
