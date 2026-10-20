@@ -114,3 +114,17 @@ Every publish keeps a `Revision` (title, slug, fields and who published it); the
 `TrashEntry` takes an entry, in all its languages, off the site and out of lists; `RestoreEntry` brings it back as it was. `ForceDeleteEntry` deletes a trashed entry for good, with its languages, revisions and terms. `DuplicateEntry` and `BulkEntries` are the list's and editor's other actions.
 
 Every action is written to the [activity log](../admin/activity.md): created, duplicated, updated (with the fields that changed), published, unpublished, reverted, trashed, restored and deleted.
+
+## The dashboard
+
+The CMS adds these widgets to the panel's [dashboard](../admin/panel.md#dashboard-widgets), each showing only what the user may see (per collection and per form, as `Support\Access` decides):
+
+| Widget | Shows | Who sees it |
+| --- | --- | --- |
+| `cms.collections` (Content) | Each collection's entries in the main language: live, drafts and scheduled, linking to its list. | Users who may view some collection's entries. |
+| `cms.recent-edits` (Recently edited) | The last eight entry translations edited, any language, with their status. | The same. |
+| `cms.comments` (Comments waiting) | How many comments wait for moderation, and the latest five. | `cms.comments.view` |
+| `cms.scheduled` (Coming up) | The next eight entries scheduled to go live. | Users who may view some collection's entries. |
+| `cms.submissions` (Latest submissions) | The last eight submissions of the forms the user may read, each summed up by its first text field. | `cms.submissions.view`, or a form's own. |
+
+Each reads its data in one query (the comments widget a second one for signed-in commenters' names), after the page has painted. Entries in the trash and deleted collections are left out.

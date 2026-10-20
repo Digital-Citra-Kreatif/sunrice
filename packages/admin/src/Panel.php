@@ -12,6 +12,8 @@ use InvalidArgumentException;
 use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Contracts\Plugin;
+use Sunrice\Admin\Dashboard\PanelWidgets;
+use Sunrice\Admin\Dashboard\Widget;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Navigation\NavigationItem;
@@ -69,6 +71,9 @@ final class Panel
 
     /** @var array<string, Permission> */
     private array $permissions = [];
+
+    /** @var array<string, Widget> keyed by the widget's key */
+    private array $widgets = [];
 
     /** @var array<string, list<string>> role name => permission names or patterns */
     private array $defaultRoles = ['administrator' => ['*']];
@@ -266,6 +271,35 @@ final class Panel
                 throw new PanelMisconfigured("Two navigation items have the key \"{$item->key}\"{$this->owner()}.");
             }
             $this->navigation[$item->key] = $item;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Tiles on the dashboard (see Sunrice\Admin\Dashboard\Widget). A
+     * plugin's keys start with its id and a dot ("shop.orders"); the app's
+     * may not use a plugin's id.
+     */
+    public function widgets(Widget ...$widgets): self
+    {
+        $this->assertRegistering();
+        $owner = $this->registering?->id();
+        foreach ($widgets as $widget) {
+            $prefix = explode('.', $widget->key)[0];
+            if ($owner !== null && ! str_starts_with($widget->key, $owner.'.')) {
+                throw new PanelMisconfigured("The plugin \"{$owner}\" registered the widget \"{$widget->key}\": a plugin's widget keys start with its id (\"{$owner}.…\").");
+            }
+            if ($owner === null && isset($this->plugins[$prefix])) {
+                throw new PanelMisconfigured("The widget \"{$widget->key}\" uses the prefix of the plugin \"{$prefix}\".");
+            }
+            if (isset($this->widgets[$widget->key])) {
+                throw new PanelMisconfigured("Two widgets have the key \"{$widget->key}\"{$this->owner()}.");
+            }
+            if (! $widget->hasData()) {
+                throw new PanelMisconfigured("The widget \"{$widget->key}\" has no data: give it ->data(fn (Authorizable \$user) => [...]).");
+            }
+            $this->widgets[$widget->key] = $widget->inGroup($owner === null ? 'widgets' : "widgets-{$owner}");
         }
 
         return $this;
@@ -611,6 +645,7 @@ final class Panel
         ];
         $this->navigation(NavigationItem::make('activity')->label('Activity log')->url('activity')->icon('history')
             ->group('Administration')->sort(960)->permission('sunrice.activity.view'));
+        $this->widgets(PanelWidgets::activity());
         if ($this->aiAccess) {
             $this->permissions(Permission::make('sunrice.ai.connect', 'Connect AI agents', 'AI access'));
             $this->navigation(NavigationItem::make('ai')->label('AI access')->url('ai')->icon('bot')
@@ -624,6 +659,7 @@ final class Panel
                 Permission::make('sunrice.media.delete', 'Delete media', 'Media'),
             );
             $this->navigation(NavigationItem::make('media')->label('Media')->url('media')->icon('image')->sort(50)->permission('sunrice.media.view'));
+            $this->widgets(PanelWidgets::media());
             // Deleting a user: their uploads move to the heir or stay without an uploader (other content may use them).
             $this->userContent('media', 'uploads',
                 fn (Model $user): int => Media::query()->where('uploaded_by', self::id($user))->count(),
@@ -887,6 +923,26 @@ final class Panel
         }
 
         return array_values($groups);
+    }
+
+    /** @return array<string, Widget> keyed by key */
+    public function getWidgets(): array
+    {
+        return $this->widgets;
+    }
+
+    /**
+     * The dashboard's widgets this user may see, by sort, then in the
+     * order they were registered. Their data isn't resolved.
+     *
+     * @return list<Widget>
+     */
+    public function widgetsFor(Authorizable $user): array
+    {
+        $visible = array_values(array_filter($this->widgets, fn (Widget $widget): bool => $widget->isVisibleTo($user)));
+        usort($visible, fn (Widget $a, Widget $b): int => $a->getSort() <=> $b->getSort());
+
+        return $visible;
     }
 
     // Internals -------------------------------------------------------------
