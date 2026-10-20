@@ -10,7 +10,7 @@ Listen to these (`Sunrice\Cms\Events`) to react to content, from the admin, AI t
 | `EntryUnpublished` (`$translation`) | A language was taken off the site. |
 | `EntryTrashed`, `EntryRestored` (`$entry`) | An entry went to the trash, or came back. |
 | `EntryDeleted` (`$entry`) | An entry was deleted for good. |
-| `ContentChanged` (`$what`, like `"menu 3"`) | Anything the site shows changed: an entry going live or off, terms, menus, global sets, collections, taxonomies, blueprints, fieldsets, redirects, forms, media files, Settings → Site and Site code. Saving a draft isn't a change. |
+| `ContentChanged` (`$what`, like `"menu 3"`) | Anything the site shows changed: an entry going live or off, terms, menus, global sets, collections, taxonomies, blueprints, fieldsets, redirects, forms, media files, Settings → Site and Site code. Saving a draft isn't a change, and neither is a comment (they're read from the database on every render), except an approved one appearing, changing or going while whole pages are kept. |
 
 They fire after the database transaction they're part of commits. `ContentChanged` may fire several times for one save (once per record), so keep its listeners cheap, or queue them:
 
@@ -20,7 +20,16 @@ Event::listen(ContentChanged::class, fn () => Http::post('https://api.example.co
 
 ## The site's cache
 
-The site keeps what it reads on every page in the cache: which page is at an address, the collections' and taxonomies' URL patterns, listing pages, menus and the sitemap. Everything is kept under a **content version**, and every change to what the site shows starts a new one, so nothing old is read again, on any cache store and without tags. Only plain values are kept, never models.
+The site keeps what it reads on every page in the cache: which page is at an address, the collections' and taxonomies' URL patterns, listing pages, menus and the sitemap. Everything is kept under a **content version** per area, and a change starts a new version of the areas it touches, so nothing old is read again, on any cache store and without tags. Only plain values are kept, never models. The areas (`SiteCache::PAGES`, `ROUTES`, `MENUS`, `SITEMAP`):
+
+| Area | What's in it | New version when |
+| --- | --- | --- |
+| `pages` | Whole pages, the site's share image, anything templates render | Any change: every change below too, plus global sets, blueprints, fieldsets, forms, media files (even alt text), Site code, and approved comments while whole pages are kept |
+| `routes` | Which page is at an address, URL patterns, listing routes | Entries going live, off or moving, terms, collections, taxonomies, redirects, Settings → Site |
+| `menus` | Menus | Menus and their items, entries, terms, collections, taxonomies |
+| `sitemap` | The sitemap's files | Entries, terms, collections, taxonomies |
+
+So editing a menu doesn't rebuild the sitemap, and fixing a file's alt text doesn't drop the address lookups.
 
 ```php
 // config/sunrice-cms.php
@@ -32,11 +41,15 @@ The site keeps what it reads on every page in the cache: which page is at an add
 ],
 ```
 
-With several servers, use a shared store (redis, memcached, database). Cache your own things the same way, gone with the next change:
+With several servers, use a shared store (redis, memcached, database). Cache your own things the same way, in the `pages` area (gone with the next change) or another:
 
 ```php
 app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:bestsellers', fn () => $ids);
+app(\Sunrice\Cms\Support\SiteCache::class)->remember('shop:paths', fn () => $paths, SiteCache::ROUTES);
+app(\Sunrice\Cms\Support\SiteCache::class)->changed('shop products', SiteCache::PAGES); // no areas: all of them
 ```
+
+Menu and sitemap entries are keyed by the site's URL (`url('/')`), since they hold full links. Set `APP_URL` and Laravel's `TrustHosts` middleware (or your web server's host check) so a request with a made-up `Host:` header can't fill the store with copies under other hosts.
 
 ## Whole pages
 
@@ -62,7 +75,13 @@ app(\Sunrice\Cms\Site\PageCache::class)->skipWhen(fn (Request $request, ?Page $p
 
 The callback is asked twice: before a kept page is served (`$page` is null then: only the request is known), and after a page renders, before it's kept.
 
-The CMS sets responsecache's `cache_profile` (`Sunrice\Cms\Site\PageCacheProfile`) and `serializer` (one that drops cookies) unless your `config/responsecache.php` names its own: then extend `PageCacheProfile`, and keep cookies out of what's stored. Where pages are kept is responsecache's `cache.store` (`RESPONSE_CACHE_DRIVER`, `file` by default). With `APP_DEBUG` on, responses say `X-Cache-Status: HIT` or `MISS`.
+The CMS sets responsecache's `cache_profile` (`Sunrice\Cms\Site\PageCacheProfile`), `serializer` (one that drops cookies) and `hasher` (`Sunrice\Cms\Site\PageCacheHasher`) unless your `config/responsecache.php` names its own: then extend them, and keep cookies out of what's stored. Where pages are kept is responsecache's `cache.store` (`RESPONSE_CACHE_DRIVER`, `file` by default). With `APP_DEBUG` on, responses say `X-Cache-Status: HIT` or `MISS`.
+
+A kept page is told apart by its host, path, language and only the query parameters the site reads: `page`, `q` and those in `sunrice-cms.cache.query`. `?utm_source=…` or `?x=<anything>` gets the same kept page, so nobody can fill the store with copies of one page. Add a parameter to `cache.query` when a template reads it (`['sort']`), or skip those pages.
+
+Kept pages need responsecache's `Spatie\ResponseCache\Replacers\CsrfTokenReplacer` (in `responsecache.replacers`, where the package puts it): it swaps each visitor's own CSRF token into a page rendered for someone else. Without it every visitor would get the first one's token and no form would submit, so with `cache.pages` on, the CMS refuses to boot (`PanelMisconfigured`) if the replacer is missing from your published config.
+
+Comments are read from the database on every render, so a comment changes nothing kept, except on a kept page that shows it: an approved comment appearing, changing or going starts a new version of the `pages` area. With *New comments* set to publish at once, that means visitors' comments do too (within their per-address limit), and only that area.
 
 ## Scheduled publishing
 
@@ -76,4 +95,4 @@ Without it, kept content shows a scheduled entry within `cache.ttl` at the lates
 
 ## Query budgets
 
-Site pages make a fixed number of queries however much content there is: no queries in loops. With the cache warm, the CMS's own views take at most 6 queries for an entry page, 7 for a listing page, 8 for a term page and none for the sitemap (`tests/Cms/CachingTest.php` checks this). Templates add their own: eager load (`Cms::entries()` loads entries with their collections), and see the queries behind a page with Laravel Debugbar or Telescope on staging.
+Site pages make a fixed number of queries however much content there is: no queries in loops. With the cache warm, the CMS's own views take at most 5 queries for an entry page, 6 for a listing page, 7 for a term page and none for the sitemap (`tests/Cms/CachingTest.php` checks this). The site's share image is read once per content version, and an entry's other languages come with it (for `hreflang` links). Templates add their own: eager load (`Cms::entries()` loads entries with their collections), and see the queries behind a page with Laravel Debugbar or Telescope on staging.

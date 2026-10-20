@@ -8,7 +8,11 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
 use Illuminate\Testing\TestResponse;
+use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Comments\PostComment;
+use Sunrice\Cms\Actions\Comments\SetCommentStatus;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\ForceDeleteEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
@@ -19,6 +23,7 @@ use Sunrice\Cms\Actions\Entries\UnpublishEntry;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\CmsServiceProvider;
 use Sunrice\Cms\Events\ContentChanged;
 use Sunrice\Cms\Events\EntryDeleted;
 use Sunrice\Cms\Events\EntryPublished;
@@ -28,12 +33,15 @@ use Sunrice\Cms\Events\EntryUnpublished;
 use Sunrice\Cms\Menus;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Comment;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Site\PageCache;
+use Sunrice\Cms\Site\PageCacheHasher;
 use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\actingAs;
@@ -135,15 +143,19 @@ it('keeps to a query budget per page', function () {
     foreach (range(1, 12) as $i) {
         cachedPost("Post {$i}");
     }
-    foreach (['/blog/post-1', '/blog', '/tags/news', '/sitemap.xml'] as $path) {
-        get($path)->assertOk(); // warm the cache
+    // The site's share image (on every page) is read once per content version, not per page.
+    $image = Media::query()->create(['disk' => 'public', 'path' => 'media/share.jpg', 'filename' => 'share.jpg', 'mime_type' => 'image/jpeg', 'size' => 1]);
+    app(SiteSettings::class)->fill(['image' => $image->id])->save();
+    foreach (['/blog/post-1', '/blog', '/tags/news'] as $path) {
+        get($path)->assertOk()->assertSee('og:image" content="'.$image->url(), false); // warm the cache
     }
+    get('/sitemap.xml')->assertOk();
 
     // However many entries: no queries in loops.
-    expect(withQueries(fn () => get('/blog/post-1'))[1])->toBeLessThanOrEqual(6)
-        ->and(withQueries(fn () => get('/blog'))[1])->toBeLessThanOrEqual(7)
-        ->and(withQueries(fn () => get('/blog?page=2'))[1])->toBeLessThanOrEqual(7)
-        ->and(withQueries(fn () => get('/tags/news'))[1])->toBeLessThanOrEqual(8)
+    expect(withQueries(fn () => get('/blog/post-1'))[1])->toBeLessThanOrEqual(5)
+        ->and(withQueries(fn () => get('/blog'))[1])->toBeLessThanOrEqual(6)
+        ->and(withQueries(fn () => get('/blog?page=2'))[1])->toBeLessThanOrEqual(6)
+        ->and(withQueries(fn () => get('/tags/news'))[1])->toBeLessThanOrEqual(7)
         ->and(withQueries(fn () => get('/sitemap.xml'))[1])->toBe(0);
 });
 
@@ -223,4 +235,94 @@ it('announces scheduled entries when their time comes, and clears the caches', f
 
     Event::assertDispatched(EntryPublished::class, fn (EntryPublished $e) => $e->scheduled && $e->translation->title === 'Later');
     get('/blog')->assertSee('Later');
+});
+
+it('starts a new version only for the areas a change touches', function () {
+    $cache = app(SiteCache::class);
+    $versions = fn (): array => array_combine(SiteCache::AREAS, array_map(fn (string $area) => $cache->version($area), SiteCache::AREAS));
+
+    $was = $versions();
+    $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    expect($cache->version(SiteCache::MENUS))->toBe($was['menus'] + 1)
+        ->and($cache->version(SiteCache::PAGES))->toBe($was['pages'] + 1)
+        ->and($cache->version(SiteCache::ROUTES))->toBe($was['routes'])
+        ->and($cache->version(SiteCache::SITEMAP))->toBe($was['sitemap']);
+
+    $was = $versions();
+    $media = Media::query()->create(['disk' => 'public', 'path' => 'media/a.jpg', 'filename' => 'a.jpg', 'mime_type' => 'image/jpeg', 'size' => 1]);
+    $media->update(['alt' => 'A photo']);
+    expect($cache->version(SiteCache::PAGES))->toBe($was['pages'] + 2)
+        ->and($cache->version(SiteCache::ROUTES))->toBe($was['routes'])
+        ->and($cache->version(SiteCache::MENUS))->toBe($was['menus'])
+        ->and($cache->version(SiteCache::SITEMAP))->toBe($was['sitemap']);
+
+    // An entry going live changes addresses, menus and the sitemap alike.
+    $was = $versions();
+    cachedPost('Hello');
+    foreach (SiteCache::AREAS as $area) {
+        expect($cache->version($area))->toBeGreaterThan($was[$area]);
+    }
+    $was = $versions();
+    $cache->changed('everything');
+    foreach (SiteCache::AREAS as $area) {
+        expect($cache->version($area))->toBe($was[$area] + 1);
+    }
+    expect($cache->key('x', SiteCache::MENUS))->toContain(':menus:'.$cache->version(SiteCache::MENUS).':x')
+        ->and($cache->key('x'))->toContain(':pages:');
+    $menu->delete();
+});
+
+it('lets no comment touch the cache, unless an approved one shows on a kept page', function () {
+    $this->blog->update(['comments' => true]);
+    $hello = cachedPost('Hello');
+    $cache = app(SiteCache::class);
+    $changes = [];
+    Event::listen(ContentChanged::class, function (ContentChanged $e) use (&$changes) {
+        $changes[] = $e->what;
+    });
+    $post = fn () => app(PostComment::class)->handle($hello->entry, ['body' => 'Nice', 'author_name' => 'Rina', 'author_email' => 'rina@example.com'], null, 'en', '10.0.0.1');
+
+    // Comments are read from the database on every render: nothing kept shows them.
+    $pages = $cache->version(SiteCache::PAGES);
+    $comment = $post();
+    app(SetCommentStatus::class)->handle($comment, Comment::APPROVED);
+    app(SetCommentStatus::class)->handle($comment, Comment::SPAM);
+    expect($changes)->toBe([])->and($cache->version(SiteCache::PAGES))->toBe($pages);
+
+    // But a kept page: only approved comments, and only the pages area.
+    config(['sunrice-cms.cache.pages' => true]);
+    $versions = fn (): array => [$cache->version(SiteCache::PAGES), $cache->version(SiteCache::ROUTES), $cache->version(SiteCache::MENUS), $cache->version(SiteCache::SITEMAP)];
+    [$pages, $routes, $menus, $sitemap] = $versions();
+    $pending = $post();
+    expect($pending->status)->toBe(Comment::PENDING)->and($changes)->toBe([])->and($versions())->toBe([$pages, $routes, $menus, $sitemap]);
+    app(SetCommentStatus::class)->handle($pending, Comment::APPROVED);
+    expect($changes)->toBe(['comment '.$pending->id])->and($versions())->toBe([$pages + 1, $routes, $menus, $sitemap]);
+    app(SetCommentStatus::class)->handle($pending, Comment::PENDING);
+    expect($changes)->toHaveCount(2)->and($versions())->toBe([$pages + 2, $routes, $menus, $sitemap]);
+    app(SetCommentStatus::class)->handle($pending, Comment::SPAM);
+    expect($changes)->toHaveCount(2)->and($versions())->toBe([$pages + 2, $routes, $menus, $sitemap]);
+});
+
+it('keeps one page whatever other query parameters say', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true, 'sunrice-cms.cache.query' => ['sort']]);
+    foreach (range(1, 3) as $i) {
+        cachedPost("Post {$i}");
+    }
+    $this->blog->update(['per_page' => 2]);
+
+    get('/blog/post-1')->assertOk()->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog/post-1?utm_source=newsletter&x='.uniqid())->assertHeader('X-Cache-Status', 'HIT');
+    get('/blog')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog?fbclid=1')->assertHeader('X-Cache-Status', 'HIT');
+    get('/blog?page=2')->assertHeader('X-Cache-Status', 'MISS')->assertSee('paged-2');
+    get('/blog?page=2&utm_medium=mail')->assertHeader('X-Cache-Status', 'HIT');
+    get('/blog?sort=title')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog?sort=title')->assertHeader('X-Cache-Status', 'HIT');
+    expect(PageCacheHasher::query())->toBe(['page', 'q', 'sort']);
+});
+
+it('refuses to keep pages without the CSRF token replacer', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.replacers' => []]);
+
+    expect(fn () => app()->register(CmsServiceProvider::class, force: true))->toThrow(PanelMisconfigured::class, 'CsrfTokenReplacer');
 });
