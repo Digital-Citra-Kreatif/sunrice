@@ -52,7 +52,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
     const [confirm, confirmDialog] = useConfirm();
     const [search, setSearch] = React.useState(query.search);
     const [selected, setSelected] = React.useState<(string | number)[]>([]);
-    const base = adminUrl(resource.key);
+    const base = adminUrl(resource.path);
     const loading = useListLoading(base);
     const { preferences, setColumns, setPerPage } = useTablePreferences(initialPreferences.key, initialPreferences);
     // The first column (the record's link) is always shown.

@@ -459,7 +459,8 @@ final class Panel
             if (! is_subclass_of($class, Resource::class)) {
                 throw new PanelMisconfigured("{$class} isn't a resource: extend ".Resource::class.'.');
             }
-            $this->registerResource($class, $this->registering === null ? $class::key() : $this->registering->id().'.'.$class::key());
+            $this->registerResource($class, $this->registering === null ? $class::key() : $this->registering->id().'.'.$class::key(),
+                ($this->registering === null ? '' : $this->registering->id().'/').$class::path());
         }
 
         return $this;
@@ -1162,17 +1163,18 @@ final class Panel
     }
 
     /** @param class-string<resource> $class */
-    private function registerResource(string $class, string $prefix): void
+    private function registerResource(string $class, string $prefix, ?string $path = null): void
     {
         $key = $class::key();
-        if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1 || in_array($key, self::RESERVED_KEYS, true)) {
-            throw new PanelMisconfigured("The resource {$class} has the key \"{$key}\": use lowercase letters, numbers and dashes, and not one of the panel's own paths.");
+        if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1 || in_array($key, self::RESERVED_KEYS, true)
+            || preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $class::path()) !== 1 || in_array($class::path(), self::RESERVED_KEYS, true)) {
+            throw new PanelMisconfigured("The resource {$class} has the key \"{$key}\" and the path \"{$class::path()}\": use lowercase letters, numbers and dashes, and not one of the panel's own paths.");
         }
         if (isset($this->resources[$key])) {
             throw new PanelMisconfigured("Two resources have the key \"{$key}\": {$this->resources[$key]->class} and {$class}{$this->owner()}.");
         }
 
-        $resource = new RegisteredResource($class, $prefix);
+        $resource = new RegisteredResource($class, $prefix, $path);
         $this->resources[$key] = $resource;
 
         $label = $class::label();
@@ -1188,7 +1190,7 @@ final class Panel
             ? [Permission::make("{$prefix}.export", "Export {$label}", $label)]
             : []];
         $this->navigation(
-            NavigationItem::make("resources.{$key}")->label($class::navigationLabel())->url($key)->icon($class::navigationIcon())
+            NavigationItem::make("resources.{$key}")->label($class::navigationLabel())->url($resource->path())->icon($class::navigationIcon())
                 ->group($class::navigationGroup())->sort($class::navigationSort())->visible($resource->visibleTo()),
         );
     }

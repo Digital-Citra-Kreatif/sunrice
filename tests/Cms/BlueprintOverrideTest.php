@@ -163,8 +163,8 @@ it('keeps the blueprint when duplicating, and edits the allowed list on the coll
     expect(app(DuplicateEntry::class)->handle($entry->fresh())->blueprint)->toBe('landing');
 
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update'));
-    get("/admin/collections/{$this->pages->id}/edit")->assertInertia(fn (Assert $page) => $page->where('values.blueprints', ['landing']));
-    put("/admin/collections/{$this->pages->id}", ['title' => 'Pages', 'handle' => 'pages', 'blueprint' => 'page', 'blueprints' => ['landing', 'other'], 'per_page' => 10])->assertSessionHasNoErrors();
+    get("/admin/cms/collections/{$this->pages->id}/edit")->assertInertia(fn (Assert $page) => $page->where('values.blueprints', ['landing']));
+    put("/admin/cms/collections/{$this->pages->id}", ['title' => 'Pages', 'handle' => 'pages', 'blueprint' => 'page', 'blueprints' => ['landing', 'other'], 'per_page' => 10])->assertSessionHasNoErrors();
     expect($this->pages->fresh()?->allowedBlueprints())->toBe(['page', 'landing', 'other']);
 });
 

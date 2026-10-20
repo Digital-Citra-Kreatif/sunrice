@@ -23,8 +23,8 @@ it('lists records in the trash with a filter and offers a trashed action only fo
     $gone = Note::query()->create(['title' => 'Gone']);
     $gone->delete();
 
-    get('/admin/notes')->assertInertia(fn (Assert $page) => $page->has('rows.data', 1)->where('rows.data.0.actions', []));
-    get('/admin/notes?filters[trashed]=only')->assertInertia(fn (Assert $page) => $page
+    get('/admin/desk/notes')->assertInertia(fn (Assert $page) => $page->has('rows.data', 1)->where('rows.data.0.actions', []));
+    get('/admin/desk/notes?filters[trashed]=only')->assertInertia(fn (Assert $page) => $page
         ->has('rows.data', 1)
         ->where('rows.data.0.id', $gone->id)
         ->where('rows.data.0.actions', ['restore']));
@@ -35,7 +35,7 @@ it('runs a trashed action on a record in the trash, and refuses others', functio
     $gone = Note::query()->create(['title' => 'Gone']);
     $gone->delete();
 
-    post("/admin/notes/{$gone->id}/actions/restore")->assertSessionHas('success', 'Restored.');
+    post("/admin/desk/notes/{$gone->id}/actions/restore")->assertSessionHas('success', 'Restored.');
     expect($gone->fresh()?->trashed())->toBeFalse();
-    post("/admin/notes/{$kept->id}/actions/restore")->assertForbidden();
+    post("/admin/desk/notes/{$kept->id}/actions/restore")->assertForbidden();
 });

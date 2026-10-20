@@ -241,12 +241,12 @@ it('splits the sitemap into an index of files past the limit', function () {
 
 it('guards redirects with their permissions', function () {
     actingAs(adminUser(Panel::ACCESS));
-    get('/admin/redirects')->assertForbidden();
+    get('/admin/cms/redirects')->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.redirects.view', 'cms.redirects.create'));
-    get('/admin/redirects')->assertOk();
-    post('/admin/redirects', ['from_path' => '/old', 'to_url' => '/new', 'status' => '301'])->assertSessionHasNoErrors();
-    post('/admin/redirects', ['from_path' => 'no-slash', 'to_url' => 'javascript:alert(1)', 'status' => '301'])
+    get('/admin/cms/redirects')->assertOk();
+    post('/admin/cms/redirects', ['from_path' => '/old', 'to_url' => '/new', 'status' => '301'])->assertSessionHasNoErrors();
+    post('/admin/cms/redirects', ['from_path' => 'no-slash', 'to_url' => 'javascript:alert(1)', 'status' => '301'])
         ->assertSessionHasErrors(['from_path', 'to_url']);
 
     get('/old')->assertRedirect('/new');
@@ -289,11 +289,11 @@ it('offers the blueprints\' fields for SEO in Structure → Collections and Taxo
     ]]);
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.taxonomies.view', 'cms.taxonomies.create'));
 
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'blueprint' => 'article', 'seo_title_field' => 'headline', 'seo_image_field' => 'cover'])->assertSessionHasNoErrors();
+    put("/admin/cms/collections/{$this->blog->id}", ['title' => 'Blog', 'blueprint' => 'article', 'seo_title_field' => 'headline', 'seo_image_field' => 'cover'])->assertSessionHasNoErrors();
     expect($this->blog->fresh()?->seo_title_field)->toBe('headline')->and($this->blog->fresh()?->seo_image_field)->toBe('cover');
     // Only fields of the right kind.
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'seo_image_field' => 'headline'])->assertSessionHasErrors('seo_image_field');
-    post('/admin/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'seo_title_field' => 'headline'])->assertSessionHasNoErrors();
+    put("/admin/cms/collections/{$this->blog->id}", ['title' => 'Blog', 'seo_image_field' => 'headline'])->assertSessionHasErrors('seo_image_field');
+    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'seo_title_field' => 'headline'])->assertSessionHasNoErrors();
     expect(Taxonomy::query()->where('handle', 'topics')->value('seo_title_field'))->toBe('headline');
 });
 

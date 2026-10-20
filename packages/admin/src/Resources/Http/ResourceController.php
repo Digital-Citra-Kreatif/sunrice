@@ -360,6 +360,6 @@ final class ResourceController
     /** @return array{key: string, label: string, singularLabel: string} */
     private function describe(RegisteredResource $resource): array
     {
-        return ['key' => $resource->key(), 'label' => $resource->class::label(), 'singularLabel' => $resource->class::singularLabel()];
+        return ['key' => $resource->key(), 'path' => $resource->path(), 'label' => $resource->class::label(), 'singularLabel' => $resource->class::singularLabel()];
     }
 }

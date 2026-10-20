@@ -162,10 +162,10 @@ it('checks collection URLs in the admin', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.create'));
 
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news', 'route' => 'news/{slug}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/news/{id}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/blog/{slug}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/news/{slug}'])->assertSessionHasNoErrors();
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'route' => 'news/{slug}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/news/{id}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/blog/{slug}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/news/{slug}'])->assertSessionHasNoErrors();
 });
 
 it('queries live entries for templates', function () {

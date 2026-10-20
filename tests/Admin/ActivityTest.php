@@ -46,13 +46,13 @@ function activityLines(): array
 
 it('records resource changes with the fields that changed, not their values', function () {
     actingAs($this->admin);
-    post('/admin/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft'])->assertRedirect();
+    post('/admin/shop/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft'])->assertRedirect();
     $product = Product::query()->sole();
 
-    put("/admin/products/{$product->id}", ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live'])->assertSessionHasNoErrors();
-    put("/admin/products/{$product->id}", ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live']); // nothing changed
-    post('/admin/products/bulk/deactivate', ['ids' => [$product->id]]);
-    delete("/admin/products/{$product->id}");
+    put("/admin/shop/products/{$product->id}", ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live'])->assertSessionHasNoErrors();
+    put("/admin/shop/products/{$product->id}", ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live']); // nothing changed
+    post('/admin/shop/products/bulk/deactivate', ['ids' => [$product->id]]);
+    delete("/admin/shop/products/{$product->id}");
 
     expect(activityLines())->toBe([
         ['admin', 'Rina', 'created', 'products', 'Kettle', null],
@@ -127,7 +127,7 @@ it('merges by an id each request gets, so a worker\'s next request never continu
 
 it('shows the log to those allowed, with filters and links', function () {
     actingAs($this->admin);
-    post('/admin/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft']);
+    post('/admin/shop/products', ['name' => 'Kettle', 'sku' => 'K-1', 'price' => 10, 'status' => 'draft']);
     put('/admin/settings/outbox', ['from' => 'hello@example.com']);
     $product = Product::query()->sole();
     app(ActivityLog::class)->withSource('ai', 'Claude', fn () => app(ActivityLog::class)->record('noted', 'products', $product, 'Kettle'));
@@ -137,7 +137,7 @@ it('shows the log to those allowed, with filters and links', function () {
         ->where('rows.total', 3)
         ->where('rows.data.0.via', 'Claude')
         ->where('rows.data.1.url', '/admin/settings/outbox')
-        ->where('rows.data.2.url', "/admin/products/{$product->id}/edit")
+        ->where('rows.data.2.url', "/admin/shop/products/{$product->id}/edit")
         ->where('rows.data.2.typeLabel', 'Product')
         ->where('types', [['value' => 'products', 'label' => 'Product'], ['value' => 'settings', 'label' => 'Settings']]));
 

@@ -2,6 +2,8 @@
 
 export interface ResourceInfo {
     key: string;
+    /** Its address under the panel: "products", or "shop/products" for a plugin's. */
+    path: string;
     label: string;
     singularLabel: string;
 }

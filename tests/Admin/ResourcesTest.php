@@ -45,12 +45,12 @@ it('registers permissions, a sidebar item and routes', function () {
     $panel = app(Panel::class);
 
     expect(array_keys($panel->getPermissions()))->toContain('shop.products.view', 'shop.products.create', 'shop.products.update', 'shop.products.delete')
-        ->and(route('sunrice.admin.resources.products.index', absolute: false))->toBe('/admin/products');
+        ->and(route('sunrice.admin.resources.products.index', absolute: false))->toBe('/admin/shop/products');
 
     shopUser('view');
     get('/admin')->assertInertia(fn (Assert $page) => $page
         ->where('navigation.0.group', 'Shop')
-        ->where('navigation.0.items.0.url', 'products')
+        ->where('navigation.0.items.0.url', 'shop/products')
         ->where('navigation.0.items.0.label', 'Products'));
 
     actingAs(adminUser(Panel::ACCESS));
@@ -61,12 +61,12 @@ it('refuses users without the resource\'s permissions', function () {
     $product = product();
     shopUser();
 
-    get('/admin/products')->assertForbidden();
-    get('/admin/products/create')->assertForbidden();
-    post('/admin/products', ['name' => 'X'])->assertForbidden();
-    get("/admin/products/{$product->id}/edit")->assertForbidden();
-    put("/admin/products/{$product->id}", ['name' => 'X'])->assertForbidden();
-    delete("/admin/products/{$product->id}")->assertForbidden();
+    get('/admin/shop/products')->assertForbidden();
+    get('/admin/shop/products/create')->assertForbidden();
+    post('/admin/shop/products', ['name' => 'X'])->assertForbidden();
+    get("/admin/shop/products/{$product->id}/edit")->assertForbidden();
+    put("/admin/shop/products/{$product->id}", ['name' => 'X'])->assertForbidden();
+    delete("/admin/shop/products/{$product->id}")->assertForbidden();
 
     expect($product->fresh()?->name)->toBe($product->name);
 });
@@ -78,7 +78,7 @@ it('lists records with search, filters, sorting and pages', function () {
     product(['name' => 'Chisel', 'sku' => 'C-1', 'price' => 8, 'status' => 'archived']);
     shopUser('view', 'update');
 
-    get('/admin/products')->assertOk()->assertInertia(fn (Assert $page) => $page
+    get('/admin/shop/products')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('Resources/Index', shouldExist: false)
         ->where('resource.label', 'Products')
         ->where('rows.total', 2) // the archived one is outside the resource's query
@@ -92,23 +92,23 @@ it('lists records with search, filters, sorting and pages', function () {
         ->where('can.create', false)
         ->has('bulkActions', 1)); // "deactivate" only: no delete permission
 
-    get('/admin/products?search=HAMM')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
-    get('/admin/products?search=TOOLS')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1)); // a relation's column
-    get('/admin/products?search=%25')->assertInertia(fn (Assert $page) => $page->where('rows.total', 0)); // % is literal
-    get('/admin/products?filters[status]=live')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
-    get('/admin/products?filters[active]=0')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.title', 'Anvil')->where('rows.total', 1));
-    get('/admin/products?filters[price]=cheap')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
-    get('/admin/products?filters[status]=bogus&filters[name]=x')->assertInertia(fn (Assert $page) => $page->where('rows.total', 2)->where('query.filters', []));
-    get('/admin/products?sort=-price')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.title', 'Hammer'));
-    get('/admin/products?sort=sku')->assertInertia(fn (Assert $page) => $page->where('query.sort', 'name')); // not sortable
-    get('/admin/products?per_page=10&page=2')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 10)->where('rows.data', []));
-    get('/admin/products?per_page=7')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 25));
+    get('/admin/shop/products?search=HAMM')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
+    get('/admin/shop/products?search=TOOLS')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1)); // a relation's column
+    get('/admin/shop/products?search=%25')->assertInertia(fn (Assert $page) => $page->where('rows.total', 0)); // % is literal
+    get('/admin/shop/products?filters[status]=live')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
+    get('/admin/shop/products?filters[active]=0')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.title', 'Anvil')->where('rows.total', 1));
+    get('/admin/shop/products?filters[price]=cheap')->assertInertia(fn (Assert $page) => $page->where('rows.total', 1));
+    get('/admin/shop/products?filters[status]=bogus&filters[name]=x')->assertInertia(fn (Assert $page) => $page->where('rows.total', 2)->where('query.filters', []));
+    get('/admin/shop/products?sort=-price')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.title', 'Hammer'));
+    get('/admin/shop/products?sort=sku')->assertInertia(fn (Assert $page) => $page->where('query.sort', 'name')); // not sortable
+    get('/admin/shop/products?per_page=10&page=2')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 10)->where('rows.data', []));
+    get('/admin/shop/products?per_page=7')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 25));
 });
 
 it('creates a record from the declared fields only', function () {
     shopUser('view', 'create', 'update');
 
-    get('/admin/products/create')->assertOk()->assertInertia(fn (Assert $page) => $page
+    get('/admin/shop/products/create')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('Resources/Form', shouldExist: false)
         ->where('record', null)
         ->where('sections.0.title', null)
@@ -119,7 +119,7 @@ it('creates a record from the declared fields only', function () {
         ->where('values.status', 'draft')
         ->where('values.active', false));
 
-    post('/admin/products', ['name' => 'Saw', 'sku' => 'S-1', 'price' => '12.50', 'status' => 'live', 'active' => '1', 'released_on' => '2026-03-01', 'notes' => 'sneaky', 'id' => 999, 'created_at' => '2000-01-01'])
+    post('/admin/shop/products', ['name' => 'Saw', 'sku' => 'S-1', 'price' => '12.50', 'status' => 'live', 'active' => '1', 'released_on' => '2026-03-01', 'notes' => 'sneaky', 'id' => 999, 'created_at' => '2000-01-01'])
         ->assertSessionHasNoErrors();
 
     $saw = Product::query()->where('sku', 'S-1')->firstOrFail();
@@ -134,7 +134,7 @@ it('validates input from the fields', function () {
     product(['sku' => 'TAKEN']);
     shopUser('view', 'create');
 
-    post('/admin/products', ['name' => '', 'sku' => 'TAKEN', 'price' => -1, 'status' => 'deleted', 'released_on' => 'soon'])
+    post('/admin/shop/products', ['name' => '', 'sku' => 'TAKEN', 'price' => -1, 'status' => 'deleted', 'released_on' => 'soon'])
         ->assertSessionHasErrors(['name', 'sku', 'price', 'status', 'released_on']);
     expect(Product::query()->count())->toBe(1);
 });
@@ -143,13 +143,13 @@ it('edits a record, ignoring its own value for unique fields', function () {
     $product = product(['sku' => 'KEEP', 'released_on' => '2026-05-06']);
     shopUser('view', 'update');
 
-    get("/admin/products/{$product->id}/edit")->assertInertia(fn (Assert $page) => $page
+    get("/admin/shop/products/{$product->id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('record.id', $product->id)
         ->where('values.released_on', '2026-05-06')
         ->where('values.notes', null)
         ->where('can.delete', false));
 
-    put("/admin/products/{$product->id}", ['name' => 'Renamed', 'sku' => 'KEEP', 'price' => 3, 'status' => 'draft', 'notes' => 'Hello'])
+    put("/admin/shop/products/{$product->id}", ['name' => 'Renamed', 'sku' => 'KEEP', 'price' => 3, 'status' => 'draft', 'notes' => 'Hello'])
         ->assertSessionHasNoErrors();
 
     expect($product->fresh()?->only('name', 'notes', 'active'))->toBe(['name' => 'Renamed', 'notes' => 'Hello', 'active' => false]);
@@ -159,12 +159,12 @@ it('deletes records, one or many, only when allowed', function () {
     [$a, $b, $c] = [product(), product(), product()];
     shopUser('view', 'delete');
 
-    delete("/admin/products/{$a->id}")->assertRedirect('/admin/products');
-    post('/admin/products/bulk/delete', ['ids' => [$b->id]])->assertSessionHas('success', '1 deleted.');
+    delete("/admin/shop/products/{$a->id}")->assertRedirect('/admin/shop/products');
+    post('/admin/shop/products/bulk/delete', ['ids' => [$b->id]])->assertSessionHas('success', '1 deleted.');
     expect(Product::query()->pluck('id')->all())->toBe([$c->id]);
 
     shopUser('view');
-    post('/admin/products/bulk/delete', ['ids' => [$c->id]])->assertForbidden();
+    post('/admin/shop/products/bulk/delete', ['ids' => [$c->id]])->assertForbidden();
     expect(Product::query()->count())->toBe(1);
 });
 
@@ -172,9 +172,9 @@ it('cannot reach records outside the resource\'s query', function () {
     $archived = product(['status' => 'archived']);
     shopUser('view', 'update', 'delete');
 
-    get("/admin/products/{$archived->id}/edit")->assertNotFound();
-    delete("/admin/products/{$archived->id}")->assertNotFound();
-    post('/admin/products/bulk/delete', ['ids' => [$archived->id]]);
+    get("/admin/shop/products/{$archived->id}/edit")->assertNotFound();
+    delete("/admin/shop/products/{$archived->id}")->assertNotFound();
+    post('/admin/shop/products/bulk/delete', ['ids' => [$archived->id]]);
     expect($archived->fresh())->not->toBeNull();
 });
 
@@ -182,16 +182,16 @@ it('runs row and bulk actions', function () {
     $product = product(['active' => true]);
     shopUser('view', 'update');
 
-    post("/admin/products/{$product->id}/actions/publish")->assertSessionHas('success', 'Published.');
+    post("/admin/shop/products/{$product->id}/actions/publish")->assertSessionHas('success', 'Published.');
     expect($product->fresh()?->status)->toBe('live');
-    post("/admin/products/{$product->id}/actions/publish")->assertSessionHas('error', 'It is already live.');
-    post("/admin/products/{$product->id}/actions/nope")->assertNotFound();
+    post("/admin/shop/products/{$product->id}/actions/publish")->assertSessionHas('error', 'It is already live.');
+    post("/admin/shop/products/{$product->id}/actions/nope")->assertNotFound();
 
-    post('/admin/products/bulk/deactivate', ['ids' => [$product->id]])->assertSessionHas('success');
+    post('/admin/shop/products/bulk/deactivate', ['ids' => [$product->id]])->assertSessionHas('success');
     expect($product->fresh()?->active)->toBeFalse();
 
     shopUser('view');
-    post("/admin/products/{$product->id}/actions/publish")->assertForbidden();
+    post("/admin/shop/products/{$product->id}/actions/publish")->assertForbidden();
 });
 
 it('exports the list as CSV, safe for spreadsheets', function () {
@@ -199,7 +199,7 @@ it('exports the list as CSV, safe for spreadsheets', function () {
     product(['name' => 'Plain', 'sku' => 'P-1', 'status' => 'live']);
     shopUser('view', 'export');
 
-    $csv = get('/admin/products/export?filters[status]=draft')->assertOk()->streamedContent();
+    $csv = get('/admin/shop/products/export?filters[status]=draft')->assertOk()->streamedContent();
 
     expect($csv)->toContain('Name,Sku,Price,Status,Active,Category,"Released On"')
         ->toContain("\"'=HYPERLINK(\"\"http://evil\"\")\"")
@@ -218,13 +218,13 @@ it('uses the model\'s policy when it has one', function () {
     $locked = product(['name' => 'Locked']);
     shopUser(); // no product permissions: the policy decides
 
-    get('/admin/products')->assertOk()->assertInertia(fn (Assert $page) => $page
+    get('/admin/shop/products')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('rows.data.0.title', 'Locked')->where('rows.data.0.can.update', false)
         ->where('rows.data.1.title', 'Open')->where('rows.data.1.can.update', true)
         ->where('can.create', false));
-    get("/admin/products/{$open->id}/edit")->assertOk();
-    get("/admin/products/{$locked->id}/edit")->assertForbidden();
-    delete("/admin/products/{$open->id}")->assertForbidden();
+    get("/admin/shop/products/{$open->id}/edit")->assertOk();
+    get("/admin/shop/products/{$locked->id}/edit")->assertForbidden();
+    delete("/admin/shop/products/{$open->id}")->assertForbidden();
 });
 
 /** Signed in with these catalog permissions ("view", "update" …). */
@@ -265,12 +265,12 @@ it('saves belongs-to and ordered belongs-to-many fields, only to records that ma
     [$red, $blue, $retired] = [Tag::query()->create(['name' => 'Red']), Tag::query()->create(['name' => 'Blue']), Tag::query()->create(['name' => 'Old', 'active' => false])];
     catalogUser('view', 'create', 'update');
 
-    post('/admin/catalog', ['name' => 'Saw', 'sku' => 'S-1', 'category' => $tools->id, 'tags' => [$blue->id, $red->id]])->assertSessionHasNoErrors();
+    post('/admin/shop/catalog', ['name' => 'Saw', 'sku' => 'S-1', 'category' => $tools->id, 'tags' => [$blue->id, $red->id]])->assertSessionHasNoErrors();
     $saw = Product::query()->where('sku', 'S-1')->firstOrFail();
     expect($saw->category_id)->toBe($tools->id)
         ->and($saw->tags()->orderByPivot('sort_order')->pluck('name')->all())->toBe(['Blue', 'Red']);
 
-    get("/admin/catalog/{$saw->id}/edit")->assertOk()->assertInertia(fn (Assert $page) => $page
+    get("/admin/shop/catalog/{$saw->id}/edit")->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('values.category', $tools->id)
         ->where('values.tags', [$blue->id, $red->id])
         ->where('sections.0.fields.1.type', 'belongs_to')
@@ -278,9 +278,9 @@ it('saves belongs-to and ordered belongs-to-many fields, only to records that ma
         ->where('sections.0.fields.2.type', 'belongs_to_many')
         ->where('sections.0.fields.2.selected', [['value' => $blue->id, 'label' => 'Blue'], ['value' => $red->id, 'label' => 'Red']]));
 
-    put("/admin/catalog/{$saw->id}", ['name' => 'Saw', 'category' => 999, 'tags' => [$retired->id]])->assertSessionHasErrors(['category', 'tags']);
-    put("/admin/catalog/{$saw->id}", ['name' => 'Saw', 'tags' => [$red->id, $red->id]])->assertSessionHasErrors('tags.1');
-    put("/admin/catalog/{$saw->id}", ['name' => 'Saw', 'category' => null, 'tags' => [$red->id]])->assertSessionHasNoErrors();
+    put("/admin/shop/catalog/{$saw->id}", ['name' => 'Saw', 'category' => 999, 'tags' => [$retired->id]])->assertSessionHasErrors(['category', 'tags']);
+    put("/admin/shop/catalog/{$saw->id}", ['name' => 'Saw', 'tags' => [$red->id, $red->id]])->assertSessionHasErrors('tags.1');
+    put("/admin/shop/catalog/{$saw->id}", ['name' => 'Saw', 'category' => null, 'tags' => [$red->id]])->assertSessionHasNoErrors();
     expect($saw->fresh()?->category_id)->toBeNull()
         ->and($saw->tags()->pluck('name')->all())->toBe(['Red']);
 });
@@ -289,7 +289,7 @@ it('keeps only the editor\'s formatting in rich text', function () {
     catalogUser('view', 'create', 'update');
     $html = '<h2 onclick="steal()">Hi</h2><p>Read <a href="javascript:alert(1)">this</a> and <a href="/about" target="_blank">that</a></p><script>alert(1)</script><img src="/media/a.jpg" data-media-id="7" onerror="x()">';
 
-    post('/admin/catalog', ['name' => 'Saw', 'sku' => 'S-1', 'description' => $html])->assertSessionHasNoErrors();
+    post('/admin/shop/catalog', ['name' => 'Saw', 'sku' => 'S-1', 'description' => $html])->assertSessionHasNoErrors();
     $saved = (string) Product::query()->where('sku', 'S-1')->value('description');
 
     expect($saved)->toContain('<h2>Hi</h2>')->toContain('href="/about"')->toContain('rel="noopener noreferrer"')->toContain('data-media-id="7"')
@@ -297,7 +297,7 @@ it('keeps only the editor\'s formatting in rich text', function () {
         ->and(RichText::sanitize('<p>ok</p><iframe src="x"></iframe>'))->toBe('<p>ok</p>');
 
     $id = Product::query()->where('sku', 'S-1')->value('id');
-    put("/admin/catalog/{$id}", ['name' => 'Saw', 'description' => '<p></p>'])->assertSessionHasNoErrors();
+    put("/admin/shop/catalog/{$id}", ['name' => 'Saw', 'description' => '<p></p>'])->assertSessionHasNoErrors();
     expect(Product::query()->whereKey($id)->value('description'))->toBeNull();
 });
 
@@ -307,14 +307,14 @@ it('filters by a date range', function () {
     product(['name' => 'Later', 'released_on' => '2026-03-01']);
     catalogUser('view');
 
-    $names = fn (string $range) => array_column(get('/admin/catalog?filters[released_on]='.$range)->viewData('page')['props']['rows']['data'], 'title');
+    $names = fn (string $range) => array_column(get('/admin/shop/catalog?filters[released_on]='.$range)->viewData('page')['props']['rows']['data'], 'title');
 
     expect($names('2026-01-01,2026-01-31'))->toBe(['January'])
         ->and($names('2026-01-01,'))->toBe(['January', 'Later'])
         ->and($names(',2026-01-15'))->toBe(['January', 'Old'])
         ->and($names('2026-02-30,'))->toBe(['January', 'Later', 'Old']) // not a date: ignored
         ->and($names('soon'))->toBe(['January', 'Later', 'Old']);
-    get('/admin/catalog')->assertInertia(fn (Assert $page) => $page->where('filters.0.type', 'date_range')->where('filters.0.options', []));
+    get('/admin/shop/catalog')->assertInertia(fn (Assert $page) => $page->where('filters.0.type', 'date_range')->where('filters.0.options', []));
 });
 
 it('opens url actions and checks authorize() closures', function () {
@@ -322,16 +322,16 @@ it('opens url actions and checks authorize() closures', function () {
     $live = product(['name' => 'Live', 'status' => 'live']);
     catalogUser('view', 'update');
 
-    get('/admin/catalog')->assertInertia(fn (Assert $page) => $page
+    get('/admin/shop/catalog')->assertInertia(fn (Assert $page) => $page
         ->where('rowActions.0.key', 'view-on-site')->where('rowActions.0.url', true)->where('rowActions.0.newTab', true)
         ->where('rows.data.0.title', 'Draft')
         ->where('rows.data.0.actions', ['view-on-site', 'archive']) // the javascript: address is never offered
         ->where('rows.data.0.urls', ['view-on-site' => "/products/{$draft->id}"])
         ->where('rows.data.1.actions', ['view-on-site'])); // authorize() refuses archiving a live one
 
-    post("/admin/catalog/{$draft->id}/actions/view-on-site")->assertNotFound();
-    post("/admin/catalog/{$live->id}/actions/archive")->assertForbidden();
-    post("/admin/catalog/{$draft->id}/actions/archive")->assertRedirect();
+    post("/admin/shop/catalog/{$draft->id}/actions/view-on-site")->assertNotFound();
+    post("/admin/shop/catalog/{$live->id}/actions/archive")->assertForbidden();
+    post("/admin/shop/catalog/{$draft->id}/actions/archive")->assertRedirect();
     expect($draft->fresh()?->status)->toBe('archived')
         ->and(fn () => Action::bulk('open')->url('/x'))->toThrow(InvalidArgumentException::class);
 });
@@ -342,23 +342,23 @@ it('needs the export permission to export, registered only for exportable tables
     expect($permissions)->toContain('shop.products.export')->not->toContain('shop.catalog.export');
 
     shopUser('view');
-    get('/admin/products')->assertInertia(fn (Assert $page) => $page->where('can.export', false));
-    get('/admin/products/export')->assertForbidden();
+    get('/admin/shop/products')->assertInertia(fn (Assert $page) => $page->where('can.export', false));
+    get('/admin/shop/products/export')->assertForbidden();
 
     shopUser('view', 'export');
-    get('/admin/products')->assertInertia(fn (Assert $page) => $page->where('can.export', true));
-    get('/admin/products/export')->assertOk();
+    get('/admin/shop/products')->assertInertia(fn (Assert $page) => $page->where('can.export', true));
+    get('/admin/shop/products/export')->assertOk();
 
     catalogUser('view', 'export');
-    get('/admin/catalog/export')->assertNotFound(); // not exportable
+    get('/admin/shop/catalog/export')->assertNotFound(); // not exportable
 });
 
 it('lets a policy with export() decide exports', function () {
     Gate::policy(Product::class, ProductPolicy::class);
     shopUser(); // no product permissions: the policy's viewAny and export() decide
 
-    get('/admin/products/export')->assertOk();
+    get('/admin/shop/products/export')->assertOk();
     ProductPolicy::$exports = false;
-    get('/admin/products/export')->assertForbidden();
+    get('/admin/shop/products/export')->assertForbidden();
     ProductPolicy::$exports = true;
 });

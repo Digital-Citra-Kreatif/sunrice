@@ -92,8 +92,8 @@ it('gives a resource table the user\'s saved page size, and the URL\'s first', f
     actingAs($user);
     app(Preferences::class)->set($user, 'table.resources.products', ['columns' => ['name'], 'perPage' => 10]);
 
-    get('/admin/products')->assertInertia(fn (Assert $page) => $page
+    get('/admin/shop/products')->assertInertia(fn (Assert $page) => $page
         ->where('rows.perPage', 10)
         ->where('preferences', ['key' => 'table.resources.products', 'columns' => ['name'], 'perPage' => 10]));
-    get('/admin/products?per_page=50')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 50));
+    get('/admin/shop/products?per_page=50')->assertInertia(fn (Assert $page) => $page->where('rows.perPage', 50));
 });

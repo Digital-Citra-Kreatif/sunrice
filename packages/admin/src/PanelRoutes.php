@@ -50,11 +50,11 @@ final class PanelRoutes
         return [Authenticate::class, EnsureAccountActive::class, EnsureCanAccessPanel::class];
     }
 
-    /** The routes of one resource: "/admin/products", named "sunrice.admin.resources.products.*". */
+    /** The routes of one resource: "/admin/products" (a plugin's "/admin/shop/products"), named "sunrice.admin.resources.products.*". */
     private static function resource(RegisteredResource $resource): void
     {
         $key = $resource->key();
-        Route::prefix($key)->name("resources.{$key}.")->group(function () use ($key): void {
+        Route::prefix($resource->path())->name("resources.{$key}.")->group(function () use ($key): void {
             $routes = [
                 Route::get('/', [ResourceController::class, 'index'])->name('index'),
                 Route::get('create', [ResourceController::class, 'create'])->name('create'),

@@ -31,6 +31,7 @@ Until 1.0, APIs may change between versions; every change is recorded in `CHANGE
 What changed in the `Unreleased` version that may need a change in your app, templates or plugins:
 
 - **PHP 8.4 or newer** is required.
+- **A plugin's resources** are under the plugin's id: `/admin/shop/products` instead of `/admin/products`, and the CMS's structure pages under `/admin/cms/` (menu settings at `/admin/cms/menu-settings`). Use the route names (`sunrice.admin.resources.products.index`), which didn't change, instead of written-out addresses.
 - **Entry and term editor addresses** are under their collection and taxonomy (`/admin/cms/collections/blog/entries/5/edit`). Links to the old ones still work (they redirect), but `route('sunrice.admin.cms.entries.edit', …)` now needs `['collection' => $handle, 'entry' => $id]`, and `…terms.edit` `['taxonomy' => $handle, 'term' => $id]`.
 - **Plugin bundles**: `SDK_VERSION` is 2. Rebuild your plugin's admin bundle with the matching `@sunrice/admin-sdk`; the panel refuses bundles built for another version. See [Admin pages in React](../packages/admin/docs/frontend.md#compatibility).
 - **Role rank is strict** (`PermissionRank`): a user or role someone manages, gives out, creates or edits must be strictly below them (all its permissions are theirs, and at least one of theirs is missing). Managers who could manage people with exactly their own access no longer can; give them a higher role if they need to. See [Users and roles](../packages/admin/docs/users.md#who-may-manage-whom).

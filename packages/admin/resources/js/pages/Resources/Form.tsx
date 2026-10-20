@@ -25,7 +25,7 @@ interface Props {
 }
 
 export default function ResourceForm({ resource, record, sections, values, can, aside = [] }: Props) {
-    const base = adminUrl(resource.key);
+    const base = adminUrl(resource.path);
     const title = record ? record.title : `New ${resource.singularLabel.toLowerCase()}`;
     useBreadcrumbs([{ label: resource.label, href: base }, { label: title }]);
     const [confirm, confirmDialog] = useConfirm();

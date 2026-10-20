@@ -127,7 +127,7 @@ final class ProductResource extends Resource
 }
 ```
 
-Its routes are `/admin/products`, its permissions `shop.products.view`, `.create`, `.update`, `.delete` and `.export`, unless the model has a policy. See [Resources](resources.md).
+Its routes are `/admin/shop/products` (a plugin's resources live under its id), its permissions `shop.products.view`, `.create`, `.update`, `.delete` and `.export`, unless the model has a policy. See [Resources](resources.md).
 
 ## The settings
 

@@ -103,6 +103,6 @@ it('edits globals in the admin', function () {
     put('/admin/cms/globals/contact', ['data' => ['address' => 'Stale'], 'locale' => 'en', 'version' => 1])->assertSessionHasErrors('version');
 
     actingAs(adminUser(Panel::ACCESS, 'cms.global-sets.view', 'cms.global-sets.create'));
-    post('/admin/global-sets', ['title' => 'Social', 'handle' => 'social'])->assertSessionHasNoErrors();
+    post('/admin/cms/global-sets', ['title' => 'Social', 'handle' => 'social'])->assertSessionHasNoErrors();
     expect(GlobalSet::query()->where('handle', 'social')->exists())->toBeTrue();
 });

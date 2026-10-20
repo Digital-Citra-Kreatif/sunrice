@@ -62,6 +62,16 @@ abstract class Resource
         return Str::plural(Str::kebab(class_basename(static::model())));
     }
 
+    /**
+     * Its address, under the panel's path (a plugin's under the plugin's
+     * id: "cms/…"); the key by default. Lowercase letters, numbers and
+     * dashes. Permissions and route names keep using the key.
+     */
+    public static function path(): string
+    {
+        return static::key();
+    }
+
     public static function label(): string
     {
         return Str::headline(Str::plural(class_basename(static::model())));

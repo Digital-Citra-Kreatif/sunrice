@@ -148,7 +148,7 @@ it('edits taxonomies and their terms in the admin', function () {
     $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages']);
     actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.create', 'cms.taxonomies.update'));
 
-    post('/admin/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $pages->id]])->assertSessionHasNoErrors();
+    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $pages->id]])->assertSessionHasNoErrors();
     expect(Taxonomy::query()->where('handle', 'topics')->firstOrFail()->collections->pluck('handle')->all())->toBe(['pages']);
     get('/admin/cms/terms')->assertForbidden();
 

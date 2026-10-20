@@ -22,8 +22,17 @@ final class RegisteredResource
 
     private ?Table $table = null;
 
-    /** @param class-string<\Sunrice\Admin\Resources\Resource> $class */
-    public function __construct(public readonly string $class, public readonly string $permissionPrefix) {}
+    /**
+     * @param  class-string<\Sunrice\Admin\Resources\Resource>  $class
+     * @param  string|null  $path  its address under the panel: a plugin's under the plugin's id ("cms/forms"), the app's at its key
+     */
+    public function __construct(public readonly string $class, public readonly string $permissionPrefix, private readonly ?string $path = null) {}
+
+    /** Its address under the panel: "products", or "shop/products" for a plugin's. */
+    public function path(): string
+    {
+        return $this->path ?? $this->key();
+    }
 
     public function key(): string
     {

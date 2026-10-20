@@ -48,7 +48,7 @@ Register it in a plugin's `register()` or in your panel provider:
 $panel->resources(ProductResource::class);
 ```
 
-That adds a sidebar item, the routes (`/admin/products`, named `sunrice.admin.resources.products.*`) and four permissions, five when the table is `->exportable()`.
+That adds a sidebar item, the routes (`/admin/products`, named `sunrice.admin.resources.products.*`) and four permissions, five when the table is `->exportable()`. A plugin's resources live under the plugin's id (`/admin/shop/products`, the CMS's `/admin/cms/collections`); override `path()` to give one another address than its key (the route names and permissions keep the key).
 
 The names come from the model: `label()` ("Products", the page title and the permissions' group), `singularLabel()` ("Product") and `navigationLabel()` (the sidebar item, `label()` unless you override it). Override them as static methods, like `navigationGroup()`, `navigationIcon()` (a lucide name) and `navigationSort()`.
 

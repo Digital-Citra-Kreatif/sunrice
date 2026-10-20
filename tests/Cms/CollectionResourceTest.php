@@ -26,17 +26,17 @@ function collectionsUser(string ...$abilities): void
 
 it('registers the Collections screens and their permissions', function () {
     expect(array_keys(app(Panel::class)->getPermissions()))->toContain('cms.collections.view', 'cms.collections.create', 'cms.collections.update', 'cms.collections.delete')
-        ->and(route('sunrice.admin.resources.collections.index', absolute: false))->toBe('/admin/collections');
+        ->and(route('sunrice.admin.resources.collections.index', absolute: false))->toBe('/admin/cms/collections');
 });
 
 it('is guarded by the permissions', function () {
     $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages']);
     collectionsUser();
 
-    get('/admin/collections')->assertForbidden();
-    post('/admin/collections', ['title' => 'X', 'handle' => 'x'])->assertForbidden();
-    put("/admin/collections/{$pages->id}", ['title' => 'X'])->assertForbidden();
-    delete("/admin/collections/{$pages->id}")->assertForbidden();
+    get('/admin/cms/collections')->assertForbidden();
+    post('/admin/cms/collections', ['title' => 'X', 'handle' => 'x'])->assertForbidden();
+    put("/admin/cms/collections/{$pages->id}", ['title' => 'X'])->assertForbidden();
+    delete("/admin/cms/collections/{$pages->id}")->assertForbidden();
 });
 
 it('lists collections', function () {
@@ -45,7 +45,7 @@ it('lists collections', function () {
     Collection::query()->create(['handle' => 'old', 'title' => 'Old'])->delete();
     collectionsUser('view');
 
-    get('/admin/collections')->assertOk()->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/collections')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('rows.total', 2)
         ->where('rows.data.0.title', 'Articles')
         ->where('rows.data.0.cells.dated', true));
@@ -55,10 +55,10 @@ it('creates a collection, offering the blueprints', function () {
     Blueprint::query()->create(['handle' => 'article', 'title' => 'Article']);
     collectionsUser('view', 'create');
 
-    get('/admin/collections/create')->assertOk()->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/collections/create')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('sections.0.fields.2.options', [['value' => 'article', 'label' => 'Article']]));
 
-    post('/admin/collections', ['title' => 'Articles', 'handle' => 'articles', 'blueprint' => 'article', 'dated' => '1'])->assertSessionHasNoErrors();
+    post('/admin/cms/collections', ['title' => 'Articles', 'handle' => 'articles', 'blueprint' => 'article', 'dated' => '1'])->assertSessionHasNoErrors();
 
     expect(Collection::query()->firstOrFail()->only(['handle', 'title', 'blueprint', 'dated']))
         ->toBe(['handle' => 'articles', 'title' => 'Articles', 'blueprint' => 'article', 'dated' => true]);
@@ -68,9 +68,9 @@ it('refuses bad handles, taken ones (deleted collections included) and unknown b
     Collection::query()->create(['handle' => 'news', 'title' => 'News'])->delete();
     collectionsUser('view', 'create');
 
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news'])->assertSessionHasErrors('handle');
-    post('/admin/collections', ['title' => 'X', 'handle' => 'Bad Handle'])->assertSessionHasErrors('handle');
-    post('/admin/collections', ['title' => 'X', 'handle' => 'x', 'blueprint' => 'nope'])->assertSessionHasErrors('blueprint');
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news'])->assertSessionHasErrors('handle');
+    post('/admin/cms/collections', ['title' => 'X', 'handle' => 'Bad Handle'])->assertSessionHasErrors('handle');
+    post('/admin/cms/collections', ['title' => 'X', 'handle' => 'x', 'blueprint' => 'nope'])->assertSessionHasErrors('blueprint');
     expect(Collection::query()->count())->toBe(0);
 });
 
@@ -79,10 +79,10 @@ it('changes the handle when editing, only to a free and valid one', function () 
     Collection::query()->create(['handle' => 'posts', 'title' => 'Posts'])->delete();
     collectionsUser('view', 'update');
 
-    put("/admin/collections/{$pages->id}", ['title' => 'Pages'])->assertSessionHasNoErrors(); // left out: kept
+    put("/admin/cms/collections/{$pages->id}", ['title' => 'Pages'])->assertSessionHasNoErrors(); // left out: kept
     expect($pages->fresh()?->handle)->toBe('pages');
-    put("/admin/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'posts'])->assertSessionHasErrors('handle'); // a deleted one's
-    put("/admin/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'other'])->assertSessionHasNoErrors();
+    put("/admin/cms/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'posts'])->assertSessionHasErrors('handle'); // a deleted one's
+    put("/admin/cms/collections/{$pages->id}", ['title' => 'Site pages', 'handle' => 'other'])->assertSessionHasNoErrors();
 
     expect($pages->fresh()?->only(['handle', 'title']))->toBe(['handle' => 'other', 'title' => 'Site pages']);
 });
@@ -93,7 +93,7 @@ it('deletes a collection but keeps its entries', function () {
     actingAs($user);
     $entry = app(CreateEntry::class)->handle($pages, ['title' => 'About']);
 
-    delete("/admin/collections/{$pages->id}")->assertRedirect();
+    delete("/admin/cms/collections/{$pages->id}")->assertRedirect();
 
     expect(Collection::withTrashed()->find($pages->id)?->trashed())->toBeTrue()
         ->and($entry->fresh())->not->toBeNull()

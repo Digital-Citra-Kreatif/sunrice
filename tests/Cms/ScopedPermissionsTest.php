@@ -142,13 +142,13 @@ it('renames a collection\'s, taxonomy\'s and form\'s permissions with its handle
     $entry = scopedDraft($this->blog);
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.taxonomies.view', 'cms.taxonomies.update', 'cms.forms.view', 'cms.forms.update'));
 
-    get("/admin/collections/{$this->blog->id}/edit")->assertInertia(fn (Assert $page) => $page
+    get("/admin/cms/collections/{$this->blog->id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.help', fn (string $help) => str_contains($help, 'Careful')));
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'handle' => 'news', 'per_page' => 10])->assertSessionHasErrors('handle'); // taken
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'handle' => 'Bad Handle', 'per_page' => 10])->assertSessionHasErrors('handle');
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Journal', 'handle' => 'journal', 'blueprint' => 'post', 'per_page' => 10])->assertSessionHasNoErrors();
-    put("/admin/taxonomies/{$tags->id}", ['title' => 'Topics', 'handle' => 'topics'])->assertSessionHasNoErrors();
-    put("/admin/forms/{$form->id}", ['title' => 'Contact', 'handle' => 'enquiry', 'blueprint' => 'post'])->assertSessionHasNoErrors();
+    put("/admin/cms/collections/{$this->blog->id}", ['title' => 'Blog', 'handle' => 'news', 'per_page' => 10])->assertSessionHasErrors('handle'); // taken
+    put("/admin/cms/collections/{$this->blog->id}", ['title' => 'Blog', 'handle' => 'Bad Handle', 'per_page' => 10])->assertSessionHasErrors('handle');
+    put("/admin/cms/collections/{$this->blog->id}", ['title' => 'Journal', 'handle' => 'journal', 'blueprint' => 'post', 'per_page' => 10])->assertSessionHasNoErrors();
+    put("/admin/cms/taxonomies/{$tags->id}", ['title' => 'Topics', 'handle' => 'topics'])->assertSessionHasNoErrors();
+    put("/admin/cms/forms/{$form->id}", ['title' => 'Contact', 'handle' => 'enquiry', 'blueprint' => 'post'])->assertSessionHasNoErrors();
 
     expect($this->blog->fresh()?->handle)->toBe('journal')
         ->and($role->fresh()?->permissions->pluck('name')->sort()->values()->all())
