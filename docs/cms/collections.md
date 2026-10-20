@@ -59,7 +59,29 @@ Rich text fields have a formatting toolbar: headings, bold, italic, underline, s
 
 ## Languages
 
-The languages content is written in are set in `config/sunrice-cms.php` (or `SUNRICE_LOCALES=id,en`), the first being the main one. Without either, it's the app's locale. `Sunrice\Cms\Support\Locales::all()` and `::default()` read them.
+The languages content is written in are set in **Settings → Languages** (`Sunrice\Cms\Settings\LocaleSettings`, permission `cms.settings.locales`): one per line, its code and its name, the main one first:
+
+```
+en: English
+id: Bahasa Indonesia
+```
+
+Until they're saved there, `config/sunrice-cms.php` decides: `locales` (or `SUNRICE_LOCALES=id,en`), the first being the main one, and `locale_names` (`['id' => 'Bahasa Indonesia']`; others are named in English when PHP's intl extension is installed, else by their code). Without either, it's the app's locale. The main language's addresses are plain (`/about`), the others' start with their code (`/id/about`).
+
+Codes are as Laravel's `app.locale` uses them (`en`, `id`, `pt_BR`). The settings refuse an empty list, codes listed twice, and changing or dropping the main language while content is written in it: [switch it](#switching-the-main-language) instead. Dropping another language hides its content without deleting it.
+
+```php
+use Sunrice\Cms\Support\Locales;
+
+Locales::all();        // ['en', 'id']
+Locales::default();    // 'en', the main one
+Locales::names();      // ['en' => 'English', 'id' => 'Bahasa Indonesia']
+Locales::name('id');   // 'Bahasa Indonesia'
+Locales::prefix('id'); // '/id' ('' for the main one)
+Locales::current();    // the page's language
+```
+
+The editor's language bar and the entries list name each language as set.
 
 Each language of an entry is a translation of its own: its own title, slug, draft, status, publish date and revisions. With more than one language, the editor shows a bar of them:
 

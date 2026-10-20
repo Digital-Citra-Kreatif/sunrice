@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Languages in Settings: **Settings → Languages** (`Sunrice\Cms\Settings\LocaleSettings`, `cms.settings.locales`) lists the content languages with codes and names, the main one first, and refuses an empty list, bad or repeated codes and changing the main language while it holds content; `Locales::all()` and `default()` read it once saved, else config (`sunrice-cms.locales`, new `sunrice-cms.locale_names`); new `Locales::names()`, `name()` and `prefix()`; the editor's language bar and the list's badges show the names.
 - Login attempts made while blocked are `login blocked` security events too (`tried while blocked`), at most once a minute per email and IP; and an unknown email costs a password check like a wrong password does, so the timing doesn't tell who has an account (`AttemptLogin`).
 - Tests prove plugin routes guarded: every `sunrice.admin.*` route, the CMS's included, is behind `Authenticate` and `EnsureCanAccessPanel` (but the guest pages and logout), and every `sunrice.admin.cms.*` route names a `can:` permission or `AuthorizeContent` (`tests/Cms/AdminRoutesGuardTest.php`).
 - Security headers on every panel response (`PanelSecurityHeaders` in `PanelRoutes::middleware()`): `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `X-Content-Type-Options: nosniff`, and a `Content-Security-Policy` from `sunrice-admin.security.headers.csp` (`SUNRICE_CSP`) when set.

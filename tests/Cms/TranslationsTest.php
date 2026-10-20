@@ -111,7 +111,7 @@ it('edits each language in the editor', function () {
 
     get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('entry.locale', 'en')->where('entry.isMain', true)->where('shared', [])
-        ->where('locales', [['code' => 'en', 'main' => true, 'status' => 'draft'], ['code' => 'id', 'main' => false, 'status' => null]]));
+        ->where('locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft'], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => null]]));
     get("/admin/cms/entries/{$entry->id}/edit?locale=id")->assertNotFound();
 
     post("/admin/cms/entries/{$entry->id}/translations", ['locale' => 'id'])->assertRedirect("/admin/cms/entries/{$entry->id}/edit?locale=id");
@@ -125,7 +125,7 @@ it('edits each language in the editor', function () {
         ->and($this->main->fresh()?->status)->toBe('draft');
 
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('entries.data.0.locales.1', ['code' => 'id', 'main' => false, 'status' => 'published']));
+        ->where('entries.data.0.locales.1', ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'published']));
 
     delete("/admin/cms/entries/{$entry->id}/translations/id")->assertRedirect("/admin/cms/entries/{$entry->id}/edit");
     delete("/admin/cms/entries/{$entry->id}/translations/en")->assertSessionHasErrors('locale');
