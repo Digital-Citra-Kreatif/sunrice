@@ -31,7 +31,7 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
                     const input = <FieldInput field={field} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
 
                     return (
-                        <div key={field.name} className={cn('grid content-start gap-2', spans[Math.min(field.span, section.columns)])}>
+                        <div key={field.name} className={cn('grid min-w-0 grid-cols-1 content-start gap-2', spans[Math.min(field.span, section.columns)])}>
                             {field.type === 'toggle' ? (
                                 <div className="flex items-center gap-3">
                                     {input}

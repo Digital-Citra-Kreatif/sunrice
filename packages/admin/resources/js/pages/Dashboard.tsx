@@ -52,7 +52,7 @@ export default function Dashboard({ widgets }: Props) {
                         <p className="max-w-sm text-[13px] text-muted-foreground">Widgets appear here as you get access to content and tools.</p>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {widgets.map((widget, i) => (
                             <div key={widget.key} className={cn('sunrice-row-in min-w-0', spanClass(widget.span))} style={{ '--i': i } as React.CSSProperties}>
                                 <Widget widget={widget} now={now} />
@@ -116,7 +116,7 @@ function Widget({ widget, now }: { widget: WidgetDefinition; now: Date }) {
 
     if (widget.type === 'stat') {
         return (
-            <Card className="group relative h-full gap-3 px-5 py-5">
+            <Card className="group relative gap-3 px-5 py-5">
                 <div className="flex items-center justify-between gap-3">
                     <h2 className="text-[13px] font-medium text-muted-foreground">
                         {widget.link ? (
@@ -132,7 +132,7 @@ function Widget({ widget, now }: { widget: WidgetDefinition; now: Date }) {
     }
 
     return (
-        <Card className="h-full gap-0 overflow-hidden py-0">
+        <Card className="gap-0 overflow-hidden py-0">
             <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
                 <div className="min-w-0">
                     <div className="flex items-center gap-2">
