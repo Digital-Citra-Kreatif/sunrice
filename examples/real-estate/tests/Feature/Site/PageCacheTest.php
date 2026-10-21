@@ -37,6 +37,20 @@ it('keeps one page per filter', function (): void {
         ->assertSee('Seminyak Pool Villa')->assertDontSee('>Villa Samudra</a>', false);
 });
 
+it('keeps the filter values the listing offers, and no copies for others', function (): void {
+    foreach (['/properties?bedrooms_min=3', '/properties?price_max=5000000000&sort=price-asc'] as $offered) {
+        $this->get($offered)->assertOk();
+        $this->get($offered)->assertOk()->assertHeader('X-Cache-Status', 'HIT');
+    }
+    // Any other number, a filter's parameter on a page without the filter, or a page past the last: not kept.
+    foreach (['/properties?price_min=1234567', '/properties?bedrooms_min=9137', '/about?bedrooms_min=5', '/about?sort=zzz'] as $made_up) {
+        $this->get($made_up)->assertOk();
+        $this->get($made_up)->assertOk()->assertHeader('X-Cache-Status', 'MISS');
+    }
+    $this->get('/properties?page=123456')->assertNotFound();
+    $this->get('/journal?page=55555')->assertNotFound();
+});
+
 it('gives every visitor their own CSRF token on a kept page, so forms still submit', function (): void {
     $first = $this->get('/contact')->getContent();
     $this->flushSession();
@@ -51,6 +65,6 @@ it('gives every visitor their own CSRF token on a kept page, so forms still subm
     $this->from('/contact')->post(route('sunrice.cms.forms.submit', 'contact'), [
         '_token' => $b[1], 'data' => ['name' => 'Rina', 'email' => 'rina@example.com', 'message' => 'Hello'],
         'locale' => 'en', '_form' => 'contact', ...honeypot(),
-    ])->assertRedirect('/contact');
+    ])->assertRedirect('/contact#form-contact-status');
     expect(Submission::query()->count())->toBe(1);
 });
