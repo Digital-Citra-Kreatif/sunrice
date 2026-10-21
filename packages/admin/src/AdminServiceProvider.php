@@ -84,6 +84,12 @@ final class AdminServiceProvider extends ServiceProvider
         $this->app->register(PermissionServiceProvider::class);
         $this->app->register(McpServiceProvider::class);
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');
+        // Inertia's DevTools record every page's props (users and their emails, settings) and, in
+        // `local`, serve them at /_inertia/devtools to anyone, signed in or not. Off unless the app
+        // turns them on itself (INERTIA_DEVTOOLS_ENABLED=true).
+        if (config('inertia.devtools.enabled') === null) {
+            config(['inertia.devtools.enabled' => false]);
+        }
         // Settings are read once per request (or job).
         $this->app->scoped(SettingsStore::class);
         // Per request: its source and the lines it may merge.

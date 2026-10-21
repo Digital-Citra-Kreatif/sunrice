@@ -299,6 +299,22 @@ it('audits SEO page by page', function () {
         ->and(cmsTool($token, 'cms_seo_audit', ['locale' => 'id'])['checked'])->toBe(0);
 });
 
+it('renders on APP_URL, keeps developer tools out, and answers errors without file paths', function () {
+    config(['app.url' => 'https://lumina.example:8200']);
+    Illuminate\Support\Facades\Route::get('where', fn () => url('/contact'));
+    Illuminate\Support\Facades\Route::get('boom', fn () => throw new RuntimeException('The template broke'));
+    Illuminate\Support\Facades\Route::get('_inertia/devtools/entries', fn () => 'every recorded request');
+    $token = cmsAgent(['cms.entries.view'], readOnly: true);
+
+    expect(cmsTool($token, 'cms_render_page', ['path' => '/where'])['html'])->toBe('https://lumina.example:8200/contact');
+    $missing = cmsTool($token, 'cms_render_page', ['path' => '/nope']);
+    expect($missing['status'])->toBe(404)->and($missing['error'])->toBeNull();
+    $broken = cmsTool($token, 'cms_render_page', ['path' => '/boom']);
+    expect($broken['status'])->toBe(500)->and($broken['error'])->toBe('The template broke')->not->toContain('vendor/');
+    expect(cmsTool($token, 'cms_render_page', ['path' => '/_inertia/devtools/entries']))->toContain('public pages')
+        ->and(cmsTool($token, 'cms_render_page', ['path' => '/telescope/requests']))->toContain('public pages');
+});
+
 it('renders public pages, not the panel', function () {
     app(PublishEntry::class)->handle($this->hello);
     $token = cmsAgent(['cms.entries.view']);

@@ -62,6 +62,10 @@ AppUrl::url($entry->url()); // an absolute link moved from the request's host to
 
 Also turn on Laravel's `TrustHosts` middleware (`$middleware->trustHosts()` in `bootstrap/app.php`) or have your web server answer only your own host names, so the rest of the app (caches keyed by URL, redirects) never works with a made-up host.
 
+## Developer tools
+
+Inertia's DevTools record every request's page props (the users list with emails, settings) and, with `APP_ENV=local`, serve them at `/_inertia/devtools` to anyone, signed in or not. The panel turns them off unless your app turns them on itself (`INERTIA_DEVTOOLS_ENABLED=true`, or `inertia.devtools.enabled`); do that only on a machine nobody else can reach. Never run a reachable site with `APP_ENV=local` or `APP_DEBUG=true`.
+
 ## Elsewhere too
 
 - **A log file:** set `SUNRICE_SECURITY_LOG_CHANNEL` (`security.log_channel` in `config/sunrice-admin.php`) to a log channel, e.g. `daily`, to also write each event there as a warning, for fail2ban or a log service.

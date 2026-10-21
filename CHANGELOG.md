@@ -27,6 +27,8 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Inertia DevTools are off unless the app turns them on (`inertia.devtools.enabled`, `INERTIA_DEVTOOLS_ENABLED=true`): in `local` they served every recorded page's props at `/_inertia/devtools` to anyone. `cms_render_page` refuses developer tools' paths (`/_…`, `/telescope`, `/horizon`, `/pulse`). (SEC-4)
+- `cms_render_page` renders on `APP_URL` (links and canonical URLs were `http://localhost/…`) and its `error` is the message a template threw without file paths, and none for answers such as 404 (was `" in vendor/laravel/…:1445"`). (AI-1)
 - Translators (`cms.entries.translate` only) can no longer change what every language shares by sending a `locale`: an entry's Page settings (`parent_id`, `comments_closed`, as `template` and `blueprint` already were) and moving it up or down need `cms.entries.update` (or `update-own` for one's own), and the editor no longer shows them Page settings. (SEC-3)
 - Signing in with the right password to an account without `sunrice.access` answers like a wrong password (`auth.failed`) and counts towards the login throttle, instead of "This account can't use the admin panel.", which confirmed the account and its password; the reason is still logged ("login refused"). (SEC-2)
 - Links in emails are built from `APP_URL`, never from the request's `Host` header: the password reset link (which a forged `Host` turned into token theft), the security alerts' activity link, and the CMS's moderation, reply and submission-file links, through the new `Support\AppUrl::route()` / `url()` (`@api`). [Security](packages/admin/docs/security.md#links-in-emails) recommends `TrustHosts`. (SEC-1)
