@@ -42,7 +42,10 @@ it('lets an author submit a draft for review, telling those who may publish it',
     // The editor may publish journal entries; the pages editor may not, the author asked.
     Mail::assertQueued(ReviewRequested::class, fn (ReviewRequested $mail) => $mail->hasTo($this->editor->email));
     Mail::assertQueuedCount(1);
-    expect((new ReviewRequested($translation, $this->author))->render())->toContain('Rina')->toContain('Our first year');
+    // The requester's name, never their user record (NEW-editor-1).
+    expect((new ReviewRequested($translation, $this->author))->render())->toContain('<strong>Rina</strong> asks you to review')->toContain('Our first year')
+        ->not->toContain($this->author->email)->not->toContain('created_at')
+        ->and(unserialize(serialize(new ReviewRequested($translation, $this->author)))->render())->toContain('<strong>Rina</strong>'); // queued
 
     get(entryEditUrl($this->draft->entry_id))->assertInertia(fn (Assert $page) => $page
         ->where('entry.review.by', 'Rina')
