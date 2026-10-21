@@ -291,6 +291,29 @@ it('exports what the list shows: filters, search, sort and language, with every 
     expect($csv)->toContain('Gone')->toContain('trashed')->not->toContain('Assam');
 });
 
+it('exports links as their address, rich text as text, and names a field that shares a column\'s label', function () {
+    Blueprint::query()->create(['handle' => 'listing', 'title' => 'Listing', 'fields' => [
+        ['handle' => 'property_status', 'type' => 'select', 'label' => 'Status', 'config' => ['options' => [['value' => 'available', 'label' => 'Available']]]],
+        ['handle' => 'map', 'type' => 'link', 'label' => 'Map'],
+        ['handle' => 'agent_page', 'type' => 'link', 'label' => 'Agent page'],
+        ['handle' => 'body', 'type' => 'rich_text', 'label' => 'Body'],
+    ]]);
+    $listings = Collection::query()->create(['handle' => 'listings', 'title' => 'Listings', 'blueprint' => 'listing', 'route' => '/listings/{slug}']);
+    lister('cms.entries.view', 'cms.entries.export');
+    $agent = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($listings, ['title' => 'Anindya']));
+    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($listings, ['title' => 'Villa', 'data' => [
+        'property_status' => 'available',
+        'map' => ['type' => 'url', 'url' => 'https://maps.google.com/?q=Canggu', 'label' => null, 'new_tab' => false],
+        'agent_page' => ['type' => 'entry', 'entry_id' => $agent->entry_id],
+        'body' => '<p>Five <strong>bedrooms</strong>.</p><p>A pool &amp; garden.</p>',
+    ]]));
+
+    $rows = array_map(str_getcsv(...), array_filter(explode("\n", get('/admin/cms/collections/listings/entries/export?sort=title')->streamedContent())));
+
+    expect($rows[0])->toBe(['ID', 'Title', 'Slug', 'Status', 'Published', 'URL', 'Updated', 'Author', 'Status (field)', 'Map', 'Agent page', 'Body'])
+        ->and(array_slice($rows[2], 8))->toBe(['Available', 'https://maps.google.com/?q=Canggu', url('/listings/anindya'), 'Five bedrooms. A pool & garden.']);
+});
+
 it('takes as many queries for many entries as for a few', function () {
     $user = lister();
     app(Preferences::class)->set($user, 'table.cms.entries.products', ['columns' => ['author', 'field.related', 'field.kind', 'status']]);
