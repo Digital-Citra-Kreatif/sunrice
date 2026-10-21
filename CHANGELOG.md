@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- `sunrice:ai-token` refuses to create a token when AI access is turned off (`$panel->aiAccess(false)`); `--list` and `--revoke` still work.
 - **A dashboard widget must say who sees it**: one without `permission()` or `visible()` was shown to everyone and is now refused when it's registered (`PanelMisconfigured`); `Widget::everyone()` (`@api`) shows one to all who open the panel on purpose, and `isGuarded()` tells. See [Dashboard widgets](packages/admin/docs/panel.md#dashboard-widgets).
 - `SecurityAlerts::DESTRUCTIVE_ACTIONS` includes `purged` (removing deleted content for good, `PurgeDeleted`), so it counts towards the *Many things deleted in a short time* alert.
 - **The default `administrator` role no longer gets `sunrice.ai.run-commands` and `sunrice.ai.error-log`**: `*` silently included letting AI agents run commands and read the error log, which now stay with super admins unless given on purpose. Default role patterns take `!pattern` to leave permissions out (`$panel->defaultRole('administrator', ['*', '!…'])`). Existing administrator roles keep what they have: take the two away in Roles.

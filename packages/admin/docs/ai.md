@@ -12,7 +12,7 @@ AI agents such as Claude, ChatGPT or Cursor can work in the panel through its [M
    claude mcp add --transport http panel https://example.com/mcp --header "Authorization: Bearer sra_…"
    ```
 
-Or from the console: `php artisan sunrice:ai-token rina@example.com --name="Claude Code" --read-only --expires=30` (`--expires=never`; 90 days by default) prints a new token once; `--list` lists the user's tokens and `--revoke=ID` revokes one. Both are `token created` / `token revoked` security events.
+Or from the console: `php artisan sunrice:ai-token rina@example.com --name="Claude Code" --read-only --expires=30` (`--expires=never`; 90 days by default) prints a new token once (refused when AI access is turned off, `$panel->aiAccess(false)`); `--list` lists the user's tokens and `--revoke=ID` revokes one. Both are `token created` / `token revoked` security events.
 
 Revoke a token on the same page. Administrators revoke all of a user's tokens on **Users** (row menu → Revoke AI tokens), following [who may manage whom](users.md#who-may-manage-whom).
 
