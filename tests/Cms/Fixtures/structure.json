@@ -1,5 +1,6 @@
 {
     "sunrice": 1,
+    "locales": ["en", "id"],
     "fieldsets": [
         {"handle": "cta", "title": "Call to action", "fields": [
             {"handle": "label", "type": "text", "label": "Label", "required": true, "instructions": "", "translatable": null, "validation": [], "config": {}, "fields": []},

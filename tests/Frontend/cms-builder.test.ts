@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    cleanHandle, errorKeysAt, errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, handleWarning, hasErrors, markSaved, move, newField, relabel, renamedFrom, toDefinitions, uniqueHandle,
+    cleanHandle, copyHandle, duplicateField, errorKeysAt, errorsAt, errorsUnder, fromDefinitions, isTranslatable, setTranslatable, handleFromLabel, handleInput, handleWarning, hasErrors, markSaved, move, newField, relabel, renamedFrom, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -158,4 +158,40 @@ test('puts a builder setting\'s server error on that setting of that field (show
     assert.equal(hasErrors(errorsUnder(server, 'fields'), '1'), true);
     assert.deepEqual(errorsAt(field, 'config.collections'), { '': 'The "From collections" field is required.' });
     assert.equal(hasErrors(errorsUnder(server, 'fields'), '0'), false);
+});
+
+test('duplicates a field right after it, deep, with new keys and a handle of its own', () => {
+    const [field] = fromDefinitions([{ handle: 'excerpt', type: 'group', label: 'Excerpt', required: true, translatable: false, config: { max: 3 },
+        condition: { field: 'kind', operator: 'equals', value: 'a' }, translations: { id: { label: 'Ringkasan' } },
+        fields: [{ handle: 'line', type: 'text', label: 'Line', config: { rows: [1, 2] } }] }]);
+    const fields = [field!, ...fromDefinitions([{ handle: 'excerpt_copy', type: 'text', label: 'Taken' }])];
+
+    const result = duplicateField(fields, 0, ['excerpt_copy_2'])!;
+    assert.deepEqual(result.fields.map((f) => f.handle), ['excerpt', 'excerpt_copy_3', 'excerpt_copy']);
+    const copy = result.copy;
+    assert.equal(copy.label, 'Excerpt (copy)');
+    assert.equal(copy.savedHandle, undefined);
+    assert.equal(copy.fields[0]!.savedHandle, undefined);
+    assert.notEqual(copy.key, field!.key);
+    assert.notEqual(copy.fields[0]!.key, field!.fields[0]!.key);
+    assert.deepEqual([copy.required, copy.translatable, copy.config, copy.condition, copy.translations], [true, false, { max: 3 }, { field: 'kind', operator: 'equals', value: 'a' }, { id: { label: 'Ringkasan' } }]);
+    // Deep: changing the copy leaves the original as it was.
+    (copy.config!.max as number) = 9;
+    (copy.fields[0]!.config!.rows as number[]).push(3);
+    copy.translations!.id!.label = 'X';
+    assert.equal(field!.config!.max, 3);
+    assert.deepEqual(field!.fields[0]!.config!.rows, [1, 2]);
+    assert.equal(field!.translations!.id!.label, 'Ringkasan');
+    assert.equal(copyHandle('a'.repeat(64), []).length <= 64, true);
+    assert.equal(duplicateField(fields, 5), null);
+});
+
+test('stores "Translatable" only when it differs from the type default', () => {
+    const text = { translatable: null };
+    assert.equal(isTranslatable(text, true), true);
+    assert.equal(isTranslatable({ translatable: false }, true), false);
+    assert.deepEqual(setTranslatable(text, false, true), { translatable: false });
+    assert.deepEqual(setTranslatable({ translatable: false }, true, true), { translatable: null });
+    assert.deepEqual(setTranslatable(text, true, false), { translatable: true });
+    assert.deepEqual(setTranslatable({ translatable: true }, false, false), { translatable: null });
 });

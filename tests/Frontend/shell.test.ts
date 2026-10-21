@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { createUnloadGuard } from '../../packages/admin/resources/js/lib/unload-guard.ts';
+import { flushPrefetchAfterWrites } from '../../packages/admin/resources/js/lib/prefetch-flush.ts';
+import { errorToast } from '../../packages/admin/resources/js/lib/error-toast.ts';
 import { copyText, type ClipboardEnv } from '../../packages/admin/resources/js/lib/clipboard.ts';
 import { parseFolded, withFolded } from '../../packages/admin/resources/js/lib/folded-groups.ts';
 import { matchNavigation, navigationCrumbs } from '../../packages/admin/resources/js/lib/nav-match.ts';
@@ -74,4 +77,53 @@ test('remembers which sidebar groups are folded', () => {
     assert.deepEqual(withFolded(['Structure'], 'Shop', false), ['Structure', 'Shop']);
     assert.deepEqual(withFolded(['Structure', 'Shop'], 'Structure', true), ['Shop']);
     assert.deepEqual(withFolded(['Shop'], 'Shop', false), ['Shop']);
+});
+
+test('a rejected save toasts once: the same errors again update the same toast', () => {
+    const first = errorToast({ slug: 'Another entry in this collection already uses "team".' });
+    // The deferred-props reload right after the redirect carries the same errors.
+    const again = errorToast({ slug: 'Another entry in this collection already uses "team".' });
+    assert.deepEqual(first, { message: 'Another entry in this collection already uses "team".', id: 'errors:Another entry in this collection already uses "team".' });
+    assert.equal(again?.id, first?.id);
+    assert.equal(errorToast({ title: 'A', slug: 'B' })?.message, 'A (+1 more)');
+    assert.notEqual(errorToast({ title: 'A', slug: 'B' })?.id, first?.id);
+    assert.equal(errorToast({}), null);
+    assert.equal(errorToast({ slug: '' }), null);
+});
+
+test('a finished write drops the prefetched pages, a read keeps them', () => {
+    let listener: ((event: { detail: { visit: { method: string } } }) => void) | undefined;
+    let flushed = 0;
+    const router = { on: (_event: 'finish', callback: typeof listener) => { listener = callback; return () => { listener = undefined; }; }, flushAll: () => { flushed++; } };
+
+    const off = flushPrefetchAfterWrites(router as never);
+    listener!({ detail: { visit: { method: 'get' } } });
+    assert.equal(flushed, 0);
+    for (const method of ['post', 'put', 'patch', 'delete']) listener!({ detail: { visit: { method } } });
+    assert.equal(flushed, 4);
+    off();
+    assert.equal(listener, undefined);
+});
+
+test('closing the tab warns about unsaved edits, but not during or right after a save the app reloads after', () => {
+    const guard = createUnloadGuard();
+    assert.equal(guard.shouldWarn(true), true);
+    assert.equal(guard.shouldWarn(false), false);
+    guard.start({ method: 'get' });
+    assert.equal(guard.shouldWarn(true), true);
+
+    // Branding's save answers with a full reload: no browser dialog for it.
+    guard.start({ method: 'put' });
+    assert.equal(guard.shouldWarn(true), false);
+    guard.finish({ method: 'put', completed: true });
+    assert.equal(guard.shouldWarn(true), false);
+    // The next page shown, a refused save or a cancelled one: the edits are guarded again.
+    guard.navigate();
+    assert.equal(guard.shouldWarn(true), true);
+    guard.start({ method: 'post' });
+    guard.error();
+    assert.equal(guard.shouldWarn(true), true);
+    guard.start({ method: 'post' });
+    guard.finish({ method: 'post', completed: false, cancelled: true });
+    assert.equal(guard.shouldWarn(true), true);
 });

@@ -114,6 +114,12 @@ it('loads the whole page again after a change, so the new look shows', function 
         ->assertStatus(409)
         ->assertHeader('X-Inertia-Location', route('sunrice.admin.settings.edit', 'branding'))
         ->assertSessionHas('success', 'Branding settings saved.');
+
+    // Words only (the tagline, the sign-in texts): the page updates in place, no reload.
+    put('/admin/settings/branding', ['color' => '#1e66f5', 'loginLayout' => 'split', 'tagline' => 'Homes of quiet distinction'], ['X-Inertia' => 'true'])
+        ->assertRedirect()
+        ->assertSessionHas('success', 'Branding settings saved.');
+    expect(app(BrandingSettings::class)->tagline)->toBe('Homes of quiet distinction');
 });
 
 it('picks black or white text for the brand colour by contrast', function () {

@@ -10,6 +10,7 @@ import { BreadcrumbProvider } from '@/components/app/breadcrumbs';
 import { LeaveDialog } from '@/components/app/leave-dialog';
 import { CommandPalette, isCommandPaletteShortcut, setCommandPaletteOpen, useCommandPaletteOpen } from '@/components/app/command-palette';
 import type { SharedProps } from '@/types';
+import { errorToast } from '@/lib/error-toast';
 import { t } from '@/lib/i18n';
 
 /** The sidebar's open/collapsed state, kept in a cookie by the sidebar. */
@@ -55,10 +56,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     React.useEffect(
         () =>
             router.on('error', (event) => {
-                const messages = Object.values(event.detail.errors ?? {}).filter(Boolean) as string[];
-                if (messages.length > 0) {
-                    toast.error(messages.length === 1 ? messages[0] : t(':message (+:count more)', { message: messages[0], count: messages.length - 1 }));
-                }
+                const shown = errorToast(event.detail.errors, (message, count) => t(':message (+:count more)', { message, count }));
+                if (shown) toast.error(shown.message, { id: shown.id });
             }),
         [],
     );

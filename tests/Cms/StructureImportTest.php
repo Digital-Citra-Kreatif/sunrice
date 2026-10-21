@@ -17,6 +17,9 @@ use Sunrice\Cms\Structure\StructureImportFailed;
 
 use function Pest\Laravel\artisan;
 
+// The fixture has Indonesian texts: the site has both languages.
+beforeEach(fn () => config(['sunrice-cms.locales' => ['en', 'id']]));
+
 function structureFixture(): array
 {
     return json_decode((string) file_get_contents(__DIR__.'/Fixtures/structure.json'), true, flags: JSON_THROW_ON_ERROR);

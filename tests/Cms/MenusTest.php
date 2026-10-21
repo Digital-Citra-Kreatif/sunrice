@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
@@ -180,6 +181,21 @@ it('links to a listing page with filters, in each language', function () {
     expect(app(Menus::class)->get('main')[0]['url'])->toBe(url('/pages').'?listing_type=for-sale&city%5B0%5D=jakarta')
         ->and(app(Menus::class)->get('main', 'id')[0])->toMatchArray(['label' => 'Dijual', 'url' => url('/id/pages').'?listing_type=for-sale&city%5B0%5D=jakarta']);
 
+    // Without a label in the language, a filtered link keeps its own meaning (the main language's label), not the
+    // listing's title, which the plain link already shows (NEW2-i18n-2).
+    $this->pages->update(['translations' => ['id' => ['title' => 'Halaman']]]);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'For sale'], 'query' => 'listing_type=for-sale'],
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'All']],
+    ]);
+    app(Menus::class)->flush();
+    expect(array_column(app(Menus::class)->get('main', 'id'), 'label'))->toBe(['For sale', 'Halaman']);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'For sale', 'id' => 'Dijual'], 'query' => '?listing_type=for-sale&city[]=jakarta'],
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'All']],
+    ]);
+    app(Menus::class)->flush();
+
     // Shown: the filtered link on the filtered page, the plain one on its trail; the plain one alone on the page without filters.
     $this->app->instance('request', Request::create('/pages', 'GET', ['listing_type' => 'for-sale', 'city' => ['jakarta'], 'page' => '2']));
     app(Menus::class)->flush();
@@ -315,4 +331,29 @@ it('fills a new menu\'s handle from its title, and keeps it on the edit form, wi
         ->where('aside.0.title', 'Links')->where('aside.0.links.0.url', '/admin/cms/menus/main/links'));
     put('/admin/cms/menus/main', ['title' => 'Main menu', 'handle' => 'main'])->assertSessionHasNoErrors();
     expect($this->main->fresh()?->only(['title', 'handle']))->toBe(['title' => 'Main menu', 'handle' => 'main']);
+});
+
+it('builds a menu of entry links with the same queries however many there are (NEW2-front-2)', function () {
+    $count = function (int $links, string $locale): int {
+        Menu::query()->where('handle', 'nav')->delete();
+        $menu = Menu::query()->create(['handle' => 'nav', 'title' => 'Nav']);
+        $items = [];
+        foreach (range(1, $links) as $i) {
+            $items[] = ['entry_id' => page("Page {$locale} {$links} {$i}")->entry_id];
+        }
+        app(SaveMenu::class)->handle($menu, $items);
+        app(Menus::class)->flush();
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $menu = app(Menus::class)->get('nav', $locale);
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+        expect($menu)->toHaveCount($links);
+
+        return $queries;
+    };
+
+    // In the main language and in another, where the main pages stand in at its addresses.
+    expect($count(5, 'en'))->toBe($count(1, 'en'))
+        ->and($count(5, 'id'))->toBe($count(1, 'id'));
 });
