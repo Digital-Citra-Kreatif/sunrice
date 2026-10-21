@@ -32,15 +32,21 @@ final class FileContent
         return str_starts_with($mime, 'image/') && ! str_contains($mime, 'svg') && @getimagesize($file->getRealPath()) !== false;
     }
 
+    /** How much code after a tag is read to judge it. */
+    private const CODE_WINDOW = 65536;
+
     /**
      * Whether the file has PHP code in it, like an image with a script
      * appended: harmless while stored and served as it should be,
      * dangerous on a server misconfigured to run it. Finds `<?php`, the
      * short echo tag `<?=` (always on) and, where `short_open_tag` is on,
-     * `<?` followed by a space or a line break; for those two, followed by
-     * code (plain text up to `?>` or the end of the file), so that the
-     * bytes `<?=` turning up in a photo's compressed data don't count.
-     * Read in chunks.
+     * `<?` followed by a space or a line break. For those two, what
+     * follows (up to `?>`, at most 64 KB) must read as PHP to count: PHP's
+     * own tokenizer finds no character that can't appear in code, outside
+     * comments and strings. Code that runs can't have one, whatever bytes
+     * its comments or strings hold, while the bytes `<?=` turning up in a
+     * photo's compressed data are followed by stray control bytes within a
+     * few characters. Read in chunks.
      */
     public static function containsPhp(UploadedFile $file): bool
     {
@@ -64,19 +70,17 @@ final class FileContent
                 $carried = substr($buffer, -4);
                 preg_match_all('/<\?'.$open.'/', $buffer, $tags, PREG_OFFSET_CAPTURE);
                 foreach ($tags[0] as [, $offset]) {
-                    // Code: plain text after the tag, up to the closing tag or the end.
-                    preg_match('/\G<\?'.$open.'[\t\n\r\x20-\x7E]*/', $buffer, $code, 0, $offset);
-                    $text = $code[0] ?? '';
-                    if (str_contains(substr($text, 2), '?>')) {
-                        return true;
-                    }
-                    if ($offset + strlen($text) === strlen($buffer)) {
-                        if ($end) {
-                            return true;
-                        }
-                        // It runs into the next chunk: look again with it.
+                    $code = substr($buffer, $offset, self::CODE_WINDOW);
+                    $close = strpos($code, '?>', 2);
+                    if ($close !== false) {
+                        $code = substr($code, 0, $close + 2);
+                    } elseif (! $end && strlen($code) < self::CODE_WINDOW) {
+                        // It may run into the next chunk: look again with it.
                         $carried = substr($buffer, $offset);
                         break;
+                    }
+                    if (self::readsAsCode($code)) {
+                        return true;
                     }
                 }
             }
@@ -85,5 +89,17 @@ final class FileContent
         } finally {
             fclose($handle);
         }
+    }
+
+    /** Whether PHP's tokenizer finds no character that code can't have. */
+    private static function readsAsCode(string $code): bool
+    {
+        foreach (@token_get_all($code) as $token) {
+            if (is_array($token) && $token[0] === T_BAD_CHARACTER) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

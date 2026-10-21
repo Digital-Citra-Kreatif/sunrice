@@ -119,6 +119,50 @@ it('finds PHP code that runs across the chunks a file is read in', function () {
         ->and(FileContent::containsPhp(realUpload('big.jpg', $jpeg.$padding.'xx<?p'.'hp echo 1;')))->toBeTrue();
 });
 
+it('finds PHP code with any bytes in its comments or strings, and not in a noisy photo\'s data (NEW2-security-1)', function () {
+    $jpeg = UploadedFile::fake()->image('a.jpg', 10, 10)->getContent();
+    foreach ([
+        "<?= `id` /* \xc3\xa9 */ ?>",
+        "<?=/*\x00\xff*/`id`?>",
+        "<?= '\xff' . `id` ?>",
+        "<?= \"?>\x01\" . `id` ?>",
+        "<?=\n\$\xe9 = 'id'; echo `\$\xe9`;",
+    ] as $code) {
+        expect(FileContent::containsPhp(realUpload('poly.jpg', $jpeg.$code)))->toBeTrue();
+    }
+    expect(refused(realUpload('poly.jpg', $jpeg."<?= `id` /* \xc3\xa9 */ ?>")))->toBe('This image contains PHP code, so it can\'t be uploaded.');
+
+    // A real, noisy photo whose compressed data happens to hold "<?=" and,
+    // further on, a closing tag: the bytes between aren't PHP.
+    $image = imagecreatetruecolor(400, 400);
+    mt_srand(42);
+    for ($x = 0; $x < 400; $x++) {
+        for ($y = 0; $y < 400; $y++) {
+            imagesetpixel($image, $x, $y, mt_rand(0, 0xFFFFFF));
+        }
+    }
+    ob_start();
+    imagejpeg($image, null, 95);
+    $photo = (string) ob_get_clean();
+    $close = strpos($photo, '?>', 4000);
+    expect($close)->toBeInt();
+    $photo = substr_replace($photo, '<?=', (int) $close - 1500, 3);
+    expect(FileContent::containsPhp(realUpload('noisy.jpg', $photo)))->toBeFalse()
+        ->and(upload(realUpload('noisy.jpg', $photo))->width)->toBe(400);
+
+    // Nor do many random runs after the tag that reach a closing tag.
+    mt_srand(7);
+    $found = 0;
+    for ($i = 0; $i < 300; $i++) {
+        $noise = '';
+        for ($j = 0; $j < 2000; $j++) {
+            $noise .= chr(mt_rand(0, 255));
+        }
+        $found += FileContent::containsPhp(realUpload('n.jpg', $jpeg.'<?='.$noise.'?>')) ? 1 : 0;
+    }
+    expect($found)->toBe(0);
+});
+
 it('refuses SVGs with scripts and keeps clean ones as they are', function () {
     foreach ([
         '<script>alert(1)</script>',
