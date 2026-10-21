@@ -116,6 +116,21 @@ it('filters by a term of an attached taxonomy, and ignores other taxonomies', fu
         ->where('filters.taxonomies.0.terms', [['value' => (string) $tea->id, 'label' => 'Tea', 'depth' => 0], ['value' => (string) $green->id, 'label' => 'Green', 'depth' => 1]]));
 });
 
+it('filters by a taxonomy the blueprint has a terms field for, without ticking the collection on it', function () {
+    $areas = Taxonomy::query()->create(['handle' => 'areas', 'title' => 'Areas']);
+    $bali = app(SaveTerm::class)->handle($areas, ['title' => 'Bali']);
+    $blueprint = Blueprint::query()->where('handle', 'product')->first();
+    $blueprint->update(['fields' => [...$blueprint->fields, ['handle' => 'area', 'type' => 'group', 'fields' => [['handle' => 'where', 'type' => 'terms', 'config' => ['taxonomy' => 'areas']]]]]]);
+    listProduct('Villa')->entry->terms()->attach($bali);
+    listProduct('Flat');
+    lister();
+
+    expect(listed("terms[areas]={$bali->id}"))->toBe(['Villa']);
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
+        ->where('filters.taxonomies.0.handle', 'topics')
+        ->where('filters.taxonomies.1.handle', 'areas'));
+});
+
 it('lists another language\'s translations', function () {
     config(['sunrice-cms.locales' => ['en', 'id']]);
     $tea = listProduct('Tea');

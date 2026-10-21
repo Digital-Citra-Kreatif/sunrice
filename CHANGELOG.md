@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- A taxonomy no longer has to be attached twice: the entries list filters by every taxonomy the collection's blueprints have a terms field for, as well as those ticked on the taxonomy's form.
 - Blueprint pickers offer what fits their purpose: a blueprint used for content (entries, listing pages, terms), a global set or a form isn't offered to the other kinds (unused ones and the record's own always are).
 - Blueprint builder errors name a setting by its label (`The "From collections" field is required.`) instead of its path (`fields.0.config.collections`), and the entries, link and flexible fields say what to create first when there's nothing to choose (a multiple select setting's `config.empty`).
 - "SEO from fields" (Structure → Collections and Taxonomies) offers only the fields of the collection's own blueprints (and other blueprints) or the taxonomy's, not every blueprint's; a `Select`'s options closure gets the record being edited (`->options(fn (?Model $record) => …)`, null when creating).
