@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { t } from "@/lib/i18n"
 
 interface Entry {
   value: string
@@ -166,8 +167,8 @@ function Command({
 }
 
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title = t('Command Palette'),
+  description = t('Search for a command to run...'),
   children,
   className,
   showCloseButton = true,

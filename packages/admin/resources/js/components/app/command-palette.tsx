@@ -7,6 +7,7 @@ import {
     commandSourcesSnapshot, matchCommands, navigationCommands, queryCommandSources, subscribeCommandSources, type CommandItem as Item,
 } from '@/lib/command-sources';
 import type { SharedProps } from '@/types';
+import { t } from '@/lib/i18n';
 
 export { registerCommandSource, type CommandItem, type CommandSource } from '@/lib/command-sources';
 
@@ -47,7 +48,7 @@ export function CommandPalette() {
     const sources = React.useSyncExternalStore(subscribeCommandSources, commandSourcesSnapshot, commandSourcesSnapshot);
 
     const pages = React.useMemo(
-        () => [{ id: 'dashboard', label: 'Dashboard', group: 'Pages', icon: 'layout-grid', url: adminUrl() }, ...navigationCommands(navigation, adminUrl)],
+        () => [{ id: 'dashboard', label: t('Dashboard'), group: t('Pages'), icon: 'layout-grid', url: adminUrl() }, ...navigationCommands(navigation, adminUrl)],
         [navigation],
     );
     const matched = React.useMemo(() => matchCommands(pages, query), [pages, query]);
@@ -90,16 +91,16 @@ export function CommandPalette() {
 
     const groups = new Map<string, Item[]>();
     for (const item of [...matched, ...results]) {
-        const group = item.group ?? 'Results';
+        const group = item.group ?? t('Results');
         groups.set(group, [...(groups.get(group) ?? []), item]);
     }
 
     return (
-        <CommandDialog open={open} onOpenChange={setCommandPaletteOpen} title="Go to" description="Type to find a page or search." showCloseButton={false} className="top-[12vh] translate-y-0 sm:top-[15vh]" shouldFilter={false}>
-            <CommandInput placeholder="Go to…" value={query} onValueChange={setQuery} />
+        <CommandDialog open={open} onOpenChange={setCommandPaletteOpen} title={t('Go to')} description={t('Type to find a page or search.')} showCloseButton={false} className="top-[12vh] translate-y-0 sm:top-[15vh]" shouldFilter={false}>
+            <CommandInput placeholder={t('Go to…')} value={query} onValueChange={setQuery} />
             <CommandList>
-                {loading && <CommandLoading><p className="px-3 py-2 text-xs text-muted-foreground">Searching…</p></CommandLoading>}
-                <CommandEmpty>{loading ? 'Searching…' : 'Nothing found.'}</CommandEmpty>
+                {loading && <CommandLoading><p className="px-3 py-2 text-xs text-muted-foreground">{t('Searching…')}</p></CommandLoading>}
+                <CommandEmpty>{loading ? t('Searching…') : t('Nothing found.')}</CommandEmpty>
                 {[...groups].map(([group, items]) => (
                     <CommandGroup key={group} heading={group}>
                         {items.map((item) => {

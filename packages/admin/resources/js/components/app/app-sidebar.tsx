@@ -13,6 +13,7 @@ import { adminUrl } from '@/lib/admin-url';
 import { FOLDED_KEY, parseFolded, withFolded } from '@/lib/folded-groups';
 import { matchNavigation } from '@/lib/nav-match';
 import type { NavItem, SharedProps } from '@/types';
+import { t } from '@/lib/i18n';
 
 
 export function AppSidebar() {
@@ -84,8 +85,8 @@ export function AppSidebar() {
                 <SidebarGroup className="px-2 py-0">
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={path === adminUrl()} tooltip="Dashboard">
-                                <Link href={adminUrl()} prefetch><LayoutGrid /><span>Dashboard</span></Link>
+                            <SidebarMenuButton asChild isActive={path === adminUrl()} tooltip={t('Dashboard')}>
+                                <Link href={adminUrl()} prefetch><LayoutGrid /><span>{t('Dashboard')}</span></Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>

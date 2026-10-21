@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { adminUrl } from '@/lib/admin-url';
 import { fetchJson } from '@/lib/fetch-json';
+import { t } from '@/lib/i18n';
 
 export interface KeptEdit { id: number; by: string | null; taken_by: string | null; at: string | null }
 
@@ -69,7 +70,7 @@ function editorId(): string {
  * only or take over), and hands over cleanly when taken over, keeping the
  * unsaved changes. Shared with plugins as `useEditLock` in @sunrice/admin-sdk/ui.
  */
-export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveTo, noun = 'item' }: EditLockOptions): EditLock {
+export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveTo, noun }: EditLockOptions): EditLock {
     const [state, setState] = React.useState<LockState>({ status: 'starting' });
     const [kept, setKept] = React.useState<KeptEdit[]>([]);
     const editor = React.useMemo(editorId, []);
@@ -96,11 +97,11 @@ export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveT
             setState({ status: 'holding' });
         } else if (result.status === 'locked') {
             // Viewing stays viewing; otherwise ask what to do.
-            if (stateRef.current.status !== 'viewing') setState({ status: 'locked', by: result.by ?? 'Someone', since: result.since ?? 0, confirming: false });
+            if (stateRef.current.status !== 'viewing') setState({ status: 'locked', by: result.by ?? t('Someone'), since: result.since ?? 0, confirming: false });
         } else if (result.status === 'taken' && stateRef.current.status !== 'taken') {
             const unsaved = unsavedRef.current();
             if (unsaved) await post('/keep', { content: unsaved, taken_by: result.by }).catch(() => null);
-            setState({ status: 'taken', by: result.by ?? 'Someone' });
+            setState({ status: 'taken', by: result.by ?? t('Someone') });
         }
     }, [post]);
 
@@ -130,7 +131,7 @@ export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveT
             // Reload to edit the latest saved version.
             window.location.reload();
         } catch {
-            toast.error('Couldn\'t take over. Try again.');
+            toast.error(t('Couldn\'t take over. Try again.'));
         }
     };
 
@@ -142,6 +143,7 @@ export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveT
 
     const since = state.status === 'locked' && state.since > 0 ? new Date(state.since * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
     const language = locale ? ` (${locale.toUpperCase()})` : '';
+    const thing = noun ?? t('item');
 
     const dialogs = (
         <>
@@ -150,29 +152,29 @@ export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveT
                     {state.status === 'locked' && !state.confirming && (
                         <>
                             <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2"><Lock className="size-4" /> {state.by} is editing this {noun}{language}</DialogTitle>
+                                <DialogTitle className="flex items-center gap-2"><Lock className="size-4" /> {t(':name is editing this :noun:language', { name: state.by, noun: thing, language })}</DialogTitle>
                                 <DialogDescription>
-                                    {since ? `They've had it open since ${since}. ` : ''}If you take over, their unsaved changes are kept for them to load again, and they're sent back.
+                                    {since ? `${t('They\'ve had it open since :time.', { time: since })} ` : ''}{t('If you take over, their unsaved changes are kept for them to load again, and they\'re sent back.')}
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => router.visit(leaveTo)}>Go back</Button>
-                                <Button variant="outline" onClick={() => setState({ status: 'viewing', by: state.by })}>View only</Button>
-                                <Button onClick={() => setState({ ...state, confirming: true })}>Take over</Button>
+                                <Button variant="outline" onClick={() => router.visit(leaveTo)}>{t('Go back')}</Button>
+                                <Button variant="outline" onClick={() => setState({ status: 'viewing', by: state.by })}>{t('View only')}</Button>
+                                <Button onClick={() => setState({ ...state, confirming: true })}>{t('Take over')}</Button>
                             </DialogFooter>
                         </>
                     )}
                     {state.status === 'locked' && state.confirming && (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Take over from {state.by}?</DialogTitle>
+                                <DialogTitle>{t('Take over from :name?', { name: state.by })}</DialogTitle>
                                 <DialogDescription>
-                                    {state.by} is told you took over and can't save here any more. What they haven't saved is kept separately; you can load it if you need it.
+                                    {t(':name is told you took over and can\'t save here any more. What they haven\'t saved is kept separately; you can load it if you need it.', { name: state.by })}
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => setState({ ...state, confirming: false })}>Cancel</Button>
-                                <Button variant="destructive" onClick={takeOver}>Take over</Button>
+                                <Button variant="outline" onClick={() => setState({ ...state, confirming: false })}>{t('Cancel')}</Button>
+                                <Button variant="destructive" onClick={takeOver}>{t('Take over')}</Button>
                             </DialogFooter>
                         </>
                     )}
@@ -181,13 +183,13 @@ export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveT
             <Dialog open={state.status === 'taken'}>
                 <DialogContent showCloseButton={false}>
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2"><UserRound className="size-4" /> {state.status === 'taken' ? state.by : 'Someone'} took over</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2"><UserRound className="size-4" /> {t(':name took over', { name: state.status === 'taken' ? state.by : t('Someone') })}</DialogTitle>
                         <DialogDescription>
-                            They're editing this {noun}{language} now. Your unsaved changes were kept: they show on this page, ready to load, when it's opened again.
+                            {t('They\'re editing this :noun:language now. Your unsaved changes were kept: they show on this page, ready to load, when it\'s opened again.', { noun: thing, language })}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button onClick={() => router.visit(leaveTo)}>Go back</Button>
+                        <Button onClick={() => router.visit(leaveTo)}>{t('Go back')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -213,18 +215,20 @@ export function KeptEditsNotice({ kept, onLoad, onDiscard, disabled }: {
     disabled?: boolean;
 }) {
     if (kept.length === 0) return null;
+    // The name is bold: split the sentence around it.
+    const unsavedOf = t('Unsaved changes of :name').split(':name');
     return (
         <div className="flex flex-col gap-2">
             {kept.map((k) => (
                 <div key={k.id} className="flex flex-wrap items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm">
                     <History className="size-4 text-muted-foreground" />
                     <span className="flex-1">
-                        Unsaved changes of <strong>{k.by ?? 'another editor'}</strong>
-                        {k.taken_by ? `, kept when ${k.taken_by} took over` : ''}
+                        {unsavedOf[0]}<strong>{k.by ?? t('another editor')}</strong>{unsavedOf[1] ?? ''}
+                        {k.taken_by ? t(', kept when :name took over', { name: k.taken_by }) : ''}
                         {k.at ? ` (${new Date(k.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })})` : ''}.
                     </span>
-                    <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => onLoad(k.id)}>Load into the form</Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={() => onDiscard(k.id)}>Discard</Button>
+                    <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => onLoad(k.id)}>{t('Load into the form')}</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => onDiscard(k.id)}>{t('Discard')}</Button>
                 </div>
             ))}
         </div>
@@ -236,7 +240,7 @@ export function ViewingNotice({ by }: { by: string | null }) {
     if (!by) return null;
     return (
         <p role="status" className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground">
-            <Lock className="size-4" /> {by} is editing this. You're viewing it; saving is off.
+            <Lock className="size-4" /> {t(':name is editing this. You\'re viewing it; saving is off.', { name: by })}
         </p>
     );
 }

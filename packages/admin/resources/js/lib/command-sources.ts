@@ -3,6 +3,8 @@
  * results of sources plugins register (search entries, orders…).
  */
 
+import { t } from '@/lib/i18n';
+
 export interface CommandItem {
     /** Unique within its source. */
     id: string;
@@ -122,9 +124,9 @@ export function navigationCommands(navigation: readonly NavigationLike[], href: 
     const commands: CommandItem[] = [];
     for (const group of navigation) {
         for (const item of group.items) {
-            commands.push({ id: item.key, label: item.label, group: group.group ?? 'Pages', icon: item.icon, url: href(item.url) });
+            commands.push({ id: item.key, label: item.label, group: group.group ?? t('Pages'), icon: item.icon, url: href(item.url) });
             for (const child of item.children) {
-                commands.push({ id: child.key, label: child.label, description: item.label, group: group.group ?? 'Pages', icon: child.icon || item.icon, url: href(child.url), keywords: [item.label] });
+                commands.push({ id: child.key, label: child.label, description: item.label, group: group.group ?? t('Pages'), icon: child.icon || item.icon, url: href(child.url), keywords: [item.label] });
             }
         }
     }
