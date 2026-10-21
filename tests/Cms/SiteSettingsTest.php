@@ -115,8 +115,9 @@ it('edits the site settings behind their permission', function () {
     put('/admin/settings/site', ['name' => str_repeat('a', 101)])->assertSessionHasErrors('name');
     put('/admin/settings/site', ['name' => 'Acme'])->assertSessionHasNoErrors();
     expect(app(SiteSettings::class)->title('About'))->toBe('About | Acme');
-    // Search engines and sharing are on their own page.
-    get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('cards.0.links.0.url', '/admin/cms/seo'));
+    // Search engines and sharing are on their own page, in the Settings menu right after Site: no card points there.
+    get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('cards', [])
+        ->where('sections', [['key' => 'site', 'label' => 'Site', 'url' => 'settings/site'], ['key' => 'cms-seo', 'label' => 'SEO', 'url' => 'cms/seo']]));
 });
 
 it('prints the site code, and alerts when it changes', function () {

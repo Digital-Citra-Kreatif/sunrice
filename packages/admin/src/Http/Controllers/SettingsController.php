@@ -31,16 +31,13 @@ final class SettingsController
 {
     public function __construct(private Panel $panel) {}
 
-    /** The first section the user may edit. */
+    /** The first section (or page among them) the user may open. */
     public function index(Request $request): RedirectResponse
     {
-        $user = $this->user($request);
-        foreach ($this->panel->getSettings() as $section) {
-            if ($section->allows($user)) {
-                return redirect()->route('sunrice.admin.settings.edit', $section->key());
-            }
-        }
-        abort(403);
+        $first = $this->panel->settingsNavigation($this->user($request))[0] ?? null;
+        abort_if($first === null, 403);
+
+        return redirect()->to(url($this->panel->getPath().'/'.$first['url']));
     }
 
     public function edit(Request $request, string $section): Response
@@ -68,10 +65,8 @@ final class SettingsController
 
         return Inertia::render('Settings/Edit', [
             'section' => ['key' => $registered->key(), 'label' => Say::it($registered->class::label()), 'description' => Say::it($registered->class::description())],
-            'sections' => array_values(array_map(
-                fn (RegisteredSettings $other) => ['key' => $other->key(), 'label' => Say::it($other->class::label())],
-                array_filter($this->panel->getSettings(), fn (RegisteredSettings $other) => $other->allows($user)),
-            )),
+            // The Settings menu: the sections, and pages put among them (NavigationItem::inSettings()).
+            'sections' => $this->panel->settingsNavigation($user),
             'form' => $form->toSections('edit'),
             'values' => $values,
             'secrets' => $secrets,

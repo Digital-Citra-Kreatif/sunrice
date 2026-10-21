@@ -37,7 +37,7 @@ export const SHARED_MODULES = {
         'Dialog', 'DialogContent', 'DialogDescription', 'DialogFooter', 'DialogHeader', 'DialogTitle', 'DialogTrigger',
         'DropdownMenu', 'DropdownMenuCheckboxItem', 'DropdownMenuContent', 'DropdownMenuItem', 'DropdownMenuLabel', 'DropdownMenuSeparator', 'DropdownMenuTrigger',
         'Input', 'KeptEditsNotice', 'Label', 'MediaPickerInput', 'moveItem', 'PageHeader', 'registerCommandSource', 'RichTextEditor',
-        'Select', 'SelectContent', 'SelectItem', 'SelectTrigger', 'SelectValue', 'Separator', 'Skeleton', 'SortableHandle', 'SortableList', 'Switch',
+        'Select', 'SelectContent', 'SelectItem', 'SelectTrigger', 'SelectValue', 'Separator', 'SettingsLayout', 'SettingsNav', 'Skeleton', 'SortableHandle', 'SortableList', 'Switch',
         'Table', 'TableBody', 'TableCell', 'TableHead', 'TableHeader', 'TableRow', 'Tabs', 'TabsContent', 'TabsList', 'TabsTrigger',
         'Textarea', 'Tooltip', 'TooltipContent', 'TooltipTrigger', 'toast', 'useBreadcrumbs', 'useEditLock', 'useTablePreferences', 'useUnsavedChanges', 'ViewingNotice',
     ],

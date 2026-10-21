@@ -179,6 +179,20 @@ export const SelectItem = m.SelectItem as AnyComponent;
 export const SelectTrigger = m.SelectTrigger as AnyComponent;
 export const SelectValue = m.SelectValue as AnyComponent;
 export const Separator = m.Separator as AnyComponent;
+
+/** An entry of the Settings menu, as `Panel::settingsNavigation()` gives them. */
+export interface SettingsNavEntry {
+    key: string;
+    label: string;
+    /** Its address under the panel: "settings/site", "cms/seo". */
+    url: string;
+}
+
+/** The Settings menu beside a settings page (`items` from `Panel::settingsNavigation()`); `current` is the key shown. */
+export const SettingsNav = m.SettingsNav as ComponentType<{ items: SettingsNavEntry[]; current: string }>;
+
+/** A page among the settings sections (`NavigationItem::inSettings()`): the Settings menu, then the page. */
+export const SettingsLayout = m.SettingsLayout as ComponentType<{ items: SettingsNavEntry[]; current: string; children: ReactNode }>;
 export const Skeleton = m.Skeleton as AnyComponent;
 
 /** Props the SortableList render prop gives for the drag handle; spread them on SortableHandle or your own button. */

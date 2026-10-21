@@ -18,6 +18,11 @@ use InvalidArgumentException;
  * `url` is relative to the panel's path. An item without a permission is
  * shown to everyone who can open the panel.
  *
+ * With ->inSettings() it's a page among the Settings sections instead of
+ * a sidebar link: listed in the Settings menu (after the section named,
+ * else at the end), with the sidebar's Settings item marked current on
+ * it. Its page shows that menu with `Panel::settingsNavigation()`.
+ *
  * @api
  */
 final class NavigationItem
@@ -38,6 +43,9 @@ final class NavigationItem
     private bool $verbatim = false;
 
     private ?string $permission = null;
+
+    /** Listed among the Settings sections, after this section's key ('' for the end); null: in the sidebar. */
+    private ?string $inSettings = null;
 
     /** @var (Closure(Authorizable): bool)|null */
     private ?Closure $visible = null;
@@ -114,6 +122,29 @@ final class NavigationItem
         $this->sort = $sort;
 
         return $this;
+    }
+
+    /**
+     * A page among the Settings sections (Settings → SEO) rather than a
+     * sidebar link: after the section `$after` (a settings key, "site"),
+     * or at the end. Its group and parent don't apply.
+     */
+    public function inSettings(?string $after = null): self
+    {
+        $this->inSettings = $after ?? '';
+
+        return $this;
+    }
+
+    public function isInSettings(): bool
+    {
+        return $this->inSettings !== null;
+    }
+
+    /** The settings section it follows, or null (at the end). */
+    public function getSettingsAfter(): ?string
+    {
+        return $this->inSettings === null || $this->inSettings === '' ? null : $this->inSettings;
     }
 
     public function permission(?string $permission): self

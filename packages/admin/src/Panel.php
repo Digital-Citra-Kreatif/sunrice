@@ -875,13 +875,19 @@ final class Panel
                 $this->registering = null;
             }
         }
-        if ($this->settings !== []) {
+        $inSettings = array_filter($this->navigation, fn (NavigationItem $item): bool => $item->isInSettings());
+        if ($this->settings !== [] || $inSettings !== []) {
             $sections = $this->settings;
             $this->navigation(NavigationItem::make('settings')->label('Settings')->url('settings')->icon('settings')
                 ->group('Administration')->sort(950)
-                ->visible(function (Authorizable $user) use ($sections): bool {
+                ->visible(function (Authorizable $user) use ($sections, $inSettings): bool {
                     foreach ($sections as $section) {
                         if ($section->allows($user)) {
+                            return true;
+                        }
+                    }
+                    foreach ($inSettings as $item) {
+                        if ($item->isVisibleTo($user)) {
                             return true;
                         }
                     }
@@ -1118,7 +1124,7 @@ final class Panel
      * items by sort then label, submenus under their parent. Items the
      * user may not see are left out, with their submenus.
      *
-     * @return list<array{group: string|null, items: list<array{key: string, label: string, url: string, icon: string, children: list<array{key: string, label: string, url: string, icon: string}>}>}>
+     * @return list<array{group: string|null, items: list<array{key: string, label: string, url: string, icon: string, children: list<array{key: string, label: string, url: string, icon: string}>, matches?: list<string>}>}>
      */
     public function navigationFor(Authorizable $user): array
     {
@@ -1133,6 +1139,9 @@ final class Panel
         }
         $visible = array_filter($items, fn (NavigationItem $item): bool => $item->isVisibleTo($user));
         uasort($visible, fn (NavigationItem $a, NavigationItem $b) => [$a->getSort(), $a->getLabel()] <=> [$b->getSort(), $b->getLabel()]);
+        // Pages among the Settings sections aren't in the sidebar: Settings is current on them.
+        $settingsPages = array_values(array_map(fn (NavigationItem $item): string => $item->getUrl(), array_filter($visible, fn (NavigationItem $item): bool => $item->isInSettings())));
+        $visible = array_filter($visible, fn (NavigationItem $item): bool => ! $item->isInSettings());
 
         $children = [];
         foreach ($visible as $item) {
@@ -1148,10 +1157,47 @@ final class Panel
             }
             $group = $item->getGroup();
             $groups[$group ?? ''] ??= ['group' => Say::it($group), 'items' => []];
-            $groups[$group ?? '']['items'][] = [...self::link($item), 'children' => $children[$item->key] ?? []];
+            $groups[$group ?? '']['items'][] = [...self::link($item), 'children' => $children[$item->key] ?? []]
+                + ($item->key === 'settings' && $settingsPages !== [] ? ['matches' => $settingsPages] : []);
         }
 
         return array_values($groups);
+    }
+
+    /**
+     * The Settings menu for this user: the settings sections they may edit,
+     * in the order registered, with the pages put among them
+     * (NavigationItem::inSettings()) after the section each names. For a
+     * page of a plugin's own to show the same menu as the Settings pages
+     * (with `SettingsNav` from `@sunrice/admin-sdk/ui`).
+     *
+     * @return list<array{key: string, label: string, url: string}>
+     */
+    public function settingsNavigation(Authorizable $user): array
+    {
+        $entries = [];
+        foreach ($this->settings as $section) {
+            if ($section->allows($user)) {
+                $entries[] = ['key' => $section->key(), 'label' => Say::it($section->class::label()), 'url' => 'settings/'.$section->key()];
+            }
+        }
+        $pages = array_filter($this->navigation, fn (NavigationItem $item): bool => $item->isInSettings() && $item->isVisibleTo($user));
+        uasort($pages, fn (NavigationItem $a, NavigationItem $b) => [$a->getSort(), $a->getLabel()] <=> [$b->getSort(), $b->getLabel()]);
+        $placed = []; // pages already put after each section, to keep their order
+        foreach ($pages as $item) {
+            $entry = ['key' => $item->key, 'label' => $item->isVerbatim() ? $item->getLabel() : Say::it($item->getLabel()), 'url' => $item->getUrl()];
+            $after = $item->getSettingsAfter();
+            $index = $after === null ? false : array_search($after, array_column($entries, 'key'), true);
+            // (A found index means $after names a section.)
+            if (is_int($index)) {
+                $placed[$after] = ($placed[$after] ?? 0) + 1;
+                array_splice($entries, $index + $placed[$after], 0, [$entry]);
+            } else {
+                $entries[] = $entry;
+            }
+        }
+
+        return $entries;
     }
 
     /** @return array<string, Widget> keyed by key */

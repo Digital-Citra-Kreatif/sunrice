@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
+import { SettingsNav, type SettingsNavEntry } from '@/components/app/settings-nav';
 import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
 import { InfoCards } from '@/components/resources/info-cards';
@@ -12,12 +13,11 @@ import { adminUrl } from '@/lib/admin-url';
 import { savedValues } from '@/lib/settings-form';
 import { t } from '@/lib/i18n';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
-import { useScrollFade } from '@/hooks/use-scroll-fade';
-import { cn } from '@/lib/utils';
 
 interface Props {
     section: { key: string; label: string; description: string | null };
-    sections: { key: string; label: string }[];
+    /** The Settings menu: the sections and the pages among them (Panel::settingsNavigation()). */
+    sections: SettingsNavEntry[];
     form: SectionInfo[];
     values: Record<string, FieldValue>;
     /** Secret fields: whether a value is saved (the form never shows it). */
@@ -62,23 +62,13 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
         save();
     };
     useUnsavedChanges(form.isDirty, save);
-    const tabs = useScrollFade<HTMLElement>('x', '[aria-current="page"]', section.key);
     // A section of cards only (Settings → Mail) has nothing to save.
     const editable = schema.some((s) => s.fields.length > 0);
 
     return (
         <div className="flex flex-col gap-6 lg:flex-row">
             <Head title={t(':section settings', { section: section.label })} />
-            {sections.length > 1 && (
-                <nav ref={tabs} aria-label={t('Settings sections')} className="sunrice-scroll-fade-x -mx-1 flex shrink-0 snap-x snap-proximity scroll-px-1 gap-1 overflow-x-auto px-1 [scrollbar-width:none] lg:mx-0 lg:w-48 lg:flex-col lg:px-0">
-                    {sections.map((s) => (
-                        <Link key={s.key} href={adminUrl(`settings/${s.key}`)} aria-current={s.key === section.key ? 'page' : undefined}
-                            className={cn('shrink-0 snap-start rounded-md px-3 py-2 text-sm whitespace-nowrap hover:bg-muted', s.key === section.key && 'bg-muted font-medium')}>
-                            {s.label}
-                        </Link>
-                    ))}
-                </nav>
-            )}
+            <SettingsNav items={sections} current={section.key} />
             <form onSubmit={submit} className="flex max-w-5xl min-w-0 flex-1 flex-col gap-6">
                 <PageHeader
                     title={section.label}

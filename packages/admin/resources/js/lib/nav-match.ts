@@ -29,6 +29,13 @@ export function matchNavigation(navigation: NavGroup[], path: string, href: (url
         for (const item of group.items) {
             consider(group, item, item);
             item.children.forEach((child) => consider(group, item, child));
+            (item.matches ?? []).forEach((url) => {
+                const address = href(url).replace(/\/+$/, '') || '/';
+                if ((current === address || current.startsWith(`${address}/`)) && address.length > bestLength) {
+                    best = { group, item, link: item };
+                    bestLength = address.length;
+                }
+            });
         }
     }
 

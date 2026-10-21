@@ -48,6 +48,20 @@ it('lists each collection under Content and each taxonomy under Taxonomies', fun
         ->and(sidebarOf(adminUser(Panel::ACCESS, 'cms.entries.pages.view')))->not->toHaveKey('Taxonomies');
 });
 
+it('lists SEO in the Settings menu after Site, not in the sidebar, with Settings current on it', function () {
+    $user = adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.settings.locales');
+    $sidebar = sidebarOf($user);
+
+    expect(collect($sidebar)->flatten(1)->pluck('key')->all())->not->toContain('cms-seo')
+        ->and(collect(app(Panel::class)->navigationFor($user))->flatMap(fn (array $group) => $group['items'])->firstWhere('key', 'settings')['matches'])->toBe(['cms/seo'])
+        ->and(array_column(app(Panel::class)->settingsNavigation($user), 'key'))->toBe(['site', 'cms-seo', 'locales']);
+
+    actingAs($user);
+    get('/admin/cms/seo')->assertInertia(fn (AssertableInertia $page) => $page->where('settingsNav.1', ['key' => 'cms-seo', 'label' => 'SEO', 'url' => 'cms/seo']));
+    // Without cms.settings.site: neither the page nor its place in the menu.
+    expect(array_column(app(Panel::class)->settingsNavigation(adminUser(Panel::ACCESS, 'cms.settings.locales')), 'key'))->toBe(['locales']);
+});
+
 it('edits entries and terms under their collection and taxonomy, and redirects the old addresses', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     $entry = app(CreateEntry::class)->handle($this->articles, ['title' => 'Hello'])->entry_id;

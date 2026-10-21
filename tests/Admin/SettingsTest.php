@@ -127,7 +127,7 @@ it('edits a section: validated, typed, secrets kept when left empty', function (
     get('/admin/settings/shop')->assertInertia(fn (Assert $page) => $page
         ->component('Settings/Edit', shouldExist: false)
         ->where('section', ['key' => 'shop', 'label' => 'Shop', 'description' => 'How the shop sells.'])
-        ->where('sections', [['key' => 'outbox', 'label' => 'Outbox'], ['key' => 'shop', 'label' => 'Shop']])
+        ->where('sections', [['key' => 'outbox', 'label' => 'Outbox', 'url' => 'settings/outbox'], ['key' => 'shop', 'label' => 'Shop', 'url' => 'settings/shop']])
         ->where('values', ['name' => 'Shop', 'currency' => 'IDR', 'guestCheckout' => true, 'freeShippingFrom' => null, 'taxRate' => 0.11, 'countries' => ['ID'], 'paymentKey' => null])
         ->where('secrets', ['paymentKey' => false])
         ->has('form', 2));
@@ -185,7 +185,7 @@ it('lists the panel\'s Security and Mail sections first, for those allowed', fun
     actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.security', 'sunrice.settings.mail', 'settings.outbox'));
 
     get('/admin/settings/outbox')->assertInertia(fn (Assert $page) => $page
-        ->where('sections', [['key' => 'security', 'label' => 'Security'], ['key' => 'mail', 'label' => 'Mail'], ['key' => 'outbox', 'label' => 'Outbox']])
+        ->where('sections', [['key' => 'security', 'label' => 'Security', 'url' => 'settings/security'], ['key' => 'mail', 'label' => 'Mail', 'url' => 'settings/mail'], ['key' => 'outbox', 'label' => 'Outbox', 'url' => 'settings/outbox']])
         ->where('cards', []));
 });
 

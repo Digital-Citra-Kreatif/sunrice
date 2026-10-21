@@ -26,6 +26,15 @@ test('matches the navigation link with the longest prefix of the address', () =>
     assert.equal(matchNavigation(navigation, '/admin', href), null);
 });
 
+test('marks Settings current on the pages among the settings sections', () => {
+    const withSettings = [...navigation, { group: 'Administration', items: [
+        { key: 'settings', label: 'Settings', url: 'settings', icon: 'settings', children: [], matches: ['cms/seo'] },
+    ] }];
+    assert.equal(matchNavigation(withSettings, '/admin/cms/seo', href)?.item.key, 'settings');
+    assert.equal(matchNavigation(withSettings, '/admin/settings/site', href)?.link.key, 'settings');
+    assert.equal(matchNavigation(withSettings, '/admin/cms/seorama', href), null);
+});
+
 test('derives breadcrumbs from the navigation', () => {
     assert.deepEqual(navigationCrumbs(navigation, '/admin/users/create', href), [{ label: 'Users', href: '/admin/users' }]);
     assert.deepEqual(navigationCrumbs(navigation, '/admin/cms/collections/blog/entries', href), [
