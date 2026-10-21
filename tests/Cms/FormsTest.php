@@ -411,6 +411,14 @@ it('refuses days before today in a date field set to "today or later"', function
     expect(Blade::render('<x-sunrice-cms::form handle="contact" />'))->toContain('type="date" id="form-contact-preferred_date"')->toContain('min="2026-10-21"');
     postJson('/forms/contact', ['name' => 'Ana', 'preferred_date' => '2020-01-01'])->assertUnprocessable()->assertJsonValidationErrors(['preferred_date']);
     postJson('/forms/contact', ['name' => 'Ana', 'preferred_date' => '2026-10-21'])->assertCreated();
+
+    // Said in the visitor's language, without the rule's English "today" (NEW2-i18n-1).
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    postJson('/forms/contact', ['name' => 'Ana', 'preferred_date' => '2026-10-20'])
+        ->assertJsonValidationErrors(['preferred_date' => 'The Preferred Date must be today or a later date.']);
+    postJson('/forms/contact', ['locale' => 'id', 'name' => 'Ana', 'preferred_date' => '2026-10-20'])
+        ->assertJsonValidationErrors(['preferred_date' => 'Preferred Date harus berupa tanggal hari ini atau setelahnya.']);
+    postJson('/forms/contact', ['name' => 'Ana', 'preferred_date' => 'soon'])->assertJsonValidationErrors(['preferred_date']);
 });
 
 it('shows and checks a form in the visitor\'s language', function () {
