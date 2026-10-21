@@ -216,31 +216,55 @@ it('explains a template setting with the files tried in order when it is empty',
     ]);
 });
 
-it('creates a term on its own page, then goes to its page or back to the list', function () {
+it('creates a term in the full term editor, with its fields, SEO and place, then opens it there', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     $news = term($this->categories, 'News');
 
     get("/admin/cms/taxonomies/categories/terms/create?parent={$news->id}")->assertInertia(fn (Assert $page) => $page
-        ->component('Cms/Terms/Create', shouldExist: false)
+        ->component('Cms/Terms/Edit', shouldExist: false)
+        ->where('term', null)
         ->where('taxonomy.hierarchical', true)
-        ->where('parent', $news->id)
-        ->where('terms.0.title', 'News'));
+        ->where('parentId', $news->id)
+        ->where('terms.0.title', 'News')
+        // The taxonomy's fields (here the built-in description), as for an existing term.
+        ->where('fields.0.handle', 'description')
+        ->where('values.description', null));
 
-    // No pages or fields: back to the list.
-    post('/admin/cms/taxonomies/categories/terms', ['title' => 'Local', 'parent_id' => $news->id])
-        ->assertRedirect('/admin/cms/taxonomies/categories/terms?locale=en');
-    expect(Term::query()->where('parent_id', $news->id)->count())->toBe(1);
+    // No pages or fields of its own: still to its editor, created with everything given at once.
+    post('/admin/cms/taxonomies/categories/terms', ['title' => 'Local', 'parent_id' => $news->id, 'data' => ['description' => 'Around town.'], 'seo' => ['title' => 'Local news'], 'template' => 'cms.local'])
+        ->assertRedirectContains('/admin/cms/taxonomies/categories/terms/');
+    $local = Term::query()->where('parent_id', $news->id)->with('translations')->firstOrFail();
+    expect($local->translations->first()->data)->toMatchArray(['description' => 'Around town.'])
+        ->and($local->translations->first()->data['seo']['title'] ?? null)->toBe('Local news')
+        ->and($local->template)->toBe('cms.local')
+        ->and(session('success'))->toBe('"Local" added.');
 
-    // With pages: to the new term's page.
-    $this->tags->forceFill(['route' => '/tags/{slug}'])->save();
-    post('/admin/cms/taxonomies/tags/terms', ['title' => 'Laravel'])->assertRedirectContains('/admin/cms/taxonomies/tags/terms/');
-    $laravel = Term::query()->where('taxonomy_id', $this->tags->id)->firstOrFail();
-    expect(session('success'))->toBe('"Laravel" added.');
-    get("/admin/cms/taxonomies/tags/terms/{$laravel->id}/edit")->assertOk();
+    // Content that doesn't pass: nothing is created.
+    post('/admin/cms/taxonomies/categories/terms', ['title' => 'Bad', 'template' => 'not a view!'])->assertSessionHasErrors('template');
+    expect(Term::query()->count())->toBe(2);
 
     actingAs(adminUser(Panel::ACCESS));
     get('/admin/cms/taxonomies/categories/terms/create')->assertForbidden();
+});
+
+it('moves a term under another in its editor, never under itself or a term under it', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.update'));
+    $news = term($this->categories, 'News');
+    $local = term($this->categories, 'Local', ['parent_id' => $news->id]);
+    $sport = term($this->categories, 'Sport');
+
+    get("/admin/cms/taxonomies/categories/terms/{$news->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('parentId', null)
+        ->where('terms', [['id' => $sport->id, 'title' => 'Sport', 'depth' => 0]])
+        ->where('term.translatedIn', ['en']));
+
+    put("/admin/cms/terms/{$sport->id}/content", ['title' => 'Sport', 'parent_id' => $news->id, 'locale' => 'en'])->assertSessionHasNoErrors();
+    expect($sport->fresh()->parent_id)->toBe($news->id);
+    put("/admin/cms/terms/{$news->id}/content", ['title' => 'News', 'parent_id' => $local->id, 'locale' => 'en'])->assertSessionHasErrors('parent_id');
+    put("/admin/cms/terms/{$sport->id}/content", ['title' => 'Sport', 'parent_id' => null, 'locale' => 'en'])->assertSessionHasNoErrors();
+    expect($sport->fresh()->parent_id)->toBeNull();
 });
 
 it('switches term pages on and off as collections do their pages', function () {
