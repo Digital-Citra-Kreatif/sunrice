@@ -83,6 +83,12 @@ final class Schema
                 '@type' => 'Offer',
                 'price' => (float) $values['price'],
                 'priceCurrency' => 'IDR',
+                // A rent is per month or year: say so.
+                'priceSpecification' => match ($values['price_suffix'] ?? null) {
+                    'per_month' => ['@type' => 'UnitPriceSpecification', 'price' => (float) $values['price'], 'priceCurrency' => 'IDR', 'unitCode' => 'MON', 'referenceQuantity' => ['@type' => 'QuantitativeValue', 'value' => 1, 'unitCode' => 'MON']],
+                    'per_year' => ['@type' => 'UnitPriceSpecification', 'price' => (float) $values['price'], 'priceCurrency' => 'IDR', 'unitCode' => 'ANN', 'referenceQuantity' => ['@type' => 'QuantitativeValue', 'value' => 1, 'unitCode' => 'ANN']],
+                    default => null,
+                },
                 'availability' => in_array($status, ['sold', 'rented'], true) ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
                 'businessFunction' => str_contains((string) ($values['price_suffix'] ?? ''), 'month') || str_contains((string) ($values['price_suffix'] ?? ''), 'year')
                     ? 'http://purl.org/goodrelations/v1#LeaseOut' : 'http://purl.org/goodrelations/v1#Sell',
@@ -125,7 +131,21 @@ final class Schema
             'email' => $values['email'] ?? null,
             'image' => $photo instanceof Media ? $photo->url('medium') : null,
             'url' => $entry->url(),
-            'knowsLanguage' => $values['languages'] ?? null,
+            'knowsLanguage' => self::languages($values['languages'] ?? []) ?: null,
         ], fn ($v) => $v !== null && $v !== [])];
+    }
+
+    /** The languages an agent speaks, as schema.org Languages with their IETF codes, from the select's values. */
+    private static function languages(mixed $values): array
+    {
+        $languages = ['english' => ['English', 'en'], 'indonesian' => ['Indonesian', 'id'], 'japanese' => ['Japanese', 'ja'], 'mandarin' => ['Mandarin Chinese', 'zh'], 'dutch' => ['Dutch', 'nl'], 'french' => ['French', 'fr'], 'german' => ['German', 'de']];
+        $known = [];
+        foreach (is_iterable($values) ? $values : [] as $value) {
+            if (is_string($value) && isset($languages[$value])) {
+                $known[] = ['@type' => 'Language', 'name' => $languages[$value][0], 'alternateName' => $languages[$value][1]];
+            }
+        }
+
+        return $known;
     }
 }

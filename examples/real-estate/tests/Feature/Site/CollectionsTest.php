@@ -57,3 +57,14 @@ it('searches the site', function (): void {
     $this->get('/search?q=Samudra')->assertOk()->assertSee('Villa Samudra')->assertSee('noindex', false);
     $this->get('/id/search?q=Samudra')->assertOk()->assertSee('Vila Samudra');
 });
+
+it('describes an agent\'s languages as schema.org Languages', function (): void {
+    $html = (string) $this->get('/team/ayu-pratiwi')->assertOk()->getContent();
+    preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $html, $m);
+    $person = collect($m[1])->flatMap(fn ($json) => json_decode($json, true)['@graph'] ?? [])->firstWhere('@type', 'Person');
+
+    expect($person['knowsLanguage'])->toBe([
+        ['@type' => 'Language', 'name' => 'English', 'alternateName' => 'en'],
+        ['@type' => 'Language', 'name' => 'Indonesian', 'alternateName' => 'id'],
+    ]);
+});

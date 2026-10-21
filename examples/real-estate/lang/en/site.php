@@ -73,6 +73,13 @@ return [
 
     'property' => [
         'price' => 'Asking price',
+        'price_rent' => 'Rent',
+        'price_sold' => 'Last asking price',
+        'price_rented' => 'Last asking rent',
+        'gone_sold' => 'This home has been sold',
+        'gone_rented' => 'This home has been let',
+        'gone_text' => 'Tell us what you’re looking for and we’ll let you know when something similar comes up.',
+        'gone_link' => 'See the homes available now',
         'facts' => 'Key facts',
         'features' => 'Features',
         'amenities' => 'Amenities',
@@ -253,7 +260,7 @@ return [
 
     'errors' => [
         'home' => 'Back to the home page',
-        '404_title' => 'This page has moved on',
+        '404_title' => 'We can’t find that page',
         '404_text' => 'The page you’re looking for isn’t here. It may have been sold, renamed or the address mistyped.',
         '500_title' => 'Something went wrong',
         '500_text' => 'Sorry, the page couldn’t be shown. Please try again in a moment.',

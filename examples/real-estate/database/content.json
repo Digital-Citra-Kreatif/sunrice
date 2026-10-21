@@ -2046,13 +2046,13 @@
             "values": {
                 "en": {
                     "about": "Lumina Estates is an independent agency for exceptional homes, villas and land in Jakarta and Bali. Offices in Kemang and Canggu.",
-                    "legal": "<p>© 2026 PT Lumina Estates Indonesia. Licensed real estate broker (SIU-P4) No. 0012/2014. All prices are indicative and subject to change.</p>",
-                    "newsletter_heading": "Quarterly market notes, in your inbox"
+                    "legal": "<p>Licensed real estate broker (SIU-P4) No. 0012/2014. All prices are indicative and subject to change.</p>",
+                    "newsletter_heading": "Monthly market notes, in your inbox"
                 },
                 "id": {
                     "about": "Lumina Estates adalah agen independen untuk rumah, vila dan tanah istimewa di Jakarta dan Bali. Kantor di Kemang dan Canggu.",
-                    "legal": "<p>© 2026 PT Lumina Estates Indonesia. Perantara perdagangan properti berizin (SIU-P4) No. 0012/2014. Semua harga bersifat indikatif dan dapat berubah.</p>",
-                    "newsletter_heading": "Catatan pasar setiap kuartal, langsung ke kotak masuk Anda"
+                    "legal": "<p>Perantara perdagangan properti berizin (SIU-P4) No. 0012/2014. Semua harga bersifat indikatif dan dapat berubah.</p>",
+                    "newsletter_heading": "Catatan pasar setiap bulan, langsung ke kotak masuk Anda"
                 }
             }
         },

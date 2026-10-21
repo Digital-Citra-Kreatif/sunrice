@@ -41,11 +41,11 @@ it('keeps an inquiry with the property it was sent from', function (): void {
 it('takes a valuation request with photos', function (): void {
     $this->from('/sell-with-us')->post(route('sunrice.cms.forms.submit', 'valuation'), [
         'data' => ['name' => 'Wayan', 'email' => 'wayan@example.com', 'address' => 'Jl. Raya Ubud 1', 'property_type' => 'villa', 'bedrooms' => 3,
-            'photos' => UploadedFile::fake()->image('villa.jpg', 800, 600)],
+            'photos' => [UploadedFile::fake()->image('villa.jpg', 800, 600), UploadedFile::fake()->image('garden.jpg', 800, 600)]],
         'locale' => 'en', '_form' => 'valuation', ...honeypot(),
     ])->assertRedirect();
 
-    expect(Submission::query()->latest('id')->first()?->data['photos']['name'] ?? null)->toBe('villa.jpg');
+    expect(array_column(Submission::query()->latest('id')->first()?->data['photos'] ?? [], 'name'))->toBe(['villa.jpg', 'garden.jpg']);
 });
 
 it('signs visitors up for the newsletter from the footer', function (): void {

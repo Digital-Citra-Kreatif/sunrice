@@ -72,6 +72,13 @@ return [
 
     'property' => [
         'price' => 'Harga',
+        'price_rent' => 'Harga sewa',
+        'price_sold' => 'Harga penawaran terakhir',
+        'price_rented' => 'Harga sewa terakhir',
+        'gone_sold' => 'Rumah ini sudah terjual',
+        'gone_rented' => 'Rumah ini sudah disewa',
+        'gone_text' => 'Beri tahu kami apa yang Anda cari, kami akan mengabari Anda saat ada yang serupa.',
+        'gone_link' => 'Lihat rumah yang tersedia sekarang',
         'facts' => 'Fakta utama',
         'features' => 'Fitur',
         'amenities' => 'Fasilitas',
@@ -252,7 +259,7 @@ return [
 
     'errors' => [
         'home' => 'Kembali ke beranda',
-        '404_title' => 'Halaman ini sudah pindah',
+        '404_title' => 'Halaman tidak ditemukan',
         '404_text' => 'Halaman yang Anda cari tidak ada. Mungkin sudah terjual, berganti nama, atau alamatnya salah ketik.',
         '500_title' => 'Terjadi kesalahan',
         '500_text' => 'Maaf, halaman tidak dapat ditampilkan. Silakan coba lagi sebentar lagi.',
