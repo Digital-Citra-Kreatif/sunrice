@@ -33,6 +33,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Blueprint builder: "Show when" no longer offers a fieldset include (it has no value of its own; `DefinitionValidator` refuses it too), and a save refused for a field's settings scrolls to the first field with an error, opened with the message under the setting.
 - Roles read as people say them: "Also email roles" (Settings → Comments, Forms) lists "Super admin", not `super-admin`, and the Roles list shows the super admin role's permissions as "All" instead of 0. The comments captcha switch is offered once a captcha service is set up, and its help names the developer settings after "For developers:", as the forms' does.
 - Settings → Languages: refusing to move the main language while it holds content now points to the **Main language** card's button beside the form instead of `php artisan sunrice:switch-main-language`.
 - SVGs uploaded before their size was read from the `viewBox` get one on upgrade (migration `2026_01_01_000012_backfill_svg_sizes_in_sunrice_media`, run by `php artisan migrate`), so an existing wide SVG logo is treated as wide and no longer becomes the favicon. See [Upgrading](docs/upgrading.md).
