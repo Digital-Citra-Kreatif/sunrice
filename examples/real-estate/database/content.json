@@ -1,5 +1,9 @@
 {
     "sunrice": 1,
+    "locales": [
+        "en",
+        "id"
+    ],
     "fieldsets": [
         {
             "handle": "contact_person",
@@ -514,7 +518,18 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": false
+                    "translatable": false,
+                    "translations": {
+                        "id": {
+                            "label": "Bahasa",
+                            "options": {
+                                "dutch": "Belanda",
+                                "english": "Inggris",
+                                "mandarin": "Mandarin",
+                                "indonesian": "Indonesia"
+                            }
+                        }
+                    }
                 },
                 {
                     "type": "rich_text",
@@ -712,7 +727,12 @@
                     "required": true,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Nama"
+                        }
+                    }
                 },
                 {
                     "type": "text",
@@ -725,7 +745,12 @@
                         "email"
                     ],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Email"
+                        }
+                    }
                 },
                 {
                     "type": "text",
@@ -736,7 +761,12 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Telepon"
+                        }
+                    }
                 },
                 {
                     "type": "select",
@@ -766,7 +796,18 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Topik",
+                            "options": {
+                                "other": "Lainnya",
+                                "buying": "Membeli",
+                                "renting": "Menyewa",
+                                "selling": "Menjual"
+                            }
+                        }
+                    }
                 },
                 {
                     "type": "textarea",
@@ -777,7 +818,12 @@
                     "required": true,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Pesan"
+                        }
+                    }
                 }
             ]
         },
@@ -872,14 +918,21 @@
                 },
                 {
                     "type": "date",
-                    "label": "Preferred date",
-                    "config": [],
+                    "label": "Preferred viewing date",
+                    "config": {
+                        "future": true
+                    },
                     "fields": [],
                     "handle": "preferred_date",
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Tanggal kunjungan"
+                        }
+                    }
                 },
                 {
                     "type": "textarea",
@@ -1239,7 +1292,17 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": false
+                    "translatable": false,
+                    "translations": {
+                        "id": {
+                            "label": "Keterangan harga",
+                            "options": {
+                                "none": "Tidak ada",
+                                "per_year": "per tahun",
+                                "per_month": "per bulan"
+                            }
+                        }
+                    }
                 },
                 {
                     "type": "select",
@@ -1270,7 +1333,18 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": false
+                    "translatable": false,
+                    "translations": {
+                        "id": {
+                            "label": "Status",
+                            "options": {
+                                "sold": "Terjual",
+                                "rented": "Tersewa",
+                                "available": "Tersedia",
+                                "under_offer": "Dalam penawaran"
+                            }
+                        }
+                    }
                 },
                 {
                     "type": "number",
@@ -1686,7 +1760,12 @@
                     "required": true,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Nama"
+                        }
+                    }
                 },
                 {
                     "type": "text",
@@ -1699,7 +1778,12 @@
                         "email"
                     ],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Email"
+                        }
+                    }
                 },
                 {
                     "type": "text",
@@ -1710,7 +1794,12 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Telepon"
+                        }
+                    }
                 },
                 {
                     "type": "text",
@@ -1721,7 +1810,12 @@
                     "required": true,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Alamat properti"
+                        }
+                    }
                 },
                 {
                     "type": "select",
@@ -1755,7 +1849,19 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Jenis properti",
+                            "options": {
+                                "land": "Tanah",
+                                "house": "Rumah",
+                                "villa": "Vila",
+                                "apartment": "Apartemen",
+                                "commercial": "Komersial"
+                            }
+                        }
+                    }
                 },
                 {
                     "type": "number",
@@ -1769,21 +1875,33 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Kamar tidur"
+                        }
+                    }
                 },
                 {
                     "type": "file",
                     "label": "Photos",
                     "config": {
                         "types": "jpg, jpeg, png, webp",
-                        "max_kb": 5120
+                        "max_kb": 5120,
+                        "multiple": true,
+                        "max_files": 10
                     },
                     "fields": [],
                     "handle": "photos",
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Foto"
+                        }
+                    }
                 },
                 {
                     "type": "textarea",
@@ -1794,7 +1912,12 @@
                     "required": false,
                     "validation": [],
                     "instructions": "",
-                    "translatable": null
+                    "translatable": null,
+                    "translations": {
+                        "id": {
+                            "label": "Catatan"
+                        }
+                    }
                 }
             ]
         }
@@ -1806,6 +1929,7 @@
             "blueprint": "agent",
             "blueprints": [],
             "dated": false,
+            "translatable": true,
             "ordered": true,
             "hierarchical": false,
             "route": "/team/{slug}",
@@ -1815,7 +1939,15 @@
             "comments": false,
             "schema_type": null,
             "template": null,
-            "listings": {}
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "listings": {},
+            "translations": {
+                "id": {
+                    "title": "Tim"
+                }
+            }
         },
         {
             "handle": "journal",
@@ -1823,6 +1955,7 @@
             "blueprint": "post",
             "blueprints": [],
             "dated": true,
+            "translatable": true,
             "ordered": false,
             "hierarchical": false,
             "route": "/journal/{slug}",
@@ -1832,6 +1965,9 @@
             "comments": true,
             "schema_type": "BlogPosting",
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": "excerpt",
+            "seo_image_field": "cover",
             "listings": {
                 "en": {
                     "seo": {
@@ -1851,6 +1987,11 @@
                     },
                     "intro": "Laporan pasar, panduan membeli dan cerita kehidupan di Jakarta dan Bali, ditulis oleh para penasihat kami."
                 }
+            },
+            "translations": {
+                "id": {
+                    "title": "Jurnal"
+                }
             }
         },
         {
@@ -1859,6 +2000,7 @@
             "blueprint": "neighbourhood",
             "blueprints": [],
             "dated": false,
+            "translatable": true,
             "ordered": false,
             "hierarchical": false,
             "route": "/neighbourhoods/{slug}",
@@ -1868,7 +2010,15 @@
             "comments": false,
             "schema_type": null,
             "template": null,
-            "listings": {}
+            "seo_title_field": null,
+            "seo_description_field": "intro",
+            "seo_image_field": "hero",
+            "listings": {},
+            "translations": {
+                "id": {
+                    "title": "Kawasan"
+                }
+            }
         },
         {
             "handle": "pages",
@@ -1876,6 +2026,7 @@
             "blueprint": "page",
             "blueprints": [],
             "dated": false,
+            "translatable": true,
             "ordered": true,
             "hierarchical": true,
             "route": "/{slug}",
@@ -1885,7 +2036,15 @@
             "comments": false,
             "schema_type": null,
             "template": null,
-            "listings": {}
+            "seo_title_field": null,
+            "seo_description_field": "intro",
+            "seo_image_field": null,
+            "listings": {},
+            "translations": {
+                "id": {
+                    "title": "Halaman"
+                }
+            }
         },
         {
             "handle": "properties",
@@ -1893,6 +2052,7 @@
             "blueprint": "property",
             "blueprints": [],
             "dated": false,
+            "translatable": true,
             "ordered": false,
             "hierarchical": false,
             "route": "/properties/{slug}",
@@ -1902,6 +2062,9 @@
             "comments": false,
             "schema_type": "WebPage",
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": "summary",
+            "seo_image_field": "gallery",
             "listings": {
                 "en": {
                     "seo": {
@@ -1922,6 +2085,11 @@
                     },
                     "intro": "Vila, rumah keluarga, apartemen dan tanah untuk dijual dan disewakan di Jakarta dan Bali, semuanya telah dikunjungi dan diperiksa oleh tim kami."
                 }
+            },
+            "translations": {
+                "id": {
+                    "title": "Properti"
+                }
             }
         },
         {
@@ -1930,6 +2098,7 @@
             "blueprint": "testimonial",
             "blueprints": [],
             "dated": false,
+            "translatable": true,
             "ordered": true,
             "hierarchical": false,
             "route": null,
@@ -1939,7 +2108,15 @@
             "comments": false,
             "schema_type": null,
             "template": null,
-            "listings": {}
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "listings": {},
+            "translations": {
+                "id": {
+                    "title": "Testimoni"
+                }
+            }
         }
     ],
     "taxonomies": [
@@ -1950,9 +2127,17 @@
             "route": null,
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "properties"
-            ]
+            ],
+            "translations": {
+                "id": {
+                    "title": "Fasilitas"
+                }
+            }
         },
         {
             "handle": "listing_types",
@@ -1961,9 +2146,17 @@
             "route": null,
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "properties"
-            ]
+            ],
+            "translations": {
+                "id": {
+                    "title": "Jenis listing"
+                }
+            }
         },
         {
             "handle": "locations",
@@ -1972,9 +2165,17 @@
             "route": "/location/{slug}",
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "properties"
-            ]
+            ],
+            "translations": {
+                "id": {
+                    "title": "Lokasi"
+                }
+            }
         },
         {
             "handle": "property_types",
@@ -1983,9 +2184,17 @@
             "route": "/property-type/{slug}",
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "properties"
-            ]
+            ],
+            "translations": {
+                "id": {
+                    "title": "Jenis properti"
+                }
+            }
         },
         {
             "handle": "topics",
@@ -1994,9 +2203,17 @@
             "route": "/journal/topic/{slug}",
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "journal"
-            ]
+            ],
+            "translations": {
+                "id": {
+                    "title": "Topik jurnal"
+                }
+            }
         }
     ],
     "globals": [
@@ -2124,10 +2341,16 @@
             "notify": [
                 "ayu@lumina-estates.test"
             ],
+            "notify_roles": [],
             "message": "Thank you for getting in touch. One of our advisors will reply within one working day.",
             "redirect_url": null,
             "per_minute": null,
-            "captcha": false
+            "captcha": false,
+            "translations": {
+                "id": {
+                    "message": "Terima kasih telah menghubungi kami. Salah satu penasihat kami akan membalas dalam satu hari kerja."
+                }
+            }
         },
         {
             "handle": "inquiry",
@@ -2136,20 +2359,32 @@
             "notify": [
                 "ayu@lumina-estates.test"
             ],
+            "notify_roles": [],
             "message": "Thank you for your interest. The listing agent will contact you shortly to arrange a viewing.",
             "redirect_url": null,
             "per_minute": null,
-            "captcha": false
+            "captcha": false,
+            "translations": {
+                "id": {
+                    "message": "Terima kasih atas minat Anda. Agen listing akan segera menghubungi Anda untuk mengatur jadwal kunjungan."
+                }
+            }
         },
         {
             "handle": "newsletter",
             "title": "Newsletter",
             "blueprint": "newsletter_form",
             "notify": null,
+            "notify_roles": [],
             "message": "Thank you for subscribing to the Lumina Estates journal.",
             "redirect_url": null,
             "per_minute": null,
-            "captcha": false
+            "captcha": false,
+            "translations": {
+                "id": {
+                    "message": "Terima kasih telah berlangganan jurnal Lumina Estates."
+                }
+            }
         },
         {
             "handle": "valuation",
@@ -2158,10 +2393,16 @@
             "notify": [
                 "ayu@lumina-estates.test"
             ],
+            "notify_roles": [],
             "message": "Thank you. We will be in touch within two working days with a valuation appointment.",
             "redirect_url": null,
             "per_minute": 3,
-            "captcha": false
+            "captcha": false,
+            "translations": {
+                "id": {
+                    "message": "Terima kasih. Kami akan menghubungi Anda dalam dua hari kerja untuk menjadwalkan penilaian."
+                }
+            }
         }
     ],
     "menus": [
@@ -2276,21 +2517,23 @@
                     "new_tab": false,
                     "children": [
                         {
-                            "url": "/properties?listing_type=for-sale",
+                            "collection": "properties",
                             "labels": {
                                 "en": "For sale",
                                 "id": "Dijual"
                             },
                             "new_tab": false,
+                            "query": "listing_type=for-sale",
                             "children": []
                         },
                         {
-                            "url": "/properties?listing_type=for-rent",
+                            "collection": "properties",
                             "labels": {
                                 "en": "For rent",
                                 "id": "Disewakan"
                             },
                             "new_tab": false,
+                            "query": "listing_type=for-rent",
                             "children": []
                         },
                         {
@@ -3578,7 +3821,9 @@
                             "noindex": false,
                             "description": "Tropical modern four-bedroom villa with a 15 m pool facing the rice fields in Pererenan, Canggu. Freehold via PT PMA. IDR 17.95 billion."
                         },
-                        "agent": 2,
+                        "agent": {
+                            "entry": "agents/rafael-hartono"
+                        },
                         "price": 17950000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-arunika",
@@ -3617,25 +3862,45 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 30,
+                        "location": {
+                            "term": "locations/canggu"
+                        },
                         "amenities": [
-                            8,
-                            9,
-                            14,
-                            12,
-                            16,
-                            15
+                            {
+                                "term": "amenities/private-pool"
+                            },
+                            {
+                                "term": "amenities/garden"
+                            },
+                            {
+                                "term": "amenities/rice-field-view"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/staff-quarters"
+                            },
+                            {
+                                "term": "amenities/smart-home"
+                            }
                         ],
                         "bathrooms": 5,
                         "land_area": 800,
                         "floor_plan": null,
                         "year_built": 2022,
                         "description": "<p>Designed by a Bali-based studio and completed in 2022, Villa Arunika pairs polished concrete, teak and natural stone with <strong>big sliding doors</strong> that open the living pavilion completely to the garden.</p><h2>The villa</h2><ul><li><p>Open living and dining pavilion with a chef&#039;s kitchen</p></li><li><p>Four en-suite bedrooms, the master with a garden bathroom</p></li><li><p>15 m saltwater pool and sunken lounge</p></li><li><p>Separate staff quarters and storage</p></li></ul><h3>Location</h3><p>Pererenan is the quieter side of Canggu: five minutes to the beach, ten to Batu Bolong.</p><p></p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": 420,
-                        "neighbourhood": 8,
-                        "property_type": 2,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/canggu"
+                        },
+                        "property_type": {
+                            "term": "property_types/villa"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -3706,7 +3971,9 @@
                             "noindex": false,
                             "description": "A five-bedroom family home with pool and mature garden on 1,100 m² in Kemang, renovated in 2021. IDR 42 billion."
                         },
-                        "agent": 1,
+                        "agent": {
+                            "entry": "agents/anindya-wirawan"
+                        },
                         "price": 42000000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-kemang-garden",
@@ -3739,24 +4006,42 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 24,
+                        "location": {
+                            "term": "locations/kemang"
+                        },
                         "amenities": [
-                            8,
-                            9,
-                            11,
-                            12,
-                            16
+                            {
+                                "term": "amenities/private-pool"
+                            },
+                            {
+                                "term": "amenities/garden"
+                            },
+                            {
+                                "term": "amenities/24h-security"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/staff-quarters"
+                            }
                         ],
                         "bathrooms": 6,
                         "land_area": 1100,
                         "floor_plan": null,
                         "year_built": 2009,
                         "description": "<p>Behind a quiet gate in one of Kemang&#039;s best side streets, this house has been lovingly maintained by one family for fifteen years and renovated in 2021.</p><h2>Highlights</h2><ul><li><p>Double-height living room opening onto the garden</p></li><li><p>Five bedrooms, including a ground-floor guest suite</p></li><li><p>12 m pool, gazebo and outdoor kitchen</p></li><li><p>Garage for three cars and staff quarters for two</p></li></ul><h3>Location</h3><p>Walking distance to cafés on Jalan Kemang Raya; JIS Pattimura is ten minutes away.</p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": 780,
-                        "neighbourhood": 5,
-                        "property_type": 1,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/kemang"
+                        },
+                        "property_type": {
+                            "term": "property_types/house"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -3816,7 +4101,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 1,
+                        "agent": {
+                            "entry": "agents/anindya-wirawan"
+                        },
                         "price": 95000000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-menteng",
@@ -3849,23 +4136,39 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 27,
+                        "location": {
+                            "term": "locations/menteng"
+                        },
                         "amenities": [
-                            9,
-                            11,
-                            12,
-                            16
+                            {
+                                "term": "amenities/garden"
+                            },
+                            {
+                                "term": "amenities/24h-security"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/staff-quarters"
+                            }
                         ],
                         "bathrooms": 5,
                         "land_area": 1650,
                         "floor_plan": null,
                         "year_built": 1934,
                         "description": "<p>One of Menteng&#039;s finest heritage homes, restored between 2018 and 2020 with original terrazzo floors, high ceilings and teak windows preserved.</p><h2>The residence</h2><ul><li><p>Grand reception hall and formal dining room</p></li><li><p>Six bedrooms across two floors</p></li><li><p>Library and study overlooking the garden</p></li><li><p>Modern kitchen and service wing</p></li></ul><h3>Location</h3><p>A short walk to Taman Suropati; ten minutes to Sudirman and the embassies.</p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": 950,
-                        "neighbourhood": 6,
-                        "property_type": 1,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/menteng"
+                        },
+                        "property_type": {
+                            "term": "property_types/house"
+                        },
                         "property_status": "under_offer"
                     },
                     "published": true
@@ -3920,7 +4223,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 4,
+                        "agent": {
+                            "entry": "agents/maarten-de-vries"
+                        },
                         "price": 12750000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-sayan",
@@ -3953,23 +4258,39 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 33,
+                        "location": {
+                            "term": "locations/ubud"
+                        },
                         "amenities": [
-                            8,
-                            9,
-                            14,
-                            12
+                            {
+                                "term": "amenities/private-pool"
+                            },
+                            {
+                                "term": "amenities/garden"
+                            },
+                            {
+                                "term": "amenities/rice-field-view"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            }
                         ],
                         "bathrooms": 3,
                         "land_area": 1000,
                         "floor_plan": null,
                         "year_built": 2019,
                         "description": "<p>Built on the edge of the ridge, every room looks across the jungle valley to the volcanoes beyond.</p><h2>The villa</h2><ul><li><p>Three bedroom pavilions linked by stone paths</p></li><li><p>Infinity pool and yoga deck over the valley</p></li><li><p>Open kitchen and living joglo</p></li><li><p>Leasehold until 2054 with extension option</p></li></ul><h3>Location</h3><p>Ten minutes from Ubud centre and the Four Seasons Sayan.</p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": 310,
-                        "neighbourhood": 9,
-                        "property_type": 2,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/ubud"
+                        },
+                        "property_type": {
+                            "term": "property_types/villa"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4024,7 +4345,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 3,
+                        "agent": {
+                            "entry": "agents/sekar-ayuningtyas"
+                        },
                         "price": 95000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-pondok",
@@ -4057,24 +4380,42 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 25,
+                        "location": {
+                            "term": "locations/pondok-indah"
+                        },
                         "amenities": [
-                            8,
-                            9,
-                            11,
-                            12,
-                            16
+                            {
+                                "term": "amenities/private-pool"
+                            },
+                            {
+                                "term": "amenities/garden"
+                            },
+                            {
+                                "term": "amenities/24h-security"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/staff-quarters"
+                            }
                         ],
                         "bathrooms": 5,
                         "land_area": 900,
                         "floor_plan": null,
                         "year_built": 2012,
                         "description": "<p>A bright, well-kept house for a family who wants space and green views, five minutes from Pondok Indah Mall and the hospital.</p><h2>The house</h2><ul><li><p>Living room with full-width windows to the fairway</p></li><li><p>Five bedrooms, each with its own bathroom</p></li><li><p>Pool and landscaped garden</p></li><li><p>Two-car garage and staff quarters</p></li></ul><h3>Location</h3><p>Direct access to the JORR toll road; 15 minutes to the British School Jakarta.</p>",
-                        "listing_type": 7,
+                        "listing_type": {
+                            "term": "listing_types/for-rent"
+                        },
                         "price_suffix": "per_month",
                         "building_area": 650,
-                        "neighbourhood": 7,
-                        "property_type": 1,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/pondok-indah"
+                        },
+                        "property_type": {
+                            "term": "property_types/house"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4129,7 +4470,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 1,
+                        "agent": {
+                            "entry": "agents/anindya-wirawan"
+                        },
                         "price": 14200000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-signature",
@@ -4162,23 +4505,37 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 23,
+                        "location": {
+                            "term": "locations/south-jakarta"
+                        },
                         "amenities": [
-                            10,
-                            11,
-                            12,
-                            17
+                            {
+                                "term": "amenities/gym"
+                            },
+                            {
+                                "term": "amenities/24h-security"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/rooftop"
+                            }
                         ],
                         "bathrooms": 3,
                         "land_area": null,
                         "floor_plan": null,
                         "year_built": 2015,
                         "description": "<p>A corner unit with floor-to-ceiling windows on two sides, a private lift lobby and a refined interior by a Singapore studio.</p><h2>The apartment</h2><ul><li><p>Three bedrooms and a study</p></li><li><p>Private lift lobby</p></li><li><p>Two parking bays</p></li><li><p>Residents&#039; pool, gym and gardens</p></li></ul><h3>Location</h3><p>Close to Senayan City, Plaza Senayan and the Sudirman business district.</p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": 245,
                         "neighbourhood": null,
-                        "property_type": 3,
+                        "property_type": {
+                            "term": "property_types/apartment"
+                        },
                         "property_status": "sold"
                     },
                     "published": true
@@ -4202,7 +4559,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 3,
+                        "agent": {
+                            "entry": "agents/sekar-ayuningtyas"
+                        },
                         "price": 65000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-kemang-town",
@@ -4235,23 +4594,39 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 24,
+                        "location": {
+                            "term": "locations/kemang"
+                        },
                         "amenities": [
-                            11,
-                            12,
-                            17,
-                            9
+                            {
+                                "term": "amenities/24h-security"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/rooftop"
+                            },
+                            {
+                                "term": "amenities/garden"
+                            }
                         ],
                         "bathrooms": 4,
                         "land_area": 320,
                         "floor_plan": null,
                         "year_built": 2018,
                         "description": "<p>Ideal for a family arriving in Jakarta: move-in ready, quiet and secure, with neighbours from the diplomatic community.</p><h2>The townhouse</h2><ul><li><p>Open-plan living and kitchen</p></li><li><p>Four bedrooms over three floors</p></li><li><p>Roof terrace</p></li><li><p>Shared pool and playground</p></li></ul><h3>Location</h3><p>Kemang Village and the Lippo Mall are five minutes away.</p>",
-                        "listing_type": 7,
+                        "listing_type": {
+                            "term": "listing_types/for-rent"
+                        },
                         "price_suffix": "per_month",
                         "building_area": 380,
-                        "neighbourhood": 5,
-                        "property_type": 1,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/kemang"
+                        },
+                        "property_type": {
+                            "term": "property_types/house"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4306,7 +4681,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 3,
+                        "agent": {
+                            "entry": "agents/sekar-ayuningtyas"
+                        },
                         "price": 38000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-menteng-park",
@@ -4333,22 +4710,36 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 27,
+                        "location": {
+                            "term": "locations/menteng"
+                        },
                         "amenities": [
-                            10,
-                            11,
-                            12
+                            {
+                                "term": "amenities/gym"
+                            },
+                            {
+                                "term": "amenities/24h-security"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            }
                         ],
                         "bathrooms": 2,
                         "land_area": null,
                         "floor_plan": null,
                         "year_built": 2016,
                         "description": "<p>A calm, well-furnished home in the middle of Menteng, ideal for a professional couple.</p><h2>The apartment</h2><ul><li><p>Two bedrooms, two bathrooms</p></li><li><p>Fully furnished, ready to move in</p></li><li><p>Balcony over the park</p></li><li><p>Pool, gym and 24-hour concierge</p></li></ul><h3>Location</h3><p>Walk to Cikini station, the park and the cafés of Jalan Cikini.</p>",
-                        "listing_type": 7,
+                        "listing_type": {
+                            "term": "listing_types/for-rent"
+                        },
                         "price_suffix": "per_month",
                         "building_area": 128,
-                        "neighbourhood": 6,
-                        "property_type": 3,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/menteng"
+                        },
+                        "property_type": {
+                            "term": "property_types/apartment"
+                        },
                         "property_status": "rented"
                     },
                     "published": true
@@ -4372,7 +4763,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 2,
+                        "agent": {
+                            "entry": "agents/rafael-hartono"
+                        },
                         "price": 9600000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-land-pererenan",
@@ -4405,20 +4798,30 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 30,
+                        "location": {
+                            "term": "locations/canggu"
+                        },
                         "amenities": [
-                            14
+                            {
+                                "term": "amenities/rice-field-view"
+                            }
                         ],
                         "bathrooms": null,
                         "land_area": 1200,
                         "floor_plan": null,
                         "year_built": null,
                         "description": "<p>A rare plot with protected green-belt views on its western side, ready for a villa project.</p><h2>The land</h2><ul><li><p>Residential zoning (pink/yellow)</p></li><li><p>15 m road frontage, electricity and water available</p></li><li><p>Freehold SHM certificate</p></li><li><p>Soil test available on request</p></li></ul><h3>Location</h3><p>Seven minutes to Pererenan beach; fifteen to Berawa.</p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": null,
-                        "neighbourhood": 8,
-                        "property_type": 4,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/canggu"
+                        },
+                        "property_type": {
+                            "term": "property_types/land"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4442,7 +4845,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 4,
+                        "agent": {
+                            "entry": "agents/maarten-de-vries"
+                        },
                         "price": 6250000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-land-ubud",
@@ -4469,20 +4874,30 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 33,
+                        "location": {
+                            "term": "locations/ubud"
+                        },
                         "amenities": [
-                            14
+                            {
+                                "term": "amenities/rice-field-view"
+                            }
                         ],
                         "bathrooms": null,
                         "land_area": 2500,
                         "floor_plan": null,
                         "year_built": null,
                         "description": "<p>A peaceful plot suited to a private retreat or a small boutique villa project.</p><h2>The land</h2><ul><li><p>Leasehold or freehold structure possible</p></li><li><p>Access road paved to the gate</p></li><li><p>Spring water on the property</p></li><li><p>River frontage of about 40 m</p></li></ul><h3>Location</h3><p>Twenty minutes to central Ubud, ten to Sayan.</p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": null,
-                        "neighbourhood": 9,
-                        "property_type": 4,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/ubud"
+                        },
+                        "property_type": {
+                            "term": "property_types/land"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4506,7 +4921,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 2,
+                        "agent": {
+                            "entry": "agents/rafael-hartono"
+                        },
                         "price": 1200000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-seminyak",
@@ -4539,23 +4956,37 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 31,
+                        "location": {
+                            "term": "locations/seminyak"
+                        },
                         "amenities": [
-                            8,
-                            9,
-                            16,
-                            12
+                            {
+                                "term": "amenities/private-pool"
+                            },
+                            {
+                                "term": "amenities/garden"
+                            },
+                            {
+                                "term": "amenities/staff-quarters"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            }
                         ],
                         "bathrooms": 5,
                         "land_area": 900,
                         "floor_plan": null,
                         "year_built": 2014,
                         "description": "<p>Classic Balinese architecture with alang-alang roofs, a long pool and a lush garden, minutes from the beach and Jalan Petitenget.</p><h2>The villa</h2><ul><li><p>Five bedroom suites around a central garden</p></li><li><p>20 m pool</p></li><li><p>Full staff including chef and gardener</p></li><li><p>Annual lease, utilities included</p></li></ul><h3>Location</h3><p>Walk to Seminyak beach, Ku De Ta and the boutiques of Jalan Kayu Aya.</p>",
-                        "listing_type": 7,
+                        "listing_type": {
+                            "term": "listing_types/for-rent"
+                        },
                         "price_suffix": "per_year",
                         "building_area": 520,
                         "neighbourhood": null,
-                        "property_type": 2,
+                        "property_type": {
+                            "term": "property_types/villa"
+                        },
                         "property_status": "rented"
                     },
                     "published": true
@@ -4579,7 +5010,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 2,
+                        "agent": {
+                            "entry": "agents/rafael-hartono"
+                        },
                         "price": 75000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-berawa",
@@ -4606,20 +5039,30 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 30,
+                        "location": {
+                            "term": "locations/canggu"
+                        },
                         "amenities": [
-                            12
+                            {
+                                "term": "amenities/parking"
+                            }
                         ],
                         "bathrooms": 1,
                         "land_area": null,
                         "floor_plan": null,
                         "year_built": 2021,
                         "description": "<p>High foot traffic between Finns and Atlas beach clubs, in a small complex with shared parking.</p><h2>The space</h2><ul><li><p>140 m² open floor with mezzanine</p></li><li><p>Glass frontage of 9 m</p></li><li><p>Three-phase power and grease trap installed</p></li><li><p>Shared parking for eight cars</p></li></ul><h3>Location</h3><p>On the busiest stretch of Berawa, five minutes to the beach.</p>",
-                        "listing_type": 7,
+                        "listing_type": {
+                            "term": "listing_types/for-rent"
+                        },
                         "price_suffix": "per_month",
                         "building_area": 140,
-                        "neighbourhood": 8,
-                        "property_type": 5,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/canggu"
+                        },
+                        "property_type": {
+                            "term": "property_types/commercial"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4643,7 +5086,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 1,
+                        "agent": {
+                            "entry": "agents/anindya-wirawan"
+                        },
                         "price": 36000000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-kemang-office",
@@ -4676,21 +5121,33 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 24,
+                        "location": {
+                            "term": "locations/kemang"
+                        },
                         "amenities": [
-                            12,
-                            11
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/24h-security"
+                            }
                         ],
                         "bathrooms": 8,
                         "land_area": 600,
                         "floor_plan": null,
                         "year_built": 2010,
                         "description": "<p>An income-producing building with long-term tenants and room to add value.</p><h2>The building</h2><ul><li><p>Four floors, about 300 m² each</p></li><li><p>Passenger lift and backup generator</p></li><li><p>Ground-floor retail let to a café</p></li><li><p>Twelve parking bays</p></li></ul><h3>Location</h3><p>Prominent corner on Kemang&#039;s main road.</p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": 1250,
-                        "neighbourhood": 5,
-                        "property_type": 5,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/kemang"
+                        },
+                        "property_type": {
+                            "term": "property_types/commercial"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4714,7 +5171,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 4,
+                        "agent": {
+                            "entry": "agents/maarten-de-vries"
+                        },
                         "price": 85000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-tirta",
@@ -4741,22 +5200,36 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 33,
+                        "location": {
+                            "term": "locations/ubud"
+                        },
                         "amenities": [
-                            8,
-                            14,
-                            9
+                            {
+                                "term": "amenities/private-pool"
+                            },
+                            {
+                                "term": "amenities/rice-field-view"
+                            },
+                            {
+                                "term": "amenities/garden"
+                            }
                         ],
                         "bathrooms": 2,
                         "land_area": 450,
                         "floor_plan": null,
                         "year_built": 2020,
                         "description": "<p>A serene, light-filled villa reached by a footpath through the rice fields.</p><h2>The villa</h2><ul><li><p>Two bedrooms with garden bathrooms</p></li><li><p>Plunge pool facing the terraces</p></li><li><p>Daily housekeeping</p></li><li><p>Scooter parking by the path</p></li></ul><h3>Location</h3><p>Ten minutes on foot to Ubud&#039;s Campuhan ridge walk.</p>",
-                        "listing_type": 7,
+                        "listing_type": {
+                            "term": "listing_types/for-rent"
+                        },
                         "price_suffix": "per_month",
                         "building_area": 180,
-                        "neighbourhood": 9,
-                        "property_type": 2,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/ubud"
+                        },
+                        "property_type": {
+                            "term": "property_types/villa"
+                        },
                         "property_status": "available"
                     },
                     "published": false
@@ -4780,7 +5253,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 2,
+                        "agent": {
+                            "entry": "agents/rafael-hartono"
+                        },
                         "price": 14900000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-arunika-dua",
@@ -4819,25 +5294,45 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 30,
+                        "location": {
+                            "term": "locations/canggu"
+                        },
                         "amenities": [
-                            8,
-                            9,
-                            14,
-                            12,
-                            16,
-                            15
+                            {
+                                "term": "amenities/private-pool"
+                            },
+                            {
+                                "term": "amenities/garden"
+                            },
+                            {
+                                "term": "amenities/rice-field-view"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/staff-quarters"
+                            },
+                            {
+                                "term": "amenities/smart-home"
+                            }
                         ],
                         "bathrooms": 4,
                         "land_area": 600,
                         "floor_plan": null,
                         "year_built": 2022,
                         "description": "<p>Designed by a Bali-based studio and completed in 2022, Villa Arunika pairs polished concrete, teak and natural stone with <strong>big sliding doors</strong> that open the living pavilion completely to the garden.</p><h2>The villa</h2><ul><li><p>Open living and dining pavilion with a chef&#039;s kitchen</p></li><li><p>Three en-suite bedrooms, the master with a garden bathroom</p></li><li><p>15 m saltwater pool and sunken lounge</p></li><li><p>Separate staff quarters and storage</p></li></ul><h3>Location</h3><p>Pererenan is the quieter side of Canggu: five minutes to the beach, ten to Batu Bolong.</p><p></p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": 320,
-                        "neighbourhood": 8,
-                        "property_type": 2,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/canggu"
+                        },
+                        "property_type": {
+                            "term": "property_types/villa"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4861,7 +5356,9 @@
                             "new_tab": false
                         },
                         "seo": null,
-                        "agent": 1,
+                        "agent": {
+                            "entry": "agents/anindya-wirawan"
+                        },
                         "price": 21000000000,
                         "video": {
                             "url": "https://www.youtube.com/watch?v=lumina-penthouse",
@@ -4894,25 +5391,45 @@
                                 "_hidden": false
                             }
                         ],
-                        "location": 25,
+                        "location": {
+                            "term": "locations/pondok-indah"
+                        },
                         "amenities": [
-                            8,
-                            10,
-                            11,
-                            12,
-                            17,
-                            15
+                            {
+                                "term": "amenities/private-pool"
+                            },
+                            {
+                                "term": "amenities/gym"
+                            },
+                            {
+                                "term": "amenities/24h-security"
+                            },
+                            {
+                                "term": "amenities/parking"
+                            },
+                            {
+                                "term": "amenities/rooftop"
+                            },
+                            {
+                                "term": "amenities/smart-home"
+                            }
                         ],
                         "bathrooms": 4,
                         "land_area": null,
                         "floor_plan": null,
                         "year_built": 2020,
                         "description": "<p>The top two floors of a boutique tower: wide terraces, a private roof garden and views across the golf course to the Jakarta skyline.</p><h2>The penthouse</h2><ul><li><p>Four bedrooms, each with a terrace</p></li><li><p>Private roof garden with plunge pool</p></li><li><p>Private lift and three parking bays</p></li></ul><h3>Location</h3><p>Steps from Pondok Indah Mall and the hospital.</p>",
-                        "listing_type": 6,
+                        "listing_type": {
+                            "term": "listing_types/for-sale"
+                        },
                         "price_suffix": "none",
                         "building_area": 410,
-                        "neighbourhood": 7,
-                        "property_type": 3,
+                        "neighbourhood": {
+                            "entry": "neighbourhoods/pondok-indah"
+                        },
+                        "property_type": {
+                            "term": "property_types/apartment"
+                        },
                         "property_status": "available"
                     },
                     "published": true
@@ -4933,14 +5450,22 @@
                         "body": "<p>The third quarter brought steady demand for landed homes in South and Central Jakarta. Buyers remained selective, but well-priced properties in good streets sold within 60 days.</p><h2>Key figures</h2><ul><li><p>Average asking price in Menteng: IDR 65 billion, flat on Q2</p></li><li><p>Kemang: transaction volume up 8% quarter on quarter</p></li><li><p>Pondok Indah: rental demand from corporate tenants up 12%</p></li></ul><h2>What it means for buyers</h2><p>Negotiation room has narrowed for the best homes. If a property ticks every box, act quickly; for everything else, there is time to be patient.</p><blockquote><p>&#34;Quality homes in established streets continue to outperform the wider market.&#34; — Anindya Wirawan</p></blockquote><p></p>",
                         "cover": null,
                         "topics": [
-                            18
+                            {
+                                "term": "topics/market-reports"
+                            }
                         ],
                         "excerpt": "Prices for landed homes in Kemang, Menteng and Pondok Indah held firm in the third quarter while transaction volumes rose 8%. Here is what we saw and what it means for buyers.",
                         "related": [
-                            11,
-                            12
+                            {
+                                "entry": "properties/kemang-garden-house"
+                            },
+                            {
+                                "entry": "properties/menteng-heritage-residence"
+                            }
                         ],
-                        "author_agent": 1
+                        "author_agent": {
+                            "entry": "agents/anindya-wirawan"
+                        }
                     },
                     "published": true
                 },
@@ -4975,15 +5500,25 @@
                         "body": "<p>Indonesian law does not allow foreigners to hold freehold (Hak Milik) title directly, but there are three well-established ways to own a home in Bali.</p><h2>Your options</h2><ol><li><p><strong>Leasehold (Hak Sewa)</strong>: a long lease, usually 25–30 years with an extension option.</p></li><li><p><strong>Hak Pakai</strong>: a right of use available to foreign residents with a KITAS or KITAP.</p></li><li><p><strong>PT PMA</strong>: a foreign-owned company that can hold Hak Guna Bangunan title.</p></li></ol><h2>Before you sign</h2><ul><li><p>Check the zoning and the building permit (PBG)</p></li><li><p>Use an independent notary (PPAT)</p></li><li><p>Confirm the extension terms of any lease in writing</p></li></ul><p></p>",
                         "cover": null,
                         "topics": [
-                            19
+                            {
+                                "term": "topics/buying-guides"
+                            }
                         ],
                         "excerpt": "Leasehold, Hak Pakai or a PT PMA company? A clear overview of how foreigners can own a home in Bali, and the questions to ask before you sign.",
                         "related": [
-                            10,
-                            13,
-                            18
+                            {
+                                "entry": "properties/villa-arunika-pererenan"
+                            },
+                            {
+                                "entry": "properties/sayan-ridge-villa-ubud"
+                            },
+                            {
+                                "entry": "properties/rice-field-land-in-pererenan-1200-m2"
+                            }
                         ],
-                        "author_agent": 2
+                        "author_agent": {
+                            "entry": "agents/rafael-hartono"
+                        }
                     },
                     "published": true
                 },
@@ -5013,14 +5548,22 @@
                         "body": "<p>Ten years ago I came to Ubud for a fortnight. I am still here, and I still find new paths through the rice fields.</p><h2>Mornings</h2><p>The day starts early: offerings on every doorstep, the market at Pasar Ubud, coffee before the heat.</p><h2>The seasons</h2><p>From November to March the afternoons bring heavy rain and the valleys turn an impossible green. A good roof and a covered terrace matter more than a big pool.</p><h3>Three things I wish I had known</h3><ul><li><p>Choose a home within ten minutes of a main road</p></li><li><p>Visit a plot in the rainy season before you buy</p></li><li><p>Learn some Bahasa Indonesia: it opens every door</p></li></ul><p></p>",
                         "cover": null,
                         "topics": [
-                            20
+                            {
+                                "term": "topics/living"
+                            }
                         ],
                         "excerpt": "Maarten de Vries on what daily life in Ubud is really like, from the morning market to the rainy-season afternoons.",
                         "related": [
-                            13,
-                            19
+                            {
+                                "entry": "properties/sayan-ridge-villa-ubud"
+                            },
+                            {
+                                "entry": "properties/riverside-land-near-ubud-2500-m2"
+                            }
                         ],
-                        "author_agent": 4
+                        "author_agent": {
+                            "entry": "agents/maarten-de-vries"
+                        }
                     },
                     "published": true
                 }
@@ -5040,15 +5583,25 @@
                         "body": "<p>Most landlords in Jakarta expect rent to be paid one or two years in advance. That surprises many newcomers, so it is worth planning for early.</p><h2>The usual terms</h2><ul><li><p>Minimum lease of one or two years</p></li><li><p>Rent paid in advance, plus a security deposit</p></li><li><p>Landlord responsible for structural repairs; tenant for day-to-day maintenance</p></li></ul><h2>Choosing the area</h2><p>Kemang suits families who like cafés and walking; Pondok Indah offers larger gardens, the golf course and the hospital.</p>",
                         "cover": null,
                         "topics": [
-                            19,
-                            20
+                            {
+                                "term": "topics/buying-guides"
+                            },
+                            {
+                                "term": "topics/living"
+                            }
                         ],
                         "excerpt": "From lease terms and advance payments to who fixes the pump: a guide for families relocating to Kemang and Pondok Indah.",
                         "related": [
-                            14,
-                            16
+                            {
+                                "entry": "properties/pondok-indah-golf-view-family-home"
+                            },
+                            {
+                                "entry": "properties/kemang-townhouse-for-lease"
+                            }
                         ],
-                        "author_agent": 3
+                        "author_agent": {
+                            "entry": "agents/sekar-ayuningtyas"
+                        }
                     },
                     "published": true
                 }
@@ -5068,13 +5621,29 @@
                         "body": "<p>We are delighted to announce the opening of our new office in Berawa, Canggu, led by Rafael Hartono.</p><h2>Why Canggu</h2><p>More than half of our Bali enquiries now concern Canggu, Pererenan and Seminyak. Being on the spot means faster viewings and better local knowledge.</p><p>Drop by for a coffee: Jalan Pantai Berawa No. 12, open Monday to Saturday, 9:00 to 18:00.</p>",
                         "cover": null,
                         "topics": [
-                            21
+                            {
+                                "term": "topics/company-news"
+                            }
                         ],
                         "excerpt": "Our second Bali office, on Jalan Pantai Berawa, brings our villa and land team closer to the clients and properties of the west coast.",
                         "related": [
-                            21
+                            {
+                                "entry": "properties/berawa-boutique-retail-space"
+                            }
                         ],
-                        "author_agent": 2
+                        "author_agent": {
+                            "entry": "agents/rafael-hartono"
+                        }
+                    },
+                    "published": true
+                },
+                "id": {
+                    "title": "Lumina Estates membuka kantor baru di Canggu",
+                    "slug": "lumina-estates-membuka-kantor-baru-di-canggu",
+                    "data": {
+                        "seo": null,
+                        "body": "<p>Dengan gembira kami mengumumkan pembukaan kantor baru kami di Berawa, Canggu, yang dipimpin oleh Rafael Hartono.</p><h2>Mengapa Canggu</h2><p>Lebih dari separuh pertanyaan yang kami terima untuk Bali kini menyangkut Canggu, Pererenan dan Seminyak. Berada di lokasi berarti kunjungan properti yang lebih cepat dan pengetahuan lokal yang lebih baik.</p><p>Mampirlah untuk minum kopi: Jalan Pantai Berawa No. 12, buka Senin sampai Sabtu, pukul 09.00 sampai 18.00.</p>",
+                        "excerpt": "Kantor kedua kami di Bali, di Jalan Pantai Berawa, mendekatkan tim vila dan tanah kami kepada klien dan properti di pesisir barat."
                     },
                     "published": true
                 }
@@ -5094,13 +5663,47 @@
                         "body": "<p>Many leasehold villas in Bali were built on 25-year leases signed in the early 2000s. Those terms are now ending, and renewal is rarely as simple as a signature.</p><h2>Check these five points</h2><ol><li><p>The exact end date and any notice period in the original lease</p></li><li><p>Whether the extension price was fixed in advance</p></li><li><p>Who owns the buildings when the lease ends</p></li><li><p>Changes in zoning since the villa was built</p></li><li><p>The landowner family&#039;s current heirs and their consent</p></li></ol><p>If in doubt, ask a notary to review the original deed before you open negotiations.</p>",
                         "cover": null,
                         "topics": [
-                            19
+                            {
+                                "term": "topics/buying-guides"
+                            }
                         ],
                         "excerpt": "Lease renewals are where many Bali villa owners lose value. Five points to agree in writing before the current term runs out.",
                         "related": [
-                            20
+                            {
+                                "entry": "properties/seminyak-beachside-villa"
+                            }
                         ],
-                        "author_agent": 2
+                        "author_agent": {
+                            "entry": "agents/rafael-hartono"
+                        }
+                    },
+                    "published": true
+                }
+            }
+        },
+        {
+            "collection": "pages",
+            "slug": "our-story",
+            "parent": "about",
+            "template": null,
+            "translations": {
+                "en": {
+                    "title": "Our story",
+                    "slug": "our-story",
+                    "data": {
+                        "seo": null,
+                        "intro": "From a two-person office in Kemang in 2014 to a team of twelve in Jakarta and Bali.",
+                        "sections": [
+                            {
+                                "id": "01M5D5A4B42AV0KCRVC2EWZJY0",
+                                "key": null,
+                                "type": "rich_text",
+                                "hidden": false,
+                                "values": {
+                                    "body": "<h2>How we started</h2><p>Anindya Wirawan opened Lumina Estates in a small office on Jalan Kemang Raya in 2014 with one conviction: that people buying or renting an exceptional home deserve an adviser, not a salesperson.</p><h2>Growing with our clients</h2><p>Our first Bali clients were Jakarta families looking for a second home. In 2017 Rafael Hartono joined to lead our villa and land work, and in 2026 we opened our office in Berawa.</p><h2>What has not changed</h2><ul><li><p>We take on fewer listings so we can do each one properly</p></li><li><p>We tell clients what we would do in their place</p></li><li><p>We stay in touch long after the keys are handed over</p></li></ul><p></p>"
+                                }
+                            }
+                        ]
                     },
                     "published": true
                 }
@@ -5187,10 +5790,18 @@
                                 "values": {
                                     "heading": "Featured homes",
                                     "properties": [
-                                        10,
-                                        11,
-                                        12,
-                                        13
+                                        {
+                                            "entry": "properties/villa-arunika-pererenan"
+                                        },
+                                        {
+                                            "entry": "properties/kemang-garden-house"
+                                        },
+                                        {
+                                            "entry": "properties/menteng-heritage-residence"
+                                        },
+                                        {
+                                            "entry": "properties/sayan-ridge-villa-ubud"
+                                        }
                                     ]
                                 }
                             },
@@ -5212,10 +5823,18 @@
                                 "hidden": false,
                                 "values": {
                                     "agents": [
-                                        1,
-                                        3,
-                                        2,
-                                        4
+                                        {
+                                            "entry": "agents/anindya-wirawan"
+                                        },
+                                        {
+                                            "entry": "agents/sekar-ayuningtyas"
+                                        },
+                                        {
+                                            "entry": "agents/rafael-hartono"
+                                        },
+                                        {
+                                            "entry": "agents/maarten-de-vries"
+                                        }
                                     ],
                                     "heading": "Meet our advisers"
                                 }
@@ -5228,9 +5847,15 @@
                                 "values": {
                                     "heading": "What our clients say",
                                     "testimonials": [
-                                        27,
-                                        26,
-                                        28
+                                        {
+                                            "entry": "testimonials/claire-tom-whitfield-pererenan"
+                                        },
+                                        {
+                                            "entry": "testimonials/hendrawan-family-kemang"
+                                        },
+                                        {
+                                            "entry": "testimonials/ibu-ratna-sumarno-menteng"
+                                        }
                                     ]
                                 }
                             },
@@ -5453,34 +6078,6 @@
                                 "hidden": false,
                                 "values": {
                                     "body": "<p>Whether you are buying your first villa in Bali, selling a family home in Menteng or relocating to Jakarta, we guide you through every step with clear advice and trusted partners.</p>"
-                                }
-                            }
-                        ]
-                    },
-                    "published": true
-                }
-            }
-        },
-        {
-            "collection": "pages",
-            "slug": "our-story",
-            "parent": "about",
-            "template": null,
-            "translations": {
-                "en": {
-                    "title": "Our story",
-                    "slug": "our-story",
-                    "data": {
-                        "seo": null,
-                        "intro": "From a two-person office in Kemang in 2014 to a team of twelve in Jakarta and Bali.",
-                        "sections": [
-                            {
-                                "id": "01M5D5A4B42AV0KCRVC2EWZJY0",
-                                "key": null,
-                                "type": "rich_text",
-                                "hidden": false,
-                                "values": {
-                                    "body": "<h2>How we started</h2><p>Anindya Wirawan opened Lumina Estates in a small office on Jalan Kemang Raya in 2014 with one conviction: that people buying or renting an exceptional home deserve an adviser, not a salesperson.</p><h2>Growing with our clients</h2><p>Our first Bali clients were Jakarta families looking for a second home. In 2017 Rafael Hartono joined to lead our villa and land work, and in 2026 we opened our office in Berawa.</p><h2>What has not changed</h2><ul><li><p>We take on fewer listings so we can do each one properly</p></li><li><p>We tell clients what we would do in their place</p></li><li><p>We stay in touch long after the keys are handed over</p></li></ul><p></p>"
                                 }
                             }
                         ]
