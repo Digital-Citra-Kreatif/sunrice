@@ -186,7 +186,9 @@ it('orders entries, terms and menu items', function () {
     $editor = cmsAgent(['cms.entries.view', 'cms.entries.update', 'cms.terms.manage', 'cms.menus.view', 'cms.menus.update']);
 
     expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2]]]))->toContain('permission to order entries')
-        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2], $ids[0]]]))->toBe(['saved' => true, 'order' => [$ids[2], $ids[0], $ids[1]]])
+        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2], $ids[0]]]))->toBe(['saved' => true, 'changed' => true, 'order' => [$ids[2], $ids[0], $ids[1]]])
+        // The order it already has: nothing changes, nothing is logged.
+        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2]]]))->toBe(['saved' => true, 'changed' => false, 'order' => [$ids[2], $ids[0], $ids[1]]])
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[0], $ids[0]]]))->toContain('each entry id once')
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$this->hello->entry_id]]))->toContain('Not entries of this collection')
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'blog', 'ids' => [$this->hello->entry_id]]))->toContain('Manual order')
@@ -195,13 +197,16 @@ it('orders entries, terms and menu items', function () {
     $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     $terms = collect(['News', 'Tips'])->map(fn (string $t) => cmsTool($editor, 'cms_save_term', ['taxonomy' => 'tags', 'title' => $t])['id'])->all();
     expect(cmsTool($editor, 'cms_reorder', ['type' => 'terms', 'in' => 'tags', 'ids' => [$terms[1]]])['order'])->toBe([$terms[1], $terms[0]])
+        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'terms', 'in' => 'tags', 'ids' => [$terms[1], $terms[0]]])['changed'])->toBeFalse()
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'terms', 'in' => 'tags', 'ids' => [$terms[0]], 'parent_id' => $terms[1]]))->toContain('no parents');
 
     $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
     app(SaveMenu::class)->handle($menu, [['url' => '/a', 'labels' => ['en' => 'A']], ['url' => '/b', 'labels' => ['en' => 'B']]]);
     $items = $menu->items()->pluck('id')->all();
     expect(cmsTool($editor, 'cms_reorder', ['type' => 'menu_items', 'in' => 'main', 'ids' => [$items[1], $items[0]]])['order'])->toBe([$items[1], $items[0]])
-        ->and(array_column(app(Menus::class)->get('main', 'en'), 'label'))->toBe(['B', 'A']);
+        ->and(array_column(app(Menus::class)->get('main', 'en'), 'label'))->toBe(['B', 'A'])
+        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'menu_items', 'in' => 'main', 'ids' => [$items[1]]])['changed'])->toBeFalse()
+        ->and(Activity::query()->where('action', 'reordered')->count())->toBe(3);
 });
 
 it('reads and saves listing pages', function () {

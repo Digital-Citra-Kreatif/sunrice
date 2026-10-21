@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- `ReorderEntries`, `ReorderTerms` and `ReorderMenuItems` return whether the order changed (were `void`) and write and log nothing when it didn't; `cms_reorder` returns `changed` and its description says a short list moves just those ids to the front (partial lists stay allowed). A single `entries` field takes `[]` as well as `null` to clear it (`[]` was refused as "must be an integer"). (AI-5)
 - `cms_seo_audit` judges what a page's head shows (`Seo::for()`): the title with the site name ("Hello | Acme"), the homepage's, and descriptions and images from SEO from fields, instead of the entry's title and SEO card alone; it returns each page's `meta_title`, and says thin content may be fine for a page that is mostly a form. (AI-4)
 - The AI access page says what a full token could do as you: the new-token dialog lists your privileged permissions (or that you're a super admin) and suggests read-only or a short expiry (`risks` prop), and the page says read-only tokens still read personal data such as users' emails and form submissions. `cms_write_template` is listed only to super admins on sites that allow it (`sunrice-cms.ai.templates`), and `cms_get_template_guide` says why not (`write_note`). (AI-2, AI-3)
 - **The login code email no longer has the code in its subject** (shown on locked phones' notifications): only in the body, unless `sunrice-admin.auth.two_factor_code_in_subject` (`SUNRICE_LOGIN_CODE_IN_SUBJECT`) is `true`. (SEC-11)
