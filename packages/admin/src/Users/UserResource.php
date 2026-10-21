@@ -8,6 +8,8 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Traits\HasRoles;
@@ -19,6 +21,7 @@ use Sunrice\Admin\Auth\LoginThrottle;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
+use Sunrice\Admin\Resources\Forms\Field;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Password;
 use Sunrice\Admin\Resources\Forms\Section;
@@ -42,9 +45,8 @@ use Sunrice\Admin\Support\Card;
  * password; nobody can delete their own account or change their own
  * roles here.
  *
- * Deleting a user goes through DeleteUser: the row's Delete asks what
- * happens to what they own; the edit page's and bulk delete keep it
- * without an owner.
+ * Deleting a user goes through DeleteUser: the row's, the edit page's
+ * and bulk Delete ask what happens to what they own.
  *
  * Extend it to change the form or the list, and register yours with
  * `$panel->userResource(MyUserResource::class)`.
@@ -104,7 +106,7 @@ class UserResource extends Resource
             Section::make('Account')->columns(2)->schema([
                 TextInput::make('name')->required(),
                 TextInput::make('email')->email()->required()->unique(),
-                Password::make('password')->required()->span(2)
+                Password::make('password')->required()->confirmed()->span(2)
                     ->help('When editing, leave it empty to keep the current password.'),
             ]),
             Section::make('Roles')->description('What the user may do in the panel. You can give out roles with less access than yours, and together they must leave the user with less than yours.')->schema([
@@ -162,13 +164,15 @@ class UserResource extends Resource
                         return 'Account unlocked.';
                     }),
                 static::deleteAction(),
+                static::bulkDeleteAction(),
             ])
             ->defaultSort('name');
     }
 
     /**
      * The Security card: lock state, wrong-password lock, sign-outs, AI
-     * tokens, the last login and the latest security events. Four queries.
+     * tokens, the last login, what they own and the latest security
+     * events. Four queries, and one per kind of content users own.
      */
     public static function aside(Model $record, Authorizable $user): array
     {
@@ -198,6 +202,8 @@ class UserResource extends Resource
             'Last login' => $lastLogin === null ? 'No login recorded' : ($lastLogin->created_at?->toDayDateTimeString() ?? '').($lastLogin->ip_address === null ? '' : ' from '.$lastLogin->ip_address),
             'AI access tokens' => AiToken::query()->where('user_id', $id)->count(),
             'Signed out everywhere' => $state?->signed_out_at,
+            // What deleting them would deal with (one count query per kind registered).
+            ...(app(DeleteUser::class)->labels() === [] ? [] : ['Owns' => self::owned(app(DeleteUser::class)->counts($record)) ?: 'Nothing']),
         ]);
         $card->list('Latest security events', $events->map(fn (Activity $event) => [
             'label' => Str::ucfirst($event->action),
@@ -219,36 +225,86 @@ class UserResource extends Resource
         return [$card];
     }
 
-    /** The row's Delete: it replaces the built-in one to ask what happens to what the user owns. */
+    /**
+     * The row's (and the edit page's) Delete: it replaces the built-in one
+     * to ask what happens to what the user owns.
+     */
     protected static function deleteAction(): Action
     {
         $owned = app(DeleteUser::class)->labels();
 
         return Action::make('delete')->label('Delete…')->ability('delete')->destructive()
             ->confirm('Delete this user? This can\'t be undone.'.($owned === [] ? '' : ' Choose what happens to their '.self::list($owned).'.'))
-            ->form(
-                Select::make('content')->label('Their content')->required()->default(DeleteUser::KEEP)->options([
-                    DeleteUser::REASSIGN => 'Give it to another user',
-                    DeleteUser::KEEP => 'Keep it, without an owner',
-                    DeleteUser::DELETE => 'Delete it (entries and comments go to the trash; uploads stay)',
-                ]),
-                Select::make('heir')->label('Give it to')->options(static fn (): array => static::heirs())
-                    ->help('Only when giving their content to another user.'),
-            )
+            ->form(...static::deleteFields())
             ->handle(function (Model $user, array $input): string {
-                $heir = isset($input['heir']) && is_scalar($input['heir']) ? static::model()::query()->find($input['heir']) : null;
-                $mode = is_string($input['content'] ?? null) ? $input['content'] : DeleteUser::KEEP;
+                [$mode, $heir] = static::deleteChoice($input);
                 $counts = app(DeleteUser::class)->handle($user, $mode, $heir);
-                $what = self::list(array_map(fn (int $count, string $label) => $count.' '.($count === 1 ? Str::singular($label) : $label), $counts, array_keys($counts)));
-                $heirName = $heir instanceof Model ? static::title($heir) : '';
 
-                return static::title($user).' deleted.'.match (true) {
-                    $what === '' => '',
-                    $mode === DeleteUser::REASSIGN => " Their {$what} went to {$heirName}.",
-                    $mode === DeleteUser::DELETE => " Their {$what} got deleted".(isset($counts['uploads']) ? ', apart from uploads, which stay without an uploader.' : '.'),
-                    default => " Their {$what} have no owner now.",
-                };
+                return static::title($user).' deleted.'.static::deletedContent($counts, $mode, $heir);
             });
+    }
+
+    /** Bulk Delete: the same question, for every selected user. */
+    protected static function bulkDeleteAction(): Action
+    {
+        $owned = app(DeleteUser::class)->labels();
+
+        return Action::bulk('delete')->label('Delete…')->ability('delete')->destructive()
+            ->confirm('Delete the selected users? This can\'t be undone.'.($owned === [] ? '' : ' Choose what happens to their '.self::list($owned).'.'))
+            ->form(...static::deleteFields())
+            ->handle(function (SupportCollection $users, array $input): string {
+                [$mode, $heir] = static::deleteChoice($input);
+                $counts = [];
+                DB::transaction(function () use ($users, $mode, $heir, &$counts): void {
+                    foreach ($users as $user) {
+                        foreach (app(DeleteUser::class)->handle($user, $mode, $heir) as $label => $count) {
+                            $counts[$label] = ($counts[$label] ?? 0) + $count;
+                        }
+                    }
+                });
+
+                return $users->count().' '.Str::plural('user', $users->count()).' deleted.'.static::deletedContent($counts, $mode, $heir);
+            });
+    }
+
+    /** @return list<Field> what the Delete dialogs ask */
+    protected static function deleteFields(): array
+    {
+        return [
+            Select::make('content')->label('Their content')->required()->default(DeleteUser::KEEP)->options([
+                DeleteUser::REASSIGN => 'Give it to another user',
+                DeleteUser::KEEP => 'Keep it, without an owner',
+                DeleteUser::DELETE => 'Delete it (entries and comments go to the trash; uploads stay)',
+            ]),
+            Select::make('heir')->label('Give it to')->options(static fn (): array => static::heirs())
+                ->help('Only when giving their content to another user.'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array{string, ?Model} the mode and, when reassigning, the heir
+     */
+    protected static function deleteChoice(array $input): array
+    {
+        $heir = isset($input['heir']) && is_scalar($input['heir']) ? static::model()::query()->find($input['heir']) : null;
+        $mode = is_string($input['content'] ?? null) ? $input['content'] : DeleteUser::KEEP;
+
+        return [$mode, $heir instanceof Model ? $heir : null];
+    }
+
+    /** @param array<string, int> $counts */
+    protected static function deletedContent(array $counts, string $mode, ?Model $heir): string
+    {
+        $what = self::owned($counts);
+        $heirName = $heir instanceof Model ? static::title($heir) : '';
+
+        return match (true) {
+            $what === '' => '',
+            $mode === DeleteUser::REASSIGN => " Their {$what} went to {$heirName}.",
+            $mode === DeleteUser::DELETE => " Their {$what} got deleted".(isset($counts['uploads']) ? ', apart from uploads, which stay without an uploader.' : '.'),
+            default => " Their {$what} have no owner now.",
+        };
     }
 
     public static function deleteRecord(Model $record): void
@@ -395,6 +451,16 @@ class UserResource extends Resource
         }
 
         return array_values(array_filter($models->map(fn (Model $m) => $m->getAttribute('name'))->all(), 'is_string'));
+    }
+
+    /**
+     * "2 uploads and 1 entry".
+     *
+     * @param  array<string, int>  $counts  label => count
+     */
+    private static function owned(array $counts): string
+    {
+        return self::list(array_map(fn (int $count, string $label) => $count.' '.($count === 1 ? Str::singular($label) : $label), $counts, array_keys($counts)));
     }
 
     /**

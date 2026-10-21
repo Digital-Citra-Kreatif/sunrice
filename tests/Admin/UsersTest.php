@@ -98,7 +98,7 @@ it('creates users with a hashed password and roles, and keeps the password unles
     get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'password'))->toMatchArray(['type' => 'password', 'required' => true])
         ->and(collect(formField($page, 'roles')['options'])->pluck('value')->all())->toBe(['boss', 'editor', 'manager', 'super-admin']));
 
-    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'roles' => ['editor']])->assertRedirect();
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password', 'roles' => ['editor']])->assertRedirect();
     $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
     expect(Hash::check('a-long-password', $dewi->password))->toBeTrue()
         ->and($dewi->getRoleNames()->all())->toBe(['editor']);
@@ -114,7 +114,7 @@ it('creates users with a hashed password and roles, and keeps the password unles
         ->and(Hash::check('a-long-password', $dewi->password))->toBeTrue()
         ->and($dewi->getRoleNames()->sort()->values()->all())->toBe(['editor', 'manager']);
 
-    put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => 'another-password', 'roles' => []]);
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => 'another-password', 'password_confirmation' => 'another-password', 'roles' => []]);
     expect(Hash::check('another-password', $dewi->fresh()->password))->toBeTrue()
         ->and($dewi->fresh()->getRoleNames()->all())->toBe([]);
 
@@ -362,4 +362,62 @@ it('shows the wrong-password lock on the Security card', function () {
         ->where('aside.0.blocks.0.text', 'Locked after too many wrong passwords')
         ->where('aside.0.blocks.0.tone', 'warning')
         ->where('aside.0.blocks.1.rows.0', ['label' => 'Last login', 'value' => 'No login recorded', 'type' => 'text']));
+});
+
+it('asks what happens to a user\'s content on the edit page and in bulk too', function () {
+    actingAs($this->super);
+    $photo = fn (User $user) => Media::query()->create(['disk' => 'public', 'path' => uniqid().'.jpg', 'filename' => 'x.jpg', 'mime_type' => 'image/jpeg', 'size' => 1, 'sizes' => [], 'version' => 1, 'uploaded_by' => (string) $user->id]);
+    $photo($this->editor);
+    $photo($this->manager);
+    $photo($this->manager);
+
+    // The edit page's Delete is the row's, with its questions.
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('deleteAction.key', 'delete')
+        ->where('deleteAction.fields.0.name', 'content')
+        ->where('deleteAction.fields.1.name', 'heir'));
+    get("/admin/users/{$this->super->id}/edit")->assertInertia(fn (Assert $page) => $page->where('deleteAction', null));
+
+    // Run from the edit page, it goes back to the list: the page is gone.
+    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign', 'heir' => $this->boss->id], ['Referer' => url("/admin/users/{$this->editor->id}/edit")])
+        ->assertRedirect('/admin/users')->assertSessionHas('success', 'Editor deleted. Their 1 upload went to Boss.');
+    expect(Media::query()->where('uploaded_by', (string) $this->boss->id)->count())->toBe(1);
+
+    // Bulk: the resource's own Delete replaces the built-in one.
+    get('/admin/users')->assertInertia(fn (Assert $page) => $page
+        ->where('bulkActions', fn ($actions) => collect($actions)->where('key', 'delete')->count() === 1
+            && collect($actions)->firstWhere('key', 'delete')['fields'][0]['name'] === 'content'));
+    $other = person('Other', 'editor');
+    post('/admin/users/bulk/delete', ['ids' => [$this->manager->id, $other->id], 'content' => 'reassign', 'heir' => $this->boss->id])
+        ->assertSessionHas('success', '2 users deleted. Their 2 uploads went to Boss.');
+    expect(User::query()->whereKey([$this->manager->id, $other->id])->count())->toBe(0)
+        ->and(Media::query()->where('uploaded_by', (string) $this->boss->id)->count())->toBe(3);
+    post('/admin/users/bulk/delete', ['ids' => [$this->boss->id], 'content' => 'reassign', 'heir' => $this->boss->id])->assertSessionHas('error');
+    post('/admin/users/bulk/delete', ['ids' => [$this->super->id], 'content' => 'keep'])->assertForbidden();
+    expect($this->boss->fresh())->not->toBeNull();
+});
+
+it('shows on the Security card what the user owns', function () {
+    actingAs($this->super);
+    Media::query()->create(['disk' => 'public', 'path' => 'a.jpg', 'filename' => 'a.jpg', 'mime_type' => 'image/jpeg', 'size' => 1, 'sizes' => [], 'version' => 1, 'uploaded_by' => (string) $this->editor->id]);
+
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('aside.0.blocks', fn ($blocks) => collect(collect($blocks)->firstWhere('type', 'rows')['rows'])->firstWhere('label', 'Owns')['value'] === '1 upload'));
+    get("/admin/users/{$this->manager->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('aside.0.blocks', fn ($blocks) => collect(collect($blocks)->firstWhere('type', 'rows')['rows'])->firstWhere('label', 'Owns')['value'] === 'Nothing'));
+});
+
+it('asks for a new password twice, unless it is left empty when editing', function () {
+    actingAs($this->super);
+    get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'password'))->toMatchArray(['confirmed' => true]));
+
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-passw0rd', 'roles' => []])
+        ->assertSessionHasErrors('password');
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password', 'roles' => []])
+        ->assertSessionHasNoErrors();
+    $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
+
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'roles' => []])->assertSessionHasNoErrors();
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'new-long-password', 'roles' => []])->assertSessionHasErrors('password');
+    expect(Hash::check('a-long-password', $dewi->fresh()->password))->toBeTrue();
 });

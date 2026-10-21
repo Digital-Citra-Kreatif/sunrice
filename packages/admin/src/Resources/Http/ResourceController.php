@@ -88,7 +88,8 @@ final class ResourceController
             'filters' => array_map(fn (Filter $filter) => $filter->toArray(), $table->getFilters()),
             'rowActions' => array_map(fn (Action $action) => $action->toArray(), $rowActions),
             'bulkActions' => [
-                ...($resource->allows($user, 'delete') ? [['key' => 'delete', 'label' => 'Delete', 'confirm' => 'Delete the selected records? This can\'t be undone.', 'destructive' => true]] : []),
+                // A bulk action keyed "delete" replaces the built-in one.
+                ...($resource->allows($user, 'delete') && $this->customAction($resource, 'delete', bulk: true) === null ? [['key' => 'delete', 'label' => 'Delete', 'confirm' => 'Delete the selected records? This can\'t be undone.', 'destructive' => true, 'fields' => []]] : []),
                 ...array_map(fn (Action $action) => $action->toArray(), $bulkActions),
             ],
             'can' => ['create' => $resource->allows($user, 'create'), 'export' => $table->isExportable() && $resource->allows($user, 'export')],
@@ -177,12 +178,19 @@ final class ResourceController
         $user = $this->authorize($request, $resource, $definition->getAbility(), $model);
         abort_unless($definition->isVisibleFor($model) && $definition->allows($user, $model), 403);
 
-        return $this->run(function () use ($definition, $model, $resource, $request): ?string {
+        $editPage = route("sunrice.admin.resources.{$resource->key()}.edit", $record);
+        $response = $this->run(function () use ($definition, $model, $resource, $request): ?string {
             $message = $definition->run($model, $request->all());
             $this->activity->record($definition->key === 'delete' ? 'deleted' : $definition->key, $resource->key(), $model, $resource->class::title($model));
 
             return $message;
         });
+        // Run from the edit page of a record that is gone now (a Delete): back to the list.
+        if (url()->previous() === $editPage && ! $this->query($resource, false)->whereKey($record)->exists()) {
+            return redirect()->route("sunrice.admin.resources.{$resource->key()}.index"); // the message is flashed already
+        }
+
+        return $response;
     }
 
     public function bulk(Request $request, string $action): RedirectResponse
@@ -193,7 +201,7 @@ final class ResourceController
         $ids = array_values(array_filter((array) $request->input('ids'), fn (mixed $id) => is_int($id) || is_string($id)));
 
         // Only records the resource can reach, and only if the user may act on each.
-        $definition = $action === 'delete' ? null : $this->findAction($resource, $action, bulk: true);
+        $definition = $action === 'delete' ? $this->customAction($resource, 'delete', bulk: true) : $this->findAction($resource, $action, bulk: true);
         $records = $this->query($resource, $definition?->isForTrashed() ?? false)->whereKey($ids)->get();
         if ($definition?->isForTrashed() === true) {
             $records = $records->filter(fn (Model $record): bool => $definition->isVisibleFor($record))->values();
@@ -216,7 +224,7 @@ final class ResourceController
 
         return $this->run(function () use ($definition, $records, $resource, $request): ?string {
             $message = $definition->run($records, $request->all());
-            $records->each(fn (Model $record) => $this->activity->record($definition->key, $resource->key(), $record, $resource->class::title($record)));
+            $records->each(fn (Model $record) => $this->activity->record($definition->key === 'delete' ? 'deleted' : $definition->key, $resource->key(), $record, $resource->class::title($record)));
 
             return $message;
         });
@@ -289,6 +297,8 @@ final class ResourceController
             'sections' => $sections,
             'values' => $values,
             'can' => ['delete' => $record !== null && $resource->allows($this->user(), 'delete', $record)],
+            // A row action keyed "delete" (with its questions) is the edit page's Delete too.
+            'deleteAction' => $this->deleteAction($resource, $record)?->toArray(),
             'aside' => $record === null ? [] : array_map(fn (Card $card) => $card->toArray(), $resource->class::aside($record, $this->user())),
         ]);
     }
@@ -329,6 +339,29 @@ final class ResourceController
         $query = $resource->class::query();
 
         return $trashed ? $query->withoutGlobalScope(SoftDeletingScope::class) : $query;
+    }
+
+    /** The row action keyed "delete", when the user may run it on this record. */
+    private function deleteAction(RegisteredResource $resource, ?Model $record): ?Action
+    {
+        $action = $record === null ? null : $this->customAction($resource, 'delete', bulk: false);
+        if ($action === null || $action->isUrl()) {
+            return null;
+        }
+        $user = $this->user();
+
+        return $action->isVisibleFor($record) && $resource->allows($user, $action->getAbility(), $record) && $action->allows($user, $record) ? $action : null;
+    }
+
+    private function customAction(RegisteredResource $resource, string $key, bool $bulk): ?Action
+    {
+        foreach ($resource->table()->getActions() as $action) {
+            if ($action->key === $key && $action->isBulk === $bulk) {
+                return $action;
+            }
+        }
+
+        return null;
     }
 
     private function findAction(RegisteredResource $resource, string $key, bool $bulk): Action

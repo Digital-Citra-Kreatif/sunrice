@@ -11,6 +11,7 @@ use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Password;
+use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Settings\SettingsStore;
 use Sunrice\Tests\Admin\Fixtures\Currency;
@@ -203,11 +204,11 @@ it('announces what changed when settings are saved in code, as the screen does',
 });
 
 it('answers a save with the saved values, which the form starts again from', function () {
-    app(\Sunrice\Admin\Security\SecuritySettings::class)->fill(['twoFactor' => true])->save();
+    app(SecuritySettings::class)->fill(['twoFactor' => true])->save();
     actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.security'));
 
     put('/admin/settings/security', ['twoFactor' => false], ['X-Inertia' => 'true', 'Referer' => url('/admin/settings/security')])
         ->assertRedirect('/admin/settings/security');
     get('/admin/settings/security')->assertInertia(fn (Assert $page) => $page->where('values.twoFactor', false));
-    expect(app(\Sunrice\Admin\Security\SecuritySettings::class)->twoFactor)->toBeFalse();
+    expect(app(SecuritySettings::class)->twoFactor)->toBeFalse();
 });

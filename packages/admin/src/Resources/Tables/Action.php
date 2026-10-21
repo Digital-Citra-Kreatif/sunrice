@@ -40,7 +40,8 @@ use Sunrice\Admin\Resources\Forms\Field;
  *         ->authorize(fn (User $user, Order $order) => $user->can('shop.orders.invoice'));
  *
  * A row action with the key "delete" replaces the built-in Delete in the
- * row's menu. A handler may return a message to show, and may throw
+ * row's menu and on the edit page; a bulk action with the key "delete"
+ * replaces the built-in bulk Delete. A handler may return a message to show, and may throw
  * ActionFailed with one to show as an error.
  *
  * @api

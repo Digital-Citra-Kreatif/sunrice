@@ -2,7 +2,7 @@
 
 The panel comes with two screens under **Administration**, built as [resources](resources.md):
 
-- **Users**: the users of the panel's guard (`config/auth.php`), with name, email, a new password (hashed; leave it empty when editing to keep the current one) and roles.
+- **Users**: the users of the panel's guard (`config/auth.php`), with name, email, a new password typed twice (hashed; leave it empty when editing to keep the current one) and roles.
 - **Roles**: the roles of the panel's guard and their permissions, grouped as the panel and its plugins register them (see [Roles and permissions](permissions.md)).
 
 Their permissions are `sunrice.users.view`, `.create`, `.update`, `.delete` and `sunrice.roles.view` … Give them to the roles that should manage people; super admins have them anyway.
@@ -33,13 +33,13 @@ app(PermissionRank::class)->isStrictlyBelow($admin, $permissions); // all theirs
 
 ## Deleting a user
 
-What a user made shouldn't point at someone who is gone. The row's **Delete…** on the Users screen asks what happens to it:
+What a user made shouldn't point at someone who is gone. **Delete…** on the Users screen (in the row's menu, on the edit page and for the selected users) asks what happens to it:
 
 - **Give it to another user**: their content moves to the user you pick.
 - **Keep it, without an owner** (the default): it stays, with no author or uploader.
 - **Delete it**: each kind decides what that means. Uploads stay without an uploader, since other content may use them; the CMS moves their entries and comments to the trash.
 
-The edit page's delete button and deleting several users at once keep the content without an owner. Either way the user's AI access tokens, lock state and kept edits go with them, and roles are detached.
+The user's Security card says what they own ("Owns: 3 uploads and 12 entries"). Either way the user's AI access tokens, lock state and kept edits go with them, and roles are detached.
 
 In code, `Sunrice\Admin\Actions\Users\DeleteUser` does the same (`REASSIGN`, `KEEP` and `DELETE`); it throws `ActionFailed` when reassigning without another user:
 

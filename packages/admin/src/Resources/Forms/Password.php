@@ -13,11 +13,28 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
  * browser. When editing, leaving it empty keeps the current password, so
  * ->required() applies only when creating. The rules are Laravel's
  * `Password::defaults()` (set them in your app's service provider).
+ * ->confirmed() asks for it twice: the form shows a second input, sent as
+ * "{name}_confirmation", which must match (not when it's left empty).
  *
  * @api
  */
 final class Password extends Field
 {
+    private bool $confirmed = false;
+
+    /** Ask for it twice, so a typo doesn't lock anyone out. */
+    public function confirmed(bool $confirmed = true): self
+    {
+        $this->confirmed = $confirmed;
+
+        return $this;
+    }
+
+    public function isConfirmed(): bool
+    {
+        return $this->confirmed;
+    }
+
     public function type(): string
     {
         return 'password';
@@ -47,6 +64,11 @@ final class Password extends Field
 
     protected function typeRules(): array
     {
-        return ['string', 'max:255', PasswordRule::default()];
+        return ['string', 'max:255', PasswordRule::default(), ...($this->confirmed ? ['confirmed'] : [])];
+    }
+
+    protected function props(): array
+    {
+        return ['confirmed' => $this->confirmed];
     }
 }

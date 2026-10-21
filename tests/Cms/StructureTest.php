@@ -18,6 +18,7 @@ use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Settings\SiteSettings;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -135,7 +136,7 @@ it('serves a homepage saved in code (a seeder) at once', function () {
     $home = structurePage('Welcome');
     get('/')->assertNotFound();
 
-    $settings = app(\Sunrice\Cms\Settings\SiteSettings::class);
+    $settings = app(SiteSettings::class);
     $settings->homepage = $home->id;
     $settings->save();
 

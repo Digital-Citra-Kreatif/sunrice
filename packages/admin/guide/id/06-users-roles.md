@@ -9,7 +9,7 @@ Daftar **Users** menampilkan nama, alamat email, peran, apakah akun **Locked** (
 ### Menambahkan orang
 
 1. Klik **New user**.
-2. Di bagian **Account**, ketik **Name**, **Email**, dan **Password** (mereka bisa memilih kata sandi baru nanti lewat *Forgot password?* di layar masuk).
+2. Di bagian **Account**, ketik **Name**, **Email**, dan **Password**, lalu kata sandi yang sama di **Confirm password** (mereka bisa memilih kata sandi baru nanti lewat *Forgot password?* di layar masuk).
 3. Di bagian **Roles**, centang perannya.
 4. Klik **Create user**, lalu beri tahu mereka alamat panel.
 
@@ -17,7 +17,7 @@ Peran yang bisa Anda berikan hanya yang berada di bawah peran Anda sendiri (liha
 
 ### Mengubah data seseorang
 
-Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Password** kosong untuk mempertahankan kata sandi saat ini. Di samping formulir, kartu **Security** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, dan kejadian keamanan terbarunya, dengan **See all in the activity log**.
+Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Password** kosong untuk mempertahankan kata sandi saat ini; kata sandi baru diketik dua kali. Di samping formulir, kartu **Security** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, apa saja miliknya (**Owns**: unggahan, entri…), dan kejadian keamanan terbarunya, dengan **See all in the activity log**.
 
 Setiap orang boleh mengubah nama, email, dan kata sandinya sendiri jika bisa membuka layar Users, tetapi tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
 
@@ -34,7 +34,7 @@ Setiap tindakan ini dicatat sebagai kejadian keamanan di [log aktivitas](guide:p
 
 ## Menghapus pengguna
 
-**Delete…** di menu baris menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
+**Delete…** (di menu baris, tombol tempat sampah di halamannya, atau untuk beberapa pengguna yang dicentang sekaligus) menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
 
 - **Give it to another user**: diberikan kepada pengguna lain, dipilih di **Give it to**.
 - **Keep it, without an owner**: tetap ada tanpa pemilik (pilihan bawaan).
