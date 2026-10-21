@@ -75,3 +75,60 @@ it('checks conditions in blueprints', function () {
         ->and(fn () => $save(['field' => 'layout', 'operator' => 'like', 'value' => 'x']))->toThrow(ValidationException::class)
         ->and(fn () => $save(['field' => 'layout', 'operator' => 'equals', 'value' => ['x']]))->toThrow(ValidationException::class);
 });
+
+it('shows a field by several rules, all or any of them', function () {
+    $rules = [['field' => 'layout', 'operator' => 'equals', 'value' => 'video'], ['field' => 'featured', 'operator' => 'equals', 'value' => true]];
+    $all = Field::fromArray(['handle' => 'video', 'type' => 'text', 'condition' => ['rules' => $rules]]);
+    $any = Field::fromArray(['handle' => 'video', 'type' => 'text', 'condition' => ['match' => 'any', 'rules' => $rules]]);
+
+    expect($all->conditionMatch())->toBe('all')
+        ->and($all->conditionRules())->toHaveCount(2)
+        ->and($all->isShownWith(['layout' => 'video', 'featured' => true]))->toBeTrue()
+        ->and($all->isShownWith(['layout' => 'video', 'featured' => false]))->toBeFalse()
+        ->and($any->isShownWith(['layout' => 'image', 'featured' => true]))->toBeTrue()
+        ->and($any->isShownWith(['layout' => 'image', 'featured' => false]))->toBeFalse()
+        // Stored as given: the old single rule stays a single rule.
+        ->and($any->toArray()['condition'])->toBe(['match' => 'any', 'rules' => $rules])
+        ->and(Field::fromArray(['handle' => 'x', 'type' => 'text', 'condition' => ['field' => 'y', 'operator' => 'filled']])->conditionRules())->toBe([['field' => 'y', 'operator' => 'filled', 'value' => null]])
+        // Rules that aren't rules are left out; none left: always shown.
+        ->and(Field::fromArray(['handle' => 'x', 'type' => 'text', 'condition' => ['match' => 'any', 'rules' => [['field' => 'y', 'operator' => 'bogus']]]])->condition)->toBeNull();
+});
+
+it('asks nothing of a field hidden by several rules, still checking what it keeps', function () {
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
+        ['handle' => 'layout', 'type' => 'text'],
+        ['handle' => 'featured', 'type' => 'toggle'],
+        ['handle' => 'video_url', 'type' => 'text', 'required' => true, 'validation' => ['url'], 'condition' => ['match' => 'all', 'rules' => [
+            ['field' => 'layout', 'operator' => 'equals', 'value' => 'video'],
+            ['field' => 'featured', 'operator' => 'filled'],
+        ]]],
+    ]]);
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post']);
+
+    expect(app(CreateEntry::class)->handle($blog, ['title' => 'A', 'data' => ['layout' => 'video', 'featured' => false]])->draft_data['layout'])->toBe('video')
+        ->and(fn () => app(CreateEntry::class)->handle($blog, ['title' => 'B', 'data' => ['layout' => 'video', 'featured' => true]]))->toThrow(ValidationException::class, 'Video Url')
+        ->and(fn () => app(CreateEntry::class)->handle($blog, ['title' => 'C', 'data' => ['layout' => 'image', 'video_url' => 'not a url']]))->toThrow(ValidationException::class);
+});
+
+it('checks every rule of a condition in blueprints', function () {
+    $save = fn (array $condition) => app(SaveBlueprint::class)->handle(['handle' => 'x'.uniqid(), 'title' => 'X', 'fields' => [
+        ['handle' => 'layout', 'type' => 'select', 'config' => ['options' => [['value' => 'video', 'label' => 'Video']]]],
+        ['handle' => 'featured', 'type' => 'toggle'],
+        ['handle' => 'video', 'type' => 'text', 'condition' => $condition],
+    ]]);
+    $good = ['match' => 'any', 'rules' => [['field' => 'layout', 'operator' => 'equals', 'value' => 'video'], ['field' => 'featured', 'operator' => 'equals', 'value' => true]]];
+
+    expect($save($good)->fields[2]['condition'])->toBe($good)
+        ->and(fn () => $save(['match' => 'some', 'rules' => $good['rules']]))->toThrow(ValidationException::class)
+        ->and(fn () => $save(['match' => 'all', 'rules' => []]))->toThrow(ValidationException::class)
+        ->and(fn () => $save(['match' => 'all', 'rules' => [['field' => 'video', 'operator' => 'filled']]]))->toThrow(ValidationException::class)
+        ->and(fn () => $save(['match' => 'all', 'rules' => [['field' => 'layout', 'operator' => 'like']]]))->toThrow(ValidationException::class)
+        ->and(fn () => $save(['match' => 'all', 'rules' => [['field' => 'layout', 'operator' => 'equals', 'value' => ['x']]]]))->toThrow(ValidationException::class);
+
+    try {
+        $save(['match' => 'all', 'rules' => [$good['rules'][0], ['field' => 'nope', 'operator' => 'filled']]]);
+        throw new RuntimeException('A rule on a field that isn\'t there was saved.');
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('fields.2.condition.rules.1.field');
+    }
+});

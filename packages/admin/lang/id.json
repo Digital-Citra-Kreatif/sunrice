@@ -744,7 +744,6 @@
     "Use “:code”": "Pakai “:code”",
     "For developers": "Untuk developer",
     "Everyone also enters a 6-digit code sent by email. Check that email works first (Settings → Mail → Send a test email), or nobody can sign in.": "Semua orang juga memasukkan kode 6 digit yang dikirim lewat email. Pastikan email berfungsi dulu (Pengaturan → Email → Kirim email uji), atau tidak ada yang bisa masuk.",
-    "Locked out because email stopped working? Turn it off on the server:": "Terkunci karena email berhenti berfungsi? Matikan di server:",
     "Clear the IP filter": "Hapus filter IP",
     "Show only what came from :ip": "Tampilkan hanya yang berasal dari :ip",
     "Search names, actions or IP…": "Cari nama, tindakan, atau IP…",
@@ -752,5 +751,8 @@
     "Export CSV": "Ekspor CSV",
     "1 is in the trash.": "1 ada di tempat sampah.",
     ":count are in the trash.": ":count ada di tempat sampah.",
-    "Show the trash": "Lihat tempat sampah"
+    "Show the trash": "Lihat tempat sampah",
+    "For developers:": "Untuk developer:",
+    "(opens in a new tab)": "(terbuka di tab baru)",
+    "Locked out because email stopped working? Turn it off on the server: `php artisan sunrice:two-factor off`": "Terkunci karena email berhenti berfungsi? Matikan di server: `php artisan sunrice:two-factor off`"
 }

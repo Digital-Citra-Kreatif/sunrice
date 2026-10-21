@@ -1,14 +1,13 @@
 import { InputError } from '@/components/app/input-error';
 import { CollapsibleCard } from '@/components/app/collapsible-card';
-import { DeveloperHelp } from '@/components/app/developer-help';
 import { Card, CardContent } from '@/components/ui/card';
 import { TriangleAlert } from 'lucide-react';
 import { changeWarning } from '@/lib/change-warning';
 import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
-import { adminUrl } from '@/lib/admin-url';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { FieldHelp, SectionLinks } from './field-help';
 import { FieldInput, type FieldValue } from './fields';
 import type { FieldInfo, SectionInfo } from './types';
 
@@ -30,7 +29,7 @@ interface Props {
 export function FormSections({ sections, data, saved, errors, storageKey, onChange }: Props) {
     return sections.map((section, index) => {
         // Fields whose condition isn't met are hidden (showWhen), a section of only those too.
-        const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data));
+        const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data, saved));
         if (fields.length === 0) return null;
         const content = (
             <div className={cn('grid gap-5', gridColumns[section.columns])}>
@@ -59,15 +58,7 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
                                     {input}
                                 </>
                             )}
-                            {(field.help || field.helpLink) && (
-                                <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">
-                                    {field.help}
-                                    {field.helpLink && (
-                                        <>{field.help ? ' ' : ''}<HelpLink link={field.helpLink} /></>
-                                    )}
-                                </p>
-                            )}
-                            {field.developerHelp && <DeveloperHelp text={field.developerHelp.text} code={field.developerHelp.code} />}
+                            <FieldHelp field={field} data={data} />
                             <div aria-live="polite">
                                 {warning && (
                                     <p id={`field-${field.name}-warning`} className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm whitespace-pre-line text-amber-900 dark:text-amber-200">
@@ -91,7 +82,8 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
         // A titled section folds away (remembered), and opens on an error inside.
         return section.title ? (
             <CollapsibleCard key={index} title={section.title} description={section.description ?? undefined} titleClassName="text-base"
-                storageKey={storageKey ? `${storageKey}:${section.title}` : undefined} hasErrors={fields.some((field) => errors[field.name] !== undefined)}>
+                storageKey={storageKey ? `${storageKey}:${section.title}` : undefined} hasErrors={fields.some((field) => errors[field.name] !== undefined)}
+                headerAction={section.links ? <SectionLinks links={section.links} data={data} /> : undefined}>
                 {content}
             </CollapsibleCard>
         ) : (
@@ -111,17 +103,5 @@ function PasswordConfirmation({ field, value, onChange }: { field: FieldInfo; va
             </Label>
             <FieldInput field={{ ...field, name, confirmed: false, placeholder: null }} value={value} invalid={false} onChange={onChange} />
         </div>
-    );
-}
-
-/** Field::helpLink(): a link after the help, to a panel page (a guide section) or a full address in a new tab. */
-function HelpLink({ link }: { link: { label: string; url: string } }) {
-    const external = /^https?:\/\//.test(link.url);
-
-    return (
-        <a href={external ? link.url : adminUrl(link.url)} className="font-medium text-foreground underline underline-offset-4 hover:no-underline"
-            {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
-            {link.label}
-        </a>
     );
 }

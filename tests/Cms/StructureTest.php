@@ -118,8 +118,11 @@ it('serves listing pages with their fields, paginated, in each language', functi
 
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
     get('/admin/cms/collections/articles/listing/edit')->assertInertia(fn (Assert $page) => $page
-        ->component('Cms/Listing/Edit', shouldExist: false)->where('values.intro', 'All our <news>'));
+        ->component('Cms/Listing/Edit', shouldExist: false)->where('values.intro', 'All our <news>')
+        // The language switch says which languages have texts of their own.
+        ->where('translated', ['en']));
     put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Semua berita']])->assertSessionHasNoErrors();
+    get('/admin/cms/collections/articles/listing/edit?locale=id')->assertInertia(fn (Assert $page) => $page->where('translated', ['en', 'id']));
     get('/id/articles')->assertSee('Semua berita');
     get('/admin/cms/collections/pages/listing/edit')->assertNotFound();
 

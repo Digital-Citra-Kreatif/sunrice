@@ -1,3 +1,4 @@
+import type { FormLink } from '@/lib/live-help';
 /** Page data of the Resources pages (see ResourceController). */
 
 export interface ResourceInfo {
@@ -59,10 +60,6 @@ export interface FieldInfo {
     required: boolean;
     disabled: boolean;
     help: string | null;
-    /** Field::helpLink(): a link after the help. */
-    helpLink?: { label: string; url: string } | null;
-    /** Field::developerHelp(): folded under the help, "For developers". */
-    developerHelp?: { text: string | null; code: string | null } | null;
     placeholder: string | null;
     /** Field::warnWhenChanged(): shown on an edit form once the value differs from the saved one. */
     warnWhenChanged?: string | null;
@@ -76,6 +73,8 @@ export interface SectionInfo {
     description: string | null;
     columns: number;
     fields: FieldInfo[];
+    /** Section::links(): links in the card's header. */
+    links?: FormLink[];
 }
 
 /** A read-only card from `Resource::aside()` or `Settings::cards()` (Sunrice\Admin\Support\Card). */

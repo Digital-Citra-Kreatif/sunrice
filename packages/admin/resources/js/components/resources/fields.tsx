@@ -126,7 +126,8 @@ function PlainSelect({ id, options, value, required, disabled, invalid, placehol
         <Select value={value === null ? (required ? undefined : NONE) : value} disabled={disabled} onValueChange={(selected) => onChange(selected === NONE ? null : selected)}>
             <SelectTrigger id={id} aria-invalid={invalid} className="w-full"><SelectValue placeholder={placeholder ?? t('Choose…')} /></SelectTrigger>
             <SelectContent>
-                {!required && <SelectItem value={NONE}>—</SelectItem>}
+                {/* An optional select's placeholder names its empty choice ("None (no editable fields)"). */}
+                {!required && <SelectItem value={NONE}>{placeholder ?? '—'}</SelectItem>}
                 {groupOptions(options).map(([group, items]) => group === ''
                     ? <React.Fragment key="">{items.map(item)}</React.Fragment>
                     : <SelectGroup key={group}><SelectLabel>{group}</SelectLabel>{items.map(item)}</SelectGroup>)}

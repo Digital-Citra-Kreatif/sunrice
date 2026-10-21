@@ -49,7 +49,7 @@ final class SecuritySettings extends Settings
                         }
                     }])
                     ->help('Everyone also enters a 6-digit code sent by email. Check that email works first (Settings → Mail → Send a test email), or nobody can sign in.')
-                    ->developerHelp('Locked out because email stopped working? Turn it off on the server:', 'php artisan sunrice:two-factor off'),
+                    ->developerHelp('Locked out because email stopped working? Turn it off on the server: `php artisan sunrice:two-factor off`'),
             ]),
             Section::make('Security alerts')->schema([
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')

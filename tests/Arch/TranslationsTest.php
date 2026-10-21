@@ -49,7 +49,7 @@ function panelWords(): array
     $q = "'((?:[^'\\\\]|\\\\.)*)'";
     $php = [
         "/(?<![\\w>])__\\(\\s*{$q}/",
-        "/->(?:label|help|helpLink|developerHelp|description|confirm|linkLabel|empty|heading|addLabel|navigationLabel|warnWhenChanged)\\(\\s*{$q}\\s*[,)]/",
+        "/->(?:label|help|developerHelp|description|confirm|linkLabel|empty|heading|addLabel|navigationLabel|warnWhenChanged)\\(\\s*{$q}\\s*[,)]/",
         "/(?:Section|Card)::make\\(\\s*{$q}/",
         "/->(?:link|button|notice)\\(\\s*{$q}/",
         "/Permission::make\\(\\s*'[^']*',\\s*{$q},\\s*{$q}\\s*\\)/",

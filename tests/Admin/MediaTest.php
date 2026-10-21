@@ -134,17 +134,22 @@ it('finds PHP code with any bytes in its comments or strings, and not in a noisy
 
     // A real, noisy photo whose compressed data happens to hold "<?=" and,
     // further on, a closing tag: the bytes between aren't PHP.
-    $image = imagecreatetruecolor(400, 400);
-    mt_srand(42);
-    for ($x = 0; $x < 400; $x++) {
-        for ($y = 0; $y < 400; $y++) {
-            imagesetpixel($image, $x, $y, mt_rand(0, 0xFFFFFF));
+    // Which seed gives such a photo depends on the JPEG library, so look for one.
+    $photo = '';
+    $close = false;
+    for ($seed = 1; $seed <= 200 && $close === false; $seed++) {
+        $image = imagecreatetruecolor(400, 400);
+        mt_srand($seed);
+        for ($x = 0; $x < 400; $x++) {
+            for ($y = 0; $y < 400; $y++) {
+                imagesetpixel($image, $x, $y, mt_rand(0, 0xFFFFFF));
+            }
         }
+        ob_start();
+        imagejpeg($image, null, 95);
+        $photo = (string) ob_get_clean();
+        $close = strpos($photo, '?>', 4000);
     }
-    ob_start();
-    imagejpeg($image, null, 95);
-    $photo = (string) ob_get_clean();
-    $close = strpos($photo, '?>', 4000);
     expect($close)->toBeInt();
     $photo = substr_replace($photo, '<?=', (int) $close - 1500, 3);
     expect(FileContent::containsPhp(realUpload('noisy.jpg', $photo)))->toBeFalse()

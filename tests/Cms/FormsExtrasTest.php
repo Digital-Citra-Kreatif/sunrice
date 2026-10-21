@@ -125,11 +125,12 @@ it('explains a captcha that isn\'t set up in a short line, with a link and the .
     expect($field())->toMatchArray([
         'disabled' => true,
         'help' => 'Not set up yet: ask your developer to connect a captcha service.',
-        'helpLink' => ['label' => 'How', 'url' => 'guide/website/settings#captcha'],
+        'links' => [['label' => 'How', 'url' => '/admin/guide/website/settings#captcha', 'newTab' => false, 'showWhen' => null]],
     ])->and($field()['developerHelp']['code'])->toBe(Captcha::ENV_EXAMPLE);
 
     config(['sunrice-admin.captcha' => ['provider' => 'hcaptcha', 'site_key' => 'site', 'secret_key' => 'secret']]);
-    expect($field())->toMatchArray(['disabled' => false, 'help' => 'Visitors prove they\'re not a robot, with hCaptcha.', 'helpLink' => null, 'developerHelp' => null]);
+    expect($field())->toMatchArray(['disabled' => false, 'help' => 'Visitors prove they\'re not a robot, with hCaptcha.'])
+        ->and($field())->not->toHaveKeys(['links', 'developerHelp']);
 });
 
 it('asks for the captcha when the form wants it and the keys are set', function () {

@@ -211,3 +211,18 @@ it('exports links to entries by collection and slug, those in the trash included
 
     expect(importedMenu())->toBe(['pages/about', '-pages/team', 'posts', 'topics/news', 'https://example.com']);
 });
+
+it('carries conditions of one rule and of several between sites', function () {
+    $structure = ['blueprints' => [['handle' => 'post', 'title' => 'Post', 'fields' => [
+        ['handle' => 'layout', 'type' => 'text', 'label' => '', 'required' => false, 'instructions' => '', 'translatable' => null, 'validation' => [], 'config' => [], 'fields' => []],
+        ['handle' => 'featured', 'type' => 'toggle', 'label' => '', 'required' => false, 'instructions' => '', 'translatable' => null, 'validation' => [], 'config' => [], 'fields' => []],
+        ['handle' => 'one', 'type' => 'text', 'label' => '', 'required' => false, 'instructions' => '', 'translatable' => null, 'validation' => [], 'config' => [], 'fields' => [],
+            'condition' => ['field' => 'layout', 'operator' => 'filled', 'value' => null]],
+        ['handle' => 'several', 'type' => 'text', 'label' => '', 'required' => false, 'instructions' => '', 'translatable' => null, 'validation' => [], 'config' => [], 'fields' => [],
+            'condition' => ['match' => 'any', 'rules' => [['field' => 'layout', 'operator' => 'equals', 'value' => 'video'], ['field' => 'featured', 'operator' => 'equals', 'value' => true]]]],
+    ]]]];
+
+    expect(app(StructureImporter::class)->import($structure)->status('blueprint', 'post'))->toBe(ImportReport::CREATED);
+    $exported = json_decode(json_encode(app(StructureExporter::class)->export(), JSON_THROW_ON_ERROR), true);
+    expect(collect($exported['blueprints'])->firstWhere('handle', 'post')['fields'])->toEqual($structure['blueprints'][0]['fields']);
+});

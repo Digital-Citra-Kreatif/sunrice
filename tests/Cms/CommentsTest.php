@@ -347,5 +347,5 @@ it('offers the comments captcha once a captcha service is set up, saying who set
     config(['sunrice-admin.captcha' => ['provider' => 'turnstile', 'site_key' => 'k', 'secret_key' => 's']]);
     expect($fields()['captcha']['disabled'])->toBeFalse()
         ->and($fields()['captcha']['help'])->toBe('Commenters prove they\'re not a robot, with Cloudflare Turnstile (as on forms).')
-        ->and($fields()['captcha']['developerHelp'])->toBeNull();
+        ->and($fields()['captcha'])->not->toHaveKey('developerHelp');
 });

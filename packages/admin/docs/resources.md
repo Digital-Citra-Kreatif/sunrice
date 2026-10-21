@@ -99,7 +99,7 @@ public static function query(): Builder
 
 | Field | Stored as | Options |
 | --- | --- | --- |
-| Any field | | `->showWhen('route')` shows it only while another field is filled in (switched on, chosen, typed in), `->showWhen('kind', 'link')` while it holds that value; it's only hidden on screen, what it holds is still sent and checked |
+| Any field | | `->showWhen('route')` shows it only while another field is filled in (switched on, chosen, typed in), `->showWhen('kind', 'link')` while it holds that value; it's only hidden on screen, what it holds is still sent and checked; `->showWhenChanged('tags')` shows it on an edit form once that field differs from its saved value ("Also remove …" when a list changes) |
 | `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slugFrom('title')` (while creating, filled from that field as it's typed, `main_menu`, or with `'-'` `main-menu`, until someone types in it; what's typed in it is kept to lowercase letters, digits and the separator; check it on the server with a rule too) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
 | `ListInput` | string, one value per line | Edited as rows of one input each, with **Add** (`->addLabel('Add profile')`) and remove buttons; saved trimmed, without empty lines, so it replaces a "one per line" textarea without changing what's stored (`ListInput::items($value)` reads the values). `->urls()` (http or https; `->urls(httpsOnly: true)`) or `->emails()` (a list typed with commas is split too) check each value, the error naming the one that isn't; `->networks()` shows which site each address is on (Instagram, LinkedIn, Facebook, X, YouTube, TikTok, Wikipedia…, else a globe); `->max(…)` values, `->maxLength(…)` characters in all |
@@ -118,21 +118,37 @@ public static function query(): Builder
 
 Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `->default()` (the create form's value), `->rules([...])` (more Laravel rules), `->unique()` (except the record being edited), `->onlyOnCreate()` / `->onlyOnEdit()` and `->span(2)` (columns in a section's grid). `Section::make('Title')->columns(2)->schema([...])` groups fields in a card.
 
-Help stays short and plain for editors: `->help('…')` under the field, `->helpLink('How', 'guide/website/settings#captcha')` a link after it (relative to the panel's path, or a full address, which opens in a new tab), and `->developerHelp($text, $code)` what a developer needs, folded away in a **For developers** disclosure under the help: a sentence (said in the panel's language) and code shown as code, with a copy button (an `.env` snippet, a Blade tag, a command). The panel's two-factor switch and the CMS's captcha switches use them:
-
-```php
-Toggle::make('captcha')->label('Require a captcha')->disabled()
-    ->help('Not set up yet: ask your developer to connect a captcha service.')
-    ->helpLink('How', 'guide/website/settings#captcha')
-    ->developerHelp('Set these in the app\'s .env:', Captcha::ENV_EXAMPLE),
-```
-
-React pages get the same disclosure as `DeveloperHelp` from `@sunrice/admin-sdk/ui`.
 
 `->warnWhenChanged('…')` warns under a field on the edit form once its value differs from the saved one (never when creating), for values code relies on, such as a handle templates name or a role's name. `:old` and `:new` in the text become the saved and the typed value; like labels and help, the text is said in the panel's language (give it an Indonesian line). The panel's Roles screen warns this way when a role is renamed: code that checks it by name needs the new one.
 
 ```php
 TextInput::make('code')->warnWhenChanged('Invoices printed before keep ":old"; reports that filter by it need ":new".'),
+```
+
+Under its help, a field can say more, following the form as it's edited:
+
+- `->helpValues(['url' => ['listing_route', '/{handle}']])` fills `:url` in the help with that field's value, or while it's empty with the fallback (`{name}` there is the field `name`'s value).
+- `->developerHelp('In a template: `<x-shop::product sku=":value" />`', 'ABC-1')` adds a line "For developers: …": `backticks` show as code, `:value` is the field's value as it's typed (the example while it's empty). Keep the help itself in plain words for editors.
+- `->helpDetails('Which file?', "1. shop/product.blade.php\n2. …")` adds a disclosure that opens to more text.
+- `->links([...])` puts links under the field, and `Section::make('…')->links([...])` in its card's header. A `Link::make('Edit', url('/admin/blueprints/{blueprint}/edit'))` takes the form's current value of a field for `{name}` in its address; `->showWhen('blueprint')` / `->showUnless('blueprint')` show it only while that field is (or isn't) filled in, and `->newTab()` opens it in a new tab (marked ↗). Either takes a closure that gets the record (null when creating), for links that need a saved one:
+
+When a developer needs a block of code to copy (an `.env` snippet, several commands), give `developerHelp()` a third argument, `$code`: the text and the code fold away in a **For developers** disclosure under the help, the code shown as code with a copy button. The CMS's captcha switches do, with a `links()` link to the guide:
+
+```php
+Toggle::make('captcha')->label('Require a captcha')->disabled()
+    ->help('Not set up yet: ask your developer to connect a captcha service.')
+    ->links([Link::make('How', route('sunrice.admin.guide.show', 'website/settings', false).'#captcha')])
+    ->developerHelp("Set these in the app's .env:", code: Captcha::ENV_EXAMPLE),
+```
+
+React pages get the same disclosure as `DeveloperHelp` from `@sunrice/admin-sdk/ui`.
+
+```php
+Section::make('Listing page')->links(fn (?Model $record) => $record ? [Link::make('View on site', $record->listingUrl())->newTab()] : []),
+Select::make('blueprint')->links([
+    Link::make('Create blueprint', url('/admin/blueprints/create'))->showUnless('blueprint'),
+    Link::make('Edit', url('/admin/blueprints/{blueprint}/edit'))->showWhen('blueprint'),
+]),
 ```
 
 `->disabled()` shows a field without letting anyone change it (it's never validated or written); give it a closure to decide per record: `->disabled(fn (?Model $record) => $record?->locked)` (null when creating).
