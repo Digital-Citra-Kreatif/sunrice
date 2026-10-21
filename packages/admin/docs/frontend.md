@@ -153,10 +153,10 @@ It also has these interaction components, the ones the panel's own pages use:
   <CollapsibleCard title="Shipping" storageKey="shop:order:shipping" hasErrors={'address' in errors}>…</CollapsibleCard>
   ```
 
-- **`SortableList`** and **`SortableHandle`**: a vertical list reordered by dragging a handle or with the keyboard (focus the handle, space, arrows, space). The dragged item follows the pointer as a lifted ghost; with reduced motion nothing travels. `onReorder` gets the reordered list, and `moveItem(items, from, to)` is the pure helper behind it.
+- **`SortableList`** and **`SortableHandle`**: a vertical list reordered by dragging a handle or with the keyboard (focus the handle, space, arrows, space). The dragged item follows the pointer as a lifted ghost; with reduced motion nothing travels. `onReorder` gets the reordered list, and `moveItem(items, from, to)` is the pure helper behind it. Give `getLabel` the item's name so screen readers hear "Home moved above About" while it moves (without it, items are named by position).
 
   ```tsx
-  <SortableList items={rows} getId={(row) => row.id} onReorder={setRows}>
+  <SortableList items={rows} getId={(row) => row.id} getLabel={(row) => row.title} onReorder={setRows}>
       {(row, { handle }) => <div className="shop:flex shop:gap-2"><SortableHandle {...handle} />{row.title}</div>}
   </SortableList>
   ```

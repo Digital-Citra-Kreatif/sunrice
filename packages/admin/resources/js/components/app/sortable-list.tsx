@@ -8,6 +8,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { moveItem } from '@/lib/move-item';
+import { sortableAnnouncements } from '@/lib/sortable-announcements';
 import { cn } from '@/lib/utils';
 
 export { moveItem };
@@ -32,6 +33,8 @@ export interface SortableListProps<T> {
     items: readonly T[];
     /** A stable id per item (an item's id, handle or key). */
     getId: (item: T) => string | number;
+    /** The item's name for screen reader announcements ("Home moved above About"); without it, items are named by position. */
+    getLabel?: (item: T) => string | null | undefined;
     /** Called with the reordered list once a drag or a keyboard move ends. */
     onReorder: (items: T[], from: number, to: number) => void;
     children: (item: T, state: SortableItemState) => React.ReactNode;
@@ -87,17 +90,22 @@ function SortableRow<T>({ item, id, index, disabled, reduced, className, childre
  * dragged item follows the pointer as a lifted ghost; with reduced motion
  * nothing travels.
  *
- *     <SortableList items={rows} getId={(row) => row.id} onReorder={setRows}>
+ *     <SortableList items={rows} getId={(row) => row.id} getLabel={(row) => row.title} onReorder={setRows}>
  *         {(row, { handle }) => <div className="flex gap-2"><SortableHandle {...handle} />{row.title}</div>}
  *     </SortableList>
  */
-export function SortableList<T>({ items, getId, onReorder, children, disabled = false, className, itemClassName }: SortableListProps<T>) {
+export function SortableList<T>({ items, getId, getLabel, onReorder, children, disabled = false, className, itemClassName }: SortableListProps<T>) {
     const [active, setActive] = React.useState<UniqueIdentifier | null>(null);
     const reduced = useReducedMotion();
     const ids = React.useMemo(() => items.map(getId), [items, getId]);
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
+
+    const announcements = React.useMemo(
+        () => sortableAnnouncements(ids, getLabel ? (_id, index) => getLabel(items[index] as T) : undefined),
+        [ids, items, getLabel],
     );
 
     const onDragStart = (event: DragStartEvent) => setActive(event.active.id);
@@ -114,7 +122,7 @@ export function SortableList<T>({ items, getId, onReorder, children, disabled = 
     const ghostHandle: SortableHandleProps = { 'aria-hidden': true, tabIndex: -1 };
 
     return (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} accessibility={{ announcements }} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>
                 <ul className={cn('m-0 grid gap-2 p-0', className)}>
                     {items.map((item, index) => (

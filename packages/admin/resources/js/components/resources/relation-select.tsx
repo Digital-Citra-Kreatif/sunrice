@@ -123,7 +123,7 @@ export function RelationSelect({ id, field, multiple, value, selected, required,
     return (
         <div className="grid gap-2">
             {chosen.length > 0 && (
-                <SortableList items={chosen} getId={(key) => String(key)} disabled={disabled} className="grid gap-1"
+                <SortableList items={chosen} getId={(key) => String(key)} getLabel={labelOf} disabled={disabled} className="grid gap-1"
                     onReorder={(items) => onChange(items)}>
                     {(key, { handle }) => (
                         <div className="flex items-center gap-2 rounded-md border bg-card px-2 py-1 text-sm">
