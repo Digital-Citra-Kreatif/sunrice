@@ -112,7 +112,7 @@ final class BrandingSettings extends Settings
                 MediaPicker::make('logo')->images()
                     ->help('SVG or PNG. A square logo sits beside the name; a wide one (a wordmark) replaces it. Without one, the sidebar shows the name\'s first letter.'),
                 Select::make('font')->options($fonts)->placeholder('Default')
-                    ->help('The typeface of the admin. Empty: the default font.'),
+                    ->help('The typeface of the admin. Empty: the default font (Inter). Every font but System is loaded from Bunny Fonts (fonts.bunny.net) by each browser: choose System for an intranet, a server without internet access or to keep browsers from contacting another company.'),
                 TextInput::make('color')->label('Brand colour')->color()->placeholder('#1e66f5')
                     ->help('Buttons, the active menu item and focus rings. Text on it turns black or white, whichever reads better. Empty: neutral.'),
                 MediaPicker::make('favicon')->label('Browser icon')->images()

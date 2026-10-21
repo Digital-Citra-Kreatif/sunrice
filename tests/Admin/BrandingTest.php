@@ -226,3 +226,9 @@ it('shares the branding with every page, with the panel\'s defaults for what is 
     $logo->delete();
     get('/admin/login')->assertInertia(fn (Assert $page) => $page->where('sunrice.branding.logo', null));
 });
+
+it('says where the fonts come from, and that System loads nothing', function () {
+    $font = collect(BrandingSettings::form(new Form)->fields('edit'))->firstWhere('name', 'font');
+    expect($font->toArray()['help'])->toContain('fonts.bunny.net')->toContain('System')
+        ->and(BrandingSettings::FONTS['system'][1])->toBeNull();
+});

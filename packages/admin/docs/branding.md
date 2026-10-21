@@ -35,6 +35,17 @@ The font list (`BrandingSettings::FONTS`) is Inter, Instrument Sans, Manrope, DM
 
 Use the config for a font that isn't on the list (self-hosted, say). A strict `Content-Security-Policy` needs `fonts.bunny.net` in `style-src` and `font-src` for the listed fonts.
 
+**Privacy and offline installs.** Every listed font except System, and the default Inter, is a request from each admin's browser to `fonts.bunny.net`, a third party (Bunny Fonts doesn't log IP addresses, but your privacy policy may still need to mention it). When that request is blocked (an intranet, a firewall, a server without internet), the panel quietly falls back to the system font, so a chosen font seems to do nothing. For these installs choose **System**, or self-host the font and point the config at it:
+
+```php
+'font' => [
+    'stylesheet' => '/fonts/inter.css',   // your own @font-face rules, in public/
+    'family' => 'Inter',
+],
+```
+
+The Font field's help says this too.
+
 ## The brand colour
 
 The admin layout turns the colour into CSS variables in a `<style>` block in the page's `<head>` (with the CSP nonce when `Vite::useCspNonce()` set one), so it applies before the first paint:

@@ -12,7 +12,7 @@ Tampilan **Light**, **Dark**, atau **System** milik Anda sendiri dipilih di menu
 | **Tagline** | Di bawah nama di bilah samping, dan di atas formulir masuk | Tidak ada |
 | **Logo** | Bilah samping dan halaman masuk; pilih gambar dari pustaka media. Logo persegi tampil di samping nama; logo melebar (wordmark) menggantikan nama | Huruf pertama nama di atas warna merek |
 | **Browser icon** | Gambar kecil di tab peramban dan penanda; ICO, PNG, atau SVG persegi dari pustaka media | Logo persegi, atau huruf pertama nama di atas warna merek |
-| **Font** (jenis huruf) | Semua halaman panel; pilih salah satu jenis huruf dalam daftar, atau **System** untuk huruf bawaan komputer | Huruf bawaan panel (Inter) |
+| **Font** (jenis huruf) | Semua halaman panel; pilih salah satu jenis huruf dalam daftar, atau **System** untuk huruf bawaan komputer. Jenis huruf dalam daftar diambil dari Bunny Fonts di internet: di jaringan pribadi tanpa internet, atau jika Anda tidak ingin peramban menghubungi perusahaan lain, pilih **System** | Huruf bawaan panel (Inter, juga dari Bunny Fonts) |
 | **Brand colour** (warna merek) | Tombol utama, menu yang sedang aktif, garis fokus | Abu-abu netral |
 
 Untuk warna merek, ketik kode warna seperti `#2563eb` atau gunakan pemilih warna. Panel memberi teks hitam atau putih di atasnya, mana yang lebih mudah dibaca, dan warna yang lebih terang di mode gelap. Contoh di samping field menunjukkan tampilan tombolnya.
