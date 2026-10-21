@@ -195,3 +195,30 @@ test('stores "Translatable" only when it differs from the type default', () => {
     assert.deepEqual(setTranslatable(text, true, false), { translatable: true });
     assert.deepEqual(setTranslatable({ translatable: true }, false, false), { translatable: null });
 });
+
+test('lays a type\'s settings out: choices and switches full width, numbers and short texts on one compact row', async () => {
+    const { settingGroups } = await import('../../packages/cms/resources/js/lib/builder.ts');
+    const number = [{ handle: 'min', type: 'number' }, { handle: 'max', type: 'number' }, { handle: 'step', type: 'number', instructions: '1 for whole numbers; empty for any number.' }, { handle: 'default', type: 'number' }];
+    const groups = settingGroups(number);
+    assert.deepEqual([groups.options.length, groups.limits.map((s) => s.handle)], [0, ['min', 'max', 'step', 'default']]);
+
+    const file = settingGroups([
+        { handle: 'types', type: 'text', instructions: 'Extensions, like "pdf, jpg, png, docx". Empty: any file, but those that could run as code.' },
+        { handle: 'multiple', type: 'toggle' }, { handle: 'options', type: 'repeater' }, { handle: 'placeholder', type: 'text' },
+    ]);
+    assert.deepEqual([file.options.map((s) => s.handle), file.limits.map((s) => s.handle)], [['types', 'multiple', 'options'], ['placeholder']]);
+});
+
+test('puts a setting that applies only while a switch is on next to that switch', async () => {
+    const { dependsOn, settingGroups } = await import('../../packages/cms/resources/js/lib/builder.ts');
+    const settings = [
+        { handle: 'taxonomy', type: 'select' },
+        { handle: 'multiple', type: 'toggle' },
+        { handle: 'max', type: 'number', condition: { field: 'multiple', operator: 'filled' as const } },
+    ];
+
+    assert.equal(dependsOn(settings[2]!, settings), 'multiple');
+    assert.equal(dependsOn({ handle: 'x', type: 'number', condition: { field: 'taxonomy', operator: 'filled' as const } }, settings), null);
+    const groups = settingGroups(settings);
+    assert.deepEqual([groups.options.map((s) => s.handle), groups.limits.map((s) => s.handle), groups.dependents.multiple?.map((s) => s.handle)], [['taxonomy', 'multiple'], [], ['max']]);
+});

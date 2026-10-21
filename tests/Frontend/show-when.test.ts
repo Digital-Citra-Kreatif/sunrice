@@ -13,3 +13,11 @@ test('shows a field while another is filled in, or holds a value', () => {
     assert.equal(isShownBy({ field: 'tags', value: 3 }, { tags: ['1', '3'] }), true);
     assert.equal(isShownBy({ field: 'on', value: true }, { on: true }), true);
 });
+
+test('shows a field once another one differs from its saved value, on edit forms only', () => {
+    const condition = { field: 'collections', value: null, changed: true };
+
+    assert.equal(isShownBy(condition, { collections: ['1', '2'] }, { collections: ['2', '1'] }), false);
+    assert.equal(isShownBy(condition, { collections: ['1'] }, { collections: ['1', '2'] }), true);
+    assert.equal(isShownBy(condition, { collections: ['1'] }), false);
+});

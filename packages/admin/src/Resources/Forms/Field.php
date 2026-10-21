@@ -23,6 +23,8 @@ use Sunrice\Admin\Support\Say;
  */
 abstract class Field implements Component
 {
+    use Concerns\HelpExtras;
+
     protected string $label;
 
     protected bool $required = false;
@@ -55,7 +57,7 @@ abstract class Field implements Component
     /** @var (Closure(Model, mixed): void)|null */
     protected ?Closure $saveUsing = null;
 
-    /** @var array{field: string, value: string|int|bool|null}|null */
+    /** @var array{field: string, value: string|int|bool|null, changed?: true}|null */
     private ?array $showWhen = null;
 
     final public function __construct(public readonly string $name)
@@ -355,6 +357,7 @@ abstract class Field implements Component
             'warnWhenChanged' => $record !== null && $record->exists ? Say::it($this->warnWhenChanged) : null,
             'span' => $this->span,
             'showWhen' => $this->showWhen,
+            ...$this->helpExtras($record),
             ...$this->props(),
         ];
     }

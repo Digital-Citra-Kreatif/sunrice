@@ -73,7 +73,8 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
                     disabled={disabled} onValueChange={(selected) => onChange(selected === NONE ? null : selected)}>
                     <SelectTrigger id={id} aria-invalid={invalid} className="w-full"><SelectValue placeholder={field.placeholder ?? t('Choose…')} /></SelectTrigger>
                     <SelectContent>
-                        {!field.required && <SelectItem value={NONE}>—</SelectItem>}
+                        {/* An optional select's placeholder names its empty choice ("None (no editable fields)"). */}
+                        {!field.required && <SelectItem value={NONE}>{field.placeholder ?? '—'}</SelectItem>}
                         {options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
                     </SelectContent>
                 </Select>

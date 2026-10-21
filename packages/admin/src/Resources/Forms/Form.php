@@ -68,7 +68,7 @@ final class Form
             }
             $fields = array_values(array_filter($component->fields(), fn (Field $field) => $field->shownOn($operation)));
             if ($component instanceof Section) {
-                $sections[] = [...$component->toArray(), 'fields' => array_map(fn (Field $field) => $field->toArray($record), $fields)];
+                $sections[] = [...$component->toArray($record), 'fields' => array_map(fn (Field $field) => $field->toArray($record), $fields)];
             } else {
                 $loose = [...$loose, ...$fields];
             }

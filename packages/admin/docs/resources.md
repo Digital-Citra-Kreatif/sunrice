@@ -99,7 +99,7 @@ public static function query(): Builder
 
 | Field | Stored as | Options |
 | --- | --- | --- |
-| Any field | | `->showWhen('route')` shows it only while another field is filled in (switched on, chosen, typed in), `->showWhen('kind', 'link')` while it holds that value; it's only hidden on screen, what it holds is still sent and checked |
+| Any field | | `->showWhen('route')` shows it only while another field is filled in (switched on, chosen, typed in), `->showWhen('kind', 'link')` while it holds that value; it's only hidden on screen, what it holds is still sent and checked; `->showWhenChanged('tags')` shows it on an edit form once that field differs from its saved value ("Also remove …" when a list changes) |
 | `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slugFrom('title')` (while creating, filled from that field as it's typed, `main_menu`, or with `'-'` `main-menu`, until someone types in it; what's typed in it is kept to lowercase letters, digits and the separator; check it on the server with a rule too) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
 | `Pairs` | string, one `key: value` per line | Edited as rows of two inputs: `->labels('Code', 'Name')`, `->suggest(['en' => 'English'])` (picking a key fills an empty value), `->firstBadge('Main')`, `->addLabel(…)`, `->maxLength(…)`; `->fixed(['id' => 'Bahasa Indonesia'])` gives a labelled input per key instead (nothing to add or remove; other keys' lines are kept) |
@@ -121,6 +121,21 @@ Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `-
 
 ```php
 TextInput::make('code')->warnWhenChanged('Invoices printed before keep ":old"; reports that filter by it need ":new".'),
+```
+
+Under its help, a field can say more, following the form as it's edited:
+
+- `->helpValues(['url' => ['listing_route', '/{handle}']])` fills `:url` in the help with that field's value, or while it's empty with the fallback (`{name}` there is the field `name`'s value).
+- `->developerHelp('In a template: `<x-shop::product sku=":value" />`', 'ABC-1')` adds a line "For developers: …": `backticks` show as code, `:value` is the field's value as it's typed (the example while it's empty). Keep the help itself in plain words for editors.
+- `->helpDetails('Which file?', "1. shop/product.blade.php\n2. …")` adds a disclosure that opens to more text.
+- `->links([...])` puts links under the field, and `Section::make('…')->links([...])` in its card's header. A `Link::make('Edit', url('/admin/blueprints/{blueprint}/edit'))` takes the form's current value of a field for `{name}` in its address; `->showWhen('blueprint')` / `->showUnless('blueprint')` show it only while that field is (or isn't) filled in, and `->newTab()` opens it in a new tab (marked ↗). Either takes a closure that gets the record (null when creating), for links that need a saved one:
+
+```php
+Section::make('Listing page')->links(fn (?Model $record) => $record ? [Link::make('View on site', $record->listingUrl())->newTab()] : []),
+Select::make('blueprint')->links([
+    Link::make('Create blueprint', url('/admin/blueprints/create'))->showUnless('blueprint'),
+    Link::make('Edit', url('/admin/blueprints/{blueprint}/edit'))->showWhen('blueprint'),
+]),
 ```
 
 `->disabled()` shows a field without letting anyone change it (it's never validated or written); give it a closure to decide per record: `->disabled(fn (?Model $record) => $record?->locked)` (null when creating).

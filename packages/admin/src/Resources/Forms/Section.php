@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources\Forms;
 
+use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Sunrice\Admin\Support\Say;
 
 /**
@@ -20,6 +22,9 @@ final class Section implements Component
 
     /** @var list<Field> */
     private array $schema = [];
+
+    /** @var list<Link>|(Closure(?Model): list<Link>) */
+    private array|Closure $links = [];
 
     private function __construct(private string $title) {}
 
@@ -50,6 +55,20 @@ final class Section implements Component
         return $this;
     }
 
+    /**
+     * Links in the card's header (Link), like "View on site": a closure
+     * gets the record (null when creating), so a link can wait until
+     * there's something to link to.
+     *
+     * @param  list<Link>|(Closure(?Model): list<Link>)  $links
+     */
+    public function links(array|Closure $links): self
+    {
+        $this->links = $links;
+
+        return $this;
+    }
+
     public function shownOn(string $operation): bool
     {
         return true;
@@ -61,8 +80,11 @@ final class Section implements Component
     }
 
     /** @return array<string, mixed> */
-    public function toArray(): array
+    public function toArray(?Model $record = null): array
     {
-        return ['kind' => 'section', 'title' => Say::it($this->title), 'description' => Say::it($this->description), 'columns' => $this->columns];
+        $links = $this->links instanceof Closure ? ($this->links)($record?->exists === true ? $record : null) : $this->links;
+
+        return ['kind' => 'section', 'title' => Say::it($this->title), 'description' => Say::it($this->description), 'columns' => $this->columns]
+            + ($links !== [] ? ['links' => array_map(fn (Link $link): array => $link->toArray(), $links)] : []);
     }
 }
