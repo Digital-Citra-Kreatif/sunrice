@@ -31,7 +31,7 @@ it('shows how mail is sent on Settings → Mail, without passwords or a form', f
     $response = get('/admin/settings/mail')->assertInertia(fn (Assert $page) => $page
         ->component('Settings/Edit', false)
         ->where('section.key', 'mail')
-        ->where('sections', [['key' => 'mail', 'label' => 'Mail']])
+        ->where('sections', [['key' => 'mail', 'label' => 'Mail', 'url' => 'settings/mail']])
         ->where('form', [])
         ->where('cards.0.title', 'How mail is sent')
         ->where('cards.0.blocks.0.rows', [
