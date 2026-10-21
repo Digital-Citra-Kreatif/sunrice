@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
+use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
@@ -128,4 +130,15 @@ it('lets a publisher send a draft back with a note, emailed to the one who asked
     expect((new ReviewSentBack($translation, null, null))->render())->toContain('Someone')->not->toContain('<blockquote');
 
     post("/admin/cms/entries/{$this->draft->entry_id}/review/send-back")->assertSessionHasErrors('entry');
+});
+
+it('tells super admins too, who may publish without being given the permission', function () {
+    Mail::fake();
+    $owner = adminUser();
+    $owner->assignRole(Role::findOrCreate(SyncPermissions::superAdminRole(), 'web'));
+
+    post("/admin/cms/entries/{$this->draft->entry_id}/review")->assertSessionHasNoErrors();
+
+    Mail::assertQueued(ReviewRequested::class, fn (ReviewRequested $mail) => $mail->hasTo($owner->email));
+    Mail::assertQueuedCount(2);
 });
