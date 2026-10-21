@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Activity;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * One line of the activity log, written by ActivityLog.
@@ -32,6 +33,39 @@ class Activity extends Model
     protected $table = 'sunrice_activity';
 
     protected $guarded = [];
+
+    /** Security actions that read better as a phrase after the person's name. */
+    private const PHRASES = [
+        'page refused' => 'was refused a page',
+        'login refused' => 'was refused login',
+        'login blocked' => 'was blocked from logging in',
+        'upload blocked' => 'had an upload blocked',
+    ];
+
+    /** Whether it is about the account of whoever did it ("Rina logged in"). */
+    public function isAboutItsActor(): bool
+    {
+        return $this->subject_type === 'account' && $this->subject_id !== null && $this->subject_id === $this->user_id;
+    }
+
+    /**
+     * The line as a sentence: "Rina updated Kettle", "Rina logged in",
+     * "Login failed for Dewi", "Roles changed for Dewi by Rina".
+     */
+    public function sentence(): string
+    {
+        $who = $this->user_name ?? ($this->source === 'system' ? 'System' : null);
+        if ($this->isAboutItsActor() || $this->subject_label === null) {
+            $phrase = self::PHRASES[$this->action] ?? $this->action;
+
+            return $who === null ? Str::ucfirst($phrase) : "{$who} {$phrase}";
+        }
+        if ($this->subject_type === 'account' || $who === null) {
+            return Str::ucfirst($this->action)." for {$this->subject_label}".($who === null ? '' : " by {$who}");
+        }
+
+        return "{$who} {$this->action} {$this->subject_label}";
+    }
 
     /** @return array<string, string> */
     protected function casts(): array

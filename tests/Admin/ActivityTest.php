@@ -12,8 +12,10 @@ use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Dashboard\PanelWidgets;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Tests\Admin\Fixtures\MailSettings;
 use Sunrice\Tests\Admin\Fixtures\Product;
 use Sunrice\Tests\Admin\Fixtures\ProductResource;
@@ -208,4 +210,44 @@ it('prunes old lines from the panel, with a permission, a security event and an 
         ->and($event->properties['note'])->toBe('1 line older than 30 days');
     Mail::assertQueued(SecurityAlert::class, fn ($mail) => $mail->headline === 'The activity log was pruned');
     expect(app(Panel::class)->getPermissions())->toHaveKey('sunrice.activity.prune');
+});
+
+it('reads like sentences, with what settings changed from and to, and filters by who', function () {
+    actingAs($this->admin);
+    put('/admin/settings/outbox', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
+    $dewi = User::query()->create(['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'x']);
+    $security = app(SecurityLog::class);
+    $security->record('logged in', $this->admin);
+    $security->record('page refused', $this->admin);
+    auth()->logout();
+    $security->record('login failed', $dewi);
+    actingAs($this->admin);
+
+    expect(Activity::query()->where('subject_type', 'settings')->sole()->properties['values'])->toBe(['from' => ['from' => 'shop@example.com', 'to' => 'hello@example.com']]);
+
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data.0.action', 'login failed')
+        ->where('rows.data.0.self', false)
+        ->where('rows.data.1.self', true)
+        ->where('rows.data.3.changed', ['From: shop@example.com → hello@example.com'])
+        ->where('people', [['value' => (string) $this->admin->id, 'label' => 'Rina']]));
+    get("/admin/activity?user={$this->admin->id}")->assertInertia(fn (Assert $page) => $page->where('rows.total', 3));
+
+    // The dashboard says it in a sentence, without naming the person twice.
+    expect(PanelWidgets::activity()->resolve($this->admin)['rows'])
+        ->sequence(
+            fn ($row) => $row->title->toBe('Login failed for Dewi'),
+            fn ($row) => $row->title->toBe('Rina was refused a page'),
+            fn ($row) => $row->title->toBe('Rina logged in'),
+            fn ($row) => $row->title->toBe('Rina updated Outbox settings'),
+        );
+});
+
+it('names each type once in the filter', function () {
+    app(ActivityLog::class)->record('updated', 'products', '1', 'Kettle');
+    app(ActivityLog::class)->record('updated', 'product', '1', 'Legacy');
+    actingAs($this->admin);
+
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page
+        ->where('types', fn ($types) => collect($types)->pluck('label')->duplicates()->isEmpty() && count($types) === 2));
 });

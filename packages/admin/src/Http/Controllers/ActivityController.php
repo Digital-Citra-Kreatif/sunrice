@@ -77,6 +77,25 @@ final class ActivityController
                 $types[] = ['value' => $type, 'label' => $this->typeLabel($type)];
             }
         }
+        // Two types with one name ("Menu": the menus resource and the CMS's menu links): tell them apart.
+        $counts = array_count_values(array_column($types, 'label'));
+        foreach ($types as $index => $type) {
+            if ($counts[$type['label']] > 1) {
+                $resource = $this->panel->getResources()[$type['value']] ?? null;
+                $types[$index]['label'] = $resource !== null && $resource->class::navigationLabel() !== $type['label']
+                    ? $resource->class::navigationLabel()
+                    : "{$type['label']} ({$type['value']})";
+            }
+        }
+
+        // Who: everyone who did something, by name (the latest name for each).
+        $people = [];
+        foreach (Activity::query()->whereNotNull('user_id')->selectRaw('user_id, max(id) as latest')->groupBy('user_id')->orderByDesc('latest')->limit(200)->pluck('latest') as $latest) {
+            $people[] = $latest;
+        }
+        $names = Activity::query()->whereKey($people)->get(['id', 'user_id', 'user_name'])
+            ->map(fn (Activity $line) => ['value' => (string) $line->user_id, 'label' => $line->user_name ?? ('#'.$line->user_id)])
+            ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)->values()->all();
 
         $actions = [];
         foreach (Activity::query()->distinct()->orderBy('action')->limit(500)->pluck('action') as $action) {
@@ -99,6 +118,7 @@ final class ActivityController
             ],
             'types' => $types,
             'actions' => $actions,
+            'people' => $names,
             'sources' => ActivityLog::SOURCES,
             'perPageOptions' => self::PER_PAGE_OPTIONS,
             'defaultPerPage' => self::PER_PAGE,
@@ -140,7 +160,14 @@ final class ActivityController
     private function describe(Activity $activity): array
     {
         $properties = $activity->properties ?? [];
-        $changed = is_array($properties['changed'] ?? null) ? array_values(array_filter($properties['changed'], 'is_string')) : [];
+        $values = is_array($properties['values'] ?? null) ? $properties['values'] : [];
+        // "Close after days: 30 → 365", or the setting's name when its values aren't kept.
+        $changed = is_array($properties['changed'] ?? null) ? array_values(array_map(function (string $name) use ($values): string {
+            $label = Str::ucfirst(str_replace('_', ' ', Str::snake($name)));
+            $value = $values[$name] ?? null;
+
+            return is_array($value) && is_string($value['from'] ?? null) && is_string($value['to'] ?? null) ? "{$label}: {$value['from']} → {$value['to']}" : $label;
+        }, array_filter($properties['changed'], 'is_string'))) : [];
         $note = is_string($properties['note'] ?? null) ? $properties['note'] : null;
 
         return [
@@ -155,6 +182,8 @@ final class ActivityController
             'typeLabel' => $this->typeLabel($activity->subject_type),
             'subjectId' => $activity->subject_id,
             'subject' => $activity->subject_label,
+            // About their own account ("Rina logged in"): the subject isn't named again.
+            'self' => $activity->isAboutItsActor(),
             'url' => $activity->action === 'deleted' ? null : $this->subjectUrl($activity),
             'changed' => $changed,
             'note' => $note,

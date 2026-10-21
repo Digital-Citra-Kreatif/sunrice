@@ -27,6 +27,8 @@ interface Row {
     typeLabel: string;
     subjectId: string | null;
     subject: string | null;
+    /** About their own account ("Rina logged in"): the subject isn't named again. */
+    self: boolean;
     url: string | null;
     changed: string[];
     note: string | null;
@@ -49,6 +51,8 @@ interface Props {
     query: Query;
     types: { value: string; label: string }[];
     actions: string[];
+    /** Who: everyone in the log, by name. */
+    people: { value: string; label: string }[];
     sources: string[];
     perPageOptions: number[];
     defaultPerPage: number;
@@ -62,7 +66,7 @@ const ALL = '__all';
 const SOURCE_LABELS: Record<string, string> = { admin: 'Admin', ai: 'AI agent', system: 'System', security: 'Security' };
 
 /** Who changed what, newest first. */
-export default function ActivityIndex({ query, types, actions, sources, perPageOptions, defaultPerPage, prune, rows }: Props) {
+export default function ActivityIndex({ query, types, actions, people = [], sources, perPageOptions, defaultPerPage, prune, rows }: Props) {
     useBreadcrumbs([{ label: 'Activity log' }]);
     const [search, setSearch] = React.useState(query.search);
     const [confirm, confirmDialog] = useConfirm();
@@ -106,6 +110,14 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                         {sources.map((source) => <SelectItem key={source} value={source}>{SOURCE_LABELS[source] ?? source}</SelectItem>)}
                     </SelectContent>
                 </Select>
+                <Select value={query.user ?? ALL} onValueChange={(value) => visit({ user: value === ALL ? null : value })}>
+                    <SelectTrigger aria-label="Who" className="w-40"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL}>Anyone</SelectItem>
+                        {query.user && !people.some((person) => person.value === query.user) && <SelectItem value={query.user}>One person</SelectItem>}
+                        {people.map((person) => <SelectItem key={person.value} value={person.value}>{person.label}</SelectItem>)}
+                    </SelectContent>
+                </Select>
                 <Select value={query.type ?? ALL} onValueChange={(value) => visit({ type: value === ALL ? null : value, subject: null })}>
                     <SelectTrigger aria-label="Type" className="w-40"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -124,9 +136,9 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                     <DatePicker className="w-36" placeholder="From" value={query.from} onChange={(from) => visit({ from })} />
                     <DatePicker className="w-36" placeholder="To" value={query.to} onChange={(to) => visit({ to })} />
                 </div>
-                {(query.subject || query.user) && (
-                    <Button variant="secondary" size="sm" onClick={() => visit({ subject: null, user: null })}>
-                        {query.subject ? 'One item\'s history' : 'One person\'s activity'}<X />
+                {query.subject && (
+                    <Button variant="secondary" size="sm" onClick={() => visit({ subject: null })}>
+                        One item's history<X />
                     </Button>
                 )}
             </div>
@@ -158,8 +170,12 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                                 </TableCell>
                                 <TableCell className="align-top">
                                     <span className="font-medium">{row.action}</span>{' '}
-                                    <span className="text-muted-foreground">{row.typeLabel.toLowerCase()}</span>{' '}
-                                    {row.url ? <Link href={row.url} className="underline-offset-4 hover:underline">{row.subject}</Link> : <span>{row.subject}</span>}
+                                    {!row.self && (
+                                        <>
+                                            <span className="text-muted-foreground">{row.type === 'account' ? 'for' : row.typeLabel.toLowerCase()}</span>{' '}
+                                            {row.url ? <Link href={row.url} className="underline-offset-4 hover:underline">{row.subject}</Link> : <span>{row.subject}</span>}
+                                        </>
+                                    )}
                                     {row.subjectId && (
                                         <Button variant="ghost" size="icon" className="ml-1 size-6 align-middle" aria-label={`History of ${row.subject ?? 'this item'}`}
                                             onClick={() => visit({ type: row.type, subject: row.subjectId })}>
