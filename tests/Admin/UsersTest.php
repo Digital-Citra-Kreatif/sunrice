@@ -461,6 +461,26 @@ it('creates a user with an invitation to choose their own password, and sends a 
     get("/admin/users/{$dewi->id}/edit")->assertInertia(fn (Assert $page) => expect(formField($page, 'invite'))->toBeNull());
 });
 
+it('builds the invitation and password links from APP_URL, never from the request\'s Host (NEW-security-1)', function () {
+    config(['app.url' => 'https://cms.example']);
+    Notification::fake();
+    actingAs($this->super);
+
+    post('http://evil.example/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => true, 'roles' => []])->assertSessionHasNoErrors();
+    post("http://evil.example/admin/users/{$this->editor->id}/actions/invite")->assertSessionHas('success');
+
+    $links = [];
+    Notification::assertSentOnDemand(PanelInvitation::class, function ($notification, $channels, $notifiable) use (&$links) {
+        $links[] = $notification->toMail($notifiable)->actionUrl;
+
+        return true;
+    });
+    expect($links)->toHaveCount(2);
+    foreach ($links as $link) {
+        expect($link)->toStartWith('https://cms.example/admin/reset-password/')->not->toContain('evil.example');
+    }
+});
+
 it('lets everyone change their own name, email and password on Your account', function () {
     $author = User::query()->create(['name' => 'Author', 'email' => 'author@example.com', 'password' => 'old-long-password']);
     $author->givePermissionTo(Panel::ACCESS);
