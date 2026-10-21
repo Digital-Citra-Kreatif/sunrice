@@ -53,6 +53,9 @@ final class Action
 
     private ?string $confirm = null;
 
+    /** @var (Closure(Model): ?string)|null */
+    private ?Closure $confirmFor = null;
+
     private bool $destructive = false;
 
     private string $ability = 'update';
@@ -106,6 +109,20 @@ final class Action
     public function confirm(string $question): self
     {
         $this->confirm = $question;
+
+        return $this;
+    }
+
+    /**
+     * Something about the record, added after the question when the dialog
+     * is for one record known up front (the edit page's Delete): "They
+     * own 3 entries." Rows and bulk actions ask only the question.
+     *
+     * @param  Closure(Model): ?string  $detail
+     */
+    public function confirmFor(Closure $detail): self
+    {
+        $this->confirmFor = $detail;
 
         return $this;
     }
@@ -305,15 +322,24 @@ final class Action
         return $validated;
     }
 
-    /** @return array{key: string, label: string, confirm: string|null, destructive: bool, url: bool, newTab: bool, fields: list<array<string, mixed>>} */
-    public function toArray(): array
+    /**
+     * @param  Model|null  $record  the one record the dialog is for, when known up front (->confirmFor())
+     * @return array{key: string, label: string, confirm: string|null, destructive: bool, url: bool, newTab: bool, fields: list<array<string, mixed>>}
+     */
+    public function toArray(?Model $record = null): array
     {
+        $confirm = Say::it($this->confirm);
+        $detail = $record !== null && $this->confirmFor !== null ? ($this->confirmFor)($record) : null;
+        if (is_string($detail) && $detail !== '') {
+            $confirm = is_string($confirm) && $confirm !== '' ? $confirm.' '.$detail : $detail;
+        }
+
         return [
             'key' => $this->key,
             'url' => $this->url !== null,
             'newTab' => $this->newTab,
             'label' => Say::it($this->label),
-            'confirm' => Say::it($this->confirm),
+            'confirm' => is_string($confirm) ? $confirm : null,
             'destructive' => $this->destructive,
             'fields' => array_map(fn (Field $field) => [...$field->toArray(), 'default' => $field->formValue(null)], $this->fields),
         ];

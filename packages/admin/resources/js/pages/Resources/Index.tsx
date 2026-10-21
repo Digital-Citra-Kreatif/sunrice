@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, D
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
 import { Cell } from '@/components/resources/cell';
-import { useConfirm } from '@/components/resources/confirm';
+import { forTargets, useConfirm } from '@/components/resources/confirm';
 import { DateRangeFilter } from '@/components/resources/date-range-filter';
 import type { ActionInfo, ColumnInfo, FilterInfo, ResourceInfo, Row } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
@@ -94,7 +94,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
             // With fields, the dialog stays open until the action is accepted.
             : new Promise<boolean>((resolve) => router.post(`${base}/${row.key}/actions/${action.key}`, values, {
                 preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
-            })), action.destructive, action.fields);
+            })), action.destructive, forTargets(action.fields, [row.id]));
     // A row action keyed "delete" replaces the built-in Delete in the row's menu.
     const customDelete = rowActions.some((action) => action.key === 'delete');
     const deleteRow = (row: Row) =>
@@ -106,7 +106,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
             ? router.post(`${base}/bulk`, { action: action.key, ids: selected }, { preserveScroll: true })
             : new Promise<boolean>((resolve) => router.post(`${base}/bulk`, { ...values, action: action.key, ids: selected }, {
                 preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
-            })), action.destructive, action.fields);
+            })), action.destructive, forTargets(action.fields, selected));
     // In the trash: only Restore, for the selected rows too.
     const shownBulkActions: ActionInfo[] = trashed
         ? [{ key: 'restore', label: t('Restore'), confirm: null, destructive: false, url: false, newTab: false, fields: [] }]

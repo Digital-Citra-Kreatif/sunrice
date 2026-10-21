@@ -33,6 +33,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Deleting users: "Give it to" no longer offers the users being deleted (`Select::withoutTargets()`, `@api`), choosing one anyway (or none) is an error under the field so the dialog keeps your choices, and the edit page's **Delete…** says what the user owns (`Action::confirmFor()`, `@api`; `Action::toArray()` takes the record).
 - An invitation's link opens **Choose your password** and ends with "Your password is set. You can log in now.", not a reset's "Choose a new password" and "Your password has been reset" (the link carries `invited=1`; the page gets an `invited` prop).
 - Blueprint builder: "Show when" no longer offers a fieldset include (it has no value of its own; `DefinitionValidator` refuses it too), and a save refused for a field's settings scrolls to the first field with an error, opened with the message under the setting.
 - Roles read as people say them: "Also email roles" (Settings → Comments, Forms) lists "Super admin", not `super-admin`, and the Roles list shows the super admin role's permissions as "All" instead of 0. The comments captcha switch is offered once a captcha service is set up, and its help names the developer settings after "For developers:", as the forms' does.

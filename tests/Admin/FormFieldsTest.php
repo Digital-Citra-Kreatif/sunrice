@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
 use Sunrice\Admin\Resources\Forms\Pairs;
+use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Forms\Toggle;
+use Sunrice\Admin\Resources\Tables\Action;
 
 it('sends a field\'s condition and slug source to the form', function () {
     expect(TextInput::make('template')->showWhen('route')->toArray()['showWhen'])->toBe(['field' => 'route', 'value' => null])
@@ -42,4 +44,16 @@ it('sends a field\'s change warning to edit forms only, in the panel\'s language
 
     app()->setLocale('id');
     expect($field->toArray($saved)['warnWhenChanged'])->toStartWith('Pengguna tetap');
+});
+
+it('marks a select whose options leave out an action\'s own records, and adds what an action says about one record', function () {
+    expect(Select::make('heir')->options(['1' => 'A'])->toArray())->not->toHaveKey('withoutTargets')
+        ->and(Select::make('heir')->options(['1' => 'A'])->withoutTargets()->toArray()['withoutTargets'])->toBeTrue();
+
+    $action = Action::make('delete')->confirm('Delete?')->confirmFor(fn (Model $record): ?string => $record->getAttribute('name') === 'Rina' ? 'She owns 2 pages.' : null);
+    $rina = new class extends Model {};
+    $rina->setAttribute('name', 'Rina');
+    expect($action->toArray()['confirm'])->toBe('Delete?')
+        ->and($action->toArray($rina)['confirm'])->toBe('Delete? She owns 2 pages.')
+        ->and($action->toArray(new class extends Model {})['confirm'])->toBe('Delete?');
 });

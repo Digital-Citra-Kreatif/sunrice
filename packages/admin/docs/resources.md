@@ -228,6 +228,8 @@ Action::make('reject')->ability('update')
     ->handle(fn (Order $order, array $input) => $order->reject($input['reason'])),
 ```
 
+A `Select` in an action's dialog may leave out the records the action runs on with `->withoutTargets()` (its option values are compared with their keys: a Delete dialog's "Give it to" doesn't offer the users being deleted); refuse one sent anyway in the handler with a `ValidationException` under the field's name, so the dialog stays open with the choices made. `->confirmFor(fn (Model $record) => …)` adds a sentence about the record after the question when the dialog is for one record known up front (the edit page's Delete); rows and bulk actions ask only the question.
+
 For a model with a trash (`SoftDeletes`), `->trashed()` makes an action for records in the trash only, such as a Restore: it finds them though the resource's query leaves them out, and isn't offered (or run) for anything else. List them with a filter:
 
 ```php
