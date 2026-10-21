@@ -127,6 +127,7 @@ TextInput::make('code')->warnWhenChanged('Invoices printed before keep ":old"; r
 
 Under its help, a field can say more, following the form as it's edited:
 
+- `->placeholderFrom('route', '/{handle}/{slug}')` makes the placeholder follow another field as it's edited: that field's value, or while it's empty the fallback (with `{name}` as above), for an input that defaults to another's when left empty.
 - `->helpValues(['url' => ['listing_route', '/{handle}']])` fills `:url` in the help with that field's value, or while it's empty with the fallback (`{name}` there is the field `name`'s value).
 - `->developerHelp('In a template: `<x-shop::product sku=":value" />`', 'ABC-1')` adds a line "For developers: …": `backticks` show as code, `:value` is the field's value as it's typed (the example while it's empty). Keep the help itself in plain words for editors.
 - `->helpDetails('Which file?', "1. shop/product.blade.php\n2. …")` adds a disclosure that opens to more text.

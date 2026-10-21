@@ -33,6 +33,9 @@ abstract class Field implements Component
 
     protected ?string $placeholder = null;
 
+    /** @var array{field: string, fallback: string|null}|null */
+    protected ?array $placeholderFrom = null;
+
     protected ?string $warnWhenChanged = null;
 
     protected mixed $default = null;
@@ -125,6 +128,20 @@ abstract class Field implements Component
     public function placeholder(?string $text): static
     {
         $this->placeholder = $text;
+
+        return $this;
+    }
+
+    /**
+     * The placeholder follows another field of the form as it's edited:
+     * ->placeholderFrom('route', '/{handle}/{slug}') shows the route field's
+     * value, or while that's empty the fallback with `{name}` as the field
+     * `name`'s value (else the placeholder()). For a value that defaults to
+     * another field's when left empty.
+     */
+    public function placeholderFrom(string $field, ?string $fallback = null): static
+    {
+        $this->placeholderFrom = ['field' => $field, 'fallback' => $fallback];
 
         return $this;
     }
@@ -353,6 +370,7 @@ abstract class Field implements Component
             'disabled' => $this->isDisabled($record),
             'help' => Say::it($this->help),
             'placeholder' => Say::it($this->placeholder),
+            'placeholderFrom' => $this->placeholderFrom,
             // Only on an edit form: a new record has nothing saved to change.
             'warnWhenChanged' => $record !== null && $record->exists ? Say::it($this->warnWhenChanged) : null,
             'span' => $this->span,

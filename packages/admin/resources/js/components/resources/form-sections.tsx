@@ -3,6 +3,7 @@ import { CollapsibleCard } from '@/components/app/collapsible-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { TriangleAlert } from 'lucide-react';
 import { changeWarning } from '@/lib/change-warning';
+import { livePlaceholder, type HelpValue } from '@/lib/live-help';
 import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
 import { t } from '@/lib/i18n';
@@ -38,7 +39,7 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
                     // A section's only field named like the section: the card's title says it already.
                     const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
                     const warning = changeWarning(field.warnWhenChanged, data[field.name], saved, field.name);
-                    const input = <FieldInput field={field} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
+                    const input = <FieldInput field={{ ...field, placeholder: livePlaceholder(field.placeholder, field.placeholderFrom as HelpValue | null | undefined, data) }} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
 
                     return (
                         <div key={field.name} className={cn('grid min-w-0 grid-cols-1 content-start gap-2', spans[Math.min(field.span, section.columns)])}>

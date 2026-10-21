@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { codeParts, developerText, liveHelp, visibleLinks, withValues } from '../../packages/admin/resources/js/lib/live-help.ts';
+import { codeParts, developerText, liveHelp, livePlaceholder, visibleLinks, withValues } from '../../packages/admin/resources/js/lib/live-help.ts';
 
 test('fills the help from the form as it is edited, with a fallback built from other fields', () => {
     const values = { url: { field: 'listing_route', fallback: '/{handle}' }, collection: { field: 'title', fallback: null } };
@@ -26,4 +26,13 @@ test('shows links by the form\'s values, their addresses with them', () => {
 
     assert.deepEqual(visibleLinks(links, { blueprint: '', slug: 'a b' }).map((link) => [link.label, link.url]), [['Create', '/admin/blueprints/create'], ['Site', '/a%20b']]);
     assert.deepEqual(visibleLinks(links, { blueprint: 'page' }).map((link) => [link.label, link.url]), [['Edit', '/admin/blueprints/page/edit'], ['Site', '/{slug}']]);
+});
+
+test('a placeholder follows another field, else its fallback, else its own', () => {
+    const from = { field: 'route', fallback: '/{handle}/{slug}' };
+    assert.equal(livePlaceholder(null, from, { route: '/books/{slug}' }), '/books/{slug}');
+    assert.equal(livePlaceholder(null, from, { route: '', handle: 'books' }), '/books/{slug}');
+    assert.equal(livePlaceholder('Own', { field: 'route', fallback: null }, { route: null }), 'Own');
+    assert.equal(livePlaceholder('Own', null, { route: '/x' }), 'Own');
+    assert.equal(livePlaceholder(undefined, undefined, {}), null);
 });

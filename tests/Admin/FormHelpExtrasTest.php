@@ -53,3 +53,9 @@ it('gives section and field links the record, none when creating', function () {
 it('shows a field once another one is changed', function () {
     expect(TextInput::make('note')->showWhenChanged('tags')->toArray()['showWhen'])->toBe(['field' => 'tags', 'value' => null, 'changed' => true]);
 });
+
+it('sends a placeholder that follows another field', function () {
+    expect(TextInput::make('route_id')->placeholder('Own')->placeholderFrom('route', '/{handle}/{slug}')->toArray())
+        ->toMatchArray(['placeholder' => 'Own', 'placeholderFrom' => ['field' => 'route', 'fallback' => '/{handle}/{slug}']])
+        ->and(TextInput::make('title')->toArray()['placeholderFrom'])->toBeNull();
+});

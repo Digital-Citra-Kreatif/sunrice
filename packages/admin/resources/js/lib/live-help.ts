@@ -34,6 +34,15 @@ export function liveHelp(help: string, values: Record<string, HelpValue> | undef
     });
 }
 
+/** The placeholder to show (Field::placeholderFrom()): another field's value as it's typed, else the fallback with the form's values, else the field's own. */
+export function livePlaceholder(placeholder: string | null | undefined, from: HelpValue | null | undefined, data: Record<string, unknown>): string | null {
+    if (!from) return placeholder ?? null;
+    const own = text(data[from.field]);
+    if (own !== '') return own;
+
+    return from.fallback !== null ? withValues(from.fallback, data) : (placeholder ?? null);
+}
+
 /** Field::developerHelp()'s text with :value as the field's value, or the example while it's empty. */
 export function developerText(textWithValue: string, value: unknown, example: string | null): string {
     const own = text(value);
