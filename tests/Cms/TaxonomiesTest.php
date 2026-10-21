@@ -202,12 +202,12 @@ it('lists each term with its entry count, and the taxonomy\'s collections and se
 });
 
 it('explains a template setting with the files tried in order when it is empty', function () {
-    expect(TemplateHelp::text('cms.topic', ['cms.taxonomy-{handle}', 'cms.term']))->toBe(implode("\n", [
-        'Leave empty to use the first that exists, under resources/views:',
-        '1. cms/taxonomy-{handle}.blade.php',
-        '2. cms/term.blade.php',
+    expect(TemplateHelp::files(['cms.taxonomy-{handle}', 'cms.term'], 'cms.topic'))->toBe(implode("\n", [
+        'The first that exists, under resources/views:',
+        '1. `cms/taxonomy-{handle}.blade.php`',
+        '2. `cms/term.blade.php`',
         '3. the built-in template',
-        'A view name is a file there: cms.topic is cms/topic.blade.php.',
+        'A view name is a file there: `cms.topic` is `cms/topic.blade.php`.',
     ]));
     // The editor's "Which file?": the views tried, in order, and which exist.
     expect(TemplateHelp::lookup([null, 'sunrice-cms::site.nope', '', 'sunrice-cms::components.seo']))->toBe([
@@ -293,4 +293,16 @@ it('gives an attached collection\'s blueprints a terms field for the taxonomy, a
     expect(array_column(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields, 'handle'))->toBe(['topics'])
         ->and(Blueprint::query()->where('handle', 'landing')->firstOrFail()->fields)->toBe([])
         ->and(Blueprint::query()->where('handle', 'page')->firstOrFail()->fields)->toHaveCount(1);
+});
+
+it('links the term pages card to a term\'s page on the site', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.update'));
+    $links = fn (Assert $page) => collect($page->toArray()['props']['sections'])->firstWhere('title', 'Term pages')['links'] ?? null;
+
+    get('/admin/cms/taxonomies/categories/edit')->assertInertia(fn (Assert $page) => expect($links($page))->toBeNull());
+    $this->categories->forceFill(['route' => '/categories/{slug}'])->save();
+    term($this->categories, 'News');
+    get('/admin/cms/taxonomies/categories/edit')->assertInertia(fn (Assert $page) => expect($links($page))
+        ->toBe([['label' => 'View a term page', 'url' => url('/categories/news'), 'newTab' => true, 'showWhen' => ['field' => 'pages', 'value' => null, 'not' => false]]]));
 });

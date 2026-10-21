@@ -43,7 +43,7 @@ export function FormLinks({ links, className }: { links: FormLink[]; className?:
     return (
         <div className={className ?? 'flex flex-wrap gap-x-4 gap-y-1 text-sm'}>
             {links.map((link) => (
-                <a key={link.label} href={link.url} className="inline-flex items-center gap-0.5 font-medium text-primary underline-offset-4 hover:underline"
+                <a key={link.label} href={link.url} className="inline-flex items-center gap-0.5 font-medium text-primary underline decoration-muted-foreground/40 underline-offset-4 hover:decoration-current"
                     {...(link.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
                     {link.label}
                     {link.newTab && <><ArrowUpRight aria-hidden className="size-3.5" /><span className="sr-only"> {t('(opens in a new tab)')}</span></>}

@@ -199,3 +199,24 @@ it('offers the listing page a blueprint of its own, saying where editors fill it
             ->and($field['links'][1]['url'])->toBe('/admin/cms/blueprints/{listing_blueprint}/edit');
     });
 });
+
+it('links the collection form\'s cards to the site and the entries, once saved', function () {
+    Collection::query()->create(['handle' => 'news', 'title' => 'News', 'route' => '/news/{slug}', 'listing_route' => '/news']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.create', 'cms.collections.update'));
+    $section = fn (Assert $page, string $title): array => collect($page->toArray()['props']['sections'])->firstWhere('title', $title);
+
+    get('/admin/cms/collections/news/edit')->assertInertia(function (Assert $page) use ($section) {
+        expect($section($page, 'Entry pages')['links'])->toBe([['label' => 'View entries', 'url' => '/admin/cms/collections/news/entries', 'newTab' => false, 'showWhen' => null]])
+            ->and($section($page, 'Listing page')['links'])->toBe([
+                ['label' => 'View on site', 'url' => url('/news'), 'newTab' => true, 'showWhen' => ['field' => 'listing', 'value' => null, 'not' => false]],
+                ['label' => 'Edit listing page', 'url' => '/admin/cms/collections/news/listing/edit', 'newTab' => false, 'showWhen' => ['field' => 'listing_blueprint', 'value' => null, 'not' => false]],
+            ]);
+        // The listing URL's help: one line, the files in a "Which file?" disclosure.
+        $route = collect($section($page, 'Listing page')['fields'])->firstWhere('name', 'listing_route');
+        expect($route['help'])->toBe('Like /blog. Empty: /{handle}.')
+            ->and($route['helpDetails']['summary'])->toBe('Which file?')
+            ->and($route['helpDetails']['text'])->toContain('1. `cms/{handle}-listing.blade.php`');
+    });
+    get('/admin/cms/collections/create')->assertInertia(fn (Assert $page) => expect($section($page, 'Entry pages'))->not->toHaveKey('links')
+        ->and($section($page, 'Listing page'))->not->toHaveKey('links'));
+});
