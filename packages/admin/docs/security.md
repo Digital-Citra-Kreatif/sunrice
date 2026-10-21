@@ -49,6 +49,19 @@ SUNRICE_CSP="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'u
 
 Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
 
+## Links in emails
+
+Links in the panel's emails (password reset, security alerts) and the CMS's (moderation, submissions, replies) are built from `APP_URL`, not from the request's `Host` header, which whoever sends the request chooses: otherwise a "forgot password" request sent with `Host: evil.example` would email a reset link that hands the token to that host. So set `APP_URL` to the address people use. Plugins build their mail links the same way with `Sunrice\Admin\Support\AppUrl` (`@api`):
+
+```php
+use Sunrice\Admin\Support\AppUrl;
+
+AppUrl::route('sunrice.admin.shop.orders.show', ['order' => $order->id]); // https://your-app.example/admin/...
+AppUrl::url($entry->url()); // an absolute link moved from the request's host to APP_URL
+```
+
+Also turn on Laravel's `TrustHosts` middleware (`$middleware->trustHosts()` in `bootstrap/app.php`) or have your web server answer only your own host names, so the rest of the app (caches keyed by URL, redirects) never works with a made-up host.
+
 ## Elsewhere too
 
 - **A log file:** set `SUNRICE_SECURITY_LOG_CHANNEL` (`security.log_channel` in `config/sunrice-admin.php`) to a log channel, e.g. `daily`, to also write each event there as a warning, for fail2ban or a log service.

@@ -16,6 +16,7 @@ use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Events\SecurityEventRecorded;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Support\AppUrl;
 use Sunrice\Admin\Users\PermissionRank;
 use Throwable;
 
@@ -285,7 +286,7 @@ final class SecurityAlerts
         }
 
         $mail = new SecurityAlert($headline, $what, $advice, [...$details, 'When' => now()->toDayDateTimeString()],
-            $this->panel->brandName(), route('sunrice.admin.activity.index', ['source' => 'security']));
+            $this->panel->brandName(), AppUrl::route('sunrice.admin.activity.index', ['source' => 'security']));
         // One mail per person, on the queue: sending mustn't slow the request down.
         foreach ($recipients as $email) {
             try {

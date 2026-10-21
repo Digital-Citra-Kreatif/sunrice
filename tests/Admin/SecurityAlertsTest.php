@@ -61,6 +61,15 @@ it('queues a mail to super admins and the listed addresses when an account is lo
         ->and($mail->render())->toContain('Rina')->toContain('What to do:')->toContain('/admin/activity?source=security');
 });
 
+it('links to the activity log on APP_URL, not the Host header of the request that raised the alert', function () {
+    config(['app.url' => 'https://cms.example', 'sunrice-admin.auth.throttle' => ['attempts' => 50, 'per_ip' => 50, 'per_account' => 2, 'account_lock_seconds' => 900]]);
+    foreach (range(1, 3) as $i) {
+        post('http://evil.example/admin/login', ['email' => 'rina@example.com', 'password' => 'wrong']);
+    }
+
+    expect(Mail::queued(SecurityAlert::class)->first()->logUrl)->toBe('https://cms.example/admin/activity?source=security');
+});
+
 it('alerts on one address trying many accounts', function () {
     config(['sunrice-admin.auth.throttle' => ['attempts' => 50, 'per_ip' => 3, 'per_account' => 50]]);
     foreach (['a', 'b', 'c'] as $name) {

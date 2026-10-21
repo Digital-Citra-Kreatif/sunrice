@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Notifications;
 
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
+use Sunrice\Admin\Support\AppUrl;
 
 /**
  * The password reset email. Laravel's own links to the app's
@@ -33,6 +34,6 @@ final class ResetPanelPassword extends ResetPassword
 
     protected function resetUrl(mixed $notifiable): string
     {
-        return url(route('sunrice.admin.password.reset', ['token' => $this->token, 'email' => $this->email], false));
+        return AppUrl::route('sunrice.admin.password.reset', ['token' => $this->token, 'email' => $this->email]);
     }
 }

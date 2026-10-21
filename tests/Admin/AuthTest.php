@@ -141,6 +141,17 @@ it('emails a reset link to the panel without telling who has an account', functi
     Notification::assertCount(1);
 });
 
+it('builds the reset link from APP_URL, never from the request\'s Host header', function () {
+    config(['app.url' => 'https://cms.example']);
+    Notification::fake();
+
+    post('http://evil.example/admin/forgot-password', ['email' => 'rina@example.com'])->assertSessionHas('success');
+
+    Notification::assertSentOnDemand(ResetPanelPassword::class, function (ResetPanelPassword $notification, array $channels, object $notifiable) {
+        return str_starts_with($notification->toMail($notifiable)->actionUrl, 'https://cms.example/admin/reset-password/');
+    });
+});
+
 it('resets the password', function () {
     $token = Password::broker()->createToken($this->admin);
 
