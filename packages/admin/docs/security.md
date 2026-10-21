@@ -14,6 +14,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `login blocked` | Too many wrong passwords from one IP, or for one email from one IP: once when the limit is reached, then at most once a minute per email and IP while attempts keep coming (`tried while blocked`), so a sustained attack shows without flooding the log. Also a locked account trying to log in or open a page. |
 | `account locked` | Too many wrong passwords for one account from any IPs: it's locked for `account_lock_seconds`. |
 | `password reset requested`, `password reset` | The "Forgot password?" form (also for emails without an account) and a completed reset. |
+| `password reset blocked` | Too many forgot or reset password requests from one IP (`password_resets_per_minute`, `password_resets_per_hour`), at most once a minute per IP. |
 | `upload blocked` | A script, executable or web page, or an SVG that could run code, uploaded to the media library. |
 | `exported` | A resource's CSV export (exports can carry personal data out of the panel). |
 | `roles changed`, `permissions changed` | A user's roles or a role's permissions changed, with what was added and removed (`added` and `removed` lists in the properties, and a note). |
@@ -90,6 +91,7 @@ When something may be a break-in, the panel emails super admins, users with the 
 | A powerful account signed in from a new address | Someone with a privileged permission (or a super admin) signed in from an IP they hadn't used. |
 | An account signed in after a long time | The first login in `dormant_days` (90). |
 | Someone was given privileged access / A role was given privileged access | A user got the super admin role, a privileged permission or a role that has one (read from the event's `added` list). |
+| One address keeps asking for password resets | `password reset blocked` |
 | A dangerous upload was blocked | `upload blocked` |
 | A new AI access token was created | `token created` |
 | An AI access token was used from a new address | `token used from new IP` |

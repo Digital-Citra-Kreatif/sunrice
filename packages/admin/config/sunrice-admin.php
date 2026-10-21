@@ -39,8 +39,9 @@ return [
             // One account from any IPs (a botnet): it is locked for a while.
             'per_account' => 30,
             'account_lock_seconds' => 900,
-            // Forgot / reset password requests per IP per minute.
+            // Forgot / reset password requests per IP per minute, and per hour.
             'password_resets_per_minute' => 5,
+            'password_resets_per_hour' => 20,
         ],
     ],
 

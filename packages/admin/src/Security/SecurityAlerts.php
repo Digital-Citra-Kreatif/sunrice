@@ -116,6 +116,11 @@ final class SecurityAlerts
                         'This is how password-guessing tools work. Nothing to do if every account has a strong password; consider blocking the address in your firewall.', $details);
                 }
                 break;
+            case 'password reset blocked':
+                $this->alert('password-reset-flood', (string) $e->ip, 'One address keeps asking for password resets',
+                    "The address {$e->ip} asked for more password reset emails than allowed and was blocked for a while.",
+                    'Someone may be flooding people with reset emails or probing accounts. Nothing is at risk while passwords stay unchanged; consider blocking the address in your firewall.', $details);
+                break;
             case 'logged in':
                 $this->loggedIn($e, $details);
                 break;

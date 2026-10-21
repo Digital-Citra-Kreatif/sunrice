@@ -25,6 +25,7 @@ use function Pest\Laravel\assertAuthenticatedAs;
 use function Pest\Laravel\assertGuest;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
+use function Pest\Laravel\travel;
 
 beforeEach(function () {
     usePanel(fn (Panel $panel) => $panel->routes(fn () => Route::get('reports', fn () => 'reports')->name('reports')));
@@ -180,4 +181,21 @@ it('limits the password forms per IP', function () {
     post('/admin/forgot-password', ['email' => 'rina@example.com'])->assertRedirect();
     post('/admin/forgot-password', ['email' => 'rina@example.com'])->assertRedirect();
     post('/admin/forgot-password', ['email' => 'rina@example.com'])->assertTooManyRequests();
+});
+
+it('caps password reset requests per IP an hour, and logs reaching a limit', function () {
+    config(['sunrice-admin.auth.throttle' => ['password_resets_per_minute' => 50, 'password_resets_per_hour' => 3]]);
+    Notification::fake();
+
+    foreach (['a@example.com', 'b@example.com', 'c@example.com'] as $email) {
+        post('/admin/forgot-password', ['email' => $email])->assertRedirect();
+    }
+    post('/admin/forgot-password', ['email' => 'd@example.com'])->assertTooManyRequests();
+    post('/admin/forgot-password', ['email' => 'e@example.com'])->assertTooManyRequests();
+    // Another IP still may.
+    test()->withServerVariables(['REMOTE_ADDR' => '10.0.0.7'])->post('/admin/forgot-password', ['email' => 'd@example.com'])->assertRedirect();
+
+    expect(Activity::query()->where('action', 'password reset blocked')->count())->toBe(1);
+    travel(2)->hours();
+    post('/admin/forgot-password', ['email' => 'd@example.com'])->assertRedirect();
 });

@@ -70,6 +70,15 @@ it('links to the activity log on APP_URL, not the Host header of the request tha
     expect(Mail::queued(SecurityAlert::class)->first()->logUrl)->toBe('https://cms.example/admin/activity?source=security');
 });
 
+it('alerts on one address asking for many password resets', function () {
+    config(['sunrice-admin.auth.throttle.password_resets_per_hour' => 2]);
+    foreach (range(1, 3) as $i) {
+        post('/admin/forgot-password', ['email' => "someone{$i}@example.com"]);
+    }
+
+    expect(alertsSent())->toContain('One address keeps asking for password resets');
+});
+
 it('alerts on one address trying many accounts', function () {
     config(['sunrice-admin.auth.throttle' => ['attempts' => 50, 'per_ip' => 3, 'per_account' => 50]]);
     foreach (['a', 'b', 'c'] as $name) {

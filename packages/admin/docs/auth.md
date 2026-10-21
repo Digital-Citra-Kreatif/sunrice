@@ -24,7 +24,7 @@ Wrong passwords are counted three ways (`config/sunrice-admin.php`, `auth.thrott
 | `attempts`, `decay_seconds` | 5 per 60 s | the same email from the same IP |
 | `per_ip`, `per_ip_decay_seconds` | 20 per 60 s | one IP trying any emails (password spraying) |
 | `per_account`, `account_lock_seconds` | 30, locked 900 s | one account from any IPs (a botnet) |
-| `password_resets_per_minute` | 5 | forgot and reset password requests per IP |
+| `password_resets_per_minute`, `password_resets_per_hour` | 5, 20 | forgot and reset password requests per IP (the hourly cap stops one address mailing reset links to address after address); reaching either is a `password reset blocked` security event and an alert |
 
 A successful login forgives that email's mistakes. Failed logins are logged as notices and limits reached as warnings, with the email and IP, so tools like fail2ban can watch the log; attempts made while blocked are [security events](security.md#security-events) too, once a minute per email and IP. An email with no account costs a password check all the same (against a hash made once with your hasher), so how long the answer takes doesn't say who has an account.
 
