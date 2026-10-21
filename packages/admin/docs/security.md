@@ -63,6 +63,27 @@ AppUrl::url($entry->url()); // an absolute link moved from the request's host to
 
 Also turn on Laravel's `TrustHosts` middleware (`$middleware->trustHosts()` in `bootstrap/app.php`) or have your web server answer only your own host names, so the rest of the app (caches keyed by URL, redirects) never works with a made-up host.
 
+## Fetching URLs people give
+
+Code that downloads a URL someone else chose (the AI tool `upload_media`, an import in your plugin) can be pointed at this server or its network: `http://127.0.0.1:6379`, the cloud metadata service at `169.254.169.254`, an admin page on `10.0.0.5`. `Sunrice\Admin\Support\PublicAddress` (`@api`) says whether a host is out on the public internet: every address it resolves to must be global unicast, so loopback, private, CGNAT (`100.64.0.0/10`), link-local, unique-local (`fc00::/7`), multicast, broadcast, `0.0.0.0/8`, documentation ranges and IPv6 forms that wrap an IPv4 address (`::ffff:127.0.0.1`, NAT64 `64:ff9b::/96`, 6to4, Teredo) are refused.
+
+```php
+use Sunrice\Admin\Support\PublicAddress;
+
+$host = (string) parse_url($url, PHP_URL_HOST);
+$ip = PublicAddress::of($host); // null: not public, or doesn't resolve
+if ($ip === null) {
+    abort(422, 'Only public web addresses can be fetched.');
+}
+$port = parse_url($url, PHP_URL_PORT) ?? (str_starts_with($url, 'https') ? 443 : 80);
+Http::withOptions([
+    'allow_redirects' => false, // a redirect could lead inside
+    'curl' => [CURLOPT_RESOLVE => ["{$host}:{$port}:{$ip}"]], // connect to the address that was checked
+])->get($url);
+```
+
+Don't follow redirects and pin the address, or a host name can resolve to a public address for the check and a private one for the fetch. `PublicAddress::isPublic($ip)` checks one IP address; in tests, `PublicAddress::resolveUsing(fn (string $host): array => ['10.0.0.5'])` replaces DNS (pass `null` to go back).
+
 ## Developer tools
 
 Inertia's DevTools record every request's page props (the users list with emails, settings) and, with `APP_ENV=local`, serve them at `/_inertia/devtools` to anyone, signed in or not. The panel turns them off unless your app turns them on itself (`INERTIA_DEVTOOLS_ENABLED=true`, or `inertia.devtools.enabled`); do that only on a machine nobody else can reach. Never run a reachable site with `APP_ENV=local` or `APP_DEBUG=true`.
