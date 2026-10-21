@@ -106,3 +106,23 @@ it('edits globals in the admin', function () {
     post('/admin/global-sets', ['title' => 'Social', 'handle' => 'social'])->assertSessionHasNoErrors();
     expect(GlobalSet::query()->where('handle', 'social')->exists())->toBeTrue();
 });
+
+it('shows the main language\'s values where another language has none', function () {
+    Blueprint::query()->where('handle', 'contact')->firstOrFail()->update(['fields' => [
+        ['handle' => 'address', 'type' => 'textarea'],
+        ['handle' => 'hours', 'type' => 'text'],
+        ['handle' => 'phone', 'type' => 'text', 'translatable' => false],
+    ]]);
+    app(SaveGlobals::class)->handle($this->contact->fresh() ?? $this->contact, ['address' => '1 Main St', 'hours' => '9 to 5', 'phone' => '+62 21 555']);
+
+    // Never saved in Indonesian: the site and the editor start from the English values.
+    expect(app(Globals::class)->get('contact', 'id'))->toBe(['address' => '1 Main St', 'hours' => '9 to 5', 'phone' => '+62 21 555']);
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view'));
+    get('/admin/cms/globals/contact?locale=id')->assertInertia(fn (Assert $page) => $page->where('values.address', '1 Main St')->where('version', null));
+
+    // Saved with a field left empty: that field still shows the English one.
+    app(SaveGlobals::class)->handle($this->contact->fresh() ?? $this->contact, ['address' => 'Jl. Utama 1', 'hours' => ''], 'id');
+    app(Globals::class)->flush();
+    expect(app(Globals::class)->get('contact', 'id'))->toBe(['address' => 'Jl. Utama 1', 'hours' => '9 to 5', 'phone' => '+62 21 555']);
+});
