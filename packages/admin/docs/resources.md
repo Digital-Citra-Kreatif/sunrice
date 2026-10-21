@@ -102,7 +102,7 @@ public static function query(): Builder
 | Any field | | `->showWhen('route')` shows it only while another field is filled in (switched on, chosen, typed in), `->showWhen('kind', 'link')` while it holds that value; it's only hidden on screen, what it holds is still sent and checked |
 | `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slugFrom('title')` (while creating, filled from that field as it's typed, `main_menu`, or with `'-'` `main-menu`, until someone types in it; what's typed in it is kept to lowercase letters, digits and the separator; check it on the server with a rule too) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
-| `Pairs` | string, one `key: value` per line | Edited as rows of two inputs: `->labels('Code', 'Name')`, `->suggest(['en' => 'English'])` (picking a key fills an empty value), `->firstBadge('Main')`, `->addLabel(…)`, `->maxLength(…)` |
+| `Pairs` | string, one `key: value` per line | Edited as rows of two inputs: `->labels('Code', 'Name')`, `->suggest(['en' => 'English'])` (picking a key fills an empty value), `->firstBadge('Main')`, `->addLabel(…)`, `->maxLength(…)`; `->fixed(['id' => 'Bahasa Indonesia'])` gives a labelled input per key instead (nothing to add or remove; other keys' lines are kept) |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |
 | `Select` | one of the options | `->options([value => label])`, or a closure that gets the record being edited (null when creating): `->options(fn (?Model $record) => …)`; other values are refused; `->searchable()` adds a search box over them, for long lists |

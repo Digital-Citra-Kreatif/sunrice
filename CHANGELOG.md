@@ -33,6 +33,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Settings → Site edits the description in other languages with a labelled input per language instead of an "id: …" textarea (still stored as `descriptions` lines). The panel's `Pairs` field takes `->fixed(['id' => 'Bahasa Indonesia'])` for that: one labelled input per given key, other keys' lines kept.
 - Translators can start a translation: adding a language to an entry (the language bar's **+**, route `sunrice.admin.cms.entries.translations.store`, and `cms_translate_entry`) is allowed to those who may create the collection's entries or edit the entry in that language (`cms.entries.translate`, scoped by the collections they may view). `Access::entries()` takes the action `add-translation`, and the editor's `can` gets `translate`.
 - Menus: in another language, an item without a label in that language shows its target's title there (a live translation, a translated term, a collection's title in that language) before the main language's custom label, so an English "Team" no longer hides "Tim" on `/id`. The menu editor's filter placeholder is a generic `filter=value` instead of `listing_type=for-sale` on every listing link, and the other-language label placeholder says what shows.
 - Unscheduling an entry that isn't live says "Unscheduled. It's a draft again." instead of "Taken off the site", and the "Scheduled for …" message uses the 24-hour clock, as the editor's header and date picker do.

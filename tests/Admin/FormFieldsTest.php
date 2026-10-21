@@ -25,7 +25,9 @@ it('describes pairs: their labels, suggestions, first badge and third column', f
         'suggestions' => [['key' => 'en', 'value' => 'English']],
         'firstBadge' => 'Main',
         'extra' => ['label' => 'Address', 'placeholder' => '/{key}', 'firstPlaceholder' => '/'],
-    ])->and(Pairs::make('x')->validationRules(null))->toContain('string');
+    ])->and(Pairs::make('x')->validationRules(null))->toContain('string')
+        ->and(Pairs::make('x')->toArray()['fixed'])->toBeNull()
+        ->and(Pairs::make('x')->fixed(['id' => 'Bahasa Indonesia'])->toArray()['fixed'])->toBe([['key' => 'id', 'label' => 'Bahasa Indonesia']]);
 });
 
 it('sends a field\'s change warning to edit forms only, in the panel\'s language', function () {
