@@ -124,6 +124,8 @@ Until the panel's are published, admin pages show only a notice saying so. After
 - `expose_php = Off` in `php.ini`, so responses don't announce the PHP version (`X-Powered-By`).
 - Headers for the media directory at the web server ([Media](media.md#headers-at-the-web-server)).
 - The scheduler and a queue worker (above).
+- [Two-factor login](auth.md#two-factor-login) on (Settings → Security), recommended for any panel with administrators.
+- A `Content-Security-Policy` for the panel (`SUNRICE_CSP`, see [Security headers](security.md#security-headers)) and, if your templates allow it, for the site (`SUNRICE_SITE_CSP` in the CMS's `site.headers`).
 
 ## Upgrading
 

@@ -35,6 +35,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Docs: two-factor login is recommended for live panels, and the security docs give a panel Content-Security-Policy to start from and how inline scripts get a nonce. (F8)
 - Super admins see a warning at the top of each panel page while `APP_DEBUG` is on in production, or while `APP_URL` is `http://` there; the installation docs have a "Before going live" checklist (debug, `APP_URL`, TLS and HSTS, `SESSION_SECURE_COOKIE`, a real mailer, `expose_php`, media headers). (F7)
 - Media headers: `sunrice:install` writes an `.htaccess` into a local media directory (Apache: `nosniff`, a CSP and `Content-Disposition: inline` for SVGs, `attachment` for documents; never overwritten), and the media docs give the same rules for nginx and Apache and recommend a separate media origin. (F6)
 - Site responses send security headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin` and a `Permissions-Policy`, and a Content-Security-Policy when you set one (`SUNRICE_SITE_CSP`), on every CMS site route (pages, listings, terms, search, sitemap, previews, form and comment posts), configurable in `sunrice-cms.site.headers`; a header the response already has is kept. (F5)

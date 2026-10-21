@@ -48,7 +48,13 @@ A `Content-Security-Policy` is sent only when you set one, because what it must 
 SUNRICE_CSP="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
 ```
 
-Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
+A policy to start from, with the published assets (no Vite dev server) and media on the app's own domain; add your font's origin (`fonts.bunny.net` by default, see [Branding](branding.md)) and a media CDN if you use one:
+
+```
+SUNRICE_CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.bunny.net; font-src 'self' https://fonts.bunny.net; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+```
+
+The panel's inline scripts (the saved appearance, its words) carry Vite's CSP nonce when your app sets one (`Vite::useCspNonce()` in a middleware, then add `'nonce-…'` to `script-src` in that same middleware's header instead of `SUNRICE_CSP`, since the nonce changes on every request); without a nonce, they need `'unsafe-inline'` in `script-src`. Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
 
 ## Links in emails
 
