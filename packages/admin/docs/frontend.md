@@ -62,7 +62,7 @@ Pages get the admin layout (sidebar and header). Set `Component.bare = true` for
 
 The header's breadcrumbs are what the page declares with `useBreadcrumbs()`; a page that declares none gets the navigation item whose address is the longest prefix of the page's (with its parent, for a submenu link), so `/admin/shop/orders/12` under an *Orders* item shows *Orders*.
 
-Messages flashed as `success` or `error` (`back()->with('success', 'Saved.')`) become toasts. Each one shown carries an `id` in the page's `flash` data (`{ id, success, error }`, `id` null without a message), so the same text twice shows twice.
+Messages flashed as `success` or `error` (`back()->with('success', 'Saved.')`) become toasts. Each one shown carries an `id` in the page's `flash` data (`{ id, success, error }`, `id` null without a message), so the same text twice shows twice. A success message can carry a button, flashed as `success_action` with a `label`, a `url`, an optional `method` (`post`, the default, or `get`) and `data`: `->with('success', 'Moved to the trash.')->with('success_action', ['label' => 'Undo', 'url' => route('…restore', $entry)])`. The toast then stays eight seconds, and the button visits the URL (the route guards itself as usual).
 
 ## 3. Registering the bundle
 

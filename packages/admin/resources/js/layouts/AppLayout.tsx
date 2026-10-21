@@ -35,7 +35,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     // Each message once: keyed by its id, so the same text twice toasts twice.
     React.useEffect(() => {
-        if (flash.success) toast.success(flash.success, flash.id ? { id: `${flash.id}:success` } : undefined);
+        if (flash.success) {
+            const action = flash.action;
+            toast.success(flash.success, {
+                ...(flash.id ? { id: `${flash.id}:success` } : {}),
+                ...(action ? {
+                    action: { label: action.label, onClick: () => router.visit(action.url, { method: action.method, data: action.data as never, preserveScroll: true }) },
+                    duration: 8000,
+                } : {}),
+            });
+        }
         if (flash.error) toast.error(flash.error, flash.id ? { id: `${flash.id}:error` } : undefined);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [flash.id, flash.success, flash.error]);

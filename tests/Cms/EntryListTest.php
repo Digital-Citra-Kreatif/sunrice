@@ -19,7 +19,9 @@ use Sunrice\Cms\Support\Locales;
 use Workbench\App\Models\User;
 
 use function Pest\Laravel\actingAs;
+use function Pest\Laravel\delete;
 use function Pest\Laravel\get;
+use function Pest\Laravel\post;
 use function Pest\Laravel\travelTo;
 
 beforeEach(function () {
@@ -310,4 +312,34 @@ it('takes as many queries for many entries as for a few', function () {
     }
 
     expect($count())->toBe($few);
+});
+
+it('shows the trash with "Trashed" rows, at ?status=trash too, and undoes a trashing from the toast', function () {
+    $gone = listProduct('Gone', publish: true);
+    $kept = listProduct('Kept', publish: true);
+    lister('cms.entries.view', 'cms.entries.delete');
+
+    // From the editor: the toast's Undo restores the entry.
+    delete("/admin/cms/entries/{$gone->entry_id}")
+        ->assertRedirect('/admin/cms/collections/products/entries')
+        ->assertSessionHas('success', 'Moved to the trash.')
+        ->assertSessionHas('success_action', ['label' => 'Undo', 'url' => route('sunrice.admin.cms.entries.restore', $gone->entry_id)]);
+
+    get('/admin/cms/collections/products/entries?status=trash')->assertInertia(fn (Assert $page) => $page
+        ->where('query.status', 'trashed')
+        ->where('entries.data.0.title', 'Gone')
+        ->where('entries.data.0.trashed', true)
+        ->where('entries.data.0.status', 'published'));
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.trashed', false));
+
+    post('/admin/cms/entries/'.$gone->entry_id.'/restore')->assertSessionHas('success', 'Restored.');
+    expect(listed())->toContain('Gone');
+
+    // In bulk: Undo restores the same entries.
+    post('/admin/cms/collections/products/entries/bulk', ['action' => 'trash', 'ids' => [$gone->entry_id, $kept->entry_id]])
+        ->assertSessionHas('success', '2 entries moved to the trash.')
+        ->assertSessionHas('success_action', ['label' => 'Undo', 'url' => route('sunrice.admin.cms.entries.bulk', 'products'), 'data' => ['action' => 'restore', 'ids' => [$gone->entry_id, $kept->entry_id]]]);
+    post('/admin/cms/collections/products/entries/bulk', ['action' => 'restore', 'ids' => [$gone->entry_id, $kept->entry_id]])
+        ->assertSessionMissing('success_action');
+    expect(listed())->toContain('Gone', 'Kept');
 });

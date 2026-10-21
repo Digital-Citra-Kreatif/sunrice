@@ -161,7 +161,7 @@ it('gives each flash message an id, so the same text twice shows twice', functio
     usePanel();
     signIn();
 
-    get('/admin')->assertInertia(fn (Assert $page) => $page->where('flash', ['id' => null, 'success' => null, 'error' => null]));
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('flash', ['id' => null, 'success' => null, 'error' => null, 'action' => null]));
 
     $ids = [];
     foreach ([1, 2] as $_) {
@@ -172,4 +172,25 @@ it('gives each flash message an id, so the same text twice shows twice', functio
         });
     }
     expect($ids[0])->toBeString()->not->toBe($ids[1]);
+});
+
+it('gives a success toast the button flashed with it, as an Undo', function () {
+    usePanel();
+    signIn();
+
+    session()->flash('success', 'Moved to the trash.');
+    session()->flash('success_action', ['label' => 'Undo', 'url' => url('/admin/things/1/restore'), 'data' => ['ids' => [1]]]);
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('flash.action', [
+        'label' => 'Undo', 'url' => url('/admin/things/1/restore'), 'method' => 'post', 'data' => ['ids' => [1]],
+    ]));
+
+    // Without a success message, or malformed, there's no button.
+    session()->flush();
+    session()->flash('error', 'No.');
+    session()->flash('success_action', ['label' => 'Undo', 'url' => '/x']);
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('flash.action', null));
+    session()->flush();
+    session()->flash('success', 'Done.');
+    session()->flash('success_action', ['label' => 'Undo']);
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('flash.action', null));
 });
