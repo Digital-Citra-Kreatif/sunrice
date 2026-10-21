@@ -99,3 +99,11 @@ test('the builder folds fields to their summary: a new one opens alone, and all 
     // No example rules that look like rules already set.
     assert.doesNotMatch(source, /placeholder=\{'min:3/);
 });
+
+test('a multiple select setting in tick order adds what is ticked last, and numbers it', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const source = await readFile(new URL('../../packages/cms/resources/js/components/FieldInput.tsx', import.meta.url), 'utf8');
+
+    assert.match(source, /inTickOrder \? \[\.\.\.value\.filter\(\(v\) => v !== option\.value\), option\.value\]/);
+    assert.match(source, /inTickOrder=\{field\.config\?\.in_tick_order === true\}/);
+});

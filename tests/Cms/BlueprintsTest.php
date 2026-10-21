@@ -14,6 +14,7 @@ use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Fields\DefinitionValidator;
 use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Fields\Fieldsets;
+use Sunrice\Cms\Fields\FieldTypes;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Fieldset;
@@ -172,4 +173,18 @@ it('says a fieldset\'s fields land at its level, and how to keep them apart', fu
     expect($errors([['handle' => 'phone', 'type' => 'text'], $include]))->toBe(['fields.1.config.fieldset' => ['There is already a field "phone" here'.$hint]])
         ->and($errors([$include, ['handle' => 'email', 'type' => 'text']]))->toBe(['fields.1.handle' => ['There is already a field "email" here'.$hint]])
         ->and($errors([['handle' => 'phone', 'type' => 'text'], ['handle' => 'primary_contact', 'type' => 'group', 'fields' => [$include]]]))->toBe([]);
+});
+
+it('keeps flexible blocks in the order they were ticked', function () {
+    Fieldset::query()->create(['handle' => 'about', 'title' => 'About', 'fields' => [['handle' => 'text', 'type' => 'text']]]);
+    Fieldset::query()->create(['handle' => 'hero', 'title' => 'Hero', 'fields' => [['handle' => 'heading', 'type' => 'text']]]);
+    app(Fieldsets::class)->flush();
+
+    $blueprint = app(SaveBlueprint::class)->handle(['handle' => 'home', 'title' => 'Home', 'fields' => [['handle' => 'sections', 'type' => 'flexible', 'config' => ['blocks' => ['hero', 'about']]]]]);
+    $field = $blueprint->schema()->field('sections');
+    $blocks = app(FieldTypes::class)->get('flexible')->toAdmin($field, $blueprint->schema())['blocks'];
+
+    expect($field->configStrings('blocks'))->toBe(['hero', 'about'])
+        ->and(array_column($blocks, 'type'))->toBe(['hero', 'about'])
+        ->and(collect(app(FieldTypes::class)->get('flexible')->settings())->firstWhere('handle', 'blocks')->config['in_tick_order'])->toBeTrue();
 });
