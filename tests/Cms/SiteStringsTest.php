@@ -50,3 +50,22 @@ it('brings Indonesian for Laravel\'s own lines the app has none of', function ()
     expect(__('pagination.next'))->toBe('Next &raquo;')
         ->and(__('sunrice-cms::site.comments.reply'))->toBe('Reply');
 });
+
+it('reads its Laravel lines only when a page asks for them, below the app\'s own, key by key', function () {
+    $translator = app('translator');
+    $loaded = fn (): array => (fn (): array => $this->loaded)->call($translator);
+    // Resolving the translator reads nothing yet.
+    expect($loaded()['*']['validation']['id'] ?? null)->toBeNull();
+
+    $file = lang_path('id/validation.php');
+    @mkdir(dirname($file), 0777, true);
+    file_put_contents($file, "<?php return ['required' => 'Isi :attribute dulu.'];");
+    try {
+        app()->setLocale('id');
+        expect(__('validation.required', ['attribute' => 'nama']))->toBe('Isi nama dulu.')
+            // What the app's file leaves out is still Indonesian.
+            ->and(__('validation.email', ['attribute' => 'email']))->toBe('email harus berupa alamat email yang valid.');
+    } finally {
+        @unlink($file);
+    }
+});
