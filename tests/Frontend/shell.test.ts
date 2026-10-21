@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { errorToast } from '../../packages/admin/resources/js/lib/error-toast.ts';
 import { copyText, type ClipboardEnv } from '../../packages/admin/resources/js/lib/clipboard.ts';
 import { parseFolded, withFolded } from '../../packages/admin/resources/js/lib/folded-groups.ts';
 import { matchNavigation, navigationCrumbs } from '../../packages/admin/resources/js/lib/nav-match.ts';
@@ -74,4 +75,16 @@ test('remembers which sidebar groups are folded', () => {
     assert.deepEqual(withFolded(['Structure'], 'Shop', false), ['Structure', 'Shop']);
     assert.deepEqual(withFolded(['Structure', 'Shop'], 'Structure', true), ['Shop']);
     assert.deepEqual(withFolded(['Shop'], 'Shop', false), ['Shop']);
+});
+
+test('a rejected save toasts once: the same errors again update the same toast', () => {
+    const first = errorToast({ slug: 'Another entry in this collection already uses "team".' });
+    // The deferred-props reload right after the redirect carries the same errors.
+    const again = errorToast({ slug: 'Another entry in this collection already uses "team".' });
+    assert.deepEqual(first, { message: 'Another entry in this collection already uses "team".', id: 'errors:Another entry in this collection already uses "team".' });
+    assert.equal(again?.id, first?.id);
+    assert.equal(errorToast({ title: 'A', slug: 'B' })?.message, 'A (+1 more)');
+    assert.notEqual(errorToast({ title: 'A', slug: 'B' })?.id, first?.id);
+    assert.equal(errorToast({}), null);
+    assert.equal(errorToast({ slug: '' }), null);
 });
