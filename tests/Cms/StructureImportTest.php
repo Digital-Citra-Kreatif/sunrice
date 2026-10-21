@@ -52,6 +52,11 @@ it('changes nothing when imported again, and reports updates by handle', functio
     expect($report->status('collection', 'pages'))->toBe(ImportReport::UPDATED)
         ->and($report->status('redirect', '/old-about'))->toBe(ImportReport::UPDATED)
         ->and(Collection::query()->where('handle', 'pages')->value('title'))->toBe('Site pages');
+
+    // A redirect in every language carries its switch both ways.
+    $changed['redirects'][0]['every_language'] = true;
+    expect(app(StructureImporter::class)->import($changed)->status('redirect', '/old-about'))->toBe(ImportReport::UPDATED)
+        ->and(app(StructureExporter::class)->export()['redirects'][0])->toMatchArray(['from' => '/old-about', 'every_language' => true]);
 });
 
 it('saves nothing on a dry run', function () {
