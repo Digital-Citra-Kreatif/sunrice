@@ -221,3 +221,25 @@ it('shares the shared fields inside translated groups, rows and blocks with the 
         ->where('fields.2.blocks.0.fields.1.shared', true)
         ->where('values.data.dishes.0.price', 6));
 });
+
+it('dates a translation as its entry when first published', function () {
+    $this->products->update(['dated' => true]);
+    Illuminate\Support\Carbon::setTestNow('2026-10-07 09:00');
+    $main = app(PublishEntry::class)->handle($this->main);
+    Illuminate\Support\Carbon::setTestNow('2026-10-20 17:29');
+    $id = app(CreateTranslation::class)->handle($this->main->entry, 'id');
+    app(SaveDraft::class)->handle($id, ['title' => 'Kopi']);
+
+    $id = app(PublishEntry::class)->handle($id->refresh());
+    expect($id->published_at?->toDateTimeString())->toBe('2026-10-07 09:00:00');
+    // Published again, it keeps its date; a date given wins.
+    expect(app(PublishEntry::class)->handle($id)->published_at?->toDateTimeString())->toBe('2026-10-07 09:00:00')
+        ->and(app(PublishEntry::class)->handle($id, now()->addDay())->published_at?->toDateTimeString())->toBe('2026-10-21 17:29:00');
+
+    // The main language not published: now.
+    $tea = app(CreateEntry::class)->handle($this->products, ['title' => 'Tea', 'data' => ['intro' => 'Green', 'price' => 10]]);
+    $teh = app(CreateTranslation::class)->handle($tea->entry, 'id');
+    expect(app(PublishEntry::class)->handle($teh)->published_at?->toDateTimeString())->toBe('2026-10-20 17:29:00')
+        ->and($main->published_at?->toDateTimeString())->toBe('2026-10-07 09:00:00');
+    Illuminate\Support\Carbon::setTestNow();
+});
