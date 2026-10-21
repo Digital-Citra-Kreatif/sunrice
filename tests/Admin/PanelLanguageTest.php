@@ -6,6 +6,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Preferences\Preferences;
+use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Support\PanelLocale;
 
 use function Pest\Laravel\actingAs;
@@ -64,8 +65,8 @@ it('says a permission\'s label with its placeholders in the panel\'s language, a
 
 it('keeps option labels that are data as written', function () {
     app()->setLocale('id');
-    $said = Sunrice\Admin\Resources\Forms\Select::make('x')->options(['a' => 'Name'])->toArray();
-    $kept = Sunrice\Admin\Resources\Forms\Select::make('x')->verbatim()->options(['a' => 'Name'])->toArray();
+    $said = Select::make('x')->options(['a' => 'Name'])->toArray();
+    $kept = Select::make('x')->verbatim()->options(['a' => 'Name'])->toArray();
 
     expect($said['options'][0]['label'])->toBe(__('Name'))->and($kept['options'][0]['label'])->toBe('Name');
 });
