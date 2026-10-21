@@ -1,52 +1,52 @@
 # Pengguna dan peran
 
-Setiap orang yang bekerja di {panel} memiliki akun **pengguna** (*user*), dan setiap akun memiliki satu atau beberapa **peran** (*role*). Peran adalah sekumpulan izin, seperti *menerbitkan entri* atau *mengunggah media*, yang menentukan apa yang dilihat dan boleh dilakukan orang tersebut. **Users** dan **Roles** ada di bawah Administration, untuk pengelola situs.
+Setiap orang yang bekerja di {panel} memiliki akun **pengguna** (*user*), dan setiap akun memiliki satu atau beberapa **peran** (*role*). Peran adalah sekumpulan izin, seperti *menerbitkan entri* atau *mengunggah media*, yang menentukan apa yang dilihat dan boleh dilakukan orang tersebut. **Pengguna** dan **Peran** ada di bawah Administrasi, untuk pengelola situs.
 
 ## Pengguna
 
-Daftar **Users** menampilkan nama, alamat email, peran, apakah akun **Locked** (terkunci), dan kapan akun dibuat. Cari berdasarkan nama atau email, atau saring berdasarkan peran.
+Daftar **Pengguna** menampilkan nama, alamat email, peran, apakah akun **Dikunci**, dan kapan akun dibuat. Cari berdasarkan nama atau email, atau saring berdasarkan peran.
 
 ### Menambahkan orang
 
-1. Klik **New user**.
-2. Di bagian **Account**, ketik **Name**, **Email**, dan **Password** (mereka bisa memilih kata sandi baru nanti lewat *Forgot password?* di layar masuk).
-3. Di bagian **Roles**, centang perannya.
-4. Klik **Create user**, lalu beri tahu mereka alamat panel.
+1. Klik **Tambah pengguna**.
+2. Di bagian **Akun**, ketik **Nama**, **Email**, dan **Kata sandi** (mereka bisa memilih kata sandi baru nanti lewat *Lupa kata sandi?* di layar masuk).
+3. Di bagian **Peran**, centang perannya.
+4. Klik **Buat pengguna**, lalu beri tahu mereka alamat panel.
 
 Peran yang bisa Anda berikan hanya yang berada di bawah peran Anda sendiri (lihat [Siapa boleh mengelola siapa](#siapa-boleh-mengelola-siapa)).
 
 ### Mengubah data seseorang
 
-Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Password** kosong untuk mempertahankan kata sandi saat ini. Di samping formulir, kartu **Security** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, dan kejadian keamanan terbarunya, dengan **See all in the activity log**.
+Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Kata sandi** kosong untuk mempertahankan kata sandi saat ini. Di samping formulir, kartu **Keamanan** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, dan kejadian keamanan terbarunya, dengan **Lihat semua di log aktivitas**.
 
-Setiap orang boleh mengubah nama, email, dan kata sandinya sendiri jika bisa membuka layar Users, tetapi tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
+Setiap orang boleh mengubah nama, email, dan kata sandinya sendiri jika bisa membuka layar Pengguna, tetapi tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
 
 ## Jika akun mungkin jatuh ke tangan yang salah
 
-Jika kata sandi mungkin bocor, laptop hilang, atau seseorang keluar dengan tidak baik-baik, gunakan menu di ujung baris pengguna (atau kartu Security):
+Jika kata sandi mungkin bocor, laptop hilang, atau seseorang keluar dengan tidak baik-baik, gunakan menu di ujung baris pengguna (atau kartu Keamanan):
 
-- **Sign out everywhere** mengakhiri semua sesinya di semua komputer, dan mencabut token akses AI-nya. Orang itu bisa masuk lagi dengan kata sandinya, jadi ganti dulu kata sandinya jika mungkin sudah diketahui orang lain.
-- **Lock account** mengeluarkannya dari mana saja dan mencegahnya masuk sama sekali, sampai ada yang membuka kuncinya. Tambahkan alasan bila perlu, misalnya *Kata sandi mungkin bocor*; alasan ini tampil di halamannya. Tidak ada yang dihapus.
-- **Unlock account** mengizinkannya masuk lagi. Ini juga membuka kunci akibat terlalu banyak salah kata sandi.
-- **Revoke AI tokens** menghentikan semua asisten AI yang terhubung dengan akunnya.
+- **Keluarkan dari semua perangkat** mengakhiri semua sesinya di semua komputer, dan mencabut token akses AI-nya. Orang itu bisa masuk lagi dengan kata sandinya, jadi ganti dulu kata sandinya jika mungkin sudah diketahui orang lain.
+- **Kunci akun** mengeluarkannya dari mana saja dan mencegahnya masuk sama sekali, sampai ada yang membuka kuncinya. Tambahkan alasan bila perlu, misalnya *Kata sandi mungkin bocor*; alasan ini tampil di halamannya. Tidak ada yang dihapus.
+- **Buka kunci akun** mengizinkannya masuk lagi. Ini juga membuka kunci akibat terlalu banyak salah kata sandi.
+- **Cabut token AI** menghentikan semua asisten AI yang terhubung dengan akunnya.
 
 Setiap tindakan ini dicatat sebagai kejadian keamanan di [log aktivitas](guide:panel/activity-log).
 
 ## Menghapus pengguna
 
-**Delete…** di menu baris menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
+**Hapus…** di menu baris menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
 
-- **Give it to another user**: diberikan kepada pengguna lain, dipilih di **Give it to**.
-- **Keep it, without an owner**: tetap ada tanpa pemilik (pilihan bawaan).
-- **Delete it**: entri dan komentar masuk tempat sampah; unggahan tetap ada, karena mungkin dipakai halaman lain.
+- **Berikan ke pengguna lain**: diberikan kepada pengguna lain, dipilih di **Berikan ke**.
+- **Simpan, tanpa pemilik**: tetap ada tanpa pemilik (pilihan bawaan).
+- **Hapus**: entri dan komentar masuk tempat sampah; unggahan tetap ada, karena mungkin dipakai halaman lain.
 
-Peran, token AI, dan status kuncinya ikut terhapus. Jika ragu, pilih **Lock account**: tindakan itu bisa dibatalkan.
+Peran, token AI, dan status kuncinya ikut terhapus. Jika ragu, pilih **Kunci akun**: tindakan itu bisa dibatalkan.
 
 ## Peran
 
-Daftar **Roles** menampilkan setiap peran dan jumlah izinnya. Klik **New role**, beri **Name**, lalu centang **Permissions**-nya, yang dikelompokkan per bidang (panel, media, entri setiap koleksi, pengaturan…).
+Daftar **Peran** menampilkan setiap peran dan jumlah izinnya. Klik **Tambah peran**, beri **Nama**, lalu centang **Izin**-nya, yang dikelompokkan per bidang (panel, media, entri setiap koleksi, pengaturan…).
 
-Mengunduh daftar sebagai spreadsheet (**Export CSV**) adalah izin tersendiri, terpisah dari melihat daftar, karena ekspor membawa data keluar dari panel.
+Mengunduh daftar sebagai spreadsheet (**Ekspor CSV**) adalah izin tersendiri, terpisah dari melihat daftar, karena ekspor membawa data keluar dari panel.
 
 Situs Anda mungkin sudah memiliki peran siap pakai sebagai titik awal:
 

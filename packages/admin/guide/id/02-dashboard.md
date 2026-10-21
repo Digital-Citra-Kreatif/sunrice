@@ -4,7 +4,7 @@ Dashboard adalah halaman pertama yang Anda lihat setelah masuk, dan tempat untuk
 
 ## Sapaan
 
-Di bagian atas, panel menyapa Anda dengan tanggal hari ini dan menawarkan **Quick links** (tautan cepat) ke beberapa halaman pertama di bilah samping Anda, sehingga layar yang paling sering Anda pakai hanya sejauh satu klik.
+Di bagian atas, panel menyapa Anda dengan tanggal hari ini dan menawarkan **Tautan cepat** ke beberapa halaman pertama di bilah samping Anda, sehingga layar yang paling sering Anda pakai hanya sejauh satu klik.
 
 ## Kotak-kotak informasi
 
@@ -14,23 +14,23 @@ Kotak yang muncul bergantung pada isi situs Anda. Dengan bagian situs web (CMS) 
 
 | Kotak | Isi |
 | --- | --- |
-| **Content** | Setiap koleksi, dengan jumlah entri yang tayang, masih draf, atau terjadwal. Klik koleksi untuk membuka daftarnya. |
-| **Recently edited** | Entri yang terakhir diubah siapa pun, dalam bahasa apa pun, beserta statusnya. Klik untuk membukanya. |
-| **Comments waiting** | Jumlah komentar yang menunggu persetujuan, dan yang terbaru. |
-| **Coming up** | Entri yang dijadwalkan tayang, yang terdekat lebih dulu. |
-| **Latest submissions** | Pesan terbaru yang dikirim lewat formulir situs. |
+| **Konten** | Setiap koleksi, dengan jumlah entri yang tayang, masih draf, atau terjadwal. Klik koleksi untuk membuka daftarnya. |
+| **Baru diubah** | Entri yang terakhir diubah siapa pun, dalam bahasa apa pun, beserta statusnya. Klik untuk membukanya. |
+| **Komentar menunggu** | Jumlah komentar yang menunggu persetujuan, dan yang terbaru. |
+| **Akan datang** | Entri yang dijadwalkan tayang, yang terdekat lebih dulu. |
+| **Kiriman terbaru** | Pesan terbaru yang dikirim lewat formulir situs. |
 
 Dan dari panel sendiri:
 
 | Kotak | Isi |
 | --- | --- |
 | **Media** | Jumlah berkas di pustaka media, dan berapa yang ditambahkan minggu ini. |
-| **Recent activity** | Kejadian terakhir di panel: siapa mengubah apa, dan kapan. **Open the log** menampilkan semuanya. |
+| **Aktivitas terbaru** | Kejadian terakhir di panel: siapa mengubah apa, dan kapan. **Buka log** menampilkan semuanya. |
 
-Banyak kotak punya tautan **See all** ke daftar lengkapnya. Kotak yang gagal memuat informasinya akan memberi tahu, dan bagian dashboard lainnya tetap berfungsi: coba lagi nanti, atau beri tahu developer Anda jika terus begitu.
+Banyak kotak punya tautan **Lihat semua** ke daftar lengkapnya. Kotak yang gagal memuat informasinya akan memberi tahu, dan bagian dashboard lainnya tetap berfungsi: coba lagi nanti, atau beri tahu developer Anda jika terus begitu.
 
 > [!NOTE]
-> Jika dashboard Anda menampilkan *Nothing to show yet*, peran Anda tidak mencakup kotak mana pun. Itu wajar untuk beberapa peran; bilah samping tetap menampilkan apa yang bisa Anda kerjakan.
+> Jika dashboard Anda menampilkan *Belum ada yang bisa ditampilkan*, peran Anda tidak mencakup kotak mana pun. Itu wajar untuk beberapa peran; bilah samping tetap menampilkan apa yang bisa Anda kerjakan.
 
 > [!TECHNICAL]
 > Plugin dan aplikasi Anda bisa menambahkan kotak sendiri. Lihat [Dashboard widgets](docs:panel/panel#dashboard-widgets).
