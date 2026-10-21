@@ -187,3 +187,17 @@ it('lists the panel\'s Security and Mail sections first, for those allowed', fun
         ->where('sections', [['key' => 'security', 'label' => 'Security'], ['key' => 'mail', 'label' => 'Mail'], ['key' => 'outbox', 'label' => 'Outbox']])
         ->where('cards', []));
 });
+
+it('announces what changed when settings are saved in code, as the screen does', function () {
+    Event::fake([SettingsSaved::class]);
+
+    $shop = app(ShopSettings::class);
+    $shop->currency = Currency::Dollar;
+    $shop->freeShippingFrom = 100;
+    expect($shop->save())->toBe(['currency', 'freeShippingFrom']);
+    Event::assertDispatched(SettingsSaved::class, fn (SettingsSaved $event) => $event->section === 'shop' && $event->changed === ['currency', 'freeShippingFrom']);
+
+    // Saving the same values again announces nothing.
+    expect(app(ShopSettings::class)->save())->toBe([]);
+    Event::assertDispatchedTimes(SettingsSaved::class, 1);
+});

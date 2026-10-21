@@ -131,6 +131,17 @@ it('serves listing pages with their fields, paginated, in each language', functi
     get('/id/articles')->assertSee('Berita');
 });
 
+it('serves a homepage saved in code (a seeder) at once', function () {
+    $home = structurePage('Welcome');
+    get('/')->assertNotFound();
+
+    $settings = app(\Sunrice\Cms\Settings\SiteSettings::class);
+    $settings->homepage = $home->id;
+    $settings->save();
+
+    get('/')->assertOk()->assertSee('Welcome');
+});
+
 it('serves the homepage at /, in each language, and redirects its own address', function () {
     config(['sunrice-cms.locales' => ['en', 'id']]);
     $home = structurePage('Welcome');

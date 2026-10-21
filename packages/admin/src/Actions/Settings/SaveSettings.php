@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Actions\Settings;
 
 use Sunrice\Admin\Activity\ActivityLog;
-use Sunrice\Admin\Events\SettingsSaved;
 use Sunrice\Admin\Settings\Settings;
 
 /**
@@ -28,8 +27,7 @@ final class SaveSettings
         $changed = array_values(array_filter(array_keys($after), fn (string $name) => $after[$name] !== $before[$name]));
 
         if ($changed !== []) {
-            $settings->save();
-            SettingsSaved::dispatch($settings::key(), $changed);
+            $settings->save(); // fires SettingsSaved
             $this->activity->record('updated', 'settings', $settings::key(), $settings::label().' settings', ['changed' => $changed]);
         }
 
