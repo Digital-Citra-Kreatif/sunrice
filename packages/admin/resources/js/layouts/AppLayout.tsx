@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppHeader } from '@/components/app/app-header';
 import { BreadcrumbProvider } from '@/components/app/breadcrumbs';
+import { LeaveDialog } from '@/components/app/leave-dialog';
 import { CommandPalette, isCommandPaletteShortcut, setCommandPaletteOpen, useCommandPaletteOpen } from '@/components/app/command-palette';
 import type { SharedProps } from '@/types';
 
@@ -72,6 +73,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </SidebarInset>
                     <Toaster position="top-right" />
                     <CommandPalette />
+                    <LeaveDialog />
                 </SidebarProvider>
             </BreadcrumbProvider>
         </TooltipProvider>
