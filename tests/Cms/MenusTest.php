@@ -316,3 +316,28 @@ it('fills a new menu\'s handle from its title, and keeps it on the edit form, wi
     put('/admin/cms/menus/main', ['title' => 'Main menu', 'handle' => 'main'])->assertSessionHasNoErrors();
     expect($this->main->fresh()?->only(['title', 'handle']))->toBe(['title' => 'Main menu', 'handle' => 'main']);
 });
+
+it('builds a menu of entry links with the same queries however many there are (NEW2-front-2)', function () {
+    $count = function (int $links, string $locale): int {
+        Menu::query()->where('handle', 'nav')->delete();
+        $menu = Menu::query()->create(['handle' => 'nav', 'title' => 'Nav']);
+        $items = [];
+        foreach (range(1, $links) as $i) {
+            $items[] = ['entry_id' => page("Page {$locale} {$links} {$i}")->entry_id];
+        }
+        app(SaveMenu::class)->handle($menu, $items);
+        app(Menus::class)->flush();
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $menu = app(Menus::class)->get('nav', $locale);
+        $queries = count(\Illuminate\Support\Facades\DB::getQueryLog());
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+        expect($menu)->toHaveCount($links);
+
+        return $queries;
+    };
+
+    // In the main language and in another, where the main pages stand in at its addresses.
+    expect($count(5, 'en'))->toBe($count(1, 'en'))
+        ->and($count(5, 'id'))->toBe($count(1, 'id'));
+});
