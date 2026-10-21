@@ -10,6 +10,7 @@ use Sunrice\Admin\Actions\Media\DeleteMedia;
 use Sunrice\Admin\Actions\Media\ReplaceMedia;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Media\FileContent;
 use Sunrice\Admin\Media\Jobs\GenerateImageSizes;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaConfig;
@@ -98,6 +99,24 @@ it('refuses a file named as an image that isn\'t one, and images with PHP code i
         ->and(Activity::query()->where('action', 'upload blocked')->latest('id')->first()?->properties['note'])->toContain('PHP code');
 
     expect(upload(realUpload('real.jpg', $jpeg))->width)->toBe(10);
+});
+
+it('refuses images with PHP\'s short echo tag in them, but not those bytes in image data (NEW-security-3)', function () {
+    $jpeg = UploadedFile::fake()->image('a.jpg', 10, 10)->getContent();
+    expect(refused(realUpload('echo.jpg', $jpeg.'<?= `id` ?>')))->toBe('This image contains PHP code, so it can\'t be uploaded.')
+        ->and(refused(realUpload('echo.png', UploadedFile::fake()->image('a.png', 10, 10)->getContent()."<?=\nsystem(\$_GET['c']);")))->toBe('This image contains PHP code, so it can\'t be uploaded.');
+
+    // "<?=" among binary bytes isn't code; nor is XMP's processing instruction.
+    expect(upload(realUpload('bytes.jpg', $jpeg."<?=\x00\xff\xd9"))->width)->toBe(10)
+        ->and(upload(realUpload('xmp.jpg', $jpeg.'<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>'))->width)->toBe(10);
+});
+
+it('finds PHP code that runs across the chunks a file is read in', function () {
+    $jpeg = UploadedFile::fake()->image('a.jpg', 10, 10)->getContent();
+    $padding = str_repeat("\x00", 1048576 - strlen($jpeg) - 5);
+    expect(FileContent::containsPhp(realUpload('big.jpg', $jpeg.$padding.'<?= `id` ?>')))->toBeTrue()
+        ->and(FileContent::containsPhp(realUpload('big.jpg', $jpeg.$padding."<?= `id`\x00")))->toBeFalse()
+        ->and(FileContent::containsPhp(realUpload('big.jpg', $jpeg.$padding.'xx<?p'.'hp echo 1;')))->toBeTrue();
 });
 
 it('refuses SVGs with scripts and keeps clean ones as they are', function () {

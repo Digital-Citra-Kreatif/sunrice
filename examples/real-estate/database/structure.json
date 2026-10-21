@@ -2112,34 +2112,69 @@
             "items": [
                 {
                     "collection": "properties",
-                    "labels": {},
+                    "labels": {
+                        "en": "Properties",
+                        "id": "Properti"
+                    },
                     "new_tab": false,
                     "children": []
                 },
                 {
                     "collection": "neighbourhoods",
-                    "labels": {},
+                    "labels": {
+                        "en": "Neighbourhoods",
+                        "id": "Kawasan"
+                    },
                     "new_tab": false,
                     "children": []
                 },
                 {
                     "collection": "agents",
                     "labels": {
-                        "en": "Our team"
+                        "en": "Our team",
+                        "id": "Tim kami"
                     },
                     "new_tab": false,
                     "children": []
                 },
                 {
                     "collection": "journal",
-                    "labels": {},
+                    "labels": {
+                        "en": "Journal",
+                        "id": "Jurnal"
+                    },
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "entry": "pages/services",
+                    "labels": {
+                        "id": "Layanan"
+                    },
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "entry": "pages/sell-with-us",
+                    "labels": {
+                        "id": "Jual bersama kami"
+                    },
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "entry": "pages/contact",
+                    "labels": {
+                        "id": "Kontak"
+                    },
                     "new_tab": false,
                     "children": []
                 },
                 {
                     "url": "mailto:hello@lumina-estates.test",
                     "labels": {
-                        "en": "hello@lumina-estates.test"
+                        "en": "hello@lumina-estates.test",
+                        "id": "hello@lumina-estates.test"
                     },
                     "new_tab": false,
                     "children": []
@@ -2149,7 +2184,25 @@
         {
             "handle": "legal",
             "title": "Legal",
-            "items": []
+            "items": [
+                {
+                    "entry": "pages/privacy-policy",
+                    "labels": {
+                        "en": "Privacy",
+                        "id": "Privasi"
+                    },
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "entry": "pages/terms",
+                    "labels": {
+                        "id": "Syarat dan ketentuan"
+                    },
+                    "new_tab": false,
+                    "children": []
+                }
+            ]
         },
         {
             "handle": "main",
@@ -2157,13 +2210,17 @@
             "items": [
                 {
                     "collection": "properties",
-                    "labels": {},
+                    "labels": {
+                        "en": "Properties",
+                        "id": "Properti"
+                    },
                     "new_tab": false,
                     "children": [
                         {
                             "url": "/properties?listing_type=for-sale",
                             "labels": {
-                                "en": "For sale"
+                                "en": "For sale",
+                                "id": "Dijual"
                             },
                             "new_tab": false,
                             "children": []
@@ -2171,7 +2228,8 @@
                         {
                             "url": "/properties?listing_type=for-rent",
                             "labels": {
-                                "en": "For rent"
+                                "en": "For rent",
+                                "id": "Disewakan"
                             },
                             "new_tab": false,
                             "children": []
@@ -2179,7 +2237,8 @@
                         {
                             "term": "property_types/villa",
                             "labels": {
-                                "en": "Villas"
+                                "en": "Villas",
+                                "id": "Vila"
                             },
                             "new_tab": false,
                             "children": []
@@ -2188,21 +2247,61 @@
                 },
                 {
                     "collection": "neighbourhoods",
-                    "labels": {},
+                    "labels": {
+                        "en": "Neighbourhoods",
+                        "id": "Kawasan"
+                    },
                     "new_tab": false,
                     "children": []
                 },
                 {
                     "collection": "agents",
                     "labels": {
-                        "en": "Team"
+                        "en": "Team",
+                        "id": "Tim"
                     },
                     "new_tab": false,
                     "children": []
                 },
                 {
                     "collection": "journal",
-                    "labels": {},
+                    "labels": {
+                        "en": "Journal",
+                        "id": "Jurnal"
+                    },
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "entry": "pages/about",
+                    "labels": {
+                        "id": "Tentang kami"
+                    },
+                    "new_tab": false,
+                    "children": [
+                        {
+                            "entry": "pages/our-story",
+                            "labels": {
+                                "id": "Kisah kami"
+                            },
+                            "new_tab": false,
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "entry": "pages/services",
+                    "labels": {
+                        "id": "Layanan"
+                    },
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "entry": "pages/contact",
+                    "labels": {
+                        "id": "Kontak"
+                    },
                     "new_tab": false,
                     "children": []
                 }

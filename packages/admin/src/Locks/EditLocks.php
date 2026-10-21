@@ -66,9 +66,14 @@ final class EditLocks
         $this->store()->put($this->lockKey($key), ['editor' => $editor, 'user_id' => $userId, 'name' => $userName, 'since' => time()], self::TTL);
     }
 
-    public function release(string $key, string $editor): void
+    /**
+     * Frees the lock when this editing tab holds it (and, given $userId,
+     * when it's that person's).
+     */
+    public function release(string $key, string $editor, int|string|null $userId = null): void
     {
-        if (($this->current($key)['editor'] ?? null) === $editor) {
+        $current = $this->current($key);
+        if ($current !== null && $current['editor'] === $editor && ($userId === null || (string) $current['user_id'] === (string) $userId)) {
             $this->store()->forget($this->lockKey($key));
         }
     }
