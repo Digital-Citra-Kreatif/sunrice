@@ -53,7 +53,7 @@ All 25 are fixed (round 2): NEW-security-1 to 3, NEW-admin-1 to 6, NEW-editor-1 
 | NEW2-i18n-2 | polish | A filtered menu link without a label in a language shows the main language's label, not the listing's title. |
 | NEW2-i18n-3 | polish | Content → Translations lists menu links in menu order, as "Parent › Link to Properties · listing_type=for-sale". |
 
-Step 4 also fixes what the user reported while it was under way: duplicate error toasts, the template help in the editor's sidebar, the builder's field rows (with **Duplicate** and a **Translatable** switch), the renamed-handle warning, lists shown stale after a save (prefetched pages), Revisions → Compare showing JSON, and the Indonesian SEO labels. See the root `CHANGELOG.md` and the screenshots `BANNER-*`, `TOAST-*`, `TEMPLATE-HELP-*`, `BUILDER-ROW-*` and `BUILDER-RENAME-*` in [../retest2/screenshots](../retest2/screenshots).
+Step 4 also fixes what the user reported while it was under way: duplicate error toasts, the template help in the editor's sidebar, the builder's field rows (with **Duplicate** and a **Translatable** switch), the renamed-handle warning, lists shown stale after a save (prefetched pages), Revisions → Compare showing JSON, the Indonesian SEO labels, the "Reload site?" dialog after saving Branding, and structure imports (languages checked first, content references that work on another site). See the root `CHANGELOG.md` and the screenshots `BANNER-*`, `TOAST-*`, `TEMPLATE-HELP-*`, `BUILDER-ROW-*` and `BUILDER-RENAME-*` in [../retest2/screenshots](../retest2/screenshots).
 
 ## Query counts
 
@@ -86,4 +86,4 @@ The warm case, a visitor's first request, is equal or lower everywhere. The cold
 
 - ED-7: round 1 tested a date-only "Change the date" control. It was later removed: the publish date now follows main, where the Status card's **Publish date** field is used when publishing (a future date schedules). Notes say so in [editor.md](editor.md), [i18n.md](i18n.md) and the audit report.
 - Round 1's caveat about stale admin assets (some UI results taken before `php artisan sunrice:assets`) was cleared in round 2, which checked the published assets against the packages' builds first.
-- `database/content.json` keeps field values as stored (term and media ids, `StructureExporter`), so importing it into an empty database refuses entries whose term ids differ there ("The selected Location is invalid"); this was so before step 4 too. The example's seeders and tests use `database/structure.json`, which now matches the live site.
+- `database/content.json` is the live site's content exported with step 4's exporter: entries, terms and files are referenced by slug and path, so it imports into a fresh install (`db:seed`, then `sunrice:import-structure database/content.json`, with `SUNRICE_LOCALES=en,id`); before, its raw term ids made that fail ("The selected Location is invalid"). The example's `database/structure.json` matches the live site.
