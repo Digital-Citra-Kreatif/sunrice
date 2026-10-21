@@ -43,3 +43,19 @@ test("a link field's inputs are named after the field, not just \"Address\"", as
     assert.match(html, /aria-label="Map link: link text"/);
     assert.doesNotMatch(html, /aria-label="Address"/);
 });
+
+test("a refused blueprint shows the server's message under the field's setting, tied to it (STR-6)", async () => {
+    const { FieldBuilder } = await loadCmsModule<{ FieldBuilder: ComponentType<any> }>('components/FieldBuilder.tsx');
+    const { errorsUnder } = await loadCmsModule<{ errorsUnder: (errors: Record<string, string>, path: string) => Record<string, string> }>('lib/builder.ts');
+    const collections = { handle: 'collections', label: 'From collections', type: 'select', required: true, config: { multiple: true, options: [{ value: 'pages', label: 'Pages' }] } };
+    const types = [{ type: 'entries', label: 'Entries', hasChildren: false, settings: [collections, { handle: 'multiple', label: 'Several entries', type: 'toggle' }] }];
+    const fields = [{ key: 'k1', handle: 'linked', type: 'entries', label: 'Linked', config: {}, fields: [], validation: [], required: false }];
+    // As Inertia hands them over after the save is refused.
+    const errors = errorsUnder({ 'fields.0.config.collections': 'The "From collections" field is required.' }, 'fields');
+    const html = render(FieldBuilder, { fields, onChange: () => undefined, types, errors });
+
+    assert.match(html, /data-invalid="true"/);
+    assert.match(html, /role="group" aria-labelledby="field-k1-config-collections-label" aria-invalid="true" aria-describedby="field-k1-config-collections-error"/);
+    assert.match(html, /<p id="field-k1-config-collections-error" class="[^"]*cms:text-destructive[^"]*">The &quot;From collections&quot; field is required.<\/p>/);
+    assert.match(html, /role="checkbox" aria-checked="false"[^>]*aria-invalid="true"/);
+});
