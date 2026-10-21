@@ -7,6 +7,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\RichText;
+use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Resources\Tables\Action;
 use Sunrice\Tests\Admin\Fixtures\CatalogResource;
 use Sunrice\Tests\Admin\Fixtures\Category;
@@ -361,4 +362,12 @@ it('lets a policy with export() decide exports', function () {
     ProductPolicy::$exports = false;
     get('/admin/products/export')->assertForbidden();
     ProductPolicy::$exports = true;
+});
+
+it('offers a search box on a select with many options when asked', function () {
+    $plain = Select::make('kind')->options(['a' => 'A']);
+    $searchable = Select::make('kind')->options(['a' => 'A'])->searchable();
+
+    expect($plain->toArray())->not->toHaveKey('searchable')
+        ->and($searchable->toArray())->toMatchArray(['type' => 'select', 'searchable' => true, 'options' => [['value' => 'a', 'label' => 'A']]]);
 });

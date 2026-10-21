@@ -141,3 +141,49 @@ export function RelationSelect({ id, field, multiple, value, selected, required,
         </div>
     );
 }
+
+/** A choice from fixed options with a search box over them (Select::searchable()). */
+export function SearchableSelect({ id, options, value, required, disabled, invalid, placeholder, onChange }: {
+    id: string;
+    options: { value: string; label: string }[];
+    value: string | null;
+    required: boolean;
+    disabled: boolean;
+    invalid: boolean;
+    placeholder?: string;
+    onChange: (value: string | null) => void;
+}) {
+    const [open, setOpen] = React.useState(false);
+    const current = options.find((option) => option.value === value);
+
+    return (
+        <div className="flex items-center gap-2">
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button id={id} type="button" variant="outline" role="combobox" aria-expanded={open} aria-invalid={invalid} disabled={disabled}
+                        className={cn('w-full justify-between font-normal', !current && 'text-muted-foreground')}>
+                        <span className="truncate">{current ? current.label : (placeholder ?? 'Choose…')}</span>
+                        <ChevronsUpDown className="opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
+                    <Command>
+                        <CommandInput placeholder="Search…" />
+                        <CommandList>
+                            <CommandEmpty>Nothing found.</CommandEmpty>
+                            {options.map((option) => (
+                                <CommandItem key={option.value} value={`${option.label} ${option.value}`} onSelect={() => { onChange(option.value); setOpen(false); }}>
+                                    <Check className={cn(option.value === value ? 'opacity-100' : 'opacity-0')} />
+                                    <span className="truncate">{option.label}</span>
+                                </CommandItem>
+                            ))}
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+            {!required && current && !disabled && (
+                <Button type="button" variant="ghost" size="icon" aria-label="Clear" onClick={() => onChange(null)}><X /></Button>
+            )}
+        </div>
+    );
+}
