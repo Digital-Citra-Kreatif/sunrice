@@ -99,7 +99,7 @@ With `sync`, queued work runs during the request instead. See [Mail](mail.md) fo
 
 ### The storage link
 
-The media library stores files on the `public` disk (`sunrice-admin.media.disk`), served through `public/storage`. `sunrice:install` makes the link; on a new server, run `php artisan storage:link`. Until it exists, the Media page warns uploaders. See [Media](media.md) for headers to set on that folder at the web server.
+The media library stores files on the `public` disk (`sunrice-admin.media.disk`), served through `public/storage`. `sunrice:install` makes the link; on a new server, run `php artisan storage:link`. Until it exists, the Media page warns uploaders. See [Media](media.md#headers-at-the-web-server) for headers to set on that folder at the web server (for Apache, `sunrice:install` writes them as an `.htaccess` there).
 
 ### Assets
 
@@ -113,6 +113,19 @@ The panel's built assets are copied to `public/vendor/sunrice-admin` by `php art
 ```
 
 Until the panel's are published, admin pages show only a notice saying so. After an update without publishing, the panel keeps running the old ones, and super admins see a warning at the top of each page saying which are older than the installed packages (the panel's and the CMS's, compared with the packages' builds) and what to run. With packages installed from a path (a symlinked `"type": "path"` repository), a change to them doesn't go through `composer update`, so its scripts don't run: run both commands yourself after changing them, or in your deploy script.
+
+### Before going live
+
+- `APP_ENV=production` and `APP_DEBUG=false`: with debug on, error pages show code, settings and secrets to anyone. Super admins see a warning at the top of each panel page while debug is on in production.
+- `APP_URL` set to the site's `https://` address: links in emails and the sitemap are built from it ([Links in emails](security.md#links-in-emails)), and super admins see a warning while it's `http://` in production. Turn on Laravel's `TrustHosts` middleware too.
+- TLS on the web server, with plain HTTP redirected to HTTPS, and `Strict-Transport-Security` (HSTS, e.g. `max-age=31536000`) once everything is served over HTTPS: at the web server, or for the site's pages in the CMS's `site.headers`.
+- `SESSION_SECURE_COOKIE=true`, so the session cookie is never sent over plain HTTP.
+- A real mailer (`MAIL_MAILER=smtp`, `ses`, `postmark` …, not `log` or `array`): password resets, two-factor codes and security alerts are emails. Send a test from **Settings → Mail**.
+- `expose_php = Off` in `php.ini`, so responses don't announce the PHP version (`X-Powered-By`).
+- Headers for the media directory at the web server ([Media](media.md#headers-at-the-web-server)).
+- The scheduler and a queue worker (above).
+- [Two-factor login](auth.md#two-factor-login) on (Settings → Security), recommended for any panel with administrators.
+- A `Content-Security-Policy` for the panel (`SUNRICE_CSP`, see [Security headers](security.md#security-headers)) and, if your templates allow it, for the site (`SUNRICE_SITE_CSP` in the CMS's `site.headers`).
 
 ## Upgrading
 

@@ -116,8 +116,8 @@ it('sends trailing-slash and /index.php addresses to the page\'s own address', f
     $send('/')->assertNotFound(); // no homepage here, and no redirect either
     $send('/blog/hello/')->assertRedirect(url('/blog/hello'))->assertStatus(301);
     $send('/blog/hello/?ref=x')->assertRedirect(url('/blog/hello?ref=x'));
-    $send('http://localhost/index.php/blog/hello', ['SCRIPT_NAME' => '/index.php', 'SCRIPT_FILENAME' => public_path('index.php')])->assertHeader('Location', 'http://localhost/blog/hello');
-    $send('http://localhost/index.php', ['SCRIPT_NAME' => '/index.php', 'SCRIPT_FILENAME' => public_path('index.php')])->assertHeader('Location', 'http://localhost/');
+    $send('http://localhost/index.php/blog/hello', ['SCRIPT_NAME' => '/index.php', 'SCRIPT_FILENAME' => public_path('index.php')])->assertHeader('Location', '/blog/hello');
+    $send('http://localhost/index.php', ['SCRIPT_NAME' => '/index.php', 'SCRIPT_FILENAME' => public_path('index.php')])->assertHeader('Location', '/');
 });
 
 it('lists the other languages of term and listing pages in the sitemap', function () {

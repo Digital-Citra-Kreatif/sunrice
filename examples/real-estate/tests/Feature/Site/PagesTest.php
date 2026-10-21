@@ -128,6 +128,11 @@ it('lists the site in the sitemap', function (): void {
 it('serves robots.txt with the sitemap\'s address, and keeps a hidden site out', function (): void {
     $this->get('/robots.txt')->assertOk()->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
         ->assertSee('Disallow: /admin')->assertSee('Sitemap: '.url('sitemap.xml'));
+    // On APP_URL, whatever Host the request names.
+    config(['app.url' => 'https://lumina.test']);
+    $this->withServerVariables(['HTTP_HOST' => 'evil.example'])->get('/robots.txt')
+        ->assertSee('Sitemap: https://lumina.test/sitemap.xml')->assertDontSee('evil.example');
+    $this->withServerVariables([]);
     config(['sunrice-cms.seo.noindex' => true]);
     $this->get('/robots.txt')->assertSee('Disallow: /')->assertDontSee('Sitemap:');
 });
