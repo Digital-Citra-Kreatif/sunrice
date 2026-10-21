@@ -69,7 +69,7 @@ it('refuses files of other types, too big, or that could run as code', function 
     $send(UploadedFile::fake()->createWithContent('cv.php', '<?php echo 1;'))->assertSessionHasErrors(['cv'], null, 'apply');
 
     // Any type allowed: still never scripts.
-    Blueprint::query()->where('handle', 'apply')->update(['fields' => [['handle' => 'name', 'type' => 'text'], ['handle' => 'cv', 'type' => 'file']]]);
+    Blueprint::query()->where('handle', 'apply')->firstOrFail()->update(['fields' => [['handle' => 'name', 'type' => 'text'], ['handle' => 'cv', 'type' => 'file']]]);
     from('/apply')->post('/forms/apply', ['name' => 'Ana', 'cv' => UploadedFile::fake()->createWithContent('page.html', '<script>x</script>')])->assertSessionHasErrors(['cv'], null, 'apply');
     from('/apply')->post('/forms/apply', ['name' => 'Ana', 'cv' => UploadedFile::fake()->createWithContent('notes.txt', 'Hello')])->assertSessionHasNoErrors();
     expect(Submission::query()->count())->toBe(1);

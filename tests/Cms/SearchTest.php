@@ -133,7 +133,7 @@ it('shows the search page, never indexed, and limits searches', function () {
         ->assertSee('class="page-search', false);
     get('/search?q=<script>')->assertOk()->assertDontSee('<script>', false);
     get('/search?q=coffee&page=5')->assertNotFound();
-    get('/search?q=coffee')->assertOk()->assertHeader('X-Cache-Status', 'MISS'); // the second time: not kept
+    get('/search?q=coffee')->assertOk()->assertHeaderMissing('X-Cache-Status'); // ?q=: never served from the cache nor kept
     get('/search?q=x')->assertStatus(429);
 });
 

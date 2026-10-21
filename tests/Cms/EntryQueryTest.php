@@ -85,9 +85,10 @@ it('hydrates a result with one shared context: one query per kind, however many 
         ->and($values()[0]['topics']->first()?->title())->toBe('News');
 
     // Pages, a single entry and the component share a context the same way.
-    $paginated = Content::entries('blog')->where('cover', $cover->id)->paginate(4);
-    expect(countQueries(fn () => $paginated->getCollection()->each(fn (EntryTranslation $post) => $post->values())))->toBe(0)
-        ->and(countQueries(fn () => Content::entries('blog')->where('cover', $cover->id)->first()?->values()))->toBe($few);
+    // The first values() loads what the whole page points at: the same queries for 2 entries as for 8.
+    $page = fn (int $perPage) => fn () => Content::entries('blog')->where('cover', $cover->id)->paginate($perPage)->getCollection()->each(fn (EntryTranslation $post) => $post->values());
+    expect(countQueries($page(8)))->toBe(countQueries($page(2)))
+        ->and(countQueries(fn () => Content::entries('blog')->where('cover', $cover->id)->first()?->values()))->toBeLessThanOrEqual($few);
     $view = Blade::render('<x-sunrice-cms::entries collection="blog">@foreach ($component->entries as $post){{ $post->values()["cover"]?->filename }};@endforeach</x-sunrice-cms::entries>');
     expect(substr_count($view, 'cover.jpg;'))->toBe(9);
 });

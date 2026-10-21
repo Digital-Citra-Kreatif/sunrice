@@ -72,7 +72,7 @@ it('publishes the starter templates, and the site renders with them', function (
     auth()->logout();
 
     artisan('vendor:publish', ['--tag' => 'sunrice-cms-templates'])->assertSuccessful();
-    foreach (['layout', 'entry', 'listing', 'term', 'search', 'partials/card', 'partials/pagination', 'partials/language-switcher', 'partials/menu', 'partials/blocks', 'partials/block', 'partials/fields'] as $view) {
+    foreach (['layout', 'entry', 'listing', 'term', 'search', 'comment-unsubscribe', 'partials/card', 'partials/pagination', 'partials/language-switcher', 'partials/menu', 'partials/blocks', 'partials/block', 'partials/fields'] as $view) {
         expect(resource_path("views/cms/{$view}.blade.php"))->toBeFile();
     }
     expect(resource_path('views/errors/404.blade.php'))->toBeFile()

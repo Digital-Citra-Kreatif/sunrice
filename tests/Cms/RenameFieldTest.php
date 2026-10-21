@@ -21,6 +21,7 @@ use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\GlobalSet;
 use Sunrice\Cms\Models\Revision;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\artisan;
 
@@ -180,3 +181,17 @@ function expectStored(array $actual, array $expected): void
 {
     DB::getDriverName() === 'mysql' ? expect($actual)->toEqual($expected) : expect($actual)->toBe($expected);
 }
+
+it('starts a new version of every site cache area, since stored values moved', function () {
+    $versions = fn (): array => array_map(fn (string $area): int => app(SiteCache::class)->version($area), SiteCache::AREAS);
+    $before = $versions();
+    app(RenameFieldHandle::class)->handle($this->page, 'related', 'links', dryRun: true);
+    app()->forgetInstance(SiteCache::class);
+    expect($versions())->toBe($before);
+
+    app(RenameFieldHandle::class)->handle($this->page, 'related', 'links');
+    app()->forgetInstance(SiteCache::class);
+    foreach ($versions() as $i => $version) {
+        expect($version)->toBeGreaterThan($before[$i]);
+    }
+});

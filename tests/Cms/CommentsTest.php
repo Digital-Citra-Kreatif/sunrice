@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
@@ -167,9 +168,31 @@ it('posts from the site, back to the thread, with errors and the captcha', funct
 
 it('limits comments per visitor', function () {
     commentSettings(['perMinute' => 2]);
+    postJson("/comments/{$this->post->entry_id}", ['body' => ''])->assertUnprocessable(); // doesn't count
     postJson("/comments/{$this->post->entry_id}", guest())->assertCreated();
     postJson("/comments/{$this->post->entry_id}", guest())->assertCreated();
     postJson("/comments/{$this->post->entry_id}", guest())->assertStatus(429);
+    // On the page: back to the form, with the message and what was typed.
+    from('/blog/hello')->post("/comments/{$this->post->entry_id}", guest(['body' => 'Still here']))
+        ->assertRedirect('/blog/hello#comment-form')->assertSessionHasErrors(['_limit'], null, 'comments')->assertSessionHasInput('body', 'Still here');
+    expect((string) get('/blog/hello')->getContent())->toContain('Please wait')->toContain('Still here');
+});
+
+it('emails moderators once for a burst of comments on one entry', function () {
+    commentSettings(['notifyEmails' => 'editor@example.com']);
+
+    foreach (range(1, 3) as $i) {
+        commentOn($this->post, ['body' => "Held {$i}"], "10.0.0.{$i}");
+    }
+    Mail::assertQueued(CommentPosted::class, 1);
+    travel(PostComment::TELL_EVERY + 1)->seconds();
+    commentOn($this->post, ['body' => 'Later']);
+    Mail::assertQueued(CommentPosted::class, 2);
+});
+
+it('heads an empty thread "Leave a comment"', function () {
+    $html = (string) get('/blog/hello')->getContent();
+    expect($html)->toContain('<h2>Leave a comment</h2>')->not->toContain('0 comments');
 });
 
 it('links moderators to APP_URL, not the Host header the visitor sent', function () {
@@ -209,9 +232,20 @@ it('emails moderators, and commenters about replies once, with a way to stop', f
 
     $unsubscribe = URL::signedRoute('sunrice.cms.comments.unsubscribe', ['comment' => $question->id]);
     get(str_replace('signature=', 'signature=x', $unsubscribe))->assertForbidden();
+    // Opening the link (as a mail scanner does) only asks.
     get($unsubscribe)->assertOk()->assertHeader('Content-Type', 'text/html; charset=utf-8')->assertHeader('X-Robots-Tag', 'noindex')
-        ->assertSee('<h1>You&#039;re unsubscribed</h1>', false)->assertSee('href="'.$this->post->url().'"', false);
+        ->assertSee('<h1>Stop emails about replies?</h1>', false)->assertSee('action="'.e($unsubscribe).'"', false)->assertSee('href="'.$this->post->url().'"', false);
+    expect($question->fresh()?->notify_replies)->toBeTrue();
+    post(str_replace('signature=', 'signature=x', $unsubscribe))->assertForbidden();
+    post($unsubscribe)->assertOk()->assertSee('<h1>You&#039;re unsubscribed</h1>', false);
     expect($question->fresh()?->notify_replies)->toBeFalse();
+    get($unsubscribe)->assertSee('<h1>You&#039;re unsubscribed</h1>', false)->assertDontSee('<form', false);
+    // The site's own page, in its layout, when it has one.
+    $views = sys_get_temp_dir().'/sunrice-unsubscribe-'.uniqid();
+    mkdir("{$views}/cms", recursive: true);
+    file_put_contents("{$views}/cms/comment-unsubscribe.blade.php", 'Site page: {{ $done ? "done" : "ask" }}');
+    View::addLocation($views);
+    get($unsubscribe)->assertSeeText('Site page: done');
 
     // Guests can't sign anyone up when nothing is held.
     commentSettings(['moderation' => CommentSettings::HOLD_NONE]);
