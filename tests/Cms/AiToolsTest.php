@@ -28,6 +28,7 @@ use Sunrice\Cms\Models\GlobalSet;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Settings\SiteSettings;
+use Sunrice\Cms\Site\Site;
 use Workbench\App\Models\User;
 
 beforeEach(function () {
@@ -412,4 +413,20 @@ it('gives read-only tokens the new reading tools only, and the CMS docs', functi
 
     $docs = collect(cmsTool($readOnly, 'read_docs')['sections'])->firstWhere('section', 'CMS');
     expect(array_column($docs['pages'], 'page'))->toContain('cms/site', 'cms/ai');
+});
+
+it('builds and renders addresses with a language\'s own URL pattern, and saves one', function () {
+    app(PublishEntry::class)->handle($this->hello);
+    $halo = app(PublishEntry::class)->handle(app(SaveDraft::class)->handle(app(CreateTranslation::class)->handle($this->hello->entry, 'id'), ['title' => 'Halo', 'slug' => 'halo', 'data' => ['intro' => 'Hai']]));
+    $token = cmsAgent(['cms.entries.view', 'cms.collections.view', 'cms.collections.update']);
+
+    $saved = cmsTool($token, 'save_record', ['resource' => 'collections', 'id' => (string) $this->blog->id, 'values' => ['title' => 'Blog', 'route_id' => '/artikel/{slug}']]);
+    expect($saved)->toBeArray()->and(Collection::query()->find($this->blog->id)?->routes)->toBe(['id' => ['route' => '/artikel/{slug}']]);
+    app()->forgetInstance(Site::class);
+
+    expect(cmsTool($token, 'cms_list_entries')['collections'][0]['routes'])->toBe(['id' => ['route' => '/artikel/{slug}']])
+        ->and(cmsTool($token, 'cms_get_entry', ['id' => $halo->entry_id, 'locale' => 'id'])['url'])->toBe(url('/id/artikel/halo'));
+    $page = cmsTool($token, 'cms_render_page', ['path' => '/id/artikel/halo']);
+    expect($page['status'])->toBe(200)->and($page['html'])->toContain('Halo');
+    expect(cmsTool($token, 'cms_render_page', ['path' => '/id/blog/halo'])['status'])->toBe(301);
 });

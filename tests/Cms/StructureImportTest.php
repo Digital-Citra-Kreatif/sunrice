@@ -108,7 +108,8 @@ it('exports and imports from the commands', function () {
 
 it('carries every setting of collections, taxonomies, global sets and forms', function (string $table, array $carried) {
     // A new column on these tables is part of the content model: export and import it too.
-    $columns = array_diff(Schema::getColumnListing($table), ['id', 'created_at', 'updated_at', 'deleted_at']);
+    // Not the patterns this site's languages had before (they redirect here): StructureImporter::NOT_CARRIED.
+    $columns = array_diff(Schema::getColumnListing($table), ['id', 'created_at', 'updated_at', 'deleted_at', ...StructureImporter::NOT_CARRIED]);
 
     expect(array_values(array_diff($columns, $carried)))->toBe([]);
 })->with([

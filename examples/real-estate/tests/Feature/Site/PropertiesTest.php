@@ -26,7 +26,7 @@ it('renders a property with its facts, price, status and agent', function (): vo
 
 it('formats rent with its suffix and Indonesian numbers', function (): void {
     $this->get('/properties/seminyak-pool-villa')->assertSee('IDR 95,000,000')->assertSee('/ month');
-    $this->get('/id/properties/vila-samudra')->assertOk()->assertSee('Rp 28.500.000.000')->assertSee('Kolam infinity')->assertSee('Tersedia');
+    $this->get('/id/properti/vila-samudra')->assertOk()->assertSee('Rp 28.500.000.000')->assertSee('Kolam infinity')->assertSee('Tersedia');
 });
 
 it('prefills the inquiry form with the property title', function (): void {
@@ -83,7 +83,20 @@ it('shows the applied filters with links that remove them', function (): void {
 it('renders the term pages, a location with the places under it', function (): void {
     $this->get('/property-type/villa')->assertOk()->assertSee('Villa Samudra')->assertDontSee('Kemang Garden House');
     $this->get('/location/bali')->assertOk()->assertSee('Villa Samudra')->assertSee('Seminyak Pool Villa')->assertDontSee('Kemang Garden House');
-    $this->get('/id/property-type/vila')->assertOk()->assertSee('Vila');
+    $this->get('/id/tipe-properti/vila')->assertOk()->assertSee('Vila');
+});
+
+it('gives the Indonesian pages their own addresses, the old ones redirecting', function (): void {
+    $this->get('/id/properti')->assertOk();
+    $this->get('/id/lokasi/bali')->assertOk()->assertSee('Vila Samudra');
+    $this->get('/id/tim')->assertOk();
+    $this->get('/id/kawasan')->assertOk();
+    $this->get('/id/jurnal')->assertOk();
+    $this->get('/id/properties/vila-samudra')->assertStatus(301)->assertRedirect(url('/id/properti/vila-samudra'));
+    $this->get('/id/properties')->assertStatus(301)->assertRedirect(url('/id/properti'));
+    $this->get('/id/property-type/vila')->assertStatus(301)->assertRedirect(url('/id/tipe-properti/vila'));
+    $this->get('/properties/villa-samudra')->assertOk()
+        ->assertSee('<link rel="alternate" hreflang="id" href="'.url('/id/properti/vila-samudra').'">', false);
 });
 
 it('says a sold or let home is gone instead of offering a viewing, and labels the price for what it is', function (): void {
