@@ -12,7 +12,7 @@ Open the panel's address in your browser. It's your site's address followed by *
 2. Tick **Remember me** on your own computer to stay signed in.
 3. Click **Log in**.
 
-If the panel says *This account can't use the admin panel*, your account exists but hasn't been given access yet. Ask a site manager.
+If the panel says your email or password doesn't match although you're sure of them, your account may not have been given access to the panel yet (the panel doesn't say which, so nobody can use it to test passwords). Ask a site manager.
 
 After several wrong passwords the panel makes you wait before you can try again. This protects your account from people guessing passwords.
 

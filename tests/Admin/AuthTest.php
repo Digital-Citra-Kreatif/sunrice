@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Events\LoginThrottled;
 use Sunrice\Admin\Notifications\ResetPanelPassword;
 use Sunrice\Admin\Panel;
@@ -66,8 +67,10 @@ it('refuses a wrong password, and accounts that may not open the panel', functio
     Event::assertDispatched(Failed::class);
 
     User::query()->create(['name' => 'Customer', 'email' => 'buyer@shop.test', 'password' => 'secret-password']);
-    login('buyer@shop.test')->assertSessionHasErrors(['email' => 'This account can\'t use the admin panel.']);
+    // The same answer as a wrong password: it mustn't confirm the account or its password.
+    login('buyer@shop.test')->assertSessionHasErrors(['email' => __('auth.failed')]);
     assertGuest();
+    expect(Activity::query()->where('action', 'login refused')->sole()->properties['note'])->toBe('no access to the panel');
 });
 
 it('checks a password for an unknown email too, so the timing tells nothing', function () {
