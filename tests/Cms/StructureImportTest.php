@@ -93,3 +93,27 @@ it('exports and imports from the commands', function () {
     artisan('sunrice:import-structure', ['file' => '/no/such/file.json'])->assertFailed();
     @unlink($file);
 });
+
+it('carries every setting of collections, taxonomies, global sets and forms', function (string $table, array $carried) {
+    // A new column on these tables is part of the content model: export and import it too.
+    $columns = array_diff(Illuminate\Support\Facades\Schema::getColumnListing($table), ['id', 'created_at', 'updated_at', 'deleted_at']);
+
+    expect(array_values(array_diff($columns, $carried)))->toBe([]);
+})->with([
+    'collections' => ['sunrice_collections', StructureImporter::COLLECTION],
+    'taxonomies' => ['sunrice_taxonomies', StructureImporter::TAXONOMY],
+    'global sets' => ['sunrice_global_sets', StructureImporter::GLOBAL_SET],
+    'forms' => ['sunrice_forms', StructureImporter::FORM],
+]);
+
+it('round-trips "SEO from fields" and the roles a form emails', function () {
+    app(StructureImporter::class)->import(structureFixture());
+
+    expect(Collection::query()->where('handle', 'posts')->value('seo_description_field'))->toBe('intro')
+        ->and(Sunrice\Cms\Models\Taxonomy::query()->where('handle', 'topics')->value('seo_description_field'))->toBe('intro')
+        ->and(Sunrice\Cms\Models\Form::query()->where('handle', 'enquiry')->first()->notify_roles)->toBe(['editor']);
+
+    $bad = structureFixture();
+    $bad['collections'][1]['seo_image_field'] = 'Not a handle';
+    expect(fn () => app(StructureImporter::class)->import($bad))->toThrow(StructureImportFailed::class, 'collection "posts"');
+});
