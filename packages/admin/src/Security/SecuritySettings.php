@@ -10,7 +10,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Section;
-use Sunrice\Admin\Resources\Forms\Textarea;
+use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\Settings;
@@ -54,13 +54,8 @@ final class SecuritySettings extends Settings
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')
                     ->options(fn (): array => self::roles())
                     ->help('Super admins always get them.'),
-                Textarea::make('alertEmails')->label('And to these addresses')->rows(3)->maxLength(2000)->placeholder('security@example.com')
-                    ->rules([function (string $attribute, mixed $value, \Closure $fail): void {
-                        if (is_string($value) && count(self::emails($value)) !== count(array_filter(preg_split('/[\s,;]+/', $value) ?: []))) {
-                            $fail(__('Write one email address per line.'));
-                        }
-                    }])
-                    ->help('One per line.'),
+                ListInput::make('alertEmails')->label('And to these addresses')->emails()->addLabel('Add address')->max(50)->maxLength(2000)
+                    ->placeholder('security@example.com'),
             ]),
         ]);
     }

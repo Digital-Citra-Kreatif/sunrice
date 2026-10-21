@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
+use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\Pairs;
 use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Resources\Forms\TextInput;
@@ -79,4 +80,22 @@ it('takes a value besides the options with ->other(), checked by its rules', fun
         ->and($passes('Brewery'))->toBeTrue()
         ->and($passes('not a type'))->toBeFalse()
         ->and(validator(['type' => 'no'], ['type' => $field->validationRules(null)])->errors()->first('type'))->toContain('Type');
+});
+
+it('edits a list of addresses as rows, kept as one per line', function () {
+    $profiles = ListInput::make('sameAs')->label('Profiles')->urls(httpsOnly: true)->networks()->addLabel('Add profile')->max(3);
+    $rules = ['sameAs' => $profiles->validationRules(null)];
+    $error = fn (string $value): string => (string) validator(['sameAs' => $value], $rules)->errors()->first('sameAs');
+
+    expect($profiles->toArray())->toMatchArray(['kind' => 'field', 'type' => 'list', 'accepts' => 'url', 'networks' => true, 'addLabel' => 'Add profile', 'max' => 3])
+        ->and($error("https://instagram.com/acme\n\n https://www.linkedin.com/company/acme "))->toBe('')
+        ->and($error("https://instagram.com/acme\nhttp://example.com"))->toBe('"http://example.com" isn\'t a web address starting with https://.')
+        ->and($error("https://a.example\nhttps://b.example\nhttps://c.example\nhttps://d.example"))->toBe('Use at most 3.')
+        ->and($profiles->dehydrate("https://instagram.com/acme\n\n https://x.com/acme \n"))->toBe("https://instagram.com/acme\nhttps://x.com/acme");
+
+    $emails = ListInput::make('to')->emails();
+    expect(validator(['to' => 'a@example.com, b@example.com'], ['to' => $emails->validationRules(null)])->passes())->toBeTrue()
+        ->and((string) validator(['to' => "a@example.com\nnope"], ['to' => $emails->validationRules(null)])->errors()->first('to'))->toBe('"nope" isn\'t an email address.')
+        ->and($emails->dehydrate('a@example.com, b@example.com'))->toBe("a@example.com\nb@example.com")
+        ->and(ListInput::items("one\n\n two "))->toBe(['one', 'two']);
 });

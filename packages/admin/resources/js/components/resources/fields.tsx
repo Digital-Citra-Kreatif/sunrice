@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Globe, Mail, Plus, X } from 'lucide-react';
 import { DatePicker } from '@/components/app/date-picker';
 import { RichTextEditor } from '@/components/app/rich-text';
 import { MediaPickerInput } from '@/components/media/media-picker';
@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
 import { fixedValues, formatPairs, parsePairs, type Pair, withFixedValue } from '@/lib/pairs';
+import { formatList, looksValid, networkOf, parseList } from '@/lib/networks';
 import { slugInput } from '@/lib/slug';
 import { type ChoiceOption, groupOptions, RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
@@ -93,6 +94,8 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
                     value={typeof value === 'string' ? value : ''} onChange={onChange} />;
             }
             return <PairsInput id={id} field={field} disabled={disabled} invalid={invalid} value={typeof value === 'string' ? value : ''} onChange={onChange} />;
+        case 'list':
+            return <ListInput id={id} field={field} disabled={disabled} invalid={invalid} value={typeof value === 'string' ? value : ''} onChange={onChange} />;
         case 'date':
             return <DatePicker id={id} disabled={disabled} invalid={invalid} required={field.required === true} withTime={field.withTime === true}
                 placeholder={field.placeholder ?? undefined} value={value === null ? null : String(value)} onChange={onChange} />;
@@ -165,6 +168,62 @@ function SelectWithOther({ id, field, options, other, value, disabled, invalid, 
                 <Input ref={input} id={`${id}-other`} aria-label={other.label} aria-invalid={invalid} disabled={disabled} placeholder={other.placeholder ?? undefined}
                     value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? '' : e.target.value)} />
             )}
+        </div>
+    );
+}
+
+/** ListInput: one input per value, with Add and remove, kept as one value per line. */
+function ListInput({ id, field, value, disabled, invalid, onChange }: {
+    id: string; field: FieldInfo; value: string; disabled: boolean; invalid: boolean; onChange: (value: string) => void;
+}) {
+    const emails = field.accepts === 'email';
+    const [rows, setRows] = React.useState<string[]>(() => parseList(value, emails));
+    const [focus, setFocus] = React.useState<number | null>(null);
+    // Changed from outside (a reset, a save): show that.
+    React.useEffect(() => {
+        if (formatList(rows) !== value) setRows(parseList(value, emails));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value]);
+    const update = (next: string[]) => {
+        setRows(next);
+        onChange(formatList(next));
+    };
+    const kind = field.accepts as 'url' | 'email' | null | undefined;
+    const max = typeof field.max === 'number' ? field.max : null;
+    const label = field.label;
+    // After a refused save, mark the rows that look wrong (all of them when none does: too many).
+    const wrong = rows.map((row) => !looksValid(row, kind, field.httpsOnly === true));
+    const rowInvalid = (index: number) => invalid && (wrong[index] === true || !wrong.includes(true));
+
+    return (
+        <div id={id} role="group" aria-invalid={invalid} className="grid gap-2">
+            {rows.map((row, index) => {
+                const network = field.networks === true ? networkOf(row) : null;
+                return (
+                    <div key={index} className="flex items-center gap-2">
+                        {field.networks === true && (
+                            network
+                                ? <span aria-hidden="true" title={network.name} className="flex size-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white" style={{ background: network.color }}>{network.mark}</span>
+                                : <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-md border text-muted-foreground"><Globe className="size-4" /></span>
+                        )}
+                        {kind === 'email' && <Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />}
+                        <Input aria-label={`${label} ${index + 1}`} disabled={disabled} aria-invalid={rowInvalid(index)} value={row}
+                            type={kind === 'email' ? 'email' : kind === 'url' ? 'url' : 'text'} inputMode={kind === 'email' ? 'email' : kind === 'url' ? 'url' : undefined}
+                            spellCheck={kind ? false : undefined} autoCapitalize={kind ? 'off' : undefined}
+                            placeholder={field.placeholder ?? (kind === 'url' ? 'https://…' : undefined)} autoFocus={focus === index}
+                            onChange={(e) => update(rows.map((r, i) => (i === index ? e.target.value : r)))} />
+                        {field.networks === true && <span className="hidden w-20 shrink-0 truncate text-xs text-muted-foreground sm:inline">{network?.name}</span>}
+                        <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0 text-destructive" disabled={disabled}
+                            aria-label={t('Remove :item :number', { item: label, number: index + 1 })} onClick={() => update(rows.filter((_, i) => i !== index))}><X /></Button>
+                    </div>
+                );
+            })}
+            <div>
+                <Button type="button" variant="outline" size="sm" disabled={disabled || (max !== null && rows.length >= max)}
+                    onClick={() => { setFocus(rows.length); setRows([...rows, '']); }}>
+                    <Plus />{String(field.addLabel ?? t('Add'))}
+                </Button>
+            </div>
         </div>
     );
 }
