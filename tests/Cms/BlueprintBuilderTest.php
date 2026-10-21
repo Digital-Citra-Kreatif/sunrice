@@ -54,12 +54,12 @@ it('adds the screens to the sidebar and loads the CMS bundle for them', function
 });
 
 it('lists blueprints with the collections that use them', function () {
-    Blueprint::query()->create(['handle' => 'page', 'title' => 'Page', 'fields' => [['handle' => 'body', 'type' => 'textarea']]]);
+    $blueprint = Blueprint::query()->create(['handle' => 'page', 'title' => 'Page', 'fields' => [['handle' => 'body', 'type' => 'textarea']]]);
     Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page']);
     builderUser();
 
     get('/admin/cms/blueprints')->assertInertia(fn (Assert $page) => $page
-        ->where('blueprints.0', ['id' => 1, 'handle' => 'page', 'title' => 'Page', 'fields' => 1, 'usedBy' => ['Pages']]));
+        ->where('blueprints.0', ['id' => $blueprint->id, 'handle' => 'page', 'title' => 'Page', 'fields' => 1, 'usedBy' => ['Pages']]));
 });
 
 it('gives the builder the field types, their settings, fieldsets and rules', function () {

@@ -140,7 +140,7 @@ it('creates an entry from the editor', function () {
 
     post('/admin/cms/collections/articles/entries', ['title' => 'Hello', 'data' => ['intro' => '']])->assertSessionHasErrors('data.intro');
     post('/admin/cms/collections/articles/entries', ['title' => 'Hello', 'data' => ['intro' => 'Hi']])
-        ->assertRedirect('/admin/cms/collections/articles/entries/1/edit');
+        ->assertRedirect(entryEditUrl(Entry::query()->sole()->id));
 
     expect(EntryTranslation::query()->firstOrFail()->only(['draft_title', 'draft_slug', 'status']))
         ->toBe(['draft_title' => 'Hello', 'draft_slug' => 'hello', 'status' => 'draft']);

@@ -230,11 +230,13 @@ namespace Acme\Shop\Tests;
 
 use Acme\Shop\ShopPlugin;
 use Acme\Shop\ShopServiceProvider;
-use Orchestra\Testbench\Concerns\WithLaravelMigrations;
 use Orchestra\Testbench\TestCase as Testbench;
 use Sunrice\Admin\AdminServiceProvider;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\PanelProvider;
+
+use function Orchestra\Testbench\default_migration_path;
+use function Orchestra\Testbench\load_migration_paths;
 
 final class TestPanelProvider extends PanelProvider
 {
@@ -246,8 +248,6 @@ final class TestPanelProvider extends PanelProvider
 
 abstract class TestCase extends Testbench
 {
-    use WithLaravelMigrations;   // Laravel's users table; the panel's migrations load themselves
-
     protected function getPackageProviders($app): array
     {
         return [AdminServiceProvider::class, ShopServiceProvider::class, TestPanelProvider::class];
@@ -256,6 +256,7 @@ abstract class TestCase extends Testbench
     protected function defineEnvironment($app): void
     {
         $app['config']->set('auth.providers.users.model', Fixtures\User::class);   // a User with HasRoles
+        load_migration_paths($app, default_migration_path());   // Laravel's users table; the panel's migrations load themselves
     }
 }
 ```
@@ -264,6 +265,8 @@ abstract class TestCase extends Testbench
 // tests/Pest.php
 uses(Acme\Shop\Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)->in(__DIR__);
 ```
+
+`RefreshDatabase` then migrates once and wraps each test in a transaction, so the suite stays quick on MySQL and Postgres too. Avoid Testbench's `WithLaravelMigrations` here: it migrates and rolls back Laravel's tables around every test, which makes every test migrate the whole database again. Since ids aren't reset between tests, assert against the saved records' ids rather than `1`.
 
 Then test what the plugin registered, that its routes are guarded, and its pages and tools:
 
