@@ -27,6 +27,12 @@ use Throwable;
  */
 final class Captcha
 {
+    /** What a developer adds to the app's .env to set it up (for a "For developers" help). */
+    public const ENV_EXAMPLE = "SUNRICE_CAPTCHA_PROVIDER=turnstile   # or recaptcha, hcaptcha\nSUNRICE_CAPTCHA_SITE_KEY=…\nSUNRICE_CAPTCHA_SECRET_KEY=…";
+
+    /** The providers' names, for people. */
+    private const NAMES = ['turnstile' => 'Cloudflare Turnstile', 'recaptcha' => 'Google reCAPTCHA', 'hcaptcha' => 'hCaptcha'];
+
     /** @var array<string, array{script: string, verify: string, class: string, field: string}> */
     private const PROVIDERS = [
         'turnstile' => [
@@ -60,6 +66,12 @@ final class Captcha
         $provider = config('sunrice-admin.captcha.provider', 'turnstile');
 
         return is_string($provider) ? strtolower($provider) : 'turnstile';
+    }
+
+    /** The provider's name, for people: "Cloudflare Turnstile". */
+    public function name(): string
+    {
+        return self::NAMES[$this->provider()] ?? $this->provider();
     }
 
     /** The form field the widget puts its answer in. */

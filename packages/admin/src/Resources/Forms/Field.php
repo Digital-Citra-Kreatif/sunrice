@@ -33,6 +33,12 @@ abstract class Field implements Component
 
     protected ?string $warnWhenChanged = null;
 
+    /** @var array{text: string|null, code: string|null}|null */
+    protected ?array $developerHelp = null;
+
+    /** @var array{label: string, url: string}|null */
+    protected ?array $helpLink = null;
+
     protected mixed $default = null;
 
     /** @var list<string|object> */
@@ -103,6 +109,32 @@ abstract class Field implements Component
     public function help(?string $text): static
     {
         $this->help = $text;
+
+        return $this;
+    }
+
+    /**
+     * What a developer needs to know, folded away under the help in a
+     * "For developers" disclosure, so the help itself stays short and
+     * plain: a sentence, and code shown as code with a copy button (an
+     * .env snippet, a Blade tag, a command):
+     *
+     *     ->help("Not set up yet: ask your developer to connect a captcha service.")
+     *     ->developerHelp("Set these in the app's .env:", "SUNRICE_CAPTCHA_SITE_KEY=…\nSUNRICE_CAPTCHA_SECRET_KEY=…")
+     *
+     * The text is said in the panel's language; the code is shown as written.
+     */
+    public function developerHelp(?string $text, ?string $code = null): static
+    {
+        $this->developerHelp = $text === null && $code === null ? null : ['text' => $text, 'code' => $code];
+
+        return $this;
+    }
+
+    /** A link after the help ("How" to a guide page): `$url` relative to the panel's path, or a full address. */
+    public function helpLink(string $label, string $url): static
+    {
+        $this->helpLink = ['label' => $label, 'url' => $url];
 
         return $this;
     }
@@ -350,6 +382,8 @@ abstract class Field implements Component
             'required' => $this->isRequired($record),
             'disabled' => $this->isDisabled($record),
             'help' => Say::it($this->help),
+            'helpLink' => $this->helpLink === null ? null : ['label' => Say::it($this->helpLink['label']), 'url' => $this->helpLink['url']],
+            'developerHelp' => $this->developerHelp === null ? null : ['text' => Say::it($this->developerHelp['text']), 'code' => $this->developerHelp['code']],
             'placeholder' => Say::it($this->placeholder),
             // Only on an edit form: a new record has nothing saved to change.
             'warnWhenChanged' => $record !== null && $record->exists ? Say::it($this->warnWhenChanged) : null,

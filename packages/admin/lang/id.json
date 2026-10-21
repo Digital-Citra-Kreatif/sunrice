@@ -234,8 +234,6 @@
     "End all of this user's sessions? They can log in again with their password.": "Akhiri semua sesi pengguna ini? Mereka bisa masuk lagi dengan kata sandinya.",
     "Enter your email address and we'll send you a link to choose a new password.": "Masukkan alamat email Anda dan kami akan mengirimkan tautan untuk memilih kata sandi baru.",
     "Enter your email and password to continue.": "Masukkan email dan kata sandi Anda untuk melanjutkan.",
-    "Everyone also enters a 6-digit code sent by email. Check email works first (Settings → Mail → Send a test email), or nobody can sign in. If that happens, a developer can turn it off on the server (Help → Guide → Settings says how).": "Semua orang juga memasukkan kode 6 digit yang dikirim lewat email. Pastikan email berfungsi dulu (Pengaturan → Email → Kirim email uji), atau tidak ada yang bisa masuk. Jika itu terjadi, developer bisa mematikannya di server (Bantuan → Panduan → Pengaturan menjelaskan caranya).",
-    "Everyone also enters a 6-digit code sent by email. Check email works first, or nobody can sign in (undo: php artisan sunrice:two-factor off).": "Semua orang juga memasukkan kode 6 digit yang dikirim lewat email. Pastikan email berfungsi dulu, atau tidak ada yang bisa masuk (batalkan: php artisan sunrice:two-factor off).",
     "Everything": "Semua",
     "Expired": "Kedaluwarsa",
     "Expires": "Kedaluwarsa",
@@ -743,5 +741,8 @@
     "Remove :item :number": "Hapus :item :number",
     "Add address": "Tambah alamat",
     "Search by code or name…": "Cari menurut kode atau nama…",
-    "Use “:code”": "Pakai “:code”"
+    "Use “:code”": "Pakai “:code”",
+    "For developers": "Untuk developer",
+    "Everyone also enters a 6-digit code sent by email. Check that email works first (Settings → Mail → Send a test email), or nobody can sign in.": "Semua orang juga memasukkan kode 6 digit yang dikirim lewat email. Pastikan email berfungsi dulu (Pengaturan → Email → Kirim email uji), atau tidak ada yang bisa masuk.",
+    "Locked out because email stopped working? Turn it off on the server:": "Terkunci karena email berhenti berfungsi? Matikan di server:"
 }

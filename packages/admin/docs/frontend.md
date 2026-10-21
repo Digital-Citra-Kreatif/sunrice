@@ -151,6 +151,7 @@ Rows answer the pointer with `hover:bg-muted/40`; buttons press with `active:sca
 
 It also has these interaction components, the ones the panel's own pages use:
 
+- **`DeveloperHelp`**: the **For developers** disclosure of a field's `developerHelp()`: `text` and `code` (shown as code, with a copy button), for help on a page of your own.
 - **`SettingsLayout`** / **`SettingsNav`**: the Settings menu beside a page put among the settings sections (`NavigationItem::inSettings()`): `items` from `Panel::settingsNavigation($user)`, `current` the page's navigation key. `SettingsLayout` wraps the page in the same two columns as the settings sections (the menu as a scrolling row on phones).
 - **`CollapsibleCard`**: a card whose header folds its content away, animated. `storageKey` remembers the choice in the browser, `hasErrors` opens the card so a validation error is never hidden, `headerAction` sits in the header outside the toggle. Folded fields stay in the form (still submitted) but are inert and hidden from assistive technology.
 

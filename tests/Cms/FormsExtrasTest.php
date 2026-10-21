@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\Captcha;
+use Sunrice\Cms\Admin\FormResource;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Fields\Types\FileField;
 use Sunrice\Cms\Mail\SubmissionReceived;
@@ -114,6 +116,20 @@ it('limits sends per visitor at the form\'s own rate', function () {
     postJson('/forms/apply', ['name' => 'B'])->assertCreated();
     postJson('/forms/apply', ['name' => 'C'])->assertStatus(429);
     postJson('/forms/other', ['name' => 'D'])->assertCreated(); // its own count
+});
+
+it('explains a captcha that isn\'t set up in a short line, with a link and the .env lines for developers', function () {
+    $field = fn () => collect(FormResource::form(new Sunrice\Admin\Resources\Forms\Form)->fields('create'))->first(fn ($f) => $f->name === 'captcha')->toArray();
+
+    config(['sunrice-admin.captcha' => ['provider' => 'turnstile', 'site_key' => null, 'secret_key' => null]]);
+    expect($field())->toMatchArray([
+        'disabled' => true,
+        'help' => 'Not set up yet: ask your developer to connect a captcha service.',
+        'helpLink' => ['label' => 'How', 'url' => 'guide/website/settings#captcha'],
+    ])->and($field()['developerHelp']['code'])->toBe(Captcha::ENV_EXAMPLE);
+
+    config(['sunrice-admin.captcha' => ['provider' => 'hcaptcha', 'site_key' => 'site', 'secret_key' => 'secret']]);
+    expect($field())->toMatchArray(['disabled' => false, 'help' => 'Visitors prove they\'re not a robot, with hCaptcha.', 'helpLink' => null, 'developerHelp' => null]);
 });
 
 it('asks for the captcha when the form wants it and the keys are set', function () {

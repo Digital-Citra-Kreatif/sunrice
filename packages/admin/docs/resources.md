@@ -118,6 +118,17 @@ public static function query(): Builder
 
 Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `->default()` (the create form's value), `->rules([...])` (more Laravel rules), `->unique()` (except the record being edited), `->onlyOnCreate()` / `->onlyOnEdit()` and `->span(2)` (columns in a section's grid). `Section::make('Title')->columns(2)->schema([...])` groups fields in a card.
 
+Help stays short and plain for editors: `->help('…')` under the field, `->helpLink('How', 'guide/website/settings#captcha')` a link after it (relative to the panel's path, or a full address, which opens in a new tab), and `->developerHelp($text, $code)` what a developer needs, folded away in a **For developers** disclosure under the help: a sentence (said in the panel's language) and code shown as code, with a copy button (an `.env` snippet, a Blade tag, a command). The panel's two-factor switch and the CMS's captcha switches use them:
+
+```php
+Toggle::make('captcha')->label('Require a captcha')->disabled()
+    ->help('Not set up yet: ask your developer to connect a captcha service.')
+    ->helpLink('How', 'guide/website/settings#captcha')
+    ->developerHelp('Set these in the app\'s .env:', Captcha::ENV_EXAMPLE),
+```
+
+React pages get the same disclosure as `DeveloperHelp` from `@sunrice/admin-sdk/ui`.
+
 `->warnWhenChanged('…')` warns under a field on the edit form once its value differs from the saved one (never when creating), for values code relies on, such as a handle templates name or a role's name. `:old` and `:new` in the text become the saved and the typed value; like labels and help, the text is said in the panel's language (give it an Indonesian line). The panel's Roles screen warns this way when a role is renamed: code that checks it by name needs the new one.
 
 ```php

@@ -10,6 +10,7 @@ import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { CollapsibleCard } from '@/components/app/collapsible-card';
 import { registerCommandSource } from '@/components/app/command-palette';
 import { DatePicker } from '@/components/app/date-picker';
+import { DeveloperHelp } from '@/components/app/developer-help';
 import { KeptEditsNotice, useEditLock, ViewingNotice } from '@/components/app/edit-lock';
 import { moveItem, SortableHandle, SortableList } from '@/components/app/sortable-list';
 import { MediaPickerInput } from '@/components/media/media-picker';
@@ -44,7 +45,7 @@ import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 /** What `@sunrice/admin-sdk/ui` gives plugins. Keep in step with SHARED_MODULES (a test checks). */
 const ui = {
     Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, CollapsibleCard,
-    Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker,
+    Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker, DeveloperHelp,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
     Input, KeptEditsNotice, Label, MediaPickerInput, moveItem, PageHeader, registerCommandSource, RichTextEditor,

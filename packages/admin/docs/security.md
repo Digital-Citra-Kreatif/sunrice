@@ -148,6 +148,8 @@ Event::listen(function (ActivityRecorded $event): void {
 ```php
 $captcha = app(\Sunrice\Admin\Security\Captcha::class);
 $captcha->enabled();          // both keys set
+$captcha->name();             // the provider, for people: "Cloudflare Turnstile"
+Captcha::ENV_EXAMPLE;         // the .env lines that set it up, for a "For developers" help
 $captcha->widget();           // the widget, with the provider's script once per page
 $captcha->passes($request);   // the visitor's answer is right (always true when it's off)
 ```

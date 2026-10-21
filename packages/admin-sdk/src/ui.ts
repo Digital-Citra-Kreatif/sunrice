@@ -180,6 +180,9 @@ export const SelectTrigger = m.SelectTrigger as AnyComponent;
 export const SelectValue = m.SelectValue as AnyComponent;
 export const Separator = m.Separator as AnyComponent;
 
+/** A "For developers" disclosure (as under a field's help, Field::developerHelp()): a sentence and code with a copy button. */
+export const DeveloperHelp = m.DeveloperHelp as ComponentType<{ text?: string | null; code?: string | null; className?: string }>;
+
 /** An entry of the Settings menu, as `Panel::settingsNavigation()` gives them. */
 export interface SettingsNavEntry {
     key: string;

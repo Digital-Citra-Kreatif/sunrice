@@ -101,3 +101,15 @@ it('edits a list of addresses as rows, kept as one per line', function () {
         ->and($emails->dehydrate('a@example.com, b@example.com'))->toBe("a@example.com\nb@example.com")
         ->and(ListInput::items("one\n\n two "))->toBe(['one', 'two']);
 });
+
+it('sends a field\'s help link and its notes for developers, said in the panel\'s language', function () {
+    $field = Toggle::make('captcha')->help('Not set up yet.')->helpLink('How', 'guide/website/settings#captcha')
+        ->developerHelp('Set these in .env:', "KEY=…\nSECRET=…")->toArray();
+
+    expect($field)->toMatchArray([
+        'help' => 'Not set up yet.',
+        'helpLink' => ['label' => 'How', 'url' => 'guide/website/settings#captcha'],
+        'developerHelp' => ['text' => 'Set these in .env:', 'code' => "KEY=…\nSECRET=…"],
+    ])->and(TextInput::make('x')->toArray())->toMatchArray(['helpLink' => null, 'developerHelp' => null])
+        ->and(TextInput::make('x')->developerHelp(null, 'php artisan x')->toArray()['developerHelp'])->toBe(['text' => null, 'code' => 'php artisan x']);
+});

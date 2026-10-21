@@ -59,6 +59,10 @@ export interface FieldInfo {
     required: boolean;
     disabled: boolean;
     help: string | null;
+    /** Field::helpLink(): a link after the help. */
+    helpLink?: { label: string; url: string } | null;
+    /** Field::developerHelp(): folded under the help, "For developers". */
+    developerHelp?: { text: string | null; code: string | null } | null;
     placeholder: string | null;
     /** Field::warnWhenChanged(): shown on an edit form once the value differs from the saved one. */
     warnWhenChanged?: string | null;
