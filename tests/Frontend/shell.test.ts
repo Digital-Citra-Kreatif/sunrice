@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { flushPrefetchAfterWrites } from '../../packages/admin/resources/js/lib/prefetch-flush.ts';
 import { errorToast } from '../../packages/admin/resources/js/lib/error-toast.ts';
 import { copyText, type ClipboardEnv } from '../../packages/admin/resources/js/lib/clipboard.ts';
 import { parseFolded, withFolded } from '../../packages/admin/resources/js/lib/folded-groups.ts';
@@ -87,4 +88,18 @@ test('a rejected save toasts once: the same errors again update the same toast',
     assert.notEqual(errorToast({ title: 'A', slug: 'B' })?.id, first?.id);
     assert.equal(errorToast({}), null);
     assert.equal(errorToast({ slug: '' }), null);
+});
+
+test('a finished write drops the prefetched pages, a read keeps them', () => {
+    let listener: ((event: { detail: { visit: { method: string } } }) => void) | undefined;
+    let flushed = 0;
+    const router = { on: (_event: 'finish', callback: typeof listener) => { listener = callback; return () => { listener = undefined; }; }, flushAll: () => { flushed++; } };
+
+    const off = flushPrefetchAfterWrites(router as never);
+    listener!({ detail: { visit: { method: 'get' } } });
+    assert.equal(flushed, 0);
+    for (const method of ['post', 'put', 'patch', 'delete']) listener!({ detail: { visit: { method } } });
+    assert.equal(flushed, 4);
+    off();
+    assert.equal(listener, undefined);
 });

@@ -1,6 +1,6 @@
 import '../css/admin.css';
 import type * as React from 'react';
-import { config, createInertiaApp } from '@inertiajs/react';
+import { config, createInertiaApp, router } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import AppLayout from '@/layouts/AppLayout';
 import { initializeAppearance } from '@/hooks/use-appearance';
@@ -8,10 +8,13 @@ import { pageTitle } from '@/lib/branding';
 import { trackPanelPath } from '@/lib/admin-url';
 import { pluginPage, type PageComponent } from '@/lib/page-registry';
 import { installRuntime } from '@/runtime';
+import { flushPrefetchAfterWrites } from '@/lib/prefetch-flush';
 import type { SharedProps } from '@/types';
 
 initializeAppearance();
 installRuntime();
+// After a save, links don't show pages prefetched before it.
+flushPrefetchAfterWrites(router);
 
 // Page to page, the old page fades as the new one rises (admin.css ::view-transition-*),
 // unless the person asked for less motion. Filters and pagination keep their state and stay put.
