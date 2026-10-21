@@ -105,3 +105,18 @@ it('takes nodes from templates, prints them safely, and can be turned off', func
     app(SiteSettings::class)->fill(['structuredData' => false, 'publisher' => 'Person'])->save();
     expect(Blade::render('<x-sunrice-cms::seo title="Events" />'))->not->toContain('application/ld+json');
 });
+
+it('names listings, collections and the way home in the page\'s language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $this->blog->translate('title', 'id', 'Jurnal')->save();
+    schemaPost($this->blog, 'Hello world');
+
+    $nodes = nodes(get('/id/blog/hello-world')->assertOk());
+    expect(array_column($nodes['BreadcrumbList']['itemListElement'], 'name'))->toBe(['Beranda', 'Jurnal', 'Hello world'])
+        ->and(array_column($nodes['BreadcrumbList']['itemListElement'], 'item'))->toBe([url('/id'), url('/id/blog'), url('/id/blog/hello-world')]);
+
+    $listing = get('/id/blog')->assertOk()->assertSee('<title>Jurnal | Acme</title>', false)->assertSee('<h1>Jurnal</h1>', false);
+    expect(nodes($listing)['CollectionPage']['name'])->toBe('Jurnal');
+    get('/blog')->assertOk()->assertSee('<h1>Blog</h1>', false);
+    expect($this->blog->titleIn('en'))->toBe('Blog')->and($this->blog->fresh()?->titleIn('id'))->toBe('Jurnal');
+});

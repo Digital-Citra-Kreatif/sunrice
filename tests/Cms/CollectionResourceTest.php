@@ -99,3 +99,17 @@ it('deletes a collection but keeps its entries', function () {
         ->and($entry->fresh())->not->toBeNull()
         ->and(Activity::query()->latest('id')->first()?->only(['action', 'subject_type']))->toBe(['action' => 'deleted', 'subject_type' => 'collections']);
 });
+
+it('takes the title visitors read in each other language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    collectionsUser('view', 'create', 'update');
+
+    post('/admin/collections', ['title' => 'Properties', 'handle' => 'properties', 'title_id' => ' Properti '])->assertSessionHasNoErrors();
+    $collection = Collection::query()->firstOrFail();
+    expect($collection->translations)->toBe(['id' => ['title' => 'Properti']])->and($collection->titleIn('id'))->toBe('Properti');
+
+    get("/admin/collections/{$collection->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('values.title_id', 'Properti')->where('sections.0.fields', fn ($fields) => collect($fields)->firstWhere('name', 'title_id')['label'] === 'Title in '.Sunrice\Cms\Support\Locales::name('id')));
+    put("/admin/collections/{$collection->id}", ['title' => 'Listings', 'handle' => 'properties', 'title_id' => ''])->assertSessionHasNoErrors();
+    expect($collection->fresh()?->translations)->toBeNull()->and($collection->fresh()?->titleIn('id'))->toBe('Listings');
+});

@@ -135,3 +135,20 @@ it('rethrows what stopped a switch even when putting the languages back fails to
 
     expect(fn () => app(SwitchMainLanguage::class)->handle('id'))->toThrow(RuntimeException::class, 'The switch broke.');
 });
+
+it('swaps titles and thank-you messages with the main language', function () {
+    $this->dishes->translate('title', 'id', 'Hidangan')->save();
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text']]]);
+    $form = Sunrice\Cms\Models\Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact', 'message' => 'Thanks!']);
+    $form->translate('message', 'id', 'Terima kasih!')->save();
+
+    app(SwitchMainLanguage::class)->handle('id');
+
+    expect($this->dishes->fresh()?->only(['title', 'translations']))->toBe(['title' => 'Hidangan', 'translations' => ['en' => ['title' => 'Dishes']]])
+        ->and($this->dishes->fresh()?->titleIn('en'))->toBe('Dishes')
+        // Not translated: as it was, in every language.
+        ->and($tags->fresh()?->only(['title', 'translations']))->toBe(['title' => 'Tags', 'translations' => null])
+        ->and($form->fresh()?->successMessage('id'))->toBe('Terima kasih!')
+        ->and($form->fresh()?->successMessage('en'))->toBe('Thanks!');
+});

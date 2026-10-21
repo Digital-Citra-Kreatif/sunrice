@@ -291,3 +291,16 @@ it('gives a select\'s option labels in a language', function () {
         ->and($field->toArray()['translations'])->toBe(['id' => ['label' => 'Status', 'options' => ['under_offer' => 'Dalam penawaran']]])
         ->and($field->withConfig([])->translations)->toBe($field->translations);
 });
+
+it('thanks visitors in their language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id', 'fr']]);
+
+    postJson('/forms/contact', [...contactInput(), 'locale' => 'id'])->assertCreated()->assertJson(['message' => 'Terima kasih, pesan Anda sudah kami terima.']);
+    // A language the site's words have no line in: the form's own message.
+    postJson('/forms/contact', [...contactInput(), 'locale' => 'fr'])->assertCreated()->assertJson(['message' => 'Thanks!']);
+    $this->form->translate('message', 'id', 'Terima kasih!')->save();
+    from('/id/kontak')->post('/forms/contact', [...contactInput(), 'locale' => 'id'])->assertSessionHas('sunrice-cms.form.contact', 'Terima kasih!');
+    postJson('/forms/contact', [...contactInput(), 'locale' => 'en'])->assertJson(['message' => 'Thanks!']);
+    $this->form->update(['message' => null]);
+    postJson('/forms/contact', [...contactInput(), 'locale' => 'en'])->assertJson(['message' => 'Thank you, we got your message.']);
+});
