@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
@@ -115,4 +116,33 @@ it('refuses unknown collections, filter types and names', function () {
 
     // Without sorts, the collection's own order; a title ascending one here.
     expect(collect((new EntryFilter('shop'))->entries->items())->pluck('title')->all())->toBe(['Blue lamp', 'Green hose', 'Red kettle']);
+});
+
+it('keeps parents in a hierarchical terms filter with hide_empty, counting the entries under them', function () {
+    // Kitchen and Garden have entries; Home only through Kitchen once the lamp is moved off it.
+    $topics = Taxonomy::query()->where('handle', 'topics')->first();
+    $outdoors = app(SaveTerm::class)->handle($topics, ['title' => 'Outdoors']);
+    $empty = app(SaveTerm::class)->handle($topics, ['title' => 'Empty', 'parent_id' => $outdoors->id]);
+    DB::table('sunrice_entry_term')->where('term_id', $this->home->id)->update(['term_id' => $this->kitchen->id]);
+
+    $filter = new EntryFilter('shop', ['topic' => ['type' => 'terms', 'taxonomy' => 'topics', 'hide_empty' => true]]);
+    $options = collect($filter->filter('topic')->options)->mapWithKeys(fn ($o) => [$o['value'] => [$o['count'], $o['depth']]])->all();
+    expect($options)->toBe(['home' => [2, 0], 'kitchen' => [2, 1], 'garden' => [1, 0]]);
+
+    request()->query->set('topic', ['home']);
+    $filtered = new EntryFilter('shop', ['topic' => ['type' => 'terms', 'taxonomy' => 'topics', 'hide_empty' => true]]);
+    expect($filtered->filtered())->toBeTrue()
+        ->and($filtered->entries->total())->toBe(2);
+    expect($empty->exists)->toBeTrue();
+});
+
+it('keeps the ancestors of terms with entries in a tree with hide-empty', function () {
+    $html = Blade::render('<x-sunrice-cms::terms taxonomy="topics" hide-empty tree>@foreach ($component->terms as $t){{ $t->title() }}({{ $t->entries_count }})[@foreach ($t->children as $c){{ $c->title() }}({{ $c->entries_count }})@endforeach]@endforeach</x-sunrice-cms::terms>');
+    DB::table('sunrice_entry_term')->where('term_id', $this->home->id)->delete();
+    $after = Blade::render('<x-sunrice-cms::terms taxonomy="topics" hide-empty tree>@foreach ($component->terms as $t){{ $t->title() }}({{ $t->entries_count }})[@foreach ($t->children as $c){{ $c->title() }}@endforeach]@endforeach</x-sunrice-cms::terms>');
+    $counted = Blade::render('<x-sunrice-cms::terms taxonomy="topics" hide-empty tree include-children>@foreach ($component->terms as $t){{ $t->title() }}({{ $t->entries_count }})@endforeach</x-sunrice-cms::terms>');
+
+    expect($html)->toBe('Home(1)[Kitchen(1)]Garden(1)[]')
+        ->and($after)->toBe('Home(0)[Kitchen]Garden(1)[]')
+        ->and($counted)->toBe('Home(1)Garden(1)');
 });

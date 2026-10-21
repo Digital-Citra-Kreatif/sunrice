@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Fixed: a hierarchical terms filter with `hide_empty` (`<x-sunrice-cms::entry-filter>`) dropped parents whose entries are all under their children, and then ignored `?location=parent`; its counts now include the terms under each one, as the filter does. `<x-sunrice-cms::terms>` gains `include-children` (counts include the terms under each, each entry once), and with `hide-empty` and `tree` keeps the ancestors of terms with entries.
 - Structure export and import carry collections' and taxonomies' "SEO from fields" (`seo_title_field`, `seo_description_field`, `seo_image_field`, `StructureImporter::SEO_FIELDS`) and forms' `notify_roles`; a test checks that every column of these tables is carried.
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
 - `sunrice:translate --only=lang` translates the app's language files (never without `--only=lang`) (`lang/<from>/*.php` and `lang/<from>.json`), keeping keys already translated (`Translation\LangFileTranslator`).

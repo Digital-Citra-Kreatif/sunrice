@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Schema;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
+use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\Menu;
+use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Structure\ImportReport;
 use Sunrice\Cms\Structure\StructureExporter;
 use Sunrice\Cms\Structure\StructureImporter;
@@ -96,7 +99,7 @@ it('exports and imports from the commands', function () {
 
 it('carries every setting of collections, taxonomies, global sets and forms', function (string $table, array $carried) {
     // A new column on these tables is part of the content model: export and import it too.
-    $columns = array_diff(Illuminate\Support\Facades\Schema::getColumnListing($table), ['id', 'created_at', 'updated_at', 'deleted_at']);
+    $columns = array_diff(Schema::getColumnListing($table), ['id', 'created_at', 'updated_at', 'deleted_at']);
 
     expect(array_values(array_diff($columns, $carried)))->toBe([]);
 })->with([
@@ -110,8 +113,8 @@ it('round-trips "SEO from fields" and the roles a form emails', function () {
     app(StructureImporter::class)->import(structureFixture());
 
     expect(Collection::query()->where('handle', 'posts')->value('seo_description_field'))->toBe('intro')
-        ->and(Sunrice\Cms\Models\Taxonomy::query()->where('handle', 'topics')->value('seo_description_field'))->toBe('intro')
-        ->and(Sunrice\Cms\Models\Form::query()->where('handle', 'enquiry')->first()->notify_roles)->toBe(['editor']);
+        ->and(Taxonomy::query()->where('handle', 'topics')->value('seo_description_field'))->toBe('intro')
+        ->and(Form::query()->where('handle', 'enquiry')->first()->notify_roles)->toBe(['editor']);
 
     $bad = structureFixture();
     $bad['collections'][1]['seo_image_field'] = 'Not a handle';
