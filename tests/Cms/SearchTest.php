@@ -126,7 +126,7 @@ it('shows the search page, never indexed, and limits searches', function () {
     get('/search')->assertOk()->assertSee('<title>Search | Laravel</title>', false)->assertDontSee('results for');
     get('/search?q=coffee')->assertOk()
         ->assertHeader('X-Robots-Tag', 'noindex, follow')
-        ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
+        ->assertSee('<meta name="robots" content="noindex">', false)
         ->assertSee('1 result for “coffee”', false)
         ->assertSee('<a href="'.url('/blog/coffee-guide').'">Coffee guide</a>', false)
         ->assertSee('value="coffee"', false)

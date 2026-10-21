@@ -130,7 +130,7 @@ it('refuses addresses that lead off the site in disguise', function () {
 it('asks search engines to skip noindex pages', function () {
     seoPost($this->blog, 'Hidden', ['seo' => ['noindex' => true]]);
 
-    get('/blog/hidden')->assertOk()->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    get('/blog/hidden')->assertOk()->assertSee('<meta name="robots" content="noindex">', false);
 });
 
 it('saves SEO from the editor with the draft', function () {
