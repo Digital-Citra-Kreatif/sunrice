@@ -88,7 +88,7 @@ public static function query(): Builder
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |
-| `Select` | one of the options | `->options([value => label])`: other values are refused |
+| `Select` | one of the options | `->options([value => label])`, or a closure that gets the record being edited (null when creating): `->options(fn (?Model $record) => …)`; other values are refused |
 | `DatePicker` | date | `->withTime()` |
 | `Password` | a hash | never sent to the browser; empty keeps the current one when editing, so `->required()` applies when creating; Laravel's `Password::defaults()` rules |
 | `Secret` | a string | never sent to the browser; empty keeps the current value; store it encrypted (`encrypted` cast) |
