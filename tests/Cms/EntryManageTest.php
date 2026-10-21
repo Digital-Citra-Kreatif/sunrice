@@ -8,12 +8,14 @@ use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Locks\EditLocks;
 use Sunrice\Admin\Media\MediaUsages;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\ForceDeleteEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Entries\TrashEntry;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
@@ -158,6 +160,16 @@ it('locks entries and global sets for those who may edit them', function () {
     manager('view', 'update');
     postJson("/admin/locks/cms.entry/{$hello->entry_id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertJson(['status' => 'ok']);
     postJson('/admin/locks/cms.entry/999', ['editor' => 'tab-a'])->assertForbidden();
+});
+
+it('releases an entry\'s lock after it went to the trash (NEW-editor-4)', function () {
+    $hello = managed('Hello');
+    manager('view', 'update', 'delete');
+    postJson("/admin/locks/cms.entry/{$hello->entry_id}", ['editor' => 'tab-a', 'locale' => 'en'])->assertJson(['status' => 'ok']);
+
+    app(TrashEntry::class)->handle($hello->entry);
+    postJson("/admin/locks/cms.entry/{$hello->entry_id}/release", ['editor' => 'tab-a', 'locale' => 'en'])->assertOk()->assertJson(['status' => 'released']);
+    expect(app(EditLocks::class)->current(EditLocks::key('cms.entry', (string) $hello->entry_id, 'en')))->toBeNull();
 });
 
 it('lets only the collection\'s editors pick a template, under the site\'s prefixes', function () {

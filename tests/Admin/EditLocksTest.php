@@ -45,6 +45,20 @@ it('gives the lock to the first editor and tells the next who has it', function 
     lockAs($this->budi, 'tab-b')->assertJson(['status' => 'ok']);
 });
 
+it('lets people release their own lock once they may no longer edit the item, and only their own', function () {
+    lockAs($this->ana, 'tab-a')->assertJson(['status' => 'ok']);
+    // Budi, knowing her tab's id, can't free Ana's lock.
+    lockAs($this->budi, 'tab-a', '/release')->assertOk();
+    lockAs($this->budi, 'tab-b')->assertJson(['status' => 'locked', 'by' => 'Ana']);
+
+    $this->ana->revokePermissionTo('shop.products.update');
+    lockAs($this->ana, 'tab-a')->assertForbidden();
+    lockAs($this->ana, 'tab-a', '/release')->assertOk()->assertJson(['status' => 'released']);
+    lockAs($this->budi, 'tab-b')->assertJson(['status' => 'ok']);
+    actingAs($this->ana);
+    postJson('/admin/locks/no.such/7/release', ['editor' => 'tab-a'])->assertNotFound();
+});
+
 it('expires a lock nobody renews', function () {
     lockAs($this->ana, 'tab-a');
     travel(EditLocks::TTL + 1)->seconds();
