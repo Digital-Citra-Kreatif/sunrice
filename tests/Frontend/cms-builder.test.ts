@@ -89,3 +89,13 @@ test('warns about a reserved or taken handle as it is typed', () => {
     assert.equal(handleWarning(b, [a, b, c]), 'There is already a field "phone" here.');
     assert.equal(handleWarning(b, [b, include]), null);
 });
+
+test('the builder folds fields to their summary: a new one opens alone, and all close at once', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const source = await readFile(new URL('../../packages/cms/resources/js/components/FieldBuilder.tsx', import.meta.url), 'utf8');
+
+    assert.match(source, /setOpen\(new Set\(\[field\.key\]\)\)/);
+    assert.match(source, />Close all</);
+    // No example rules that look like rules already set.
+    assert.doesNotMatch(source, /placeholder=\{'min:3/);
+});
