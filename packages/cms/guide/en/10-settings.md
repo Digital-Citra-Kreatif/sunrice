@@ -14,13 +14,13 @@ Settings are live as soon as you click **Save**.
 - **Description**: used when a page has none of its own.
 - **Description in other languages** (with more than one language): a box per language, for pages in that language. Empty: the description above.
 
-The share image, the site name in titles and its separator, the X (Twitter) account and hiding the whole site from search engines are on the **SEO** page (under Structure in the sidebar; see [SEO](guide:website/seo)).
+The share image, the site name in titles and its separator, the X (Twitter) account and hiding the whole site from search engines are in **Settings → SEO** (right after Site in the Settings menu; see [SEO](guide:website/seo)).
 
-**Structured data**: **Add structured data to pages** (on unless you have a reason), whether the site is **Published by** an organisation or a person, and the organisation's **Logo** (square or wide, at least 112 pixels). Search engines also like the publisher's details: its **Name** (empty: the site name), the **Kind of organization** as a schema.org type written as one word (*LocalBusiness*, *RealEstateAgent*, *Restaurant*…), **Phone**, **Address** and **Profiles elsewhere** (its Instagram, LinkedIn… pages, one address per line).
+**Structured data**: **Add structured data to pages** (on unless you have a reason), whether the site is **Published by** an organisation or a person, and the organisation's **Logo** (square or wide, at least 112 pixels). Search engines also like the publisher's details: its **Name** (empty: the site name), the **Organization type** (search the list: *Local business*, *Real estate agent*, *Restaurant*…; or choose **Other…** and type any schema.org type as one word, like *Brewery*), **Phone**, **Address** and **Profiles elsewhere** (its Instagram, LinkedIn… pages: **Add profile** for each, an address starting with https://; the site it's on shows beside it).
 
 ## Languages
 
-**Content languages** lists the languages content is written in, a row each: the **code** used in addresses (`id`) and the **name** editors see (`Bahasa Indonesia`). **Add a language** adds a row; typing a code suggests common languages and fills in the name. **Address** is what the language's pages' addresses start with: leave it empty for the usual (the main language at `/about`, the others at `/id/about`), or type your own, such as `en` to put the main language at `/en/about` too. The arrows change the order, and × removes a row.
+**Content languages** lists the languages content is written in, a row each: the **code** used in addresses (`id`) and the **name** editors see (`Bahasa Indonesia`). **Add a language** adds a row; its code opens a list of common languages to search by code or name ("Bahasa Melayu · ms"), and choosing one fills in the name. For a language that isn't listed, type its code and choose **Use “…”**. **Address** is what the language's pages' addresses start with: leave it empty for the usual (the main language at `/about`, the others at `/id/about`), or type your own, such as `en` to put the main language at `/en/about` too. The arrows change the order, and × removes a row.
 
 Until you save it, the list shows the languages your site was set up with. The first row is the **main language** (marked *Main*), at the plain addresses (`/about`); the others get their code in front (`/id/about`). The panel refuses an empty list, a row that isn't a language code and a language listed twice.
 
@@ -54,3 +54,10 @@ How visitors' comments work on collections that allow them (see [Comments](guide
 | **Let commenters get an email when someone replies** | Adds a box to the comment form. |
 
 Spam is deleted automatically after a while.
+
+## Captcha
+
+A captcha is the "prove you're human" check on forms (**Require a captcha**, in each form's **Spam protection**) and comments (**Ask for a captcha**, above). Both switches stay off and greyed out until a developer connects a captcha service to the site: an account with Cloudflare Turnstile (free), Google reCAPTCHA or hCaptcha, whose keys go in the server's settings. Once it's set up, the help under each switch names the service in use.
+
+> [!TECHNICAL]
+> In the app's `.env`: `SUNRICE_CAPTCHA_PROVIDER` (`turnstile`, `recaptcha` or `hcaptcha`), `SUNRICE_CAPTCHA_SITE_KEY` and `SUNRICE_CAPTCHA_SECRET_KEY`; then `php artisan config:clear` (or `config:cache`). See [Security](docs:panel/security#captcha).

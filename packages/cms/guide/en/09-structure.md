@@ -47,7 +47,7 @@ A **collection** is a kind of content: *Pages*, *Blog*, *Products*, *Events*. **
 
 Once saved, the form's cards link where you'd go next: **View entries** (Entry pages), **View on site** ↗ and **Edit listing page** (Listing page, the latter when it has a blueprint). Under a template setting or the listing page's URL, **Which file?** opens the list of template files tried, for your developer.
 
-Deleting a collection doesn't delete its entries: they leave the panel and the website. The list's **Trash** shows deleted collections, with **Restore** to bring one back. Deleting them for good, with their entries, is for a developer (`sunrice:orphans --purge`), so a slip in the panel can always be undone.
+Deleting a collection doesn't delete its entries: they leave the panel and the website. The list's **Trash** shows deleted collections, with **Restore** to bring one back. Deleting them permanently, with their entries, is for a developer (`sunrice:orphans --purge`), so a slip in the panel can always be undone.
 
 Each collection gets its own permissions (view, create, edit, publish, delete and export its entries), so a role can be limited to the *Blog*, for example. See [Users and roles](guide:panel/users-roles).
 
@@ -86,7 +86,7 @@ Each field's row shows its type, label and handle, with **Duplicate** (a copy ri
 
 **Structure → Forms**: a **Title**, a **Handle** (changeable later, as for collections), a **Blueprint** with the form's fields (visitors get the text, textarea, number, toggle, select, date and file ones), and:
 
-- **Email to**: addresses that receive each submission, one per line; **Also email roles**: everyone with these roles too.
+- **Email to**: addresses that receive each submission (**Add address** for each); **Also email roles**: everyone with these roles too.
 - **Thank-you message**: shown after sending (with one per other language on a multilingual site; empty there, the website's own thank-you in that language); or **After sending, go to** a page of your choice.
 - **Sends per visitor a minute** and **Require a captcha**, against spam.
 
@@ -94,7 +94,7 @@ Your developer then puts the form on a page. What visitors send arrives under Co
 
 ## Redirects
 
-**Structure → Redirects** lists the redirects made when entries changed address, and takes your own: **From** a path on the site (starting with `/`), **To** a path or a web address, **Moved for good (301)** or **For now (302)**. A live page always wins over a redirect from its address.
+**Structure → Redirects** lists the redirects made when entries changed address, and takes your own: **From** a path on the site (starting with `/`), **To** a path or a web address, and the **Type**: **Permanent (301)** or **Temporary (302)**. On a site in several languages, turn on **In every language** to make it work from the same address in each language too: /listings → /properties then also sends /id/listings to /id/properties. A live page always wins over a redirect from its address.
 
 > [!TECHNICAL]
 > Structure can be exported and imported between sites (`sunrice:export-structure`, `sunrice:import-structure`), and fields renamed safely (`sunrice:rename-field`). See [Structure tools](docs:cms/structure) and [Fields](docs:cms/fields).

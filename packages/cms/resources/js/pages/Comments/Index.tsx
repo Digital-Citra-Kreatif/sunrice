@@ -4,7 +4,7 @@ import { Check, ChevronLeft, ChevronRight, ExternalLink, MessageSquare, MessageS
 import { adminUrl, t } from '@sunrice/admin-sdk';
 import {
     Badge, Button, Card, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, PageHeader, Select,
-    SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger, Textarea, useBreadcrumbs,
+    SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsList, TabsTrigger, Textarea, TrashHint, useBreadcrumbs,
 } from '@sunrice/admin-sdk/ui';
 import { useConfirm } from '@/components/Confirm.tsx';
 import { FieldError } from '@/components/FieldInput.tsx';
@@ -70,34 +70,31 @@ export default function CommentsIndex({ tab, counts, filters, collections, comme
     const setStatus = (row: Row, status: Row['status']) => post(`cms/comments/${row.id}/status`, { status });
     const bulk = (action: string) => {
         const run = () => post('cms/comments/bulk', { action, ids: selected });
-        action === 'delete' ? confirm(selected.length === 1 ? t('Delete 1 comment for good? This can\'t be undone.') : t('Delete :count comments for good? This can\'t be undone.', { count: selected.length }), run) : run();
+        action === 'delete' ? confirm(selected.length === 1 ? t('Permanently delete 1 comment? This can\'t be undone.') : t('Permanently delete :count comments? This can\'t be undone.', { count: selected.length }), run) : run();
     };
     const all = comments.data.length > 0 && selected.length === comments.data.length;
 
     return (
         <div className="cms:flex cms:flex-col cms:gap-6">
             <Head title={t('Comments')} />
-            <PageHeader
-                title={t('Comments')}
-                actions={
-                    <>
-                        <div className="cms:relative cms:w-full cms:sm:w-64">
-                            <Search className="cms:pointer-events-none cms:absolute cms:top-1/2 cms:left-3 cms:size-4 cms:-translate-y-1/2 cms:text-muted-foreground" />
-                            <Input type="search" placeholder={t('Search text, name or email')} aria-label={t('Search comments')} className="cms:pl-9"
-                                value={search} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)} />
-                        </div>
-                        {collections.length > 1 && (
-                            <Select value={filters.collection ?? 'all'} onValueChange={(value: string) => visit({ collection: value === 'all' ? null : value })}>
-                                <SelectTrigger className="cms:w-48" aria-label={t('Collection')}><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">{t('Every collection')}</SelectItem>
-                                    {collections.map((c) => <SelectItem key={c.handle} value={c.handle}>{c.title}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </>
-                }
-            />
+            <PageHeader title={t('Comments')} />
+
+            <div className="cms:flex cms:flex-wrap cms:items-center cms:gap-2">
+                <div className="cms:relative cms:w-full cms:sm:w-64">
+                    <Search className="cms:pointer-events-none cms:absolute cms:top-1/2 cms:left-3 cms:size-4 cms:-translate-y-1/2 cms:text-muted-foreground" />
+                    <Input type="search" placeholder={t('Search text, name or email')} aria-label={t('Search comments')} className="cms:pl-9"
+                        value={search} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)} />
+                </div>
+                {collections.length > 1 && (
+                    <Select value={filters.collection ?? 'all'} onValueChange={(value: string) => visit({ collection: value === 'all' ? null : value })}>
+                        <SelectTrigger className="cms:w-48" aria-label={t('Collection')}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t('Every collection')}</SelectItem>
+                            {collections.map((c) => <SelectItem key={c.handle} value={c.handle}>{c.title}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                )}
+            </div>
 
             {filters.entry !== null && (
                 <p className="cms:text-sm cms:text-muted-foreground">
@@ -107,7 +104,7 @@ export default function CommentsIndex({ tab, counts, filters, collections, comme
 
             <Tabs value={tab} onValueChange={(value: string) => visit({ status: value as Tab })}>
                 <TabsList className="cms:h-auto cms:flex-wrap cms:justify-start">
-                    {tabs().map((each) => <TabsTrigger key={each.value} value={each.value}>{each.label} <span className="cms:ml-1 cms:text-muted-foreground">{counts[each.value]}</span></TabsTrigger>)}
+                    {tabs().map((each) => <TabsTrigger key={each.value} value={each.value} title={each.value === 'all' ? t('Everything but the trash') : undefined}>{each.label} <span className="cms:ml-1 cms:text-muted-foreground">{counts[each.value]}</span></TabsTrigger>)}
                 </TabsList>
             </Tabs>
 
@@ -121,11 +118,11 @@ export default function CommentsIndex({ tab, counts, filters, collections, comme
                             <Button size="sm" variant="outline" onClick={() => bulk('spam')}><ShieldAlert /> {t('Spam')}</Button>
                         </>
                     )}
-                    {can.delete && tab !== 'trashed' && <Button size="sm" variant="outline" onClick={() => bulk('trash')}><Trash2 /> {t('Trash')}</Button>}
+                    {can.delete && tab !== 'trashed' && <Button size="sm" variant="outline" onClick={() => bulk('trash')}><Trash2 /> {t('Move to trash')}</Button>}
                     {can.delete && tab === 'trashed' && (
                         <>
                             <Button size="sm" variant="outline" onClick={() => bulk('restore')}><RotateCcw /> {t('Restore')}</Button>
-                            <Button size="sm" variant="destructive" onClick={() => bulk('delete')}><Trash2 /> {t('Delete for good')}</Button>
+                            <Button size="sm" variant="destructive" onClick={() => bulk('delete')}><Trash2 /> {t('Permanently delete')}</Button>
                         </>
                     )}
                 </div>
@@ -135,6 +132,7 @@ export default function CommentsIndex({ tab, counts, filters, collections, comme
                 <div className="cms:flex cms:flex-col cms:items-center cms:gap-3 cms:rounded-xl cms:border cms:border-dashed cms:px-6 cms:py-16 cms:text-center">
                     <span className="cms:grid cms:size-10 cms:place-items-center cms:rounded-full cms:bg-muted cms:text-muted-foreground"><MessageSquare className="cms:size-4" /></span>
                     <p className="cms:text-sm cms:text-muted-foreground">{filters.search ? t('No comments match.') : t('No comments here.')}</p>
+                    {tab !== 'trashed' && <TrashHint count={counts.trashed ?? 0} onShow={() => visit({ status: 'trashed' })} />}
                 </div>
             ) : (
                 <Card className="cms:divide-y cms:p-0">
@@ -172,13 +170,13 @@ export default function CommentsIndex({ tab, counts, filters, collections, comme
                                         </>
                                     )}
                                     {can.delete && !row.trashed && (
-                                        <Button size="sm" variant="ghost" onClick={() => router.delete(adminUrl(`cms/comments/${row.id}`), { preserveScroll: true })}><Trash2 /> {t('Trash')}</Button>
+                                        <Button size="sm" variant="ghost" onClick={() => router.delete(adminUrl(`cms/comments/${row.id}`), { preserveScroll: true })}><Trash2 /> {t('Move to trash')}</Button>
                                     )}
                                     {can.delete && row.trashed && (
                                         <>
                                             <Button size="sm" variant="ghost" onClick={() => post(`cms/comments/${row.id}/restore`)}><RotateCcw /> {t('Restore')}</Button>
-                                            <Button size="sm" variant="ghost" onClick={() => confirm(t('Delete this comment for good? Replies to it stay.'),
-                                                () => router.delete(adminUrl(`cms/comments/${row.id}/force`), { preserveScroll: true }))}><Trash2 /> {t('Delete for good')}</Button>
+                                            <Button size="sm" variant="ghost" onClick={() => confirm(t('Permanently delete this comment? Replies to it stay.'),
+                                                () => router.delete(adminUrl(`cms/comments/${row.id}/force`), { preserveScroll: true }))}><Trash2 /> {t('Permanently delete')}</Button>
                                         </>
                                     )}
                                 </div>

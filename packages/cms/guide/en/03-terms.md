@@ -10,7 +10,7 @@ Pick the taxonomy with the menu next to the title, and the language with **Langu
 - Click a term's title to open it in the same editor, in the language shown. The arrow next to it opens its page on the website, when terms have pages.
 - The **⋯** menu on a row: **Edit**, **Add a term under it** and **Move to trash** (with the terms under it).
 - Drag a term by its handle to change its place among its neighbours; the terms under it come along. To put a term under another one, open it and choose **Under**.
-- The **⋮** menu next to **New term** lists the collections that use the taxonomy, opens the **Taxonomy settings** and the **Trash**.
+- The **⋮** menu next to **New term** lists the collections that use the taxonomy and opens the **Taxonomy settings** and, if your role may change blueprints, **Edit blueprint** (the terms' fields). **Trash**, beside the search, shows the trashed terms.
 
 Terms that have no title in the language shown appear in grey as *… · not translated*. Open one and give it a title in that language to translate it.
 
@@ -31,7 +31,7 @@ One person edits a term in a language at a time: if a colleague has it open, you
 
 ## The trash
 
-**Trash** at the top lists trashed terms. Restore one to bring it back (a term whose parent is still in the trash goes to the top level), or delete it for good: the terms under it move up, and entries lose it. If other content links to the term, the panel names where before you delete it.
+**Trash** at the top lists trashed terms. Restore one to bring it back (a term whose parent is still in the trash goes to the top level), or delete it permanently: the terms under it move up, and entries lose it. If other content links to the term, the panel names where before you delete it.
 
 ## Giving entries their terms
 

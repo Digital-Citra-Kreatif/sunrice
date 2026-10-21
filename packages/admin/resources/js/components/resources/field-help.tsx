@@ -1,4 +1,5 @@
 import { ArrowUpRight } from 'lucide-react';
+import { DeveloperHelp } from '@/components/app/developer-help';
 import { t } from '@/lib/i18n';
 import { codeParts, developerText, type FormLink, type HelpValue, liveHelp, visibleLinks } from '@/lib/live-help';
 import type { FieldInfo } from './types';
@@ -14,14 +15,16 @@ function WithCode({ text }: { text: string }) {
  * (Field::links()).
  */
 export function FieldHelp({ field, data }: { field: FieldInfo; data: Record<string, unknown> }) {
-    const developer = field.developerHelp as { text: string; example: string | null } | undefined;
+    const developer = field.developerHelp as { text: string; example: string | null; code?: string | null } | undefined;
     const details = field.helpDetails as { summary: string; text: string } | undefined;
     const links = visibleLinks(field.links as FormLink[] | undefined, data);
 
     return (
         <>
             {field.help && <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">{liveHelp(field.help, field.helpValues as Record<string, HelpValue> | undefined, data)}</p>}
-            {developer && (
+            {/* With code to copy, a "For developers" disclosure; else one line. */}
+            {developer?.code && <DeveloperHelp text={developerText(developer.text, data[field.name], developer.example)} code={developer.code} />}
+            {developer && !developer.code && (
                 <p className="text-sm text-muted-foreground">
                     <span className="font-medium">{t('For developers:')}</span>{' '}
                     <WithCode text={developerText(developer.text, data[field.name], developer.example)} />

@@ -21,7 +21,7 @@ trait HelpExtras
     /** @var array<string, array{field: string, fallback: string|null}> */
     private array $helpValues = [];
 
-    /** @var array{text: string, example: string|null}|null */
+    /** @var array{text: string, example: string|null, code: string|null}|null */
     private ?array $developerHelp = null;
 
     /** @var array{summary: string, text: string}|null */
@@ -49,11 +49,16 @@ trait HelpExtras
      * A line under the help for developers, "For developers: …", with
      * `backticks` shown as code and `:value` as the field's value as it's
      * typed (`$example` while it's empty):
-     * ->developerHelp('In a template: `<x-form handle=":value" />`', 'contact').
+     * ->developerHelp("In a template: `<x-form handle=':value' />`", 'contact').
+     *
+     * With `$code`, a block of code to copy (an .env snippet, several
+     * commands), the text and the code fold away in a "For developers"
+     * disclosure with a copy button instead:
+     * ->developerHelp("Set these in the app's .env:", code: Captcha::ENV_EXAMPLE).
      */
-    public function developerHelp(?string $text, ?string $example = null): static
+    public function developerHelp(?string $text, ?string $example = null, ?string $code = null): static
     {
-        $this->developerHelp = $text === null ? null : ['text' => $text, 'example' => $example];
+        $this->developerHelp = $text === null ? null : ['text' => $text, 'example' => $example, 'code' => $code];
 
         return $this;
     }
@@ -101,7 +106,7 @@ trait HelpExtras
 
         return array_filter([
             'helpValues' => $this->helpValues,
-            'developerHelp' => $developer === null ? null : ['text' => Say::it($developer['text']), 'example' => $developer['example']],
+            'developerHelp' => $developer === null ? null : ['text' => Say::it($developer['text']), 'example' => $developer['example'], 'code' => $developer['code']],
             'helpDetails' => $details === null ? null : ['summary' => Say::it($details['summary']), 'text' => Say::it($details['text'])],
             'links' => array_map(fn (Link $link): array => $link->toArray(), $links),
         ], fn (mixed $value): bool => $value !== null && $value !== []);

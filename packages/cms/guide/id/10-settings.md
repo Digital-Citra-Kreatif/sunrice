@@ -14,13 +14,13 @@ Pengaturan langsung berlaku begitu Anda mengeklik **Simpan**.
 - **Deskripsi**: dipakai jika halaman tidak punya sendiri.
 - **Deskripsi dalam bahasa lain** (jika ada lebih dari satu bahasa): satu kotak per bahasa, untuk halaman dalam bahasa itu. Kosong: deskripsi di atas.
 
-Gambar berbagi, nama situs di judul beserta pemisahnya, akun X (Twitter), dan menyembunyikan seluruh situs dari mesin pencari ada di halaman **SEO** (di bawah Struktur pada sidebar; lihat [SEO](guide:website/seo)).
+Gambar berbagi, nama situs di judul beserta pemisahnya, akun X (Twitter), dan menyembunyikan seluruh situs dari mesin pencari ada di **Pengaturan → SEO** (tepat setelah Situs pada menu Pengaturan; lihat [SEO](guide:website/seo)).
 
-**Structured data**: **Tambahkan structured data ke halaman** (biarkan menyala kecuali ada alasan), apakah situs diterbitkan oleh organisasi atau perorangan (**Diterbitkan oleh**), dan **Logo** organisasi (persegi atau melebar, minimal 112 piksel). Mesin pencari juga menyukai detail penerbit: **Nama** (kosong: nama situs), **Jenis organisasi** sebagai jenis schema.org yang ditulis satu kata (*LocalBusiness*, *RealEstateAgent*, *Restaurant*…), **Telepon**, **Alamat**, dan **Profil di tempat lain** (halaman Instagram, LinkedIn… penerbit, satu alamat per baris).
+**Structured data**: **Tambahkan structured data ke halaman** (biarkan menyala kecuali ada alasan), apakah situs diterbitkan oleh organisasi atau perorangan (**Diterbitkan oleh**), dan **Logo** organisasi (persegi atau melebar, minimal 112 piksel). Mesin pencari juga menyukai detail penerbit: **Nama** (kosong: nama situs), **Jenis organisasi** (cari di daftar: *Usaha lokal*, *Agen properti*, *Restoran*…; atau pilih **Lainnya…** dan ketik jenis schema.org apa pun sebagai satu kata, misalnya *Brewery*), **Telepon**, **Alamat**, dan **Profil di tempat lain** (halaman Instagram, LinkedIn… penerbit: **Tambah profil** untuk masing-masing, alamat yang diawali https://; situsnya tampil di sebelahnya).
 
 ## Bahasa
 
-**Bahasa konten** berisi bahasa tempat konten ditulis, satu baris untuk tiap bahasa: **kode** yang dipakai di alamat (`id`) dan **nama** yang dilihat editor (`Bahasa Indonesia`). **Tambah bahasa** menambah baris; mengetik kode akan menyarankan bahasa umum dan mengisi namanya. **Alamat** adalah awalan alamat halaman bahasa itu: kosongkan untuk yang biasa (bahasa utama di `/about`, yang lain di `/id/about`), atau isi sendiri, misalnya `en` agar bahasa utama juga di `/en/about`. Tanda panah mengubah urutan, dan × menghapus baris.
+**Bahasa konten** berisi bahasa tempat konten ditulis, satu baris untuk tiap bahasa: **kode** yang dipakai di alamat (`id`) dan **nama** yang dilihat editor (`Bahasa Indonesia`). **Tambah bahasa** menambah baris; kodenya membuka daftar bahasa umum yang bisa dicari menurut kode atau nama ("Bahasa Melayu · ms"), dan memilih salah satunya mengisi namanya. Untuk bahasa yang tidak ada di daftar, ketik kodenya lalu pilih **Pakai “…”**. **Alamat** adalah awalan alamat halaman bahasa itu: kosongkan untuk yang biasa (bahasa utama di `/about`, yang lain di `/id/about`), atau isi sendiri, misalnya `en` agar bahasa utama juga di `/en/about`. Tanda panah mengubah urutan, dan × menghapus baris.
 
 Baris pertama adalah **bahasa utama** (bertanda *Utama*), di alamat biasa (`/about`); bahasa lain diawali kodenya (`/id/about`). Sebelum disimpan, daftar ini menampilkan bahasa yang dipakai situs saat disiapkan. Panel menolak daftar kosong, baris yang bukan kode bahasa, dan bahasa yang tercantum dua kali.
 
@@ -54,3 +54,10 @@ Cara kerja komentar pengunjung pada koleksi yang mengizinkannya (lihat [Komentar
 | **Izinkan pemberi komentar menerima email saat ada yang membalas** | Menambahkan kotak centang di formulir komentar. |
 
 Spam terhapus otomatis setelah beberapa waktu.
+
+## Captcha
+
+Captcha adalah pemeriksaan "buktikan Anda manusia" di formulir (**Wajibkan captcha**, di **Perlindungan spam** setiap formulir) dan komentar (**Minta captcha**, di atas). Kedua tombol itu tetap mati dan berwarna abu-abu sampai developer menghubungkan layanan captcha ke situs: akun Cloudflare Turnstile (gratis), Google reCAPTCHA, atau hCaptcha, yang kuncinya dimasukkan ke pengaturan server. Setelah disiapkan, bantuan di bawah setiap tombol menyebutkan layanan yang dipakai.
+
+> [!TECHNICAL]
+> Di `.env` aplikasi: `SUNRICE_CAPTCHA_PROVIDER` (`turnstile`, `recaptcha`, atau `hcaptcha`), `SUNRICE_CAPTCHA_SITE_KEY`, dan `SUNRICE_CAPTCHA_SECRET_KEY`; lalu `php artisan config:clear` (atau `config:cache`). Lihat [Keamanan](docs:panel/security#captcha).

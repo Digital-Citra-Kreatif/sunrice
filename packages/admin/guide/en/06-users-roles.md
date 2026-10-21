@@ -38,7 +38,7 @@ Each of these is recorded as a security event in the [activity log](guide:panel/
 
 **Delete…** (in the row's menu, the bin button on their page, or for several ticked users at once) asks what happens to what they made (their entries, comments and uploads):
 
-- **Give it to another user**, chosen in **Give it to** (the users you're deleting aren't offered).
+- **Transfer to another user**, chosen in **Transfer to** (the users you're deleting aren't offered).
 - **Keep it, without an owner** (the default).
 - **Delete it**: entries and comments go to the trash; uploads stay, since other pages may use them.
 
@@ -46,7 +46,7 @@ On a user's page, the question also says what they own. Their roles, AI tokens a
 
 ## Roles
 
-The **Roles** list shows each role and how many permissions it has. Click **New role**, give it a **Name**, and tick its **Permissions**, grouped by area (the panel, media, entries of each collection, settings…).
+The **Roles** list shows each role and how many permissions it has. Click **New role**, give it a **Name**, and tick its **Permissions**, grouped by area (the panel, media, content, entries of each collection, settings…). Each area is a small table: a row per thing (Entries, Terms, Comments…) and a column per action (**View**, **Create**, **Edit**, **Publish**, **Moderate**, **Delete**, **Export**), with — where an action doesn't apply; **Own only** under a box limits it to the person's own entries, and actions without a column (translating, choosing the homepage…) are listed at the end of the row. Hover a box to read the permission in full. The box before an area or a row ticks all of it; an area folds away (those with something ticked start open) and says how many of its permissions are ticked. On a phone, each area is a plain list.
 
 Downloading a list as a spreadsheet (**Export CSV**) is a permission of its own, apart from seeing the list, since exports carry data out of the panel.
 

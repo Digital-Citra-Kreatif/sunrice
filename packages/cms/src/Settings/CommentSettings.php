@@ -6,12 +6,12 @@ namespace Sunrice\Cms\Settings;
 
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\NumberInput;
 use Sunrice\Admin\Resources\Forms\Select;
-use Sunrice\Admin\Resources\Forms\Textarea;
 use Sunrice\Admin\Resources\Forms\Toggle;
-use Sunrice\Admin\Security\Captcha;
 use Sunrice\Admin\Settings\Settings;
+use Sunrice\Cms\Support\CaptchaHelp;
 use Sunrice\Cms\Support\RoleMembers;
 
 /**
@@ -75,11 +75,7 @@ final class CommentSettings extends Settings
                 self::HOLD_NONE => 'Publish comments at once',
             ])->help('Comments by people who may moderate them are always published.'),
             Toggle::make('signedInOnly')->label('Only signed-in users can comment'),
-            Toggle::make('captcha')->label('Ask for a captcha')
-                ->disabled(! app(Captcha::class)->enabled())
-                ->help(app(Captcha::class)->enabled()
-                    ? 'Commenters prove they\'re not a robot, with the same captcha service as forms.'
-                    : 'Needs an account with a captcha service, set up on the server by a developer (the same as forms\'). For developers: SUNRICE_CAPTCHA_SITE_KEY and SUNRICE_CAPTCHA_SECRET_KEY.'),
+            CaptchaHelp::toggle(Toggle::make('captcha')->label('Ask for a captcha'), 'Commenters prove they\'re not a robot, with :provider (as on forms).'),
             NumberInput::make('perMinute')->label('Comments per visitor a minute')->integer()->min(1)->max(100)->required(),
             NumberInput::make('closeAfterDays')->label('Close comments after (days)')->integer()->min(1)->max(36500)
                 ->help('Counted from the publish date. Empty: never.'),
@@ -87,16 +83,7 @@ final class CommentSettings extends Settings
                 ->help('Deeper replies show at the last level.'),
             Toggle::make('notifyModerators')->label('Email moderators about new comments')
                 ->help('Moderators, and the addresses below.'),
-            Textarea::make('notifyEmails')->label('Also email')->rows(2)->maxLength(1000)->placeholder('editor@example.com')
-                ->rules(['nullable', function (string $attribute, mixed $value, \Closure $fail): void {
-                    foreach (self::lines($value) as $address) {
-                        if (filter_var($address, FILTER_VALIDATE_EMAIL) === false) {
-                            $fail(__('":address" isn\'t an email address.', ['address' => $address]));
-
-                            return;
-                        }
-                    }
-                }]),
+            ListInput::make('notifyEmails')->label('Also email')->emails()->addLabel('Add address')->max(50)->maxLength(1000)->placeholder('editor@example.com'),
             CheckboxList::make('notifyRoles')->label('Also email roles')->verbatim()->options(fn (): array => RoleMembers::options())
                 ->help('Everyone with these roles, besides the moderators and addresses above.'),
             Toggle::make('replyNotifications')->label('Let commenters get an email when someone replies')

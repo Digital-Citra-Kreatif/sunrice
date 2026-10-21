@@ -105,7 +105,7 @@ it('uploads into a folder, edits details and replaces the file', function () {
     expect($media->fresh())->version->toBe(2)->width->toBe(50);
 });
 
-it('trashes, restores and deletes for good, one or many', function () {
+it('trashes, restores and permanently deletes, one or many', function () {
     $one = mediaFile('one.jpg');
     $two = mediaFile('two.jpg');
     mediaUser('view', 'update');
@@ -119,7 +119,7 @@ it('trashes, restores and deletes for good, one or many', function () {
     delete("/admin/media/{$one->id}/force")->assertNotFound(); // only from the trash
 
     post('/admin/media/bulk', ['action' => 'trash', 'ids' => [$one->id, $two->id]])->assertSessionHas('success', '2 files moved to the trash.');
-    post('/admin/media/bulk', ['action' => 'delete', 'ids' => [$one->id, $two->id, 999]])->assertSessionHas('success', '2 files deleted for good.');
+    post('/admin/media/bulk', ['action' => 'delete', 'ids' => [$one->id, $two->id, 999]])->assertSessionHas('success', '2 files permanently deleted.');
     expect(Media::withTrashed()->count())->toBe(0)
         ->and(Storage::disk('public')->allFiles())->toBe([]);
 });

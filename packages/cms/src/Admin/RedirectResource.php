@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Resources\Forms\TextInput;
+use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Cms\Models\Redirect;
+use Sunrice\Cms\Support\Locales;
 use Sunrice\Cms\Support\SafeUrl;
 
 /**
@@ -23,6 +25,9 @@ use Sunrice\Cms\Support\SafeUrl;
 final class RedirectResource extends Resource
 {
     protected static string $model = Redirect::class;
+
+    /** The redirect types, by HTTP status. */
+    private const TYPES = [301 => 'Permanent (301)', 302 => 'Temporary (302)'];
 
     public static function navigationGroup(): string
     {
@@ -48,7 +53,11 @@ final class RedirectResource extends Resource
             TextInput::make('to_url')->label('To')->required()->maxLength(2048)->placeholder('/new-page')
                 ->rules([SafeUrl::rule()])
                 ->help('A path on this site, or a web address.'),
-            Select::make('status')->options(['301' => 'Moved for good (301)', '302' => 'For now (302)'])->required()->default('301'),
+            Select::make('status')->label('Type')->options(self::TYPES)->required()->default('301'),
+            ...(count(Locales::all()) > 1 ? [
+                Toggle::make('every_language')->label('In every language')
+                    ->help('Also from the same path in each language: /id/old-page goes to /id/new-page.'),
+            ] : []),
         ]);
     }
 
@@ -58,7 +67,8 @@ final class RedirectResource extends Resource
             ->columns([
                 Column::make('from_path')->label('From')->searchable()->sortable(),
                 Column::make('to_url')->label('To')->searchable(),
-                Column::make('status'),
+                Column::make('status')->label('Type')->format(fn (string|int|float|bool|null $status): string => __(self::TYPES[(int) $status] ?? (string) $status)),
+                ...(count(Locales::all()) > 1 ? [Column::make('every_language')->label('Every language')->boolean()] : []),
                 Column::make('updated_at')->label('Updated')->date('d/m/Y')->sortable(),
             ])
             ->defaultSort('from_path');

@@ -163,7 +163,7 @@ it('alerts on dangerous uploads, and bursts of exports, deletes and unpublishes'
     expect(alertsSent())->toBe(['A dangerous upload was blocked', 'Many exports in a short time', 'Many things deleted in a short time']);
 });
 
-it('counts purging deleted content (emptying a trash for good) towards mass deletes', function () {
+it('counts purging deleted content (permanently emptying a trash) towards mass deletes', function () {
     config(['sunrice-admin.security.alerts.mass_deletes' => 2]);
     actingAs($this->admin);
 

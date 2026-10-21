@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ExternalLink, MoreHorizontal, MoreVertical, Pencil, Plus, RotateCcw, Search, Settings2, Trash2 } from 'lucide-react';
+import { ExternalLink, LayoutTemplate, MoreHorizontal, MoreVertical, Pencil, Plus, RotateCcw, Search, Settings2, Trash2 } from 'lucide-react';
 import { adminUrl, t } from '@sunrice/admin-sdk';
 import {
     Button, Card, DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-    SortableHandle, type SortableHandleProps, SortableList, useBreadcrumbs,
+    SortableHandle, type SortableHandleProps, SortableList, TrashHint, useBreadcrumbs,
 } from '@sunrice/admin-sdk/ui';
 import { useConfirm } from '@/components/Confirm.tsx';
 import { localeName } from '@/lib/entries.ts';
@@ -36,11 +36,15 @@ interface Props {
         handle: string; title: string; hierarchical: boolean;
         /** The taxonomy's settings, when the user may change them. */
         settings?: string | null;
+        /** Its terms' blueprint, when the user may edit blueprints. */
+        blueprint?: string | null;
         /** The collections whose entries it groups. */
         collections?: { title: string; url: string }[];
     } | null;
     /** Showing the trash. */
     trashed?: boolean;
+    /** Outside the trash, how many terms are in it. */
+    trashedCount?: number;
     taxonomies: { handle: string; title: string }[];
     terms: TermRow[];
     locales: string[];
@@ -54,7 +58,7 @@ function usedBySentence(usedBy: string[] = []): string {
     return ` ${usedBy.length > 5 ? t('It\'s used by :list and :count more.', { list, count: usedBy.length - 5 }) : t('It\'s used by :list.', { list })}`;
 }
 
-export default function TermsIndex({ taxonomy, taxonomies, terms, locales, locale, trashed = false }: Props) {
+export default function TermsIndex({ taxonomy, taxonomies, terms, locales, locale, trashed = false, trashedCount = 0 }: Props) {
     useBreadcrumbs([{ label: taxonomy ? taxonomy.title : t('Terms') }]);
     const [confirm, confirmDialog] = useConfirm();
     const [search, setSearch] = React.useState('');
@@ -97,7 +101,7 @@ export default function TermsIndex({ taxonomy, taxonomies, terms, locales, local
                     </Link>
                 )}
                 {term.url && (
-                    <a href={term.url} target="_blank" rel="noopener noreferrer" className="cms:text-muted-foreground cms:hover:text-foreground" aria-label={t('Visit term page')} title={t('Visit term page')}>
+                    <a href={term.url} target="_blank" rel="noopener noreferrer" className="cms:text-muted-foreground cms:hover:text-foreground" aria-label={t('View page')} title={t('View page')}>
                         <ExternalLink className="cms:size-3.5" />
                     </a>
                 )}
@@ -110,9 +114,9 @@ export default function TermsIndex({ taxonomy, taxonomies, terms, locales, local
                     <div className="cms:flex cms:gap-1">
                         <Button variant="outline" size="sm" onClick={() => router.post(adminUrl(`cms/terms/${term.id}/restore`), {}, { preserveScroll: true })}><RotateCcw /> {t('Restore')}</Button>
                         <Button variant="ghost" size="sm" className="cms:text-destructive"
-                            onClick={() => confirm(t('Delete ":title" for good, in every language? Entries lose it.', { title: term.fallback }) + usedBySentence(term.usedBy),
+                            onClick={() => confirm(t('Permanently delete ":title" in every language? Entries lose it.', { title: term.fallback }) + usedBySentence(term.usedBy),
                                 () => router.delete(adminUrl(`cms/terms/${term.id}/force`), { preserveScroll: true, data: (term.usedBy ?? []).length > 0 ? { force: 1 } : {} }))}>
-                            <Trash2 /> {t('Delete for good')}
+                            <Trash2 /> {t('Permanently delete')}
                         </Button>
                     </div>
                 ) : (
@@ -152,35 +156,12 @@ export default function TermsIndex({ taxonomy, taxonomies, terms, locales, local
             {confirmDialog}
             <PageHeader
                 title={trashed ? t(':title — trash', { title: taxonomy.title }) : taxonomy.title}
-                actions={
-                    <>
-                        {locales.length > 1 && (
-                            <Select value={locale} onValueChange={(next: string) => router.get(base, { locale: next, ...(trashed ? { status: 'trashed' } : {}) })}>
-                                <SelectTrigger className="cms:w-40" aria-label={t('Language')}><SelectValue /></SelectTrigger>
-                                <SelectContent>{locales.map((code) => <SelectItem key={code} value={code}>{localeName(code)}</SelectItem>)}</SelectContent>
-                            </Select>
-                        )}
-                        {trashed
-                            ? <Button variant="outline" onClick={() => router.get(base, { locale })}>{t('Back to terms')}</Button>
-                            : <Button asChild><Link href={`${base}/create?locale=${encodeURIComponent(locale)}`}><Plus /> {t('New term')}</Link></Button>}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon" aria-label={t('More')}><MoreVertical /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="cms:min-w-56">
-                                {collections.length > 0 && (
-                                    <>
-                                        <DropdownMenuLabel>{t('Used by collections')}</DropdownMenuLabel>
-                                        {collections.map((c) => <DropdownMenuItem key={c.url} asChild><Link href={c.url}>{c.title}</Link></DropdownMenuItem>)}
-                                        <DropdownMenuSeparator />
-                                    </>
-                                )}
-                                {taxonomy.settings && <DropdownMenuItem asChild><Link href={taxonomy.settings}><Settings2 /> {t('Taxonomy settings')}</Link></DropdownMenuItem>}
-                                {!trashed && <DropdownMenuItem onSelect={() => router.get(base, { locale, status: 'trashed' })}><Trash2 /> {t('Trash')}</DropdownMenuItem>}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </>
-                }
+                primary={!trashed && <Button asChild><Link href={`${base}/create?locale=${encodeURIComponent(locale)}`}><Plus /> {t('New term')}</Link></Button>}
+                menu={[
+                    ...collections.map((c) => ({ label: c.title, href: c.url, group: t('Used by collections') })),
+                    ...(taxonomy.settings ? [{ label: t('Taxonomy settings'), href: taxonomy.settings, icon: <Settings2 />, group: t('Structure') }] : []),
+                    ...(taxonomy.blueprint ? [{ label: t('Edit blueprint'), href: taxonomy.blueprint, icon: <LayoutTemplate />, group: t('Structure') }] : []),
+                ]}
             >
                 {taxonomies.length > 1 && (
                     <Select value={taxonomy.handle} onValueChange={(handle: string) => router.get(adminUrl(`cms/taxonomies/${handle}/terms`))}>
@@ -196,6 +177,16 @@ export default function TermsIndex({ taxonomy, taxonomies, terms, locales, local
                     <Input className="cms:pl-9" placeholder={t('Search terms…')} aria-label={t('Search terms')} value={search}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)} />
                 </div>
+                {locales.length > 1 && (
+                    <Select value={locale} onValueChange={(next: string) => router.get(base, { locale: next, ...(trashed ? { status: 'trashed' } : {}) })}>
+                        <SelectTrigger className="cms:w-40" aria-label={t('Language')}><SelectValue /></SelectTrigger>
+                        <SelectContent>{locales.map((code) => <SelectItem key={code} value={code}>{localeName(code)}</SelectItem>)}</SelectContent>
+                    </Select>
+                )}
+                <Button variant={trashed ? 'secondary' : 'ghost'} className="cms:ml-auto cms:order-last"
+                    onClick={() => router.get(base, trashed ? { locale } : { locale, status: 'trashed' })}>
+                    {trashed ? t('Back to terms') : <><Trash2 /> {t('Trash')}</>}
+                </Button>
                 {!trashed && rows.length > 1 && !found && (
                     <p className="cms:text-sm cms:text-muted-foreground">{taxonomy.hierarchical ? t('Drag terms to set their order; a term\'s parent is set in its editor (Under).') : t('Drag terms to set their order.')}</p>
                 )}
@@ -212,7 +203,8 @@ export default function TermsIndex({ taxonomy, taxonomies, terms, locales, local
                 </div>
                 {rows.length === 0 ? (
                     <div className="cms:flex cms:flex-col cms:items-center cms:gap-3 cms:border-t cms:border-border/60 cms:p-10 cms:text-center cms:text-muted-foreground">
-                        {trashed ? t('The trash is empty.') : <>{t('No terms yet.')}<Button size="sm" asChild><Link href={`${base}/create?locale=${encodeURIComponent(locale)}`}><Plus /> {t('New term')}</Link></Button></>}
+                        {trashed ? t('The trash is empty.') : <>{t('No terms yet.')}<Button size="sm" asChild><Link href={`${base}/create?locale=${encodeURIComponent(locale)}`}><Plus /> {t('New term')}</Link></Button>
+                            <TrashHint count={trashedCount} onShow={() => router.get(base, { locale, status: 'trashed' })} /></>}
                     </div>
                 ) : found ? (
                     found.length === 0

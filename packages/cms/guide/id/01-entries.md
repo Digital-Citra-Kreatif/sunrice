@@ -10,8 +10,8 @@ Daftar menampilkan satu koleksi dalam satu waktu; pilih koleksi lain lewat menu 
 - **Status** menampilkan hanya **Draf**, **Terbit**, **Terjadwal**, atau **Tempat sampah**.
 - Saring berdasarkan penulis, term (misalnya kategori), dan **Bahasa**: daftar menampilkan judul dan status dalam bahasa tersebut.
 - Klik judul kolom untuk mengurutkan. **Kolom** memilih kolom yang tampil, termasuk beberapa field entri itu sendiri (harga, tanggal…). Panel mengingat pilihan kolom dan jumlah baris per halaman Anda.
-- Menu **Buka** mengarah ke hal yang mungkin Anda perlukan berikutnya: halaman daftar koleksi, term-nya, pengaturannya, dan blueprint-nya, sesuai izin peran Anda.
-- **Ekspor CSV** mengunduh daftar sesuai filter, urutan, dan bahasanya, semua halamannya, untuk dibuka di spreadsheet. Ini membutuhkan izin tersendiri: bisa melihat daftar belum berarti boleh mengunduhnya.
+- Menu **⋮** di samping **Entri baru** mengarah ke hal yang mungkin Anda perlukan berikutnya: halaman daftar koleksi, term-nya, pengaturannya, dan blueprint-nya, sesuai izin peran Anda.
+- **Ekspor CSV** (di menu **⋮**) mengunduh daftar sesuai filter, urutan, dan bahasanya, semua halamannya, untuk dibuka di spreadsheet. Ini membutuhkan izin tersendiri: bisa melihat daftar belum berarti boleh mengunduhnya.
 
 Filter tersimpan di alamat halaman, jadi Anda bisa menyimpan tampilan sebagai markah atau mengirimkannya ke rekan.
 
@@ -89,6 +89,7 @@ Setiap penerbitan menyimpan sebuah **revisi**: salinan dari yang diterbitkan, be
 
 - Tombol **⋯** di samping **Simpan draf** berisi aksi lainnya.
 - **Duplikat** menyalin entri, dalam semua bahasa, sebagai draf baru berjudul "… (copy)". Selama belum pernah diterbitkan, mengganti judulnya ikut mengganti slug-nya (kecuali Anda mengetik slug sendiri).
+- **Ubah blueprint** membuka blueprint entri (field-nya), jika peran Anda boleh mengubah blueprint.
 - **Pindahkan ke tempat sampah** membuang entri: entri hilang dari situs web dan dari daftar, dalam semua bahasa, dan bisa dipulihkan. Jika dipakai konten lain, panel menyebutkan di mana terlebih dahulu.
 - Di tempat sampah, entri memiliki **Pulihkan** dan **Hapus permanen** (menghapus semuanya, dalam semua bahasa, beserta revisinya; tidak bisa dibatalkan).
 
@@ -98,7 +99,7 @@ Hanya satu orang yang bisa menyunting entri dalam satu bahasa pada satu waktu. J
 
 ## Halaman daftar
 
-Sebuah koleksi bisa memiliki **halaman daftar** yang menampilkan entrinya di situs web (misalnya `/blog`). Kata-katanya sendiri (pengantar, judul) serta pengaturan pencarian dan berbaginya disunting lewat **Halaman daftar** di atas daftar entri, dan langsung tayang saat disimpan (tidak ada draf). Setiap bahasa punya kata-katanya sendiri: kode bahasa di bagian atas menunjukkan bahasa yang sedang Anda sunting dan bahasa yang sudah punya kata-katanya sendiri (tanda centang), dengan baris seperti "Menyunting: English (utama) — beralih untuk menyunting Bahasa Indonesia"; klik sebuah kode untuk beralih.
+Sebuah koleksi bisa memiliki **halaman daftar** yang menampilkan entrinya di situs web (misalnya `/blog`). Kata-katanya sendiri (pengantar, judul) serta pengaturan pencarian dan berbaginya disunting lewat **Ubah halaman daftar** di menu **⋮** di atas daftar entri, dan langsung tayang saat disimpan (tidak ada draf). Setiap bahasa punya kata-katanya sendiri: kode bahasa di bagian atas menunjukkan bahasa yang sedang Anda sunting dan bahasa yang sudah punya kata-katanya sendiri (tanda centang), dengan baris seperti "Menyunting: English (utama) — beralih untuk menyunting Bahasa Indonesia"; klik sebuah kode untuk beralih.
 
 > [!TECHNICAL]
 > Koleksi, alamat, dan template-nya diatur di bawah Struktur. Lihat [Collections and entries](docs:cms/collections) dan [The site](docs:cms/site).

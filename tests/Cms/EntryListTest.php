@@ -13,6 +13,7 @@ use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Taxonomy;
@@ -269,7 +270,14 @@ it('links to the pages an editor needs next, those they may open', function () {
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
         ->where('links.2', ['group' => 'Terms', 'label' => 'Topics', 'href' => route('sunrice.admin.cms.taxonomies.terms.index', 'topics')])
         ->where('links.3', ['group' => 'Structure', 'label' => 'Collection settings', 'href' => route('sunrice.admin.cms.collections.edit', 'products')])
-        ->where('links.4', ['group' => 'Structure', 'label' => 'Blueprint: Product', 'href' => route('sunrice.admin.cms.blueprints.edit', $blueprint->handle)]));
+        ->where('links.4', ['group' => 'Structure', 'label' => 'Edit blueprint', 'href' => route('sunrice.admin.cms.blueprints.edit', $blueprint->handle)]));
+
+    // With several blueprints, one link each, by title.
+    Blueprint::query()->create(['handle' => 'bundle', 'title' => 'Bundle', 'fields' => []]);
+    $this->products->forceFill(['blueprints' => ['bundle']])->save();
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
+        ->where('links.4.label', 'Edit blueprint: Product')
+        ->where('links.5', ['group' => 'Structure', 'label' => 'Edit blueprint: Bundle', 'href' => route('sunrice.admin.cms.blueprints.edit', 'bundle')]));
 });
 
 it('keeps scoped permissions: a collection\'s viewers see its list, nobody else', function () {
@@ -457,4 +465,14 @@ it('groups long numbers in the list, and keeps them as typed in the CSV', functi
 
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.cells', ['field.price' => '18,500,000,000']));
     expect(get('/admin/cms/collections/products/entries/export')->streamedContent())->toContain(',18500000000,');
+});
+
+it('says how many entries are in the trash, outside it', function () {
+    listProduct('Tea');
+    $gone = listProduct('Coffee');
+    Entry::query()->whereKey($gone->entry_id)->firstOrFail()->delete();
+    lister('cms.entries.view');
+
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('trashedCount', 1));
+    get('/admin/cms/collections/products/entries?status=trashed')->assertInertia(fn (Assert $page) => $page->where('trashedCount', 0));
 });

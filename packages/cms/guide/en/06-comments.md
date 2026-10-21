@@ -6,7 +6,7 @@ Comments are switched on per collection by a site manager (Structure → Collect
 
 ## Moderating
 
-The tabs sort comments by state: **All** (waiting and approved), **Pending** (waiting for approval), **Approved**, **Spam** and **Trash**. Search the text, the name or the email, or filter by collection or by entry. Each comment shows its entry, the comment it answers (if it's a reply) and its language.
+The tabs sort comments by state: **All** (waiting and approved: everything but spam and the trash), **Pending** (waiting for approval), **Approved**, **Spam** and **Trash**. When a tab is empty but the trash isn't, it says so ("1 is in the trash."), with **Show the trash**; the entries, terms and other lists with a trash do the same. Search the text, the name or the email, or filter by collection or by entry. Each comment shows its entry, the comment it answers (if it's a reply) and its language.
 
 For each comment:
 
@@ -14,7 +14,7 @@ For each comment:
 - **Spam** moves it to the Spam tab. Spam is deleted automatically after a while.
 - **Reply** answers it, published at once under your name. Replying to a waiting comment approves it.
 - **Edit** fixes a typo or removes a link.
-- **Trash** moves it to the Trash tab, where **Restore** brings it back and **Delete for good** removes it permanently. Replies to a deleted comment stay, moved up a level.
+- **Move to trash** moves it to the Trash tab, where **Restore** brings it back and **Permanently delete** removes it; this can't be undone. Replies to a deleted comment stay, moved up a level.
 
 Tick several comments to approve, mark as spam or trash them together.
 

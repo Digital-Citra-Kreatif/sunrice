@@ -389,3 +389,12 @@ it('gives a select\'s options closure the record being edited', function () {
         ->and(array_column($select->toArray($product)['options'], 'value'))->toBe(['for-'.$product->getKey()])
         ->and($select->validationRules($product)[1]->__toString())->toBe('in:"for-'.$product->getKey().'"');
 });
+
+it('puts the resource\'s links in the list\'s menu, addresses under the panel made whole', function () {
+    shopUser('view');
+
+    get('/admin/shop/products')->assertInertia(fn (Assert $page) => $page->where('links', [
+        ['label' => 'Categories', 'url' => '/admin/shop/categories', 'group' => 'Shop', 'external' => false],
+        ['label' => 'Shop on the site', 'url' => 'https://shop.example.com', 'group' => null, 'external' => true],
+    ]));
+});

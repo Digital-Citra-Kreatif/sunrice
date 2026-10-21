@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Sunrice\Cms\Admin;
 
-use Closure;
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\NumberInput;
 use Sunrice\Admin\Resources\Forms\Section;
 use Sunrice\Admin\Resources\Forms\Select;
@@ -17,8 +18,9 @@ use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Table;
-use Sunrice\Admin\Security\Captcha;
 use Sunrice\Cms\Models\Form as FormModel;
+use Sunrice\Cms\Support\Access;
+use Sunrice\Cms\Support\CaptchaHelp;
 use Sunrice\Cms\Support\Locales;
 use Sunrice\Cms\Support\RoleMembers;
 use Sunrice\Cms\Support\SafeUrl;
@@ -67,21 +69,9 @@ final class FormResource extends Resource
                     ->help('Its fields. Visitors see the text, textarea, number, toggle, select, date and file ones.'),
             ]),
             Section::make('Notifications')->description('Who hears about each submission. Every one is kept under Content → Submissions too.')->schema([
-                Textarea::make('notify')->label('Email to')->rows(3)->maxLength(2000)->placeholder('team@example.com')
-                    ->help(__('One address per line, up to :max.', ['max' => self::MAX_NOTIFY]))
-                    ->rules([function (string $attribute, mixed $value, Closure $fail): void {
-                        $addresses = self::addresses($value);
-                        if (count($addresses) > self::MAX_NOTIFY) {
-                            $fail(__('Use at most :max addresses.', ['max' => self::MAX_NOTIFY]));
-                        }
-                        foreach ($addresses as $address) {
-                            if (filter_var($address, FILTER_VALIDATE_EMAIL) === false) {
-                                $fail(__('":address" isn\'t an email address.', ['address' => $address]));
-
-                                return;
-                            }
-                        }
-                    }])
+                ListInput::make('notify')->label('Email to')->emails()->addLabel('Add address')->max(self::MAX_NOTIFY)->maxLength(2000)
+                    ->placeholder('team@example.com')
+                    ->help(__('Up to :max addresses.', ['max' => self::MAX_NOTIFY]))
                     ->loadUsing(fn (Model $form): string => $form instanceof FormModel ? implode("\n", $form->notify ?? []) : '')
                     ->saveUsing(function (Model $form, mixed $value): void {
                         $form->forceFill(['notify' => self::addresses($value) ?: null])->save();
@@ -104,13 +94,15 @@ final class FormResource extends Resource
                 NumberInput::make('per_minute')->label('Sends per visitor a minute')->integer()->min(1)->max(1000)
                     ->placeholder((string) (new FormModel)->perMinute())
                     ->help('Per visitor (IP address). Empty: the site\'s default.'),
-                Toggle::make('captcha')->label('Require a captcha')
-                    ->disabled(! app(Captcha::class)->enabled())
-                    ->help(app(Captcha::class)->enabled()
-                        ? 'Visitors prove they\'re not a robot.'
-                        : 'Needs an account with a captcha service, set up on the server by a developer. For developers: SUNRICE_CAPTCHA_SITE_KEY and SUNRICE_CAPTCHA_SECRET_KEY (Cloudflare Turnstile, or reCAPTCHA or hCaptcha with SUNRICE_CAPTCHA_PROVIDER).'),
+                CaptchaHelp::toggle(Toggle::make('captcha')->label('Require a captcha'), 'Visitors prove they\'re not a robot, with :provider.'),
             ]),
         ]);
+    }
+
+    /** The list's menu: where submissions are read. */
+    public static function links(Authorizable $user): array
+    {
+        return Access::submissions($user, 'view') ? [['label' => 'Submissions', 'url' => 'cms/submissions']] : [];
     }
 
     public static function table(Table $table): Table

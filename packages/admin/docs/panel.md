@@ -78,6 +78,15 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 
 `NavigationItem::make($key)` takes a label, a `url` relative to the panel path, an `icon` (a lucide name), a `group`, a `parent` (another item's key, for a submenu), a `sort` (lower first, 100 by default) and a `permission`. An item without a permission is shown to everyone who can open the panel. Hiding a parent hides its submenu. Labels and groups are said in the panel's language ([panel languages](languages.md)); `->verbatim()` shows a label that is data (a collection's title) as written.
 
+A page that belongs with the settings (a plugin's own React page, not a `Settings` class) goes in the **Settings menu** instead of the sidebar with `->inSettings($after)`: it's listed among the settings sections, right after the section whose key is `$after` (`'site'`), or at the end without one, for users who pass its `permission()`/`visible()`. The sidebar's **Settings** item shows (and opens the first entry) even when that page is all a user may open, and it's marked current on the page. `$panel->settingsNavigation($user)` gives the menu, `[['key', 'label', 'url'], …]`: pass it to the page and render it with `SettingsLayout` (or `SettingsNav`) from `@sunrice/admin-sdk/ui` ([frontend](frontend.md)), so the page shows the same menu as the settings sections. The CMS's Settings → SEO is one:
+
+```php
+NavigationItem::make('cms-seo')->label('SEO')->url('cms/seo')->icon('search')
+    ->inSettings('site')->permission('cms.settings.site');
+// In its controller: Inertia::render('Cms/Seo/Edit', ['settingsNav' => $panel->settingsNavigation($request->user()), …])
+// In its page: <SettingsLayout items={settingsNav} current="cms-seo">…</SettingsLayout>
+```
+
 Items made from data (one per record) come from `navigationUsing()`, worked out on each page rather than at boot, so new and renamed records show at once. Keep the closure cheap (it runs on every page; cache what it reads), and give each item its own `permission()` or `visible()`. The CMS lists its collections and taxonomies this way.
 
 ```php

@@ -10,14 +10,14 @@ The list shows one collection at a time; pick another one with the collection me
 - **Status** shows only **Drafts**, **Published**, **Scheduled** (published, going live later) or the **Trash**.
 - Filter by author, by a term (such as a category) and by **Language**: the list shows the titles and statuses in that language.
 - Click a column's title to sort by it. **Columns** chooses which columns you see, including some of the entry's own fields (a price, a date…). The panel remembers your columns and page size.
-- **Go to** leads to what you might need next: the collection's listing page, its terms, its settings and its blueprint, as your role allows.
-- **Export CSV** downloads the list as filtered, sorted and in its language, every page of it, for a spreadsheet. It needs its own permission: being able to see a list isn't enough to download it.
+- The **⋮** menu beside **New entry** leads to what you might need next: the collection's listing page, its terms, its settings and its blueprint, as your role allows.
+- **Export CSV** (in the **⋮** menu) downloads the list as filtered, sorted and in its language, every page of it, for a spreadsheet. It needs its own permission: being able to see a list isn't enough to download it.
 
 The filters stay in the page's address, so you can bookmark a view or send it to a colleague.
 
 ### Several at once
 
-Tick entries (or the box at the top for the whole page) to **Publish**, **Unpublish** or **Move to the trash** them together. Right after trashing, the message has an **Undo** button. In the trash, rows say **Trashed** and each has a **Restore** button; ticked ones can be restored or **Deleted for good** together. Entries you may not change, or that can't be published as they are (a required field is empty, for example), are skipped, and the panel says how many.
+Tick entries (or the box at the top for the whole page) to **Publish**, **Unpublish** or **Move to the trash** them together. Right after trashing, the message has an **Undo** button. In the trash, rows say **Trashed** and each has a **Restore** button; ticked ones can be restored or **permanently deleted** together. Entries you may not change, or that can't be published as they are (a required field is empty, for example), are skipped, and the panel says how many.
 
 ### Putting entries in order
 
@@ -90,8 +90,9 @@ Every publish keeps a **revision**: a copy of what was published, with the date 
 The **⋯** button next to **Save draft** holds the rest:
 
 - **Duplicate** copies the entry, in every language, as a new draft titled "… (copy)". Until it's first published, renaming it renames its slug too (unless you typed a slug of your own).
+- **Edit blueprint** opens the entry's blueprint (its fields), if your role may change blueprints.
 - **Move to trash** takes it off the website and out of the list, in every language, and can be restored. If other content uses it, the panel names where first.
-- In the trash, an entry has **Restore** and **Delete for good** (everything, in every language, with its revisions; this can't be undone).
+- In the trash, an entry has **Restore** and **Permanently delete** (everything, in every language, with its revisions; this can't be undone).
 
 ## When someone else is editing
 
@@ -99,7 +100,7 @@ Only one person edits an entry in a language at a time. If a colleague has it op
 
 ## Listing pages
 
-A collection may have a **listing page** that lists its entries on the website (like `/blog`). Its own words (an introduction, a heading) and its search and sharing details are edited with **Listing page** above the entries list, and saved straight away (there's no draft). Each language has its own words: the language codes at the top show which one you're editing and which already have their own (a check), with a line such as "Editing: English (main) — switch to edit Bahasa Indonesia"; click a code to switch.
+A collection may have a **listing page** that lists its entries on the website (like `/blog`). Its own words (an introduction, a heading) and its search and sharing details are edited with **Edit the listing page** in the **⋮** menu above the entries list, and saved straight away (there's no draft). Each language has its own words: the language codes at the top show which one you're editing and which already have their own (a check), with a line such as "Editing: English (main) — switch to edit Bahasa Indonesia"; click a code to switch.
 
 > [!TECHNICAL]
 > Collections, their URLs and templates are set up under Structure. See [Collections and entries](docs:cms/collections) and [The site](docs:cms/site).

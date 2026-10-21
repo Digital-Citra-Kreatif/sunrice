@@ -11,7 +11,7 @@ use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaUsages;
 
 /**
- * Deletes media for good: the record and its files (the original and
+ * Deletes media permanently: the record and its files (the original and
  * its sizes, and an optimised image's backup). `$media->delete()` only
  * moves it to the trash. A file in use needs `$force`.
  *

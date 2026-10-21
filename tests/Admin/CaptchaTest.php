@@ -50,3 +50,10 @@ it('asks the provider, and refuses when it can\'t', function () {
     Http::fake(fn () => throw new ConnectionException('timed out'));
     expect(captcha()->verify('token'))->toBeFalse();
 });
+
+it('names its provider for people', function () {
+    expect(captcha()->name())->toBe('Cloudflare Turnstile')
+        ->and(captcha(['provider' => 'recaptcha'])->name())->toBe('Google reCAPTCHA')
+        ->and(captcha(['provider' => 'hcaptcha'])->name())->toBe('hCaptcha')
+        ->and(Captcha::ENV_EXAMPLE)->toContain('SUNRICE_CAPTCHA_SITE_KEY=');
+});

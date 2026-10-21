@@ -21,13 +21,13 @@ Fields left empty may be filled from the entry's own fields, if a site manager s
 
 ## Term pages and listing pages
 
-A term's own page and a collection's listing page have the same **SEO** card: in the term editor (from the terms list) and on the listing page (from **Listing page** above the entries list). Both are live as soon as you save.
+A term's own page and a collection's listing page have the same **SEO** card: in the term editor (from the terms list) and on the listing page (from **Edit the listing page** in the **⋮** menu above the entries list). Both are live as soon as you save.
 
 ## The site's defaults
 
 **Settings → Site** holds the **Site name** and a **Description**, used by pages that don't have their own. The homepage's title is the site name. See [The website's settings](guide:website/settings#site).
 
-The **SEO** page (under Structure in the sidebar) holds the rest, in **Search engines and sharing**: the **Default share image**, whether to **Add the site name to page titles** and the **Separator** between them (the `|` in "About | Acme"), and the site's **X (Twitter) account**. Below it, **Fields used for SEO** says, for each collection and taxonomy, which of their fields fill in an empty meta title, description or share image.
+**Settings → SEO** (next to Site in the Settings menu) holds the rest, in **Search engines and sharing**: the **Default share image**, whether to **Add the site name to page titles** and the **Separator** between them (the `|` in "About | Acme"), and the site's **X (Twitter) account**. Below it, **Fields used for SEO** says, for each collection and taxonomy, which of their fields fill in an empty meta title, description or share image.
 
 **Hide the whole site from search engines** (on the same page) is for a copy of the site that isn't public yet (a staging site). It hides every page and empties the sitemap. Make sure it's off on the real website.
 

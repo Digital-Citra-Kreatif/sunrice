@@ -347,10 +347,12 @@ it('offers the comments captcha once a captcha service is set up, saying who set
     $fields = fn () => collect(CommentSettings::form(new Form)->toSections('edit'))->pluck('fields')->flatten(1)->keyBy('name');
 
     expect($fields()['captcha']['disabled'])->toBeTrue()
-        ->and($fields()['captcha']['help'])->toContain('set up on the server by a developer')->toContain('For developers: SUNRICE_CAPTCHA_SITE_KEY')
+        ->and($fields()['captcha']['help'])->toBe('Not set up yet: ask your developer to connect a captcha service.')
+        ->and($fields()['captcha']['developerHelp']['code'])->toContain('SUNRICE_CAPTCHA_SITE_KEY')
         ->and(collect($fields()['notifyRoles']['options'])->firstWhere('value', 'super-admin')['label'] ?? null)->toBe('Super admin');
 
     config(['sunrice-admin.captcha' => ['provider' => 'turnstile', 'site_key' => 'k', 'secret_key' => 's']]);
     expect($fields()['captcha']['disabled'])->toBeFalse()
-        ->and($fields()['captcha']['help'])->not->toContain('SUNRICE_');
+        ->and($fields()['captcha']['help'])->toBe('Commenters prove they\'re not a robot, with Cloudflare Turnstile (as on forms).')
+        ->and($fields()['captcha'])->not->toHaveKey('developerHelp');
 });

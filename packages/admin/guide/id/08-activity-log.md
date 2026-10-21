@@ -4,14 +4,15 @@
 
 ## Membaca log
 
-Setiap baris menampilkan **Kapan**, **Siapa**, **Apa** (tindakan dan itemnya), dan **Detail** (field yang berubah, dan dari alamat mana). Baris terbaru tampil paling atas.
+Setiap baris menampilkan **Kapan**, **Siapa**, **Apa** (tindakan dan itemnya), **Detail** (field yang berubah), dan **Alamat IP** asalnya. Baris terbaru tampil paling atas. **Kolom** menyembunyikan yang tidak Anda perlukan (pilihan Anda diingat).
 
 - **Sumber** menunjukkan asal perubahan: **Admin** (seseorang di panel), **Agen AI** (dengan nama tokennya), **Sistem** (server sendiri, misalnya penerbitan terjadwal), atau **Keamanan** (proses masuk dan kejadian keamanan lain).
 - Log menyebutkan field yang berubah, tidak pernah nilai lama atau barunya, sehingga tidak menyimpan kata sandi atau data pribadi. Pengaturan adalah pengecualiannya: log menampilkan nilai lama dan baru sebuah pengaturan (*Close after days: 30 → 365*), kecuali kunci rahasia.
 
 ## Mencari sesuatu
 
-- **Cari…** mencari di nama orang, item, dan tindakan.
+- **Cari…** mencari di nama orang, item, dan tindakan, serta alamat IP: lengkap (`203.0.113.7`) atau awalnya (`192.168.`).
+- Klik sebuah alamat IP untuk melihat hanya yang berasal dari alamat itu, termasuk kejadian keamanan (salah kata sandi, upaya masuk yang diblokir…).
 - Saring berdasarkan **Sumber**, **Siapa** (siapa yang melakukannya), jenis item, **Aksi** (*published*, *deleted*, *logged in*…), atau tanggal.
 - Klik nama seseorang untuk melihat aktivitasnya saja.
 - Klik ikon riwayat di sebuah baris untuk melihat seluruh riwayat item tersebut.

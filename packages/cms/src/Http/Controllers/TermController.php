@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Cms\Http\Controllers;
 
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,6 +17,7 @@ use Sunrice\Cms\Actions\Terms\RestoreTerm;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\Actions\Terms\SaveTermContent;
 use Sunrice\Cms\Actions\Terms\TrashTerm;
+use Sunrice\Cms\Admin\EntryList;
 use Sunrice\Cms\Admin\TemplateHelp;
 use Sunrice\Cms\Fields\Reference;
 use Sunrice\Cms\Fields\Types\TermsField;
@@ -60,9 +62,13 @@ final class TermController
         return Inertia::render('Cms/Terms/Index', [
             'taxonomy' => ['handle' => $taxonomy->handle, 'title' => $taxonomy->title, 'hierarchical' => $taxonomy->hierarchical,
                 'settings' => $request->user()?->can('cms.taxonomies.update') === true ? route('sunrice.admin.cms.taxonomies.edit', $taxonomy->handle) : null,
+                // Its terms' blueprint, for those who may edit blueprints.
+                'blueprint' => EntryList::blueprintLinks($request->user() instanceof Authorizable ? $request->user() : null, array_filter([$taxonomy->blueprint]))[0]['href'] ?? null,
                 'collections' => $taxonomy->collections()->orderBy('title')->get(['sunrice_collections.handle', 'sunrice_collections.title'])
                     ->map(fn (Collection $collection): array => ['title' => $collection->title, 'url' => route('sunrice.admin.cms.collections.entries.index', $collection->handle)])->all()],
             'trashed' => $trashed,
+            // Outside the trash, how many are in it, for an empty list to say so.
+            'trashedCount' => $trashed ? 0 : Term::onlyTrashed()->where('taxonomy_id', $taxonomy->id)->count(),
             'taxonomies' => Taxonomy::query()->orderBy('title')->get()->filter(fn (Taxonomy $t): bool => Access::terms($request->user(), 'view', $t))->values()->map(fn (Taxonomy $t): array => ['handle' => $t->handle, 'title' => $t->title])->all(),
             'locales' => Locales::all(),
             'locale' => $locale,
@@ -204,13 +210,13 @@ final class TermController
         return back()->with('success', 'Restored.');
     }
 
-    /** For good; one used elsewhere only with "force" (the list asks first). */
+    /** Permanently; one used elsewhere only with "force" (the list asks first). */
     public function forceDelete(Request $request, Term $term, DeleteTerm $delete): RedirectResponse
     {
         abort_unless($term->trashed(), 404);
         $delete->handle($term, $request->boolean('force'));
 
-        return back()->with('success', 'Deleted for good.');
+        return back()->with('success', 'Permanently deleted.');
     }
 
     /** A term's old short address: to the one under its taxonomy. */

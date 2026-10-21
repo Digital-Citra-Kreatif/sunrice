@@ -9,8 +9,8 @@ use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\Section;
-use Sunrice\Admin\Resources\Forms\Textarea;
 use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\Settings;
@@ -48,19 +48,15 @@ final class SecuritySettings extends Settings
                             $fail(__('The app can\'t send email yet (the :mailer mailer only writes to the log), so nobody would get their login code. Set up mail first: see Settings → Mail.', ['mailer' => MailSettings::info()['transport']]));
                         }
                     }])
-                    ->help('Everyone also enters a 6-digit code sent by email. Check email works first (Settings → Mail → Send a test email), or nobody can sign in. If that happens, a developer can turn it off on the server (Help → Guide → Settings says how).'),
+                    ->help('Everyone also enters a 6-digit code sent by email. Check that email works first (Settings → Mail → Send a test email), or nobody can sign in.')
+                    ->developerHelp('Locked out because email stopped working? Turn it off on the server: `php artisan sunrice:two-factor off`'),
             ]),
             Section::make('Security alerts')->schema([
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')
                     ->options(fn (): array => self::roles())
                     ->help('Super admins always get them.'),
-                Textarea::make('alertEmails')->label('And to these addresses')->rows(3)->maxLength(2000)->placeholder('security@example.com')
-                    ->rules([function (string $attribute, mixed $value, \Closure $fail): void {
-                        if (is_string($value) && count(self::emails($value)) !== count(array_filter(preg_split('/[\s,;]+/', $value) ?: []))) {
-                            $fail(__('Write one email address per line.'));
-                        }
-                    }])
-                    ->help('One per line.'),
+                ListInput::make('alertEmails')->label('And to these addresses')->emails()->addLabel('Add address')->max(50)->maxLength(2000)
+                    ->placeholder('security@example.com'),
             ]),
         ]);
     }

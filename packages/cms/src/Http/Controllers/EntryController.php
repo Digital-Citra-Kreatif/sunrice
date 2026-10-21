@@ -96,6 +96,8 @@ final class EntryController
             'filters' => $list->filterOptions(),
             'links' => $list->links(),
             'manualOrder' => $list->inManualOrder(),
+            // Outside the trash, how many are in it, for an empty list to say so.
+            'trashedCount' => $list->state()['status'] === 'trashed' ? 0 : Entry::onlyTrashed()->where('collection_id', $collection->id)->count(),
             'perPageOptions' => EntryList::PER_PAGE,
             'preferencesKey' => EntryList::preferenceKey($collection),
             'can' => self::can($request, $collection),
@@ -408,6 +410,8 @@ final class EntryController
             ],
             // The blueprints it may use, when there's a choice (Page settings).
             'blueprints' => self::blueprints($collection),
+            // Its blueprint's editor, for those who may edit blueprints (the ⋮ menu's "Edit blueprint").
+            'blueprintUrl' => EntryList::blueprintLinks($request->user() instanceof Authorizable ? $request->user() : null, array_filter([$entry->blueprintHandle()]))[0]['href'] ?? null,
             // Whether it's the site's homepage, whether this user may make it so (a page
             // of a collection whose entries can be: SetHomepage::offers()), and the
             // current homepage's title, for the confirmation.

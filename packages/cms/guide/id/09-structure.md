@@ -47,7 +47,7 @@ Field **Fieldset** menaruh field-field fieldset itu di tempatnya, seolah-olah mi
 
 Setelah disimpan, kartu-kartu di formulir menautkan ke tujuan berikutnya: **Lihat entri** (Halaman entri), **Lihat di situs** ↗ dan **Sunting halaman daftar** (Halaman daftar, yang terakhir bila punya blueprint). Di bawah pengaturan template atau URL halaman daftar, **File yang mana?** membuka daftar file template yang dicoba, untuk developer Anda.
 
-Menghapus koleksi tidak menghapus entrinya: entri hilang dari panel dan situs web. Tombol **Tempat sampah** di daftar menampilkan koleksi yang dihapus, dengan **Pulihkan** untuk mengembalikannya. Menghapusnya untuk selamanya, beserta entrinya, dilakukan oleh developer (`sunrice:orphans --purge`), sehingga kekeliruan di panel selalu bisa dibatalkan.
+Menghapus koleksi tidak menghapus entrinya: entri hilang dari panel dan situs web. Tombol **Tempat sampah** di daftar menampilkan koleksi yang dihapus, dengan **Pulihkan** untuk mengembalikannya. Menghapusnya secara permanen, beserta entrinya, dilakukan oleh developer (`sunrice:orphans --purge`), sehingga kekeliruan di panel selalu bisa dibatalkan.
 
 Setiap koleksi mendapat izinnya sendiri (melihat, membuat, menyunting, menerbitkan, menghapus, dan mengekspor entrinya), sehingga sebuah peran bisa dibatasi hanya ke *Blog*, misalnya. Lihat [Pengguna dan peran](guide:panel/users-roles).
 
@@ -86,7 +86,7 @@ Baris setiap field menampilkan tipe, label, dan handle-nya, dengan **Duplikat** 
 
 **Struktur → Formulir**: **Judul**, **Handle** (bisa diubah nanti, seperti pada koleksi), **Blueprint** berisi field formulir (pengunjung mendapat field teks, textarea, angka, toggle, pilihan, tanggal, dan file), serta:
 
-- **Email ke**: alamat yang menerima setiap kiriman, satu per baris; **Email juga ke peran**: semua orang dengan peran ini juga.
+- **Email ke**: alamat yang menerima setiap kiriman (**Tambah alamat** untuk masing-masing); **Email juga ke peran**: semua orang dengan peran ini juga.
 - **Pesan terima kasih**: tampil setelah mengirim (di situs multibahasa, satu per bahasa lain; jika kosong, ucapan terima kasih bawaan situs dalam bahasa itu); atau **Lalu buka** halaman pilihan Anda.
 - **Kiriman per pengunjung per menit** dan **Wajibkan captcha**, untuk mencegah spam.
 
@@ -94,7 +94,7 @@ Developer lalu memasang formulir di sebuah halaman. Isian pengunjung masuk ke Ko
 
 ## Pengalihan
 
-**Struktur → Pengalihan** menampilkan pengalihan yang dibuat saat alamat entri berubah, dan menerima pengalihan Anda sendiri: **Dari** alamat di situs (diawali `/`), **Ke** alamat di situs atau alamat web, **Pindah permanen (301)** atau **Sementara (302)**. Halaman yang tayang selalu menang atas pengalihan dari alamatnya.
+**Struktur → Pengalihan** menampilkan pengalihan yang dibuat saat alamat entri berubah, dan menerima pengalihan Anda sendiri: **Dari** alamat di situs (diawali `/`), **Ke** alamat di situs atau alamat web, dan **Jenis**: **Permanen (301)** atau **Sementara (302)**. Di situs dengan beberapa bahasa, nyalakan **Di semua bahasa** agar pengalihan juga berlaku dari alamat yang sama di setiap bahasa: /listings → /properties juga mengirim /id/listings ke /id/properties. Halaman yang tayang selalu menang atas pengalihan dari alamatnya.
 
 > [!TECHNICAL]
 > Struktur bisa diekspor dan diimpor antarsitus (`sunrice:export-structure`, `sunrice:import-structure`), dan field bisa diganti namanya dengan aman (`sunrice:rename-field`). Lihat [Structure tools](docs:cms/structure) dan [Fields](docs:cms/fields).

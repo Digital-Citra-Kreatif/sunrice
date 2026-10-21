@@ -321,11 +321,11 @@ class UserResource extends Resource
     {
         return [
             Select::make('content')->label('Their content')->required()->default(DeleteUser::KEEP)->options([
-                DeleteUser::REASSIGN => 'Give it to another user',
+                DeleteUser::REASSIGN => 'Transfer to another user',
                 DeleteUser::KEEP => 'Keep it, without an owner',
                 DeleteUser::DELETE => 'Delete it (entries and comments go to the trash; uploads stay)',
             ]),
-            Select::make('heir')->label('Give it to')->verbatim()->options(static fn (): array => static::heirs())->withoutTargets()
+            Select::make('heir')->label('Transfer to')->verbatim()->options(static fn (): array => static::heirs())->withoutTargets()
                 ->help('Only when giving their content to another user.'),
         ];
     }

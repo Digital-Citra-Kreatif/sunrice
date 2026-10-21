@@ -75,7 +75,7 @@ final class SiteController
             }
             abort_if($redirect === null, 404);
 
-            return SiteRedirect::to(self::withQuery($redirect->to_url, $request), $redirect->status);
+            return SiteRedirect::to(self::withQuery($redirect->targetFor($request->path()), $request), $redirect->status);
         }
 
         // Editors signed in to the panel see the unpublished changes on the page itself.

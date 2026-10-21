@@ -13,7 +13,10 @@ use Sunrice\Admin\Support\Say;
  *     Pairs::make('languages')->labels('Code', 'Name')
  *         ->suggest(['en' => 'English', 'id' => 'Indonesian'])->firstBadge('Main')
  *
- * Picking a suggested key fills an empty value with its suggestion. With
+ * Suggested keys are offered in a searchable list (by key or value), and
+ * any other key can still be typed; picking one fills an empty value with
+ * its suggestion. ->hints('en, id…', …) puts a short hint under each
+ * column's heading. With
  * ->extra('Address') each row has a third, optional column, kept after a
  * bar: "id: Bahasa Indonesia | indonesia".
  *
@@ -45,6 +48,9 @@ final class Pairs extends Field
 
     /** @var array<string, string>|null key => its input's label */
     private ?array $fixed = null;
+
+    /** @var array{key: string|null, value: string|null, extra: string|null} */
+    private array $hints = ['key' => null, 'value' => null, 'extra' => null];
 
     public function type(): string
     {
@@ -99,6 +105,14 @@ final class Pairs extends Field
         return $this;
     }
 
+    /** A short hint under each column's heading (the key's, the value's, the third column's). */
+    public function hints(?string $key = null, ?string $value = null, ?string $extra = null): self
+    {
+        $this->hints = ['key' => $key, 'value' => $value, 'extra' => $extra];
+
+        return $this;
+    }
+
     public function addLabel(string $label): self
     {
         $this->addLabel = $label;
@@ -127,6 +141,7 @@ final class Pairs extends Field
             'firstBadge' => Say::it($this->firstBadge),
             'addLabel' => Say::it($this->addLabel),
             'extra' => $this->extra === null ? null : array_map(fn (?string $text): ?string => Say::it($text), $this->extra),
+            'hints' => array_map(fn (?string $text): ?string => Say::it($text), $this->hints),
             'fixed' => $this->fixed === null ? null : array_map(fn (string $key, string $label): array => ['key' => $key, 'label' => Say::it($label)], array_keys($this->fixed), $this->fixed),
         ];
     }

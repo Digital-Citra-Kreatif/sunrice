@@ -18,7 +18,7 @@ Kotak yang muncul bergantung pada isi situs Anda. Dengan bagian situs web (CMS) 
 | **Menyiapkan situs** | Untuk pengelola situs pada situs baru: apa yang masih perlu disiapkan sebelum tayang (entri pertama, beranda, menu tanpa tautan), masing-masing menuju tempat mengerjakannya. Hilang setelah semuanya selesai. |
 | **Entri yang baru diubah** | Entri yang terakhir diubah siapa pun, dalam bahasa apa pun, beserta statusnya. Klik untuk membukanya. |
 | **Komentar menunggu** | Jumlah komentar yang menunggu persetujuan, dan yang terbaru. |
-| **Akan datang** | Entri yang dijadwalkan tayang, yang terdekat lebih dulu. |
+| **Akan datang** | Entri yang dijadwalkan terbit, yang terdekat lebih dulu. |
 | **Kiriman terbaru** | Pesan terbaru yang dikirim lewat formulir situs. |
 
 Dan dari panel sendiri:

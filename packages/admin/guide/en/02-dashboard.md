@@ -18,7 +18,7 @@ Which tiles appear depends on what your site has. With the website (CMS) part of
 | **Getting the site ready** | For site managers on a new site: what's left before it goes live (the first entries, the homepage, menus without links), each linking to where it's done. It disappears once everything is done. |
 | **Recently edited entries** | The last entries anyone changed, in any language, with their status. Click one to open it. |
 | **Comments waiting** | How many comments wait for approval, and the newest ones. |
-| **Coming up** | Entries scheduled to go live, the soonest first. |
+| **Coming up** | Entries scheduled to publish, the soonest first. |
 | **Latest submissions** | The newest messages sent through the website's forms. |
 
 And from the panel itself:

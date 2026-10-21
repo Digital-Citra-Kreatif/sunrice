@@ -10,7 +10,7 @@ Pilih taksonomi lewat menu di samping judul, dan bahasanya lewat **Bahasa**. Tab
 - Klik judul term untuk membukanya di penyunting yang sama, dalam bahasa yang tampil. Ikon panah di sampingnya membuka halamannya di situs web, jika term punya halaman.
 - Menu **⋯** di setiap baris: **Ubah**, **Tambah term di bawahnya**, dan **Pindahkan ke tempat sampah** (beserta term di bawahnya).
 - Seret term lewat pegangannya untuk mengubah posisinya di antara term sejajarnya; term di bawahnya ikut pindah. Untuk menempatkan term di bawah term lain, buka term itu dan pilih **Di bawah**.
-- Menu **⋮** di samping **Term baru** menampilkan koleksi yang memakai taksonomi ini, serta membuka **Pengaturan taksonomi** dan **Tempat sampah**.
+- Menu **⋮** di samping **Term baru** menampilkan koleksi yang memakai taksonomi ini, serta membuka **Pengaturan taksonomi** dan, jika peran Anda boleh mengubah blueprint, **Ubah blueprint** (field term). **Tempat sampah**, di samping pencarian, menampilkan term yang dibuang.
 
 Term yang belum berjudul dalam bahasa yang tampil ditulis abu-abu sebagai *… · belum diterjemahkan*. Buka term itu dan beri judul dalam bahasa tersebut untuk menerjemahkannya.
 
@@ -31,7 +31,7 @@ Satu orang menyunting sebuah term dalam satu bahasa pada satu waktu: jika rekan 
 
 ## Tempat sampah
 
-**Tempat sampah** di bagian atas menampilkan term yang dibuang. Pulihkan untuk mengembalikannya (term yang induknya masih di tempat sampah pindah ke tingkat teratas), atau hapus selamanya: term di bawahnya naik satu tingkat, dan entri kehilangan term itu. Jika konten lain menautkan ke term tersebut, panel menyebutkan di mana sebelum Anda menghapusnya.
+**Tempat sampah** di bagian atas menampilkan term yang dibuang. Pulihkan untuk mengembalikannya (term yang induknya masih di tempat sampah pindah ke tingkat teratas), atau hapus secara permanen: term di bawahnya naik satu tingkat, dan entri kehilangan term itu. Jika konten lain menautkan ke term tersebut, panel menyebutkan di mana sebelum Anda menghapusnya.
 
 ## Memberi term pada entri
 

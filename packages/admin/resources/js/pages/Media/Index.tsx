@@ -131,20 +131,14 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
 
             <PageHeader
                 title={query.trash ? t('Trash') : (folder?.name ?? t('Media'))}
-                actions={
+                primary={canUpload && (
                     <>
-                        {can.update && !query.trash && !query.search && (
-                            <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />{t('New folder')}</Button>
-                        )}
-                        {canUpload && (
-                            <>
-                                <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label={t('Files to upload')}
-                                    onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
-                                <Button onClick={() => fileInput.current?.click()}><UploadIcon />{t('Upload')}</Button>
-                            </>
-                        )}
+                        <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label={t('Files to upload')}
+                            onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
+                        <Button onClick={() => fileInput.current?.click()}><UploadIcon />{t('Upload')}</Button>
                     </>
-                }
+                )}
+                menu={can.update && !query.trash && !query.search ? [{ label: t('New folder'), icon: <FolderPlus />, onSelect: () => setFolderDialog({ folder: null }) }] : []}
             />
 
             {storageLinkMissing && (
@@ -169,7 +163,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 </Select>
                 {can.delete && (
                     <Button variant={query.trash ? 'secondary' : 'ghost'} onClick={() => visit({ trash: !query.trash, folder: null })}>
-                        <Trash2 />{query.trash ? t('Leave the trash') : t('Trash')}
+                        <Trash2 />{query.trash ? t('Back to the list') : t('Trash')}
                     </Button>
                 )}
             </div>
@@ -227,7 +221,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                     {query.trash ? (
                         <>
                             <Button size="sm" variant="outline" onClick={() => bulk('restore')}><RotateCcw />{t('Restore')}</Button>
-                            <Button size="sm" variant="destructive" onClick={() => confirm(selected.length === 1 ? t('Delete 1 file for good?') : t('Delete :count files for good?', { count: selected.length }), () => bulk('delete'), true)}><Trash2 />{t('Delete for good')}</Button>
+                            <Button size="sm" variant="destructive" onClick={() => confirm(selected.length === 1 ? t('Permanently delete 1 file?') : t('Permanently delete :count files?', { count: selected.length }), () => bulk('delete'), true)}><Trash2 />{t('Permanently delete')}</Button>
                         </>
                     ) : (
                         <>

@@ -55,7 +55,7 @@ export default function SubmissionsIndex({ form, forms, submissions, can, create
     }
 
     const columns = (submissions.data[0]?.rows ?? []).slice(0, COLUMNS);
-    const remove = (row: Row) => confirm(t('Delete this submission for good? It can\'t be restored.'),
+    const remove = (row: Row) => confirm(t('Permanently delete this submission? It can\'t be restored.'),
         () => router.delete(adminUrl(`cms/submissions/${row.id}`), { preserveScroll: true, onSuccess: () => setOpen(null) }));
 
     return (
@@ -63,11 +63,7 @@ export default function SubmissionsIndex({ form, forms, submissions, can, create
             <Head title={t(':form submissions', { form: form.title })} />
             <PageHeader
                 title={form.title}
-                actions={submissions.total > 0 && can.export && (
-                    <Button variant="outline" asChild>
-                        <a href={adminUrl(`cms/forms/${form.handle}/submissions/export`)}><Download /> {t('Export CSV')}</a>
-                    </Button>
-                )}
+                menu={submissions.total > 0 && can.export ? [{ label: t('Export CSV'), href: adminUrl(`cms/forms/${form.handle}/submissions/export`), download: true, icon: <Download /> }] : []}
             >
                 {forms.length > 1 && (
                     <Select value={form.handle} onValueChange={(handle: string) => router.get(adminUrl(`cms/forms/${handle}/submissions`))}>

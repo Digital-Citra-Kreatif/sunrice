@@ -9,6 +9,8 @@ export interface NavLink {
 
 export interface NavItem extends NavLink {
     children: NavLink[];
+    /** Other addresses it's current on (Settings: the pages among the settings sections). */
+    matches?: string[];
 }
 
 export interface NavGroup {

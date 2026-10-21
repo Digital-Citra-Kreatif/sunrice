@@ -18,7 +18,7 @@ it('sends what a field says besides its help: live values, a line for developers
         ->toArray();
 
     expect($field['helpValues'])->toBe(['url' => ['field' => 'route', 'fallback' => '/{handle}']])
-        ->and($field['developerHelp'])->toBe(['text' => 'In a template: `<x-form handle=":value" />`', 'example' => 'contact'])
+        ->and($field['developerHelp'])->toBe(['text' => 'In a template: `<x-form handle=":value" />`', 'example' => 'contact', 'code' => null])
         ->and($field['helpDetails'])->toBe(['summary' => 'Which file?', 'text' => 'cms/listing.blade.php'])
         ->and($field['links'])->toBe([
             ['label' => 'Edit', 'url' => '/admin/things/{handle}/edit', 'newTab' => false, 'showWhen' => ['field' => 'handle', 'value' => null, 'not' => false]],

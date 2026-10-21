@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import {
-    ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, Compass, Download, ExternalLink, LayoutList, Plus, RotateCcw, Search, X,
+    ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, Download, Plus, RotateCcw, Search, X,
 } from 'lucide-react';
 import { useConfirm } from '@/components/Confirm.tsx';
 import { EntryReorderList } from '@/components/EntryReorderList.tsx';
 import { adminUrl, t } from '@sunrice/admin-sdk';
 import {
-    Badge, Button, Card, Checkbox, DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+    Badge, Button, Card, Checkbox, DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel,
     DropdownMenuSeparator, DropdownMenuTrigger, Input, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table,
-    TableBody, TableCell, TableHead, TableHeader, TableRow, useBreadcrumbs, useTablePreferences,
+    TableBody, TableCell, TableHead, TableHeader, TableRow, TrashHint, useBreadcrumbs, useTablePreferences,
 } from '@sunrice/admin-sdk/ui';
 import { type EntryLocale, type EntryStatus, formatDate, localeName, statusLabel } from '@/lib/entries.ts';
 import {
@@ -75,6 +75,8 @@ interface Props {
     manualOrder?: boolean;
     perPageOptions?: number[];
     preferencesKey?: string;
+    /** Outside the trash, how many entries are in it. */
+    trashedCount?: number;
     can?: { create: boolean; update?: boolean; publish?: boolean; delete?: boolean; export?: boolean };
 }
 
@@ -104,7 +106,7 @@ export default function EntriesIndex(props: Props) {
 
 function EntryList({
     collection, collections, entries, query, columns = [], filters = { authors: [], taxonomies: [], locales: [] }, links = [],
-    manualOrder = false, perPageOptions = [10, 25, 50, 100], preferencesKey, can,
+    manualOrder = false, perPageOptions = [10, 25, 50, 100], preferencesKey, trashedCount = 0, can,
 }: Props & { collection: NonNullable<Props['collection']>; entries: NonNullable<Props['entries']>; query: EntryListQuery }) {
     const base = adminUrl(`cms/collections/${collection.handle}/entries`);
     const mainLocale = filters.locales[0] ?? query.locale;
@@ -129,7 +131,7 @@ function EntryList({
     }, [search]);
 
     const bulkActions = trashed
-        ? (can?.delete ? [{ action: 'restore', label: t('Restore') }, { action: 'delete', label: t('Delete for good'), danger: true }] : [])
+        ? (can?.delete ? [{ action: 'restore', label: t('Restore') }, { action: 'delete', label: t('Permanently delete'), danger: true }] : [])
         : [
             ...(can?.publish ? [{ action: 'publish', label: t('Publish') }, { action: 'unpublish', label: t('Unpublish') }] : []),
             ...(can?.delete ? [{ action: 'trash', label: t('Move to the trash'), danger: true }] : []),
@@ -164,7 +166,6 @@ function EntryList({
     const restorable = trashed && !!can?.delete;
     const span = 1 + visible.length + (bulkActions.length > 0 ? 1 : 0) + (moveable ? 1 : 0) + (restorable ? 1 : 0);
     const exportQuery = entryListQueryString(params());
-    const groups = [...new Set(links.map((link) => link.group))];
 
     return (
         <div className="cms:flex cms:flex-col cms:gap-6">
@@ -172,41 +173,13 @@ function EntryList({
             {confirmDialog}
             <PageHeader
                 title={collection.title}
-                actions={
-                    <>
-                        {links.length > 0 && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline"><Compass /> {t('Go to')}</Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="cms:min-w-56">
-                                    {groups.map((group, index) => (
-                                        <React.Fragment key={group}>
-                                            {index > 0 && <DropdownMenuSeparator />}
-                                            <DropdownMenuLabel>{group}</DropdownMenuLabel>
-                                            {links.filter((link) => link.group === group).map((link) => (
-                                                <DropdownMenuItem key={link.href} asChild>
-                                                    {link.external
-                                                        ? <a href={link.href} target="_blank" rel="noopener noreferrer">{link.label} <ExternalLink className="cms:ml-auto" /></a>
-                                                        : <Link href={link.href}>{link.label}</Link>}
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </React.Fragment>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
-                        {collection.listing && !trashed && (
-                            <Button variant="outline" asChild><Link href={adminUrl(`cms/collections/${collection.handle}/listing/edit`)}><LayoutList /> {t('Listing page')}</Link></Button>
-                        )}
-                        {entries.total > 0 && can?.export && (
-                            <Button variant="outline" asChild><a href={`${base}/export${exportQuery ? `?${exportQuery}` : ''}`}><Download /> {t('Export CSV')}</a></Button>
-                        )}
-                        {can?.create && !trashed && (
-                            <Button asChild><Link href={`${base}/create`}><Plus /> {t('New entry')}</Link></Button>
-                        )}
-                    </>
-                }
+                primary={can?.create && !trashed && <Button asChild><Link href={`${base}/create`}><Plus /> {t('New entry')}</Link></Button>}
+                menu={[
+                    ...(entries.total > 0 && can?.export
+                        ? [{ label: t('Export CSV'), href: `${base}/export${exportQuery ? `?${exportQuery}` : ''}`, download: true, icon: <Download /> }]
+                        : []),
+                    ...links.map((link) => ({ label: link.label, href: link.href, external: link.external, group: link.group })),
+                ]}
             >
                 {collections.length > 1 && (
                     <Select value={collection.handle} onValueChange={(handle: string) => router.get(adminUrl(`cms/collections/${handle}/entries`))}>
@@ -310,6 +283,7 @@ function EntryList({
                             <TableRow className="cms:hover:bg-transparent">
                                 <TableCell colSpan={span} className="cms:h-32 cms:text-center cms:text-muted-foreground">
                                     <EmptyState trashed={trashed} filtered={activeFilters(trashed ? { ...query, status: '' } : query) > 0} canCreate={!!can?.create} createUrl={`${base}/create`} onClear={clearFilters} />
+                                    {!trashed && <div className="cms:mt-2"><TrashHint count={trashedCount} onShow={() => visit({ status: 'trashed' })} /></div>}
                                 </TableCell>
                             </TableRow>
                         )}

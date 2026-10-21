@@ -126,6 +126,37 @@ it('describes the publisher with its own name, type, contact details and profile
     ]);
 });
 
+it('offers common organization types by group, and takes any other schema.org type', function () {
+    \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    \Pest\Laravel\get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('form', function ($sections): bool {
+        $field = collect($sections)->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'publisherType');
+        $options = collect($field['options']);
+
+        return $field['type'] === 'select' && $field['searchable'] === true && $field['other']['label'] === 'Other…'
+            && $options->firstWhere('value', 'RealEstateAgent') === ['value' => 'RealEstateAgent', 'label' => 'Real estate agent', 'group' => 'Local businesses']
+            && $options->firstWhere('value', 'LegalService')['label'] === 'Law firm or legal service';
+    }));
+
+    \Pest\Laravel\put('/admin/settings/site', ['publisherType' => 'Brewery'])->assertSessionHasNoErrors();
+    expect(app(SiteSettings::class)->publisherType)->toBe('Brewery');
+    \Pest\Laravel\put('/admin/settings/site', ['publisherType' => 'brewery!'])->assertSessionHasErrors('publisherType');
+    \Pest\Laravel\put('/admin/settings/site', ['publisherType' => ''])->assertSessionHasNoErrors();
+});
+
+it('edits the profiles elsewhere as a list of https addresses, kept one per line', function () {
+    \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    \Pest\Laravel\get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('form', function ($sections): bool {
+        $field = collect($sections)->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'sameAs');
+
+        return $field['type'] === 'list' && $field['accepts'] === 'url' && $field['networks'] === true && $field['addLabel'] === 'Add profile';
+    }));
+
+    \Pest\Laravel\put('/admin/settings/site', ['sameAs' => "https://instagram.com/lumina\n\nhttp://example.com"])->assertSessionHasErrors('sameAs');
+    \Pest\Laravel\put('/admin/settings/site', ['sameAs' => " https://instagram.com/lumina \n\nhttps://x.com/lumina\n"])->assertSessionHasNoErrors();
+    expect(app(SiteSettings::class)->sameAs)->toBe("https://instagram.com/lumina\nhttps://x.com/lumina")
+        ->and(app(SiteSettings::class)->profiles())->toBe(['https://instagram.com/lumina', 'https://x.com/lumina']);
+});
+
 it('describes people, places and products as what a page is about', function (string $type, string $page) {
     $agents = Collection::query()->create(['handle' => 'agents', 'title' => 'Agents', 'blueprint' => 'post', 'route' => '/team/{slug}', 'schema_type' => $type]);
     schemaPost($agents, 'Ayu Lestari', ['description' => 'Senior agent in Canggu.']);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Tests\Admin\Fixtures;
 
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -29,6 +30,14 @@ final class ProductResource extends Resource
     public static function navigationGroup(): ?string
     {
         return 'Shop';
+    }
+
+    public static function links(Authorizable $user): array
+    {
+        return [
+            ['label' => 'Categories', 'url' => 'shop/categories', 'group' => 'Shop'],
+            ['label' => 'Shop on the site', 'url' => 'https://shop.example.com', 'external' => true],
+        ];
     }
 
     public static function form(Form $form): Form

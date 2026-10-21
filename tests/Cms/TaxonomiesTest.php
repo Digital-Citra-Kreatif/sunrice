@@ -168,10 +168,11 @@ it('edits taxonomies and their terms in the admin', function () {
         ->where('terms.0.entries', 0)
         ->has('terms.0.createdAt')
         ->where('taxonomy.collections', [])
-        // Settings only for those who may change the taxonomy.
-        ->where('taxonomy.settings', null));
+        // Settings only for those who may change the taxonomy, the blueprint for those who may edit blueprints.
+        ->where('taxonomy.settings', null)
+        ->where('taxonomy.blueprint', null));
 
-    // To the trash with the term under it, back, and deleted for good (its child moves up).
+    // To the trash with the term under it, back, and permanently deleted (its child moves up).
     delete("/admin/cms/terms/{$news->id}")->assertSessionHasNoErrors();
     expect(Term::query()->count())->toBe(0)->and(Term::onlyTrashed()->count())->toBe(2);
     post("/admin/cms/terms/{$news->id}/restore")->assertSessionHasNoErrors();
@@ -246,6 +247,25 @@ it('creates a term in the full term editor, with its fields, SEO and place, then
 
     actingAs(adminUser(Panel::ACCESS));
     get('/admin/cms/taxonomies/categories/terms/create')->assertForbidden();
+});
+
+it('links the terms list to its taxonomy\'s blueprint for those who may edit blueprints', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    Blueprint::query()->create(['handle' => 'topic', 'title' => 'Topic', 'fields' => []]);
+    Taxonomy::query()->where('handle', 'categories')->update(['blueprint' => 'topic']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.blueprints.view', 'cms.blueprints.update'));
+
+    get('/admin/cms/taxonomies/categories/terms')->assertInertia(fn (Assert $page) => $page->where('taxonomy.blueprint', route('sunrice.admin.cms.blueprints.edit', 'topic')));
+});
+
+it('says how many terms are in the trash, outside it', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
+    post('/admin/cms/taxonomies/categories/terms', ['title' => 'News'])->assertSessionHasNoErrors();
+    Term::query()->firstOrFail()->delete();
+
+    get('/admin/cms/taxonomies/categories/terms')->assertInertia(fn (Assert $page) => $page->where('trashedCount', 1)->where('terms', []));
+    get('/admin/cms/taxonomies/categories/terms?status=trashed')->assertInertia(fn (Assert $page) => $page->where('trashedCount', 0));
 });
 
 it('moves a term under another in its editor, never under itself or a term under it', function () {

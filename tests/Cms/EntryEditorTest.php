@@ -499,3 +499,12 @@ it('compares SEO and structured values in words, setting by setting, never as JS
     get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => $page
         ->loadDeferredProps(fn (Assert $reload) => $reload->where('revisions.0.changed', ['Read more', 'Topics', 'Photos', 'Facts', 'Meta title', 'Open Graph image', 'Hide from search engines (noindex)'])));
 });
+
+it('links the entry editor to its blueprint for those who may edit blueprints', function () {
+    $entry = draft()->entry_id;
+    editor('view', 'update');
+    get(entryEditUrl($entry))->assertInertia(fn (Assert $page) => $page->where('blueprintUrl', null));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'cms.blueprints.view', 'cms.blueprints.update'));
+    get(entryEditUrl($entry))->assertInertia(fn (Assert $page) => $page->where('blueprintUrl', route('sunrice.admin.cms.blueprints.edit', 'article')));
+});

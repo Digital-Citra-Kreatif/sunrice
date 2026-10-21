@@ -7,7 +7,7 @@ declare(strict_types=1);
  * CMS show, written in English in their code, has an Indonesian line in
  * packages/{admin,cms}/lang/id.json (the same text where English reads
  * better). It finds the words in t('…') and __('…') calls, and in the
- * definitions said through Say (labels, help, change warnings, section and card titles,
+ * definitions said through Say (labels, help and its links and developer notes, change warnings, section and card titles,
  * permission labels, navigation groups, flash messages).
  */
 
@@ -49,7 +49,7 @@ function panelWords(): array
     $q = "'((?:[^'\\\\]|\\\\.)*)'";
     $php = [
         "/(?<![\\w>])__\\(\\s*{$q}/",
-        "/->(?:label|help|description|confirm|linkLabel|empty|heading|addLabel|navigationLabel|warnWhenChanged)\\(\\s*{$q}\\s*[,)]/",
+        "/->(?:label|help|developerHelp|description|confirm|linkLabel|empty|heading|addLabel|navigationLabel|warnWhenChanged)\\(\\s*{$q}\\s*[,)]/",
         "/(?:Section|Card)::make\\(\\s*{$q}/",
         "/->(?:link|button|notice)\\(\\s*{$q}/",
         "/Permission::make\\(\\s*'[^']*',\\s*{$q},\\s*{$q}\\s*\\)/",

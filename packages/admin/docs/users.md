@@ -40,7 +40,7 @@ app(PermissionRank::class)->isStrictlyBelow($admin, $permissions); // all theirs
 
 What a user made shouldn't point at someone who is gone. **Delete…** on the Users screen (in the row's menu, on the edit page and for the selected users) asks what happens to it:
 
-- **Give it to another user**: their content moves to the user you pick (the users being deleted aren't offered).
+- **Transfer to another user**: their content moves to the user you pick (the users being deleted aren't offered).
 - **Keep it, without an owner** (the default): it stays, with no author or uploader.
 - **Delete it**: each kind decides what that means. Uploads stay without an uploader, since other content may use them; the CMS moves their entries and comments to the trash.
 

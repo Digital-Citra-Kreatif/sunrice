@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
@@ -267,6 +268,50 @@ it('guards redirects with their permissions', function () {
         ->assertSessionHasErrors(['from_path', 'to_url']);
 
     get('/old')->assertRedirect('/new');
+});
+
+it('names a redirect\'s type Permanent (301) or Temporary (302), in the form and the list', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.redirects.view', 'cms.redirects.create'));
+    Redirect::query()->create(['from_path' => '/old', 'to_url' => '/new', 'status' => 302]);
+
+    get('/admin/cms/redirects/create')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('sections.0.fields.2.label', 'Type')
+        ->where('sections.0.fields.2.options', [['value' => '301', 'label' => 'Permanent (301)'], ['value' => '302', 'label' => 'Temporary (302)']]));
+    get('/admin/cms/redirects')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('columns.2.label', 'Type')
+        ->where('rows.data.0.cells.status', 'Temporary (302)'));
+
+    put('/admin/language', ['locale' => 'id']);
+    get('/admin/cms/redirects')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.cells.status', 'Sementara (302)'));
+});
+
+it('applies a redirect in every language when asked, to the same language\'s address', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.redirects.view', 'cms.redirects.create'));
+    get('/admin/cms/redirects/create')->assertInertia(fn (Assert $page) => $page
+        ->where('sections.0.fields.3.name', 'every_language')
+        ->where('sections.0.fields.3.label', 'In every language'));
+    post('/admin/cms/redirects', ['from_path' => '/listings', 'to_url' => '/properties', 'status' => '301', 'every_language' => '1'])->assertSessionHasNoErrors();
+    post('/admin/cms/redirects', ['from_path' => '/old', 'to_url' => '/new', 'status' => '302'])->assertSessionHasNoErrors();
+    Redirect::query()->create(['from_path' => '/away', 'to_url' => 'https://example.com/', 'status' => 301, 'every_language' => true]);
+
+    expect(Redirect::query()->where('from_path', '/listings')->value('every_language'))->toBeTrue()
+        ->and(Redirect::query()->where('from_path', '/old')->value('every_language'))->toBeFalse();
+    get('/listings')->assertRedirect('/properties');
+    get('/id/listings?page=2')->assertRedirect('/id/properties?page=2');
+    get('/id/away')->assertRedirect('https://example.com/');
+    get('/old')->assertRedirect('/new');
+    get('/id/old')->assertNotFound(); // off by default
+
+    // A path written with a language's prefix still applies in the others.
+    Redirect::query()->create(['from_path' => '/id/promo', 'to_url' => '/id/offers', 'status' => 301, 'every_language' => true]);
+    get('/promo')->assertRedirect('/offers');
+});
+
+it('offers the every-language switch only on a multilingual site', function () {
+    config(['sunrice-cms.locales' => ['en']]);
+    actingAs(adminUser(Panel::ACCESS, 'cms.redirects.view', 'cms.redirects.create'));
+
+    get('/admin/cms/redirects/create')->assertInertia(fn (Assert $page) => $page->count('sections.0.fields', 3));
 });
 
 it('fills in what the SEO card leaves empty from the fields the collection names', function () {

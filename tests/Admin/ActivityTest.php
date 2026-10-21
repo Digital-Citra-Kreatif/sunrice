@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
@@ -182,6 +183,34 @@ it('filters by action and pages by the chosen size', function () {
         ->where('perPageOptions', [25, 50, 100, 200]));
     get('/admin/activity?per_page=25')->assertInertia(fn (Assert $page) => $page->where('query.perPage', 25)->where('rows.lastPage', 2)->has('rows.data', 25));
     get('/admin/activity?per_page=7')->assertSessionHasErrors('per_page');
+});
+
+it('filters by IP address, exactly or by its start, from the filter or the search, security events too', function () {
+    actingAs($this->admin);
+    $at = fn (string $ip, string $action) => Activity::query()->create(['source' => 'admin', 'action' => $action, 'subject_type' => 'products', 'subject_label' => $action, 'ip_address' => $ip, 'created_at' => now()]);
+    $at('192.168.1.20', 'created');
+    $at('192.168.7.3', 'updated');
+    $at('10.0.0.5', 'deleted');
+    $at('2001:db8::1', 'renamed');
+    app(SecurityLog::class)->record('login failed', null, 'mallory@example.com'); // from the test request's 127.0.0.1
+
+    $actions = fn (string $query) => collect(get("/admin/activity?{$query}")->assertOk()->viewData('page')['props']['rows']['data'])->pluck('action')->sort()->values()->all();
+    expect($actions('ip=192.168.1.20'))->toBe(['created'])
+        ->and($actions('ip=192.168.'))->toBe(['created', 'updated'])
+        ->and($actions('ip=2001:db8:'))->toBe(['renamed'])
+        ->and($actions('ip=127.0.0.1'))->toBe(['login failed'])
+        ->and($actions('search=192.168.'))->toBe(['created', 'updated'])
+        ->and($actions('search=10.0.0.5'))->toBe(['deleted']);
+    get('/admin/activity?ip=192.168.1.20')->assertInertia(fn (Assert $page) => $page->where('query.ip', '192.168.1.20')->where('rows.data.0.ip', '192.168.1.20'));
+    get('/admin/activity?ip=x%27%20or%201')->assertSessionHasErrors('ip');
+    expect(collect(Schema::getIndexes('sunrice_activity'))->contains(fn (array $index) => $index['columns'] === ['ip_address']))->toBeTrue();
+});
+
+it('remembers which columns of the log each user shows', function () {
+    actingAs($this->admin);
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page->where('preferences', ['key' => 'table.activity', 'columns' => null, 'perPage' => null]));
+    \Pest\Laravel\putJson('/admin/preferences/table.activity', ['value' => ['columns' => ['who', 'what']]])->assertSuccessful();
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page->where('preferences.columns', ['who', 'what']));
 });
 
 it('prunes old lines from the panel, with a permission, a security event and an alert', function () {

@@ -117,7 +117,7 @@ it('duplicates an entry as a draft in every language', function () {
         ->and($copies->every(fn (EntryTranslation $t) => $t->status === EntryTranslation::DRAFT && $t->published_at === null && $t->draft_data == $hello->draft_data))->toBeTrue();
 });
 
-it('deletes for good only from the trash', function () {
+it('permanently deletes only from the trash', function () {
     $hello = managed('Hello');
     manager('view', 'delete');
     delete("/admin/cms/entries/{$hello->entry_id}/force")->assertSessionHasErrors('entry');

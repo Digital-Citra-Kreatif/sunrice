@@ -48,9 +48,12 @@ it('lists what visitors read outside entries, for translators only', function ()
         ->component('Cms/Translations/Edit')
         ->where('locale', 'id')
         ->where('locales', [['code' => 'id', 'name' => 'Bahasa Indonesia']])
-        ->where('sections.0.texts.0', ['key' => 'site|description', 'label' => 'Description', 'source' => 'Premium homes.', 'value' => '', 'multiline' => true])
-        ->where('sections.1.texts', fn ($texts) => collect($texts)->pluck('key')->all() === ["collection|{$this->agents->id}|title", "taxonomy|{$this->areas->id}|title"])
-        ->where('sections.2.title', 'Form: Contact')
+        ->where('sections.0.title', 'Site description')
+        ->where('sections.0.texts.0', ['key' => 'site|description', 'label' => 'What pages say about the site when they don\'t say their own', 'source' => 'Premium homes.', 'value' => '', 'multiline' => true, 'url' => url('/id')])
+        ->where('sections.1.title', 'Listing page titles')
+        ->where('sections.1.texts', [['key' => "collection|{$this->agents->id}|title", 'label' => '', 'source' => 'Agents', 'value' => '', 'multiline' => false, 'url' => url('/id/team')]])
+        ->where('sections.2.title', 'Forms: Contact')
+        ->where('sections.2.hint', null)
         ->where('sections.2.texts', function ($texts) {
             $keys = collect($texts)->pluck('key')->all();
             $id = Blueprint::query()->where('handle', 'contact_form')->value('id');
@@ -58,8 +61,23 @@ it('lists what visitors read outside entries, for translators only', function ()
             return $keys === ["form|{$this->form->id}|message", "field|{$id}|name|label", "field|{$id}|name|instructions", "field|{$id}|kind|label",
                 "field|{$id}|kind|option|house", "field|{$id}|kind|option|villa.big", "field|{$id}|about|label", "field|{$id}|about.phone|label"];
         })
-        ->where('sections.3.title', 'Menu: Main')
+        ->where('sections.3.title', 'Menus: Main')
         ->where('sections.3.texts.0.source', 'Our team'));
+});
+
+it('lists only titles visitors read, tells same-titled ones apart and leaves out empty texts', function () {
+    actingAs($this->translator);
+    $this->areas->update(['route' => '/areas/{slug}']);
+    $other = Collection::query()->create(['handle' => 'agents_2', 'title' => 'Agents', 'listing_route' => '/agents-2']);
+    Collection::query()->create(['handle' => 'pages', 'title' => 'Pages']); // no listing page: its title never shows
+    app(SiteSettings::class)->fill(['description' => ''])->save();
+
+    get('/admin/cms/translations')->assertInertia(fn (Assert $page) => $page
+        ->where('sections.0.title', 'Listing page titles')
+        ->where('sections.0.texts', fn ($texts) => collect($texts)->map(fn ($text) => [$text['source'], $text['label']])->all() === [['Agents', 'agents'], ['Agents', 'agents_2']])
+        ->where('sections.0.texts.1.key', "collection|{$other->id}|title")
+        ->where('sections.1.title', 'Term page titles')
+        ->where('sections.1.texts.0.key', "taxonomy|{$this->areas->id}|title"));
 });
 
 it('saves only the translations, and the site shows them', function () {

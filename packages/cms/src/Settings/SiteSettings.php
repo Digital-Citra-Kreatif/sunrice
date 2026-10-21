@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Sunrice\Cms\Settings;
 
-use Illuminate\Contracts\Auth\Access\Authorizable;
 use Sunrice\Admin\Resources\Forms\Form;
+use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\MediaPicker;
 use Sunrice\Admin\Resources\Forms\Pairs;
 use Sunrice\Admin\Resources\Forms\Section;
@@ -14,7 +14,6 @@ use Sunrice\Admin\Resources\Forms\Textarea;
 use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Settings\Settings;
-use Sunrice\Admin\Support\Card;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Support\Locales;
@@ -78,6 +77,28 @@ final class SiteSettings extends Settings
     /** The publisher's profiles elsewhere (schema.org sameAs), one URL per line. */
     public string $sameAs = '';
 
+    /**
+     * Common schema.org Organization types offered for the publisher, by
+     * group; any other schema.org type can be typed in (Other…).
+     */
+    public const ORGANIZATION_TYPES = [
+        'Organizations' => [
+            'Organization' => 'Organization', 'Corporation' => 'Corporation', 'NGO' => 'NGO (non-profit)',
+            'EducationalOrganization' => 'Educational organization', 'GovernmentOrganization' => 'Government organization',
+            'MedicalOrganization' => 'Medical organization', 'NewsMediaOrganization' => 'News media', 'OnlineBusiness' => 'Online business',
+            'SportsOrganization' => 'Sports organization', 'PerformingGroup' => 'Performing group',
+        ],
+        'Local businesses' => [
+            'LocalBusiness' => 'Local business', 'RealEstateAgent' => 'Real estate agent', 'Restaurant' => 'Restaurant',
+            'CafeOrCoffeeShop' => 'Café or coffee shop', 'BarOrPub' => 'Bar or pub', 'Bakery' => 'Bakery', 'Store' => 'Store',
+            'Hotel' => 'Hotel', 'LodgingBusiness' => 'Lodging', 'TravelAgency' => 'Travel agency', 'BeautySalon' => 'Beauty salon',
+            'HealthClub' => 'Gym or health club', 'MedicalClinic' => 'Medical clinic', 'Dentist' => 'Dentist', 'Pharmacy' => 'Pharmacy',
+            'LegalService' => 'Law firm or legal service', 'AccountingService' => 'Accounting service', 'FinancialService' => 'Financial service',
+            'InsuranceAgency' => 'Insurance agency', 'AutoRepair' => 'Car repair', 'HomeAndConstructionBusiness' => 'Home and construction',
+            'ChildCare' => 'Child care', 'EmploymentAgency' => 'Employment agency',
+        ],
+    ];
+
     /** The description for a page in a language: its line in `descriptions`, else `description`. */
     public function descriptionIn(?string $locale = null): string
     {
@@ -104,20 +125,12 @@ final class SiteSettings extends Settings
         return 'The homepage, the site\'s name and description, and structured data.';
     }
 
-    /** The rest of what search engines and shared links see is on its own page. */
-    public static function cards(Authorizable $user): array
-    {
-        return [Card::make('Search engines and sharing')
-            ->description('Hiding the site from search engines, the share image, page titles and which fields fill in each page\'s SEO.')
-            ->link('Open Settings → SEO', route('sunrice.admin.cms.seo.edit', [], false))];
-    }
-
     public static function form(Form $form): Form
     {
         return $form->schema([
             Select::make('homepage')->label('Homepage')->options(fn (): array => self::homepages())->searchable()
                 ->help('The live page shown at / in each language it\'s published in. Its own address redirects there. Editors with "Choose the homepage" set it from the page\'s editor.'),
-            Section::make('The site')->description('Its name and what it\'s about, for search results and shared links of pages that don\'t say their own. Search engines, share image and titles: Settings → SEO.')->columns(2)->schema([
+            Section::make('The site')->description('Its name and what it\'s about, for search results and shared links of pages that don\'t say their own.')->columns(2)->schema([
                 TextInput::make('name')->label('Site name')->maxLength(100)->placeholder(self::appName())->span(2),
                 Textarea::make('description')->label('Description')->rows(2)->maxLength(500)->span(2),
                 // One input per other language, kept as "id: …" lines.
@@ -131,14 +144,15 @@ final class SiteSettings extends Settings
                 MediaPicker::make('logo')->label('Logo')->images()->help('Square or wide, at least 112 pixels.'),
                 TextInput::make('publisherName')->label('Name')->maxLength(150)->placeholder(self::appName())
                     ->help('Empty: the site name.'),
-                TextInput::make('publisherType')->label('Kind of organization')->maxLength(60)->placeholder('Organization')
-                    ->rules(['regex:/^[A-Z][A-Za-z]{2,59}$/'])
-                    ->help('A schema.org type, written as one word: LocalBusiness, RealEstateAgent, Restaurant, Store… Not for a person.'),
+                Select::make('publisherType')->label('Organization type')->options(self::ORGANIZATION_TYPES)->searchable()
+                    ->placeholder('Organization')
+                    ->other('Other…', ['max:60', 'regex:/^[A-Z][A-Za-z]{2,59}$/'], 'Brewery')
+                    ->help('What search engines are told the organization is. Other…: any schema.org type, written as one word.'),
                 TextInput::make('telephone')->label('Phone')->maxLength(40)->placeholder('+62 21 555 0100'),
                 Textarea::make('address')->label('Address')->rows(2)->maxLength(300),
-                Textarea::make('sameAs')->label('Profiles elsewhere')->rows(3)->maxLength(2000)->span(2)
-                    ->rules([fn (string $attribute, mixed $value, \Closure $fail) => self::checkProfiles($value, $fail)])
-                    ->help('One address per line: the publisher\'s pages on Instagram, LinkedIn, Wikipedia…'),
+                ListInput::make('sameAs')->label('Profiles elsewhere')->urls(httpsOnly: true)->networks()->addLabel('Add profile')
+                    ->max(20)->maxLength(2000)->span(2)
+                    ->help('The publisher\'s pages on other sites: Instagram, LinkedIn, Wikipedia…'),
             ]),
         ]);
     }
@@ -146,20 +160,7 @@ final class SiteSettings extends Settings
     /** @return list<string> the profile addresses (sameAs), one per line */
     public function profiles(): array
     {
-        return array_values(array_filter(array_map(trim(...), preg_split('/\R/', $this->sameAs) ?: []), fn (string $line) => $line !== ''));
-    }
-
-    /** @param \Closure(string): mixed $fail */
-    public static function checkProfiles(mixed $value, \Closure $fail): void
-    {
-        foreach (preg_split('/\R/', is_string($value) ? $value : '') ?: [] as $line) {
-            $line = trim($line);
-            if ($line !== '' && (filter_var($line, FILTER_VALIDATE_URL) === false || preg_match('#^https?://#i', $line) !== 1)) {
-                $fail(__('":address" isn\'t a web address (https://…).', ['address' => $line]));
-
-                return;
-            }
-        }
+        return ListInput::items($this->sameAs);
     }
 
     /** The site's name: as set, else the app's. */

@@ -102,20 +102,22 @@ public static function query(): Builder
 | Any field | | `->showWhen('route')` shows it only while another field is filled in (switched on, chosen, typed in), `->showWhen('kind', 'link')` while it holds that value; it's only hidden on screen, what it holds is still sent and checked; `->showWhenChanged('tags')` shows it on an edit form once that field differs from its saved value ("Also remove …" when a list changes) |
 | `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slugFrom('title')` (while creating, filled from that field as it's typed, `main_menu`, or with `'-'` `main-menu`, until someone types in it; what's typed in it is kept to lowercase letters, digits and the separator; check it on the server with a rule too) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
-| `Pairs` | string, one `key: value` per line | Edited as rows of two inputs: `->labels('Code', 'Name')`, `->suggest(['en' => 'English'])` (picking a key fills an empty value), `->firstBadge('Main')`, `->addLabel(…)`, `->maxLength(…)`; `->fixed(['id' => 'Bahasa Indonesia'])` gives a labelled input per key instead (nothing to add or remove; other keys' lines are kept) |
+| `ListInput` | string, one value per line | Edited as rows of one input each, with **Add** (`->addLabel('Add profile')`) and remove buttons; saved trimmed, without empty lines, so it replaces a "one per line" textarea without changing what's stored (`ListInput::items($value)` reads the values). `->urls()` (http or https; `->urls(httpsOnly: true)`) or `->emails()` (a list typed with commas is split too) check each value, the error naming the one that isn't; `->networks()` shows which site each address is on (Instagram, LinkedIn, Facebook, X, YouTube, TikTok, Wikipedia…, else a globe); `->max(…)` values, `->maxLength(…)` characters in all |
+| `Pairs` | string, one `key: value` per line | Edited as rows of two inputs: `->labels('Code', 'Name')`, `->hints('en, id…', 'As visitors read it')` (a short line under each column's heading), `->suggest(['en' => 'English'])` (the key becomes a searchable list of them, by key or value, where any other key can still be typed; picking one fills the value when it's empty or still the old key's suggestion), `->firstBadge('Main')`, `->addLabel(…)`, `->maxLength(…)`; `->fixed(['id' => 'Bahasa Indonesia'])` gives a labelled input per key instead (nothing to add or remove; other keys' lines are kept) |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |
-| `Select` | one of the options | `->options([value => label])`, or a closure that gets the record being edited (null when creating): `->options(fn (?Model $record) => …)`; other values are refused; `->searchable()` adds a search box over them, for long lists |
+| `Select` | one of the options | `->options([value => label])`, or a closure that gets the record being edited (null when creating): `->options(fn (?Model $record) => …)`; other values are refused; `->searchable()` adds a search box over them, for long lists. An array as a value is a group of options under a heading: `->options(['Shops' => ['Store' => 'Store', 'Bakery' => 'Bakery'], …])`. `->other($label = 'Other…', $rules, $placeholder)` ends the list with an item that shows a text input for a value not listed, accepted when it passes `$rules` (a saved value that isn't an option shows there) |
 | `DatePicker` | date | `->withTime()` |
 | `Password` | a hash | never sent to the browser; empty keeps the current one when editing, so `->required()` applies when creating; Laravel's `Password::defaults()` rules; `->confirmed()` asks for it twice (`{name}_confirmation`; the AI tools fill it in) |
 | `Secret` | a string | never sent to the browser; empty keeps the current value; store it encrypted (`encrypted` cast) |
 | `MediaPicker` | a media id, or a list with `->multiple()` | `->images()`, `->types(['image', 'document'])`, `->multiple(max)` (cast the attribute to `array`); see [Media](media.md#picking-media-in-forms) |
-| `CheckboxList` | an array of values | `->options([value => label])`, or groups `[group => [value => label]]`, or a closure returning them |
+| `CheckboxList` | an array of values | `->options([value => label])`, or groups `[group => [value => label]]`, or a closure returning them; `->matrix()` shows each group of dotted names ending in an action (permissions: `shop.orders.view`) as a table of things by action (View, Create, Edit, Publish, Moderate, Delete, Export; `-own` variants as an "Own only" box in their cell, other actions listed in the row), with select all per group and row, folding groups with a count, and a plain list on phones; only the look changes (the Roles screen uses it) |
 | `BelongsToSelect` | the relation's foreign key | named after a `BelongsTo` relation; searchable (see below) |
 | `BelongsToManySelect` | the relation, synced after saving | named after a `BelongsToMany` relation; searchable, in the order chosen; `->orderColumn('sort_order')` (a pivot column for the order), `->max(…)` |
 | `RichText` | sanitised HTML | `->maxLength(…)` (500,000), `->images(false)`; see below |
 
 Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `->default()` (the create form's value), `->rules([...])` (more Laravel rules), `->unique()` (except the record being edited), `->onlyOnCreate()` / `->onlyOnEdit()` and `->span(2)` (columns in a section's grid). `Section::make('Title')->columns(2)->schema([...])` groups fields in a card.
+
 
 `->warnWhenChanged('…')` warns under a field on the edit form once its value differs from the saved one (never when creating), for values code relies on, such as a handle templates name or a role's name. `:old` and `:new` in the text become the saved and the typed value; like labels and help, the text is said in the panel's language (give it an Indonesian line). The panel's Roles screen warns this way when a role is renamed: code that checks it by name needs the new one.
 
@@ -129,6 +131,17 @@ Under its help, a field can say more, following the form as it's edited:
 - `->developerHelp('In a template: `<x-shop::product sku=":value" />`', 'ABC-1')` adds a line "For developers: …": `backticks` show as code, `:value` is the field's value as it's typed (the example while it's empty). Keep the help itself in plain words for editors.
 - `->helpDetails('Which file?', "1. shop/product.blade.php\n2. …")` adds a disclosure that opens to more text.
 - `->links([...])` puts links under the field, and `Section::make('…')->links([...])` in its card's header. A `Link::make('Edit', url('/admin/blueprints/{blueprint}/edit'))` takes the form's current value of a field for `{name}` in its address; `->showWhen('blueprint')` / `->showUnless('blueprint')` show it only while that field is (or isn't) filled in, and `->newTab()` opens it in a new tab (marked ↗). Either takes a closure that gets the record (null when creating), for links that need a saved one:
+
+When a developer needs a block of code to copy (an `.env` snippet, several commands), give `developerHelp()` a third argument, `$code`: the text and the code fold away in a **For developers** disclosure under the help, the code shown as code with a copy button. The CMS's captcha switches do, with a `links()` link to the guide:
+
+```php
+Toggle::make('captcha')->label('Require a captcha')->disabled()
+    ->help('Not set up yet: ask your developer to connect a captcha service.')
+    ->links([Link::make('How', route('sunrice.admin.guide.show', 'website/settings', false).'#captcha')])
+    ->developerHelp("Set these in the app's .env:", code: Captcha::ENV_EXAMPLE),
+```
+
+React pages get the same disclosure as `DeveloperHelp` from `@sunrice/admin-sdk/ui`.
 
 ```php
 Section::make('Listing page')->links(fn (?Model $record) => $record ? [Link::make('View on site', $record->listingUrl())->newTab()] : []),
@@ -211,6 +224,8 @@ Text is escaped, and times (in rows and list items) are shown in the viewer's ow
 - `->defaultSort('-created_at')`, `->perPage(50)` (each user may pick another page size and hide columns from the list's **Columns** menu; both are kept per user, see [preferences](preferences.md)), `->exportable()` (CSV of the filtered, sorted list, for people with `<prefix>.export`; values that spreadsheets would run as formulas are escaped). For CSV of your own, `Sunrice\Admin\Support\Csv::write($stream, $cells)` escapes the same way (`Csv::cell()` for one value).
 
 Sorting, filtering and searching only ever use what the table declares; anything else in the URL is ignored.
+
+The list's header has the panel's one pattern: **New …** as its button, and a "⋮" menu with **Export CSV** (with the export permission) and the resource's own links from `links(Authorizable $user)`: related pages and settings, `[['label' => 'Submissions', 'url' => 'cms/submissions', 'group' => 'Forms']]` (a `url` under the panel's path or a full address; `external` opens it in a new tab). The search, filters, **Trash** and **Columns** are in the table's toolbar. The CMS's forms list links to their submissions this way.
 
 ## Actions
 
