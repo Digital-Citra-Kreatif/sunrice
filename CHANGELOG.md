@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Revisions in the entry editor show who published each one and the fields it changed from the one before, and **Compare** shows a revision beside the saved draft, field by field (`GET cms/revisions/{revision}/compare`, `sunrice.admin.cms.entries.revisions.compare`, behind viewing the entry).
 - Dated collections: the entry editor's Status card has the entry's **Date**, changed without publishing the draft (`Actions\Entries\ChangePublishDate`, `@api`; `POST cms/entries/{entry}/date`, `sunrice.admin.cms.entries.date`, behind `cms.entries.publish`); a date to come schedules it.
 - Scheduling: a scheduled entry's button says **Scheduled for …** (to change the date) instead of a disabled **Published**, with **Publish now** and **Unschedule (back to draft)** in its menu; **Publish on a date** starts on tomorrow (or the date it's scheduled for), not on the entry's old publish date, and asks before a past date publishes at once; the `DatePicker`'s time is typed on the 24-hour clock (it was a narrow native time input, 12-hour in some browsers) and entry dates show on it too; publishing a draft that was scheduled and then unpublished takes effect now, no longer on the old date (`PublishEntry`).
 - Reordering a hierarchical collection shows its tree (children indented under their parent, each level dragged on its own) instead of one flat list mixing the levels (`treeOrder()` in the CMS's `lib/tree.ts`).

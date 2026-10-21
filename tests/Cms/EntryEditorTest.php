@@ -320,3 +320,28 @@ it('changes a published entry\'s date without publishing its draft', function ()
     post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => 'soon'])->assertSessionHasErrors('published_at');
     post("/admin/cms/entries/{$translation->entry_id}/date", [])->assertSessionHasErrors('published_at');
 });
+
+it('shows who published each revision, what changed, and compares one with the draft', function () {
+    config(['inertia.testing.ensure_pages_exist' => false]);
+    $ayu = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'cms.entries.publish');
+    $ayu->forceFill(['name' => 'Ayu'])->save();
+    actingAs($ayu);
+    $translation = app(PublishEntry::class)->handle(draft('Hello', ['intro' => 'Hi']));
+    $translation = app(SaveDraft::class)->handle($translation->fresh(), ['title' => 'Hello there', 'data' => ['intro' => 'Hi', 'featured' => true]]);
+    app(PublishEntry::class)->handle($translation);
+    app(SaveDraft::class)->handle($translation->fresh(), ['data' => ['intro' => 'Hello everyone', 'featured' => true]]);
+
+    get("/admin/cms/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->loadDeferredProps(fn (Assert $reload) => $reload
+            ->where('revisions.0.title', 'Hello there')->where('revisions.0.author', 'Ayu')->where('revisions.0.changed', ['Title', 'Featured'])
+            ->where('revisions.1.author', 'Ayu')->where('revisions.1.changed', null)));
+
+    $revision = $translation->revisions()->first();
+    get("/admin/cms/revisions/{$revision?->id}/compare")->assertOk()->assertExactJson(['fields' => [
+        ['label' => 'Intro', 'revision' => 'Hi', 'draft' => 'Hello everyone'],
+    ]]);
+
+    // Only for those who may see the entry.
+    actingAs(adminUser(Panel::ACCESS));
+    get("/admin/cms/revisions/{$revision?->id}/compare")->assertForbidden();
+});
