@@ -178,6 +178,23 @@ it('limits comments per visitor', function () {
     expect((string) get('/blog/hello')->getContent())->toContain('Please wait')->toContain('Still here');
 });
 
+it('emails moderators once for a burst of comments on one entry', function () {
+    commentSettings(['notifyEmails' => 'editor@example.com']);
+
+    foreach (range(1, 3) as $i) {
+        commentOn($this->post, ['body' => "Held {$i}"], "10.0.0.{$i}");
+    }
+    Mail::assertQueued(CommentPosted::class, 1);
+    travel(PostComment::TELL_EVERY + 1)->seconds();
+    commentOn($this->post, ['body' => 'Later']);
+    Mail::assertQueued(CommentPosted::class, 2);
+});
+
+it('heads an empty thread "Leave a comment"', function () {
+    $html = (string) get('/blog/hello')->getContent();
+    expect($html)->toContain('<h2>Leave a comment</h2>')->not->toContain('0 comments');
+});
+
 it('emails moderators, and commenters about replies once, with a way to stop', function () {
     app(SyncPermissions::class)->handle();
     $moderator = adminUser(Panel::ACCESS, 'cms.comments.moderate');

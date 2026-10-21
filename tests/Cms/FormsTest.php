@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,7 @@ use Sunrice\Cms\Mail\SubmissionReceived;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\Submission;
+use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -70,6 +72,18 @@ it('renders the notification escaped, with labels', function () {
 
     expect($html)->toContain('Your name')->toContain('&lt;b&gt;Ana&lt;/b&gt;')->toContain('Help')->toContain('Send me news')->toContain('Yes')
         ->not->toContain('<b>Ana</b>');
+});
+
+it('says in the notification where and in which language the form was sent, links to the submissions and leaves out what was left empty', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $submission = app(SubmitForm::class)->handle($this->form, contactInput(['topic' => '', 'newsletter' => '0']), 'id', '10.0.0.1', 'Firefox', 'https://example.com/kontak');
+
+    $html = (new SubmissionReceived($submission))->render();
+
+    expect($html)->toContain('form in '.Locales::name('id').',')->toContain('from <a href="https://example.com/kontak">')
+        ->toContain('href="'.route('sunrice.admin.cms.submissions.index', 'contact').'"')
+        ->not->toContain('>Topic<')
+        ->not->toContain('Photo');
 });
 
 it('sends the visitor back with errors under the form\'s bag', function () {
@@ -306,4 +320,16 @@ it('emails the members of the form\'s roles too, once each', function () {
     post('/admin/forms', ['title' => 'Quote', 'handle' => 'quote', 'blueprint' => 'contact', 'notify_roles' => ['sales']])->assertSessionHasNoErrors();
     expect(Form::query()->where('handle', 'quote')->sole()->notify_roles)->toBe(['sales']);
     post('/admin/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify_roles' => ['nobody']])->assertSessionHasErrors('notify_roles.0');
+});
+
+it('refuses days before today in a date field set to "today or later"', function () {
+    Date::setTestNow('2026-10-21 09:00:00');
+    Blueprint::query()->where('handle', 'contact')->firstOrFail()->update(['fields' => [
+        ['handle' => 'name', 'type' => 'text'],
+        ['handle' => 'preferred_date', 'type' => 'date', 'config' => ['future' => true]],
+    ]]);
+
+    expect(Blade::render('<x-sunrice-cms::form handle="contact" />'))->toContain('type="date" id="form-contact-preferred_date"')->toContain('min="2026-10-21"');
+    postJson('/forms/contact', ['name' => 'Ana', 'preferred_date' => '2020-01-01'])->assertUnprocessable()->assertJsonValidationErrors(['preferred_date']);
+    postJson('/forms/contact', ['name' => 'Ana', 'preferred_date' => '2026-10-21'])->assertCreated();
 });

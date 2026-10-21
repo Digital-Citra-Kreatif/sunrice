@@ -873,7 +873,9 @@
                 {
                     "type": "date",
                     "label": "Preferred date",
-                    "config": [],
+                    "config": {
+                        "future": true
+                    },
                     "fields": [],
                     "handle": "preferred_date",
                     "required": false,
