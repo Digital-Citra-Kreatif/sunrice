@@ -139,3 +139,10 @@ it('publishes its assets with the app\'s', function () {
     expect(ServiceProvider::pathsToPublish(CmsServiceProvider::class, 'laravel-assets'))
         ->toHaveKey(dirname(__DIR__, 2).'/packages/cms/dist');
 });
+
+it('gives the builder the handles content keeps for itself, to warn as they are typed', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.blueprints.manage'));
+
+    get('/admin/cms/blueprints/create')->assertInertia(fn (Assert $page) => $page->where('reserved', Blueprint::RESERVED));
+    expect(Blueprint::RESERVED)->toContain('status', 'author');
+});

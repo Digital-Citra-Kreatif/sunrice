@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
+    errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, handleWarning, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -77,4 +77,15 @@ test('keeps a typed handle to lowercase letters, digits and underscores', () => 
     assert.equal(handleInput('Contact Person'), 'contact_person');
     assert.equal(handleInput('phone_'), 'phone_');
     assert.equal(handleInput('2nd-try'), 'nd_try');
+});
+
+test('warns about a reserved or taken handle as it is typed', () => {
+    const a = { key: 'a', handle: 'status', type: 'select' };
+    const b = { key: 'b', handle: 'phone', type: 'text' };
+    const c = { key: 'c', handle: 'phone', type: 'text' };
+    const include = { key: 'd', handle: 'phone', type: 'fieldset' };
+    assert.equal(handleWarning(a, [a, b], ['status', 'author']), '"status" is used by the content itself; choose another handle.');
+    assert.equal(handleWarning(a, [a, b]), null);
+    assert.equal(handleWarning(b, [a, b, c]), 'There is already a field "phone" here.');
+    assert.equal(handleWarning(b, [b, include]), null);
 });
