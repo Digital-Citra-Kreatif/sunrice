@@ -29,7 +29,7 @@ interface Props {
 export function FormSections({ sections, data, saved, errors, storageKey, onChange }: Props) {
     return sections.map((section, index) => {
         // Fields whose condition isn't met are hidden (showWhen), a section of only those too.
-        const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data));
+        const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data, saved));
         if (fields.length === 0) return null;
         const content = (
             <div className={cn('grid gap-5', gridColumns[section.columns])}>

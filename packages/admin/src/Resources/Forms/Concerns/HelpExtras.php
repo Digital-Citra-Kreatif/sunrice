@@ -12,7 +12,7 @@ use Sunrice\Admin\Support\Say;
 /**
  * What a field can say besides its help: values from the form in the
  * help as it's edited, a line for developers, a disclosure with more, and
- * links under it.
+ * links under it; and showing it only once another field is changed.
  *
  * @internal used by Field, whose methods are the API
  */
@@ -76,6 +76,18 @@ trait HelpExtras
     public function links(array|Closure $links): static
     {
         $this->links = $links;
+
+        return $this;
+    }
+
+    /**
+     * Shown only on an edit form, once another field differs from its saved
+     * value (a choice that only matters then: "Also remove …" when a list
+     * is changed). Like showWhen(), it's only hidden on screen.
+     */
+    public function showWhenChanged(string $field): static
+    {
+        $this->showWhen = ['field' => $field, 'value' => null, 'changed' => true];
 
         return $this;
     }

@@ -263,3 +263,34 @@ it('switches term pages on and off as collections do their pages', function () {
     put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'pages' => false, 'route' => '/themes/{slug}'])->assertSessionHasNoErrors();
     expect($topics->fresh()->route)->toBeNull();
 });
+
+it('gives an attached collection\'s blueprints a terms field for the taxonomy, and takes it away only when asked', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [['handle' => 'topics', 'type' => 'text']]]);
+    Blueprint::query()->create(['handle' => 'landing', 'title' => 'Landing', 'fields' => []]);
+    Blueprint::query()->create(['handle' => 'page', 'title' => 'Page', 'fields' => [['handle' => 'tags', 'type' => 'terms', 'config' => ['taxonomy' => 'topics']]]]);
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'blueprints' => ['landing']]);
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.create', 'cms.taxonomies.update'));
+
+    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $blog->id, (string) $pages->id]])->assertSessionHasNoErrors();
+    $post = Blueprint::query()->where('handle', 'post')->firstOrFail();
+    // "topics" was taken: a free variant; the field is a real one, several terms allowed.
+    expect($post->fields[1])->toMatchArray(['handle' => 'topics_terms', 'type' => 'terms', 'label' => 'Topics', 'config' => ['taxonomy' => 'topics', 'multiple' => true]])
+        ->and(Blueprint::query()->where('handle', 'landing')->firstOrFail()->fields[0]['handle'])->toBe('topics')
+        // Page had one already.
+        ->and(Blueprint::query()->where('handle', 'page')->firstOrFail()->fields)->toHaveCount(1);
+
+    get('/admin/cms/taxonomies/topics/edit')->assertInertia(fn (Assert $page) => expect(collect($page->toArray()['props']['aside'][0]['blocks'] ?? [])->firstWhere('type', 'list')['items'])
+        ->toBe([['label' => 'Landing', 'meta' => 'topics', 'at' => null], ['label' => 'Page', 'meta' => 'tags', 'at' => null], ['label' => 'Post', 'meta' => 'topics_terms', 'at' => null]]));
+
+    // Detached: the field stays, unless asked to go.
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'collections' => [(string) $pages->id]])->assertSessionHasNoErrors();
+    expect(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields)->toHaveCount(2);
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'collections' => [(string) $blog->id, (string) $pages->id]])->assertSessionHasNoErrors();
+    expect(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields)->toHaveCount(2);
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'collections' => [(string) $pages->id], 'remove_term_fields' => true])->assertSessionHasNoErrors();
+    expect(array_column(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields, 'handle'))->toBe(['topics'])
+        ->and(Blueprint::query()->where('handle', 'landing')->firstOrFail()->fields)->toBe([])
+        ->and(Blueprint::query()->where('handle', 'page')->firstOrFail()->fields)->toHaveCount(1);
+});

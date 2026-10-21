@@ -57,7 +57,7 @@ abstract class Field implements Component
     /** @var (Closure(Model, mixed): void)|null */
     protected ?Closure $saveUsing = null;
 
-    /** @var array{field: string, value: string|int|bool|null}|null */
+    /** @var array{field: string, value: string|int|bool|null, changed?: true}|null */
     private ?array $showWhen = null;
 
     final public function __construct(public readonly string $name)

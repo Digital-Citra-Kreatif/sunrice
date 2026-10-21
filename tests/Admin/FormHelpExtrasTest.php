@@ -49,3 +49,7 @@ it('gives section and field links the record, none when creating', function () {
     expect($creating)->not->toHaveKey('links')
         ->and($creating['fields'][0])->not->toHaveKey('links');
 });
+
+it('shows a field once another one is changed', function () {
+    expect(TextInput::make('note')->showWhenChanged('tags')->toArray()['showWhen'])->toBe(['field' => 'tags', 'value' => null, 'changed' => true]);
+});
