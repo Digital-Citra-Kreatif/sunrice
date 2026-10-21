@@ -30,7 +30,7 @@ Turning it off is recorded and emailed to the people who receive security alerts
 
 **Send a test email** sends a message to your own email address straight away and tells you whether it went, or the mail server's error if it didn't. Use it after your developer changes the mail settings, and before turning on two-factor login. You can send three a minute.
 
-If the card warns that mail isn't delivered (the *log* mailer, for example), messages only go to a log file: tell your developer.
+If the card warns that mail isn't delivered (the *log* mailer, for example), messages only go to a log file: tell your developer. It also warns while mail is sent from an example address such as *hello@example.com*: replies go nowhere and spam filters may drop the mail, so ask your developer to set your own address.
 
 The panel sends password reset links, login codes, security alerts and test emails; the website adds form and comment notifications.
 

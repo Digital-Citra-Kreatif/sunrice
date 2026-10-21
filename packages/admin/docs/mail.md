@@ -40,7 +40,7 @@ Keep the worker running with Supervisor, systemd or your host's process manager,
 
 ## Settings → Mail
 
-Users with `sunrice.settings.mail` see **Settings → Mail**: the mailer (and server and port for SMTP), the from address and the queue connection, read from the app's config; passwords are never shown. Nothing there is edited in the panel.
+Users with `sunrice.settings.mail` see **Settings → Mail**: the mailer (and server and port for SMTP), the from address and the queue connection, read from the app's config; passwords are never shown. Nothing there is edited in the panel. It warns while the from address is on a domain reserved for examples (`hello@example.com`, Laravel's default, or `.test`, `localhost` …): set `MAIL_FROM_ADDRESS`.
 
 **Send a test email** sends a message to your own account's address right away (`POST /admin/settings/mail/test`, route `sunrice.admin.settings.mail.test`) and says whether it went, or why not (the mail server's error). It can be used 3 times a minute per person. Do this before turning on two-factor login: if codes can't be delivered, nobody can log in.
 

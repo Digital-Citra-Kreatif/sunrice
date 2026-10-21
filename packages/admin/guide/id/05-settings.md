@@ -30,7 +30,7 @@ Mematikannya dicatat dan diemailkan kepada penerima peringatan keamanan, karena 
 
 **Send a test email** langsung mengirim pesan ke alamat email Anda sendiri dan memberi tahu apakah berhasil, atau pesan galat dari server email jika gagal. Gunakan setelah developer mengubah pengaturan email, dan sebelum menyalakan login dua langkah. Anda bisa mengirim tiga kali per menit.
 
-Jika kartu ini memperingatkan bahwa email tidak benar-benar terkirim (misalnya mailer *log*), pesan hanya masuk ke berkas log: beri tahu developer Anda.
+Jika kartu ini memperingatkan bahwa email tidak benar-benar terkirim (misalnya mailer *log*), pesan hanya masuk ke berkas log: beri tahu developer Anda. Kartu ini juga memperingatkan selama email dikirim dari alamat contoh seperti *hello@example.com*: balasan tidak sampai ke mana pun dan filter spam bisa membuang emailnya, jadi minta developer memasang alamat Anda sendiri.
 
 Panel mengirim tautan atur ulang kata sandi, kode masuk, peringatan keamanan, dan email uji coba; situs web menambahkan pemberitahuan formulir dan komentar.
 

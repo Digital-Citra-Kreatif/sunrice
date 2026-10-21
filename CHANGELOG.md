@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Settings → Mail warns while mail is sent from an example address (`hello@example.com`, Laravel's default, or another domain reserved for examples and tests), pointing to `MAIL_FROM_ADDRESS`.
 - Settings → Site → Structured data describes the publisher fully: its own name (`SiteSettings::$publisherName`, else the site name), a more specific schema.org type (`$publisherType`: `LocalBusiness`, `RealEstateAgent` …), phone (`$telephone`), address (`$address`) and profiles elsewhere (`$sameAs`, one URL per line, `profiles()`).
 - Settings → Languages opens with the languages in use (from config) instead of an empty box, and its **Main language** card switches the main language from the panel (`POST admin/cms/languages/{locale}/main`, `sunrice.admin.cms.languages.main`, behind `cms.settings.locales`, through `SwitchMainLanguage`). Generally, an empty setting shows its form field's `->default()`.
 - Settings → Branding's Font says that every font but System loads from Bunny Fonts (`fonts.bunny.net`) and to choose System for intranets, offline servers or privacy; the branding docs explain the fallback and how to self-host through `sunrice-admin.font`.
