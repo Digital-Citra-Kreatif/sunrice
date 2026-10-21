@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- The entry editor saves its Page settings (parent, template, comments) with the draft and counts them as unsaved changes (there's no separate **Save settings**; the blueprint keeps its own **Change blueprint**), and a new entry of a hierarchical collection can pick its parent: `CreateEntry` takes `parent_id`, the editor's `PUT entries/{entry}` takes `parent_id`, `template` and `comments_closed` with the draft (all or nothing), and `SaveEntrySettings::parent()` is public.
 - Menu editor: **Out a level** moves a link (with its own children) to just after its parent's sub-menu, instead of taking the links that followed it as its children.
 - Fixed: on MySQL, saving a menu with nested links again duplicated most of it (the ordered delete left all but the first branch behind); `SaveMenu` now unhooks the old links from their parents before deleting them.
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
