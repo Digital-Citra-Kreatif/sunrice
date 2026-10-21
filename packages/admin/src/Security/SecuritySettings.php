@@ -41,7 +41,7 @@ final class SecuritySettings extends Settings
         return $form->schema([
             Section::make('Signing in')->schema([
                 Toggle::make('twoFactor')->label('Two-factor login')
-                    ->help('After the password, everyone also types a 6-digit code we email them. Make sure the app can send email first (Settings → Mail → Send a test email): without it, nobody can log in. If that happens, a developer can turn it off on the server (see Help → Guide → Activity log and security).'),
+                    ->help('After the password, everyone also types a 6-digit code we email them. Make sure the app can send email first (Settings → Mail → Send a test email): without it, nobody can log in. If that happens, a developer can turn it off on the server (Help → Guide → Settings says how).'),
             ]),
             Section::make('Security alerts')->schema([
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')
