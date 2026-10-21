@@ -1776,6 +1776,8 @@
                     "label": "Photos",
                     "config": {
                         "types": "jpg, jpeg, png, webp",
+                        "multiple": true,
+                        "max_files": 10,
                         "max_kb": 5120
                     },
                     "fields": [],
