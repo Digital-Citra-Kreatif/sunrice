@@ -177,5 +177,5 @@ address: emails' links are built from it, and `bootstrap/app.php` trusts only it
 `expose_php = Off` in `php.ini` so responses don't announce the PHP version (`X-Powered-By`).
 
 Web server: serve `public/`; for `storage/media` add `X-Content-Type-Options: nosniff` (see the panel's
-media docs). `/robots.txt` is a route (`routes/web.php`) that names the sitemap at the address the site is
-served on, and keeps search engines out of a hidden site.
+media docs). `/robots.txt` is a route (`routes/web.php`) that names the sitemap on `APP_URL` (not the request's
+`Host` header), and keeps search engines out of a hidden site.

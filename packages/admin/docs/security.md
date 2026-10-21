@@ -61,7 +61,7 @@ AppUrl::route('sunrice.admin.shop.orders.show', ['order' => $order->id]); // htt
 AppUrl::url($entry->url()); // an absolute link moved from the request's host to APP_URL
 ```
 
-Also turn on Laravel's `TrustHosts` middleware (`$middleware->trustHosts()` in `bootstrap/app.php`) or have your web server answer only your own host names, so the rest of the app (caches keyed by URL, redirects) never works with a made-up host.
+Also turn on Laravel's `TrustHosts` middleware (`$middleware->trustHosts()` in `bootstrap/app.php`) or have your web server answer only your own host names, so the rest of the app (caches keyed by URL, redirects, links in pages) never works with a made-up host. With it, a request whose `Host` isn't `APP_URL`'s host (or a subdomain of it) gets a 400; Laravel skips the check while `APP_ENV=local` and in tests. The CMS's own redirects are host-relative and its sitemap uses `APP_URL` either way ([The Host header](../../cms/docs/site.md#the-host-header)).
 
 ## Fetching URLs people give
 
