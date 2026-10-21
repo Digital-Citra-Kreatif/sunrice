@@ -53,6 +53,15 @@ it('takes comments on journal posts', function (): void {
     expect(Comment::query()->where('body', 'Very useful, thank you.')->exists())->toBeTrue();
 });
 
+it('names the post\'s author agent as its author in the structured data, not the company', function (): void {
+    $html = (string) $this->get('/journal/market-report-7')->assertOk()->getContent();
+    preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $html, $m);
+    $graph = collect($m[1])->flatMap(fn ($json) => json_decode($json, true)['@graph'] ?? []);
+    $article = $graph->first(fn ($node) => in_array($node['@type'] ?? null, ['BlogPosting', 'Article'], true));
+
+    expect($article['author'])->toMatchArray(['@type' => 'Person', 'name' => 'Ayu Pratiwi', 'url' => url('/team/ayu-pratiwi')]);
+});
+
 it('asks before stopping reply emails, in the site\'s layout', function (): void {
     $post = $this->site->entry('journal/market-report-7');
     $comment = Comment::query()->create(['entry_id' => $post->entry_id, 'author_name' => 'Dian', 'author_email' => 'dian@example.com',

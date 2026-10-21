@@ -1,7 +1,7 @@
 {{--
     The site's layout. Pages @extends('cms.layout') and fill @section('content'); @push('head') adds to the <head>.
     Optional data from the page: $seoTitle (app pages and the search page), $seoSchema (JSON-LD nodes, see
-    cms/properties.blade.php).
+    cms/properties.blade.php), $seoAuthor (an article's author, see cms/journal.blade.php).
 
     Reads the page shown from cms_page(), never from $entry or $term (a page's own loops would overwrite those).
     Everything visitors read comes from the CMS (menus "main", "footer", "legal"; globals "company", "social",
@@ -19,7 +19,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <x-sunrice-cms::seo :title="$seoTitle ?? null" :schema="$seoSchema ?? []" />
+    <x-sunrice-cms::seo :title="$seoTitle ?? null" :schema="$seoSchema ?? []" :author="$seoAuthor ?? null" />
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="32x32">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
