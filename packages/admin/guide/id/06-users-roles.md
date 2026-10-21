@@ -46,7 +46,7 @@ Di halaman pengguna, pertanyaannya juga menyebutkan apa yang dimilikinya. Peran,
 
 ## Peran
 
-Daftar **Peran** menampilkan setiap peran dan jumlah izinnya. Klik **Tambah peran**, beri **Nama**, lalu centang **Izin**-nya, yang dikelompokkan per bidang (panel, media, entri setiap koleksi, pengaturan…).
+Daftar **Peran** menampilkan setiap peran dan jumlah izinnya. Klik **Tambah peran**, beri **Nama**, lalu centang **Izin**-nya, yang dikelompokkan per bidang (panel, media, konten, entri setiap koleksi, pengaturan…). Setiap bidang berupa tabel kecil: satu baris per hal (Entri, Term, Komentar…) dan satu kolom per tindakan (**Lihat**, **Buat**, **Ubah**, **Terbitkan**, **Moderasi**, **Hapus**, **Ekspor**), dengan — jika tindakan itu tidak berlaku; **Milik sendiri saja** di bawah sebuah kotak membatasinya pada entri milik orang itu sendiri, dan tindakan tanpa kolom (menerjemahkan, memilih beranda…) tercantum di akhir baris. Arahkan kursor ke kotak untuk membaca izinnya secara lengkap. Kotak di depan bidang atau baris mencentang semuanya; bidang bisa dilipat (yang punya centang terbuka sejak awal) dan menyebutkan berapa izinnya yang dicentang. Di ponsel, setiap bidang berupa daftar biasa.
 
 Mengunduh daftar sebagai spreadsheet (**Ekspor CSV**) adalah izin tersendiri, terpisah dari melihat daftar, karena ekspor membawa data keluar dari panel.
 

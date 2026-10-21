@@ -111,7 +111,7 @@ public static function query(): Builder
 | `Password` | a hash | never sent to the browser; empty keeps the current one when editing, so `->required()` applies when creating; Laravel's `Password::defaults()` rules; `->confirmed()` asks for it twice (`{name}_confirmation`; the AI tools fill it in) |
 | `Secret` | a string | never sent to the browser; empty keeps the current value; store it encrypted (`encrypted` cast) |
 | `MediaPicker` | a media id, or a list with `->multiple()` | `->images()`, `->types(['image', 'document'])`, `->multiple(max)` (cast the attribute to `array`); see [Media](media.md#picking-media-in-forms) |
-| `CheckboxList` | an array of values | `->options([value => label])`, or groups `[group => [value => label]]`, or a closure returning them |
+| `CheckboxList` | an array of values | `->options([value => label])`, or groups `[group => [value => label]]`, or a closure returning them; `->matrix()` shows each group of dotted names ending in an action (permissions: `shop.orders.view`) as a table of things by action (View, Create, Edit, Publish, Moderate, Delete, Export; `-own` variants as an "Own only" box in their cell, other actions listed in the row), with select all per group and row, folding groups with a count, and a plain list on phones; only the look changes (the Roles screen uses it) |
 | `BelongsToSelect` | the relation's foreign key | named after a `BelongsTo` relation; searchable (see below) |
 | `BelongsToManySelect` | the relation, synced after saving | named after a `BelongsToMany` relation; searchable, in the order chosen; `->orderColumn('sort_order')` (a pivot column for the order), `->max(…)` |
 | `RichText` | sanitised HTML | `->maxLength(…)` (500,000), `->images(false)`; see below |

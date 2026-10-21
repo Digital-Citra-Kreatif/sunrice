@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
+use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\Pairs;
 use Sunrice\Admin\Resources\Forms\Select;
@@ -108,4 +109,9 @@ it('folds a developer note with code to copy into a disclosure, said in the pane
     expect($field)->toMatchArray(['help' => 'Not set up yet.', 'developerHelp' => ['text' => 'Set these in .env:', 'example' => null, 'code' => "KEY=…\nSECRET=…"]])
         ->and(TextInput::make('x')->developerHelp('In a template: `:value`', 'x')->toArray()['developerHelp'])->toBe(['text' => 'In a template: `:value`', 'example' => 'x', 'code' => null])
         ->and(TextInput::make('x')->toArray())->not->toHaveKey('developerHelp');
+});
+
+it('shows a checkbox list as a matrix only when asked', function () {
+    expect(CheckboxList::make('permissions')->options(['a.view' => 'View'])->matrix()->toArray()['matrix'])->toBeTrue()
+        ->and(CheckboxList::make('tags')->options(['new' => 'New'])->toArray())->not->toHaveKey('matrix');
 });

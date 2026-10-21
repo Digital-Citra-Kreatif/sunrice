@@ -754,5 +754,17 @@
     "Show the trash": "Lihat tempat sampah",
     "For developers:": "Untuk developer:",
     "(opens in a new tab)": "(terbuka di tab baru)",
-    "Locked out because email stopped working? Turn it off on the server: `php artisan sunrice:two-factor off`": "Terkunci karena email berhenti berfungsi? Matikan di server: `php artisan sunrice:two-factor off`"
+    "Locked out because email stopped working? Turn it off on the server: `php artisan sunrice:two-factor off`": "Terkunci karena email berhenti berfungsi? Matikan di server: `php artisan sunrice:two-factor off`",
+    "View": "Lihat",
+    "Publish": "Terbitkan",
+    "Moderate": "Moderasi",
+    "Collapse all": "Lipat semua",
+    "Expand all": "Buka semua",
+    "Select all in :group": "Pilih semua di :group",
+    "Other": "Lainnya",
+    ":granted of :total": ":granted dari :total",
+    "Select all for :name": "Pilih semua untuk :name",
+    "Own only": "Milik sendiri saja",
+    "Not applicable": "Tidak berlaku",
+    "General": "Umum"
 }

@@ -161,7 +161,7 @@ class RoleResource extends Resource
     /** The permissions checkboxes, by group: the ones the signed-in user may give out. */
     protected static function permissionsField(): CheckboxList
     {
-        return CheckboxList::make('permissions')->label('Permissions')
+        return CheckboxList::make('permissions')->label('Permissions')->matrix()
             ->options(function (): array {
                 $actor = auth(app(Panel::class)->getGuard())->user();
                 $existing = static::permissions()->map(fn (Model $permission) => $permission->getAttribute('name'))->all();

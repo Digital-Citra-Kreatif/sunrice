@@ -20,6 +20,14 @@ use Sunrice\Admin\Support\Say;
  * Only the listed values are accepted. It isn't usually a column: write it
  * with ->saveUsing() and read it with ->loadUsing().
  *
+ * With ->matrix() the values are dotted names ending in an action, like
+ * permissions (`cms.entries.update`), and each group shows as a compact
+ * table: a row per thing (`cms.entries`), a column per standard action
+ * (View, Create, Edit, Publish, Moderate, Delete, Export), the rest
+ * listed in the row, and `-own` variants (`cms.entries.update-own`) as a
+ * small "Own only" choice in their action's cell. Labels show as tooltips;
+ * on narrow screens it's the plain list. Only how it looks changes.
+ *
  * @api
  */
 final class CheckboxList extends Field
@@ -31,6 +39,8 @@ final class CheckboxList extends Field
 
     /** Its option labels are data, shown as written. */
     private bool $verbatim = false;
+
+    private bool $matrix = false;
 
     /**
      * value => label, or group => [value => label].
@@ -51,6 +61,14 @@ final class CheckboxList extends Field
     public function verbatim(bool $verbatim = true): self
     {
         $this->verbatim = $verbatim;
+
+        return $this;
+    }
+
+    /** Each group as a table of things by action (see above), for permissions. */
+    public function matrix(bool $matrix = true): self
+    {
+        $this->matrix = $matrix;
 
         return $this;
     }
@@ -86,7 +104,7 @@ final class CheckboxList extends Field
 
     protected function props(): array
     {
-        return ['options' => $this->resolve()];
+        return ['options' => $this->resolve()] + ($this->matrix ? ['matrix' => true] : []);
     }
 
     /** @return list<array{value: string, label: string, group: string|null}>

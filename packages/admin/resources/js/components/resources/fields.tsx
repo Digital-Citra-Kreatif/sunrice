@@ -18,6 +18,7 @@ import { fixedValues, formatPairs, parsePairs, type Pair, withFixedValue } from 
 import { formatList, looksValid, networkOf, parseList } from '@/lib/networks';
 import { slugInput } from '@/lib/slug';
 import { type ChoiceOption, groupOptions, RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
+import { PermissionMatrix } from './permission-matrix';
 import type { FieldInfo } from './types';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,10 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
                 value={typeof value === 'number' || (Array.isArray(value) && value.every((v) => typeof v === 'number')) ? value as number | number[] : null}
                 onChange={onChange} />;
         case 'checkboxes':
+            if (field.matrix === true) {
+                return <PermissionMatrix id={id} options={(field.options as CheckboxOption[] | undefined) ?? []} disabled={disabled}
+                    value={Array.isArray(value) ? value.map(String) : []} onChange={onChange} />;
+            }
             return <CheckboxList id={id} options={(field.options as CheckboxOption[] | undefined) ?? []} disabled={disabled}
                 value={Array.isArray(value) ? value.map(String) : []} onChange={onChange} />;
         case 'textarea':
