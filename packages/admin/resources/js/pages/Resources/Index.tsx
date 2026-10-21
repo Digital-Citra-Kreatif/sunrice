@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, Download, MoreHorizontal, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
+import { TrashHint } from '@/components/app/trash-hint';
 import { Cell } from '@/components/resources/cell';
 import { forTargets, useConfirm } from '@/components/resources/confirm';
 import { DateRangeFilter } from '@/components/resources/date-range-filter';
@@ -43,6 +44,8 @@ interface Props {
         nextUrl: string | null;
     };
     perPageOptions: number[];
+    /** Outside the trash, how many records are in it. */
+    trashedCount?: number;
     /** The user's saved columns and page size for this table. */
     preferences: TablePreferences & { key: string };
     /** Resource::links(): related pages in the "⋮" menu. */
@@ -51,7 +54,7 @@ interface Props {
 
 const ALL = '__all';
 
-export default function ResourceIndex({ resource, columns: allColumns, filters, rowActions, bulkActions, can, query, rows, perPageOptions, preferences: initialPreferences, links = [] }: Props) {
+export default function ResourceIndex({ resource, columns: allColumns, filters, rowActions, bulkActions, can, query, rows, perPageOptions, preferences: initialPreferences, links = [], trashedCount = 0 }: Props) {
     useBreadcrumbs([{ label: resource.label }]);
     const [confirm, confirmDialog] = useConfirm();
     const [search, setSearch] = React.useState(query.search);
@@ -295,7 +298,10 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                         {!loading && rows.data.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={columns.length + 2} className="h-24 text-center text-muted-foreground">
-                                    {query.search || Object.keys(query.filters).length ? t('Nothing matches.') : trashed ? t('The trash is empty.') : t('No :resource yet.', { resource: resource.label.toLowerCase() })}
+                                    <span className="flex flex-col items-center gap-1">
+                                        {query.search || Object.keys(query.filters).length ? t('Nothing matches.') : trashed ? t('The trash is empty.') : t('No :resource yet.', { resource: resource.label.toLowerCase() })}
+                                        <TrashHint count={trashedCount} onShow={() => visit({ status: 'trashed' })} />
+                                    </span>
                                 </TableCell>
                             </TableRow>
                         )}

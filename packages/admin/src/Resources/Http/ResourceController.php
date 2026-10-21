@@ -117,6 +117,8 @@ final class ResourceController
                 'prevUrl' => $page->previousPageUrl(),
                 'nextUrl' => $page->nextPageUrl(),
             ],
+            // Outside the trash, how many are in it, for an empty list to say so.
+            'trashedCount' => $resource->allows($user, 'delete') && ! $list->trashed ? $list->trashedCount() : 0,
             // The "⋮" menu's links (Resource::links()), labels said in the panel's language.
             'links' => array_map(fn (array $link): array => [
                 'label' => Say::it($link['label']),

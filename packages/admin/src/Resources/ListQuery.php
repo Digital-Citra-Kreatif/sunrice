@@ -64,9 +64,7 @@ final class ListQuery
         $table = $this->resource->table();
         $query = $this->resource->class::query();
         if ($this->trashed) {
-            $model = $query->getModel();
-            $column = method_exists($model, 'getDeletedAtColumn') ? $model->getDeletedAtColumn() : null;
-            $query->withoutGlobalScope(SoftDeletingScope::class)->whereNotNull($query->qualifyColumn(is_string($column) ? $column : 'deleted_at'));
+            self::onlyTrashed($query);
         }
 
         $relations = [];
@@ -118,6 +116,24 @@ final class ListQuery
         $perPage = $request->integer('per_page', $default);
 
         return in_array($perPage, self::PER_PAGE, true) ? $perPage : $default;
+    }
+
+    /** How many records are in the trash (0 without one). */
+    public function trashedCount(): int
+    {
+        return $this->resource->softDeletes() ? self::onlyTrashed($this->resource->class::query())->count() : 0;
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
+    private static function onlyTrashed(Builder $query): Builder
+    {
+        $model = $query->getModel();
+        $column = method_exists($model, 'getDeletedAtColumn') ? $model->getDeletedAtColumn() : null;
+
+        return $query->withoutGlobalScope(SoftDeletingScope::class)->whereNotNull($query->qualifyColumn(is_string($column) ? $column : 'deleted_at'));
     }
 
     /** @return array{search: string, filters: array<string, string>, sort: string, status: string} */

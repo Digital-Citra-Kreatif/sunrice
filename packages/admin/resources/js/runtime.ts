@@ -17,6 +17,7 @@ import { MediaPickerInput } from '@/components/media/media-picker';
 import { PageHeader } from '@/components/app/page-header';
 import { RichTextEditor } from '@/components/app/rich-text';
 import { SettingsLayout, SettingsNav } from '@/components/app/settings-nav';
+import { TrashHint } from '@/components/app/trash-hint';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,7 +52,7 @@ const ui = {
     Input, KeptEditsNotice, Label, MediaPickerInput, moveItem, PageHeader, registerCommandSource, RichTextEditor,
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, SettingsLayout, SettingsNav, Skeleton, SortableHandle, SortableList, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
-    Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, useBreadcrumbs, useEditLock, useTablePreferences, useUnsavedChanges, ViewingNotice,
+    Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, TrashHint, useBreadcrumbs, useEditLock, useTablePreferences, useUnsavedChanges, ViewingNotice,
 };
 
 const modules: Record<SharedModuleName, Record<string, unknown>> = {

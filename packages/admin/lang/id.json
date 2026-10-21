@@ -749,5 +749,8 @@
     "Show only what came from :ip": "Tampilkan hanya yang berasal dari :ip",
     "Search names, actions or IP…": "Cari nama, tindakan, atau IP…",
     "More actions": "Aksi lainnya",
-    "Export CSV": "Ekspor CSV"
+    "Export CSV": "Ekspor CSV",
+    "1 is in the trash.": "1 ada di tempat sampah.",
+    ":count are in the trash.": ":count ada di tempat sampah.",
+    "Show the trash": "Lihat tempat sampah"
 }

@@ -252,3 +252,13 @@ it('links the terms list to its taxonomy\'s blueprint for those who may edit blu
 
     get('/admin/cms/taxonomies/categories/terms')->assertInertia(fn (Assert $page) => $page->where('taxonomy.blueprint', route('sunrice.admin.cms.blueprints.edit', 'topic')));
 });
+
+it('says how many terms are in the trash, outside it', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
+    post('/admin/cms/taxonomies/categories/terms', ['title' => 'News'])->assertSessionHasNoErrors();
+    Term::query()->firstOrFail()->delete();
+
+    get('/admin/cms/taxonomies/categories/terms')->assertInertia(fn (Assert $page) => $page->where('trashedCount', 1)->where('terms', []));
+    get('/admin/cms/taxonomies/categories/terms?status=trashed')->assertInertia(fn (Assert $page) => $page->where('trashedCount', 0));
+});

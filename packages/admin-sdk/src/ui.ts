@@ -200,6 +200,9 @@ export const SelectTrigger = m.SelectTrigger as AnyComponent;
 export const SelectValue = m.SelectValue as AnyComponent;
 export const Separator = m.Separator as AnyComponent;
 
+/** An empty list's note that `count` more are in the trash ("1 is in the trash."), with a button that shows it. */
+export const TrashHint = m.TrashHint as ComponentType<{ count: number; onShow: () => void }>;
+
 /** A "For developers" disclosure (as under a field's help, Field::developerHelp()): a sentence and code with a copy button. */
 export const DeveloperHelp = m.DeveloperHelp as ComponentType<{ text?: string | null; code?: string | null; className?: string }>;
 

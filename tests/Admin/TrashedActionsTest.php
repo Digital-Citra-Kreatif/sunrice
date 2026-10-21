@@ -48,8 +48,9 @@ it('has a trash of its own for models with SoftDeletes: ?status=trashed, Restore
     $also->delete();
 
     get('/admin/desk/notes')->assertInertia(fn (Assert $page) => $page->where('can.trash', true)->where('query.status', '')->has('rows.data', 1)
+        ->where('trashedCount', 2) // for an empty list to say what's in the trash
         ->where('bulkActions.0', ['key' => 'delete', 'label' => 'Move to trash', 'confirm' => 'Move the selected records to the trash? You can restore them.', 'destructive' => true, 'fields' => []]));
-    get('/admin/desk/notes?status=trashed')->assertInertia(fn (Assert $page) => $page->where('query.status', 'trashed')->has('rows.data', 2));
+    get('/admin/desk/notes?status=trashed')->assertInertia(fn (Assert $page) => $page->where('query.status', 'trashed')->has('rows.data', 2)->where('trashedCount', 0));
 
     post("/admin/desk/notes/{$gone->id}/restore")->assertSessionHas('success', 'Gone restored.');
     post("/admin/desk/notes/{$kept->id}/restore")->assertNotFound(); // not in the trash
@@ -57,7 +58,7 @@ it('has a trash of its own for models with SoftDeletes: ?status=trashed, Restore
     expect(Note::query()->count())->toBe(3);
 
     actingAs(adminUser(Panel::ACCESS, 'desk.notes.view'));
-    get('/admin/desk/notes')->assertInertia(fn (Assert $page) => $page->where('can.trash', false));
+    get('/admin/desk/notes')->assertInertia(fn (Assert $page) => $page->where('can.trash', false)->where('trashedCount', 0));
     $also->delete();
     post("/admin/desk/notes/{$also->id}/restore")->assertForbidden();
 });
