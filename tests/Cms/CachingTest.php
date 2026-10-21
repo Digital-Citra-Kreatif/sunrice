@@ -109,9 +109,10 @@ it('says when the site\'s content changed, but not for drafts', function () {
     expect($changes)->toContain('entrytranslation '.$draft->id);
 
     $changes = [];
-    app(SaveTerm::class)->handle(Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']), ['title' => 'News']);
-    Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
-    expect($changes)->toContain('taxonomy 1')->toContain('term 1')->toContain('menu 1');
+    $taxonomy = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    $term = app(SaveTerm::class)->handle($taxonomy, ['title' => 'News']);
+    $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    expect($changes)->toContain('taxonomy '.$taxonomy->id)->toContain('term '.$term->id)->toContain('menu '.$menu->id);
 });
 
 it('reads which page is at an address, menus and the sitemap from the cache, until the content changes', function () {

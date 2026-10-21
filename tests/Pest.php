@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Orchestra\Testbench\Attributes\ResetRefreshDatabaseState;
 use Spatie\Permission\Models\Permission;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Models\Entry;
@@ -19,8 +20,24 @@ use Workbench\App\Models\User;
  * load the panel alone (proving it works without the CMS), CMS tests
  * load both. Architecture tests need no app.
  */
-uses(AdminTestCase::class, RefreshDatabase::class)->in('Admin');
-uses(CmsTestCase::class, RefreshDatabase::class)->afterEach(fn () => emptyTablesAfterFullTextCommit())->in('Cms');
+uses(AdminTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('admin'))->in('Admin');
+uses(CmsTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('cms'))->afterEach(fn () => emptyTablesAfterFullTextCommit())->in('Cms');
+
+/**
+ * RefreshDatabase migrates once and then wraps each test in a
+ * transaction. The two suites have different migrations, so the first
+ * test file of the other suite migrates afresh.
+ *
+ * @internal
+ */
+function migrateFreshFor(string $suite): void
+{
+    static $current = null;
+    if ($current !== $suite) {
+        ResetRefreshDatabaseState::run();
+        $current = $suite;
+    }
+}
 
 /**
  * Give the test app a panel (registered like an app's panel provider),
