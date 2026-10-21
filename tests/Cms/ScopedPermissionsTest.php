@@ -130,6 +130,18 @@ it('keeps translators out of what every language shares: parent, comments, templ
     expect($mine->entry->fresh()->comments_closed)->toBeTruthy();
 });
 
+it('makes an author for one collection: its view and create, and their own entries in it', function () {
+    $author = adminUser(Panel::ACCESS, 'cms.entries.blog.view', 'cms.entries.blog.create', 'cms.entries.update-own', 'cms.entries.delete-own');
+    $mine = scopedDraft($this->blog, $author);
+    // An entry of theirs in another collection (made before their role changed).
+    $elsewhere = app(CreateEntry::class)->handle($this->news, ['title' => 'Old news']);
+
+    expect(Access::entries($author, 'update', $this->blog, $mine->entry))->toBeTrue()
+        ->and(Access::entries($author, 'delete', $this->blog, $mine->entry))->toBeTrue()
+        ->and(Access::entries($author, 'update', $this->news, $elsewhere->entry))->toBeFalse()
+        ->and(Access::entries($author, 'create', $this->news))->toBeFalse();
+});
+
 it('scopes terms and submissions too', function () {
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     Taxonomy::query()->create(['handle' => 'categories', 'title' => 'Categories']);
