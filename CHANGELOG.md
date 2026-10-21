@@ -26,9 +26,11 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 - Page titles end with the site name unless turned off in Settings → Site.
 - The page cache never keeps pages with `?q=` or `?reply_to=`; `PageCacheHasher::QUERY` is `['page']`.
 - Listing and term pages' `$entries` is a lazy `LengthAwarePaginator` contract, and a term page's includes the terms under it in a hierarchy.
+- The comment unsubscribe page asks first and is `sunrice-cms::comment-unsubscribe` (or the site's `cms.comment-unsubscribe`).
 
 ### All changes
 
+- **A reply email's unsubscribe link asks first**: `GET comments/{comment}/unsubscribe` shows a confirm page and only the button (a POST to the same signed link, `sunrice.cms.comments.unsubscribe.confirm`) stops the emails, so mail scanners no longer unsubscribe people. The page is the site's own `cms.comment-unsubscribe` view when there is one (new starter template, in the site's layout), else the CMS's `sunrice-cms::comment-unsubscribe` (was `comment-unsubscribed`), with the site's name and its words as `sunrice-cms::site.comments.*` keys.
 - Forms land visitors on the form: the redirect after sending (or with errors) goes to `#form-{handle}`, and the component focuses the thank-you message or a new error summary (with a link to each field; `Form::errorSummary()` for slots) with `autofocus`, no JavaScript. Comments already went to `#comments`.
 - Send limits count only what was kept (`Site\SendLimit`), with a ceiling of ten times as many tries: a visitor fixing a typo is no longer locked out, and one over the limit goes back to the form with "please wait N seconds" (`_limit` in the form's or `comments` bag) and what they typed, instead of a bare 429 page (JSON still gets `429`). The `sunrice-forms` and `sunrice-comments` rate limiters and their `throttle` middleware are gone.
 - File fields on forms say what they take ("Accepted: JPG, PNG, up to 2 MB.", the lower of the field's limit and PHP's `upload_max_filesize`; `FileField::maxKb()`, `hint()`, `size()`), and a file over PHP's limit is refused with that size instead of "failed to upload".
