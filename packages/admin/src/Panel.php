@@ -78,7 +78,7 @@ final class Panel
     private array $widgets = [];
 
     /** @var array<string, list<string>> role name => permission names or patterns */
-    private array $defaultRoles = ['administrator' => ['*']];
+    private array $defaultRoles = ['administrator' => ['*', '!sunrice.ai.run-commands', '!sunrice.ai.error-log']];
 
     /** @var list<array{owner: string|null, resolve: Closure(): iterable<Permission>}> */
     private array $permissionResolvers = [];
@@ -364,12 +364,14 @@ final class Panel
     /**
      * A role `sunrice:roles` creates (or adds permissions to) with these
      * permissions: names, or patterns with `*` ("cms.entries.*"; "*" for
-     * every one). Plugins add to the same role by naming it again:
+     * every one), and "!" before one to leave those out. Plugins add to
+     * the same role by naming it again:
      *
-     *     $panel->defaultRole('editor', ['sunrice.access', 'shop.orders.*']);
+     *     $panel->defaultRole('editor', ['sunrice.access', 'shop.orders.*', '!shop.orders.refund']);
      *
      * The panel has "administrator" (every permission, without the super
-     * admin's bypass).
+     * admin's bypass, but not letting AI agents run commands or read the
+     * error log: those stay with super admins unless given on purpose).
      *
      * @param  list<string>  $permissions
      */

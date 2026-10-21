@@ -23,14 +23,16 @@ beforeEach(function () {
 
 it('creates the default roles with their permissions, adding only', function () {
     expect(app(Panel::class)->getDefaultRoles())->toBe([
-        'administrator' => ['*'],
+        'administrator' => ['*', '!sunrice.ai.run-commands', '!sunrice.ai.error-log'],
         'cashier' => [Panel::ACCESS, 'shop.orders.view', 'shop.orders.*', 'sunrice.guide.view'],
     ]);
 
     expect(array_keys(app(SeedRoles::class)->handle()))->toBe(['administrator', 'cashier']);
     $cashier = Role::findByName('cashier', 'web');
     expect($cashier->permissions->pluck('name')->sort()->values()->all())->toBe(['shop.orders.refund', 'shop.orders.view', 'sunrice.access', 'sunrice.guide.view'])
-        ->and(Role::findByName('administrator', 'web')->permissions->pluck('name'))->toContain('sunrice.settings.security', 'shop.orders.refund');
+        ->and(Role::findByName('administrator', 'web')->permissions->pluck('name'))->toContain('sunrice.settings.security', 'shop.orders.refund', 'sunrice.ai.connect')
+        // Letting agents run commands or read the error log stays with super admins, unless given on purpose.
+        ->not->toContain('sunrice.ai.run-commands', 'sunrice.ai.error-log');
 
     // Run again: a permission taken away in the panel stays away.
     $cashier->revokePermissionTo('shop.orders.refund');

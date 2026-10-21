@@ -118,4 +118,4 @@ The section's key is the title's slug; a page's title is its first heading. A di
 ],
 ```
 
-`sunrice.ai.error-log` and `sunrice.ai.run-commands` are privileged permissions (an email alert when someone gets them), like `sunrice.ai.connect`. `$panel->aiAccess(false)` removes the page, the permission and the endpoint.
+`sunrice.ai.error-log` and `sunrice.ai.run-commands` are privileged permissions (an email alert when someone gets them), like `sunrice.ai.connect`, and the default `administrator` role doesn't get them: super admins have them, others only when given on purpose. `$panel->aiAccess(false)` removes the page, the permission and the endpoint.

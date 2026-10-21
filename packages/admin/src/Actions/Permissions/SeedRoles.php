@@ -37,7 +37,10 @@ final class SeedRoles
         $seeded = $this->seeded();
         $given = [];
         foreach ($this->panel->getDefaultRoles() as $name => $patterns) {
-            $wanted = array_values(array_filter($all, fn (string $permission): bool => Str::is($patterns, $permission)));
+            // "!pattern" leaves those out.
+            $include = array_values(array_filter($patterns, fn (string $p): bool => ! str_starts_with($p, '!')));
+            $exclude = array_values(array_map(fn (string $p): string => substr($p, 1), array_filter($patterns, fn (string $p): bool => str_starts_with($p, '!'))));
+            $wanted = array_values(array_filter($all, fn (string $permission): bool => Str::is($include, $permission) && ($exclude === [] || ! Str::is($exclude, $permission))));
             $role = Role::findOrCreate($name, $guard);
             $has = [];
             foreach ($role->permissions as $permission) {
