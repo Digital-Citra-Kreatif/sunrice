@@ -7,7 +7,7 @@
 @section('content')
     @include('cms.partials.page-header', ['crumbs' => \App\Support\Breadcrumbs::forEntry($entry, $title), 'title' => $title, 'fallback' => $fallback])
     <div class="container-site pb-24">
-        <div class="prose">
+        <div class="prose"{{ cms_page()?->langAttribute() }}>
             @foreach ($values as $handle => $value)
                 @continue($handle === 'seo' || blank($value))
                 @if (is_string($value))

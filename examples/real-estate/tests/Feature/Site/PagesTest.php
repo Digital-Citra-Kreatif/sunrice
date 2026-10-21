@@ -77,6 +77,19 @@ it('shows the main language with a note on untranslated pages', function (): voi
         ->assertSee('<link rel="canonical" href="'.url('/about').'">', false);
 });
 
+it('marks the main language\'s words on untranslated pages as English, the page\'s own as Indonesian', function (): void {
+    $this->get('/id/about')->assertOk()
+        ->assertSee('<html lang="id">', false)
+        ->assertSee('<h1 class="h1 reveal mt-3 max-w-4xl" lang="en">About</h1>', false)
+        ->assertSee('<p class="lead reveal mt-6 max-w-2xl" lang="en">Who we are.</p>', false);
+    $this->get('/id/properties/kemang-garden-house')->assertOk()
+        ->assertSee('<h1 class="h1 mt-5" lang="en">Kemang Garden House</h1>', false)
+        ->assertSee('lang="en">A family house with a mature garden in Kemang.</p>', false);
+    // Translated: nothing to mark.
+    $this->get('/id/properties/vila-samudra')->assertOk()->assertSee('<h1 class="h1 mt-5">Vila Samudra</h1>', false);
+    $this->get('/about')->assertOk()->assertSee('<h1 class="h1 reveal mt-3 max-w-4xl">About</h1>', false);
+});
+
 it('renders the contact page with the company details and the contact form', function (): void {
     $this->get('/contact')->assertOk()
         ->assertSee('Send us a message')

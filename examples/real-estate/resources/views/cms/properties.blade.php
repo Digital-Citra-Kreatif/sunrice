@@ -49,7 +49,7 @@
                         @if ($listingType)<span class="badge badge-soft">{{ $listingType->title() }}</span>@endif
                         @if ($type)<a href="{{ $type->url() }}" class="badge badge-soft transition hover:bg-sand-200">{{ $type->title() }}</a>@endif
                     </div>
-                    <h1 class="h1 mt-5">{{ $title }}</h1>
+                    <h1 class="h1 mt-5"{{ cms_page()?->langAttribute() }}>{{ $title }}</h1>
                     @if ($location)
                         <p class="mt-4 flex items-center gap-2 text-sand-700">
                             @include('cms.partials.icon', ['name' => 'pin', 'class' => 'size-4 text-teal-700'])
@@ -113,17 +113,17 @@
                 @endif
 
                 @if (filled($v['summary'] ?? null))
-                    <p class="lead mt-12 font-serif !text-2xl !leading-relaxed text-ink">{{ $v['summary'] }}</p>
+                    <p class="lead mt-12 font-serif !text-2xl !leading-relaxed text-ink"{{ cms_page()?->langAttribute() }}>{{ $v['summary'] }}</p>
                 @endif
 
                 @if (filled($v['description'] ?? null))
-                    <div class="prose mt-8">{!! $v['description'] !!}</div>
+                    <div class="prose mt-8"{{ cms_page()?->langAttribute() }}>{!! $v['description'] !!}</div>
                 @endif
 
                 @if ($features->isNotEmpty())
                     <section class="mt-14" aria-labelledby="features-title">
                         <h2 id="features-title" class="h3">{{ __('site.property.features') }}</h2>
-                        <ul class="mt-6 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+                        <ul class="mt-6 grid gap-x-8 gap-y-3 sm:grid-cols-2"{{ cms_page()?->langAttribute() }}>
                             @foreach ($features as $feature)
                                 <li class="flex items-start gap-3 border-b border-sand-100 pb-3">
                                     <span class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-teal-50 text-teal-700">@include('cms.partials.icon', ['name' => 'check', 'class' => 'size-3.5'])</span>

@@ -214,12 +214,29 @@ it('gives templates $fallback, and answers 404 with the fallback off', function 
     get('/blog/hello')->assertOk()->assertViewHas('fallback', false);
 });
 
+it('marks the main language\'s content on an untranslated page with its language', function () {
+    sitePost($this->blog, 'Hello', ['body' => '<p>In English</p>']);
+
+    $page = get('/id/blog/hello')->assertOk()->assertViewHas('contentLocale', 'en')->assertViewHas('locale', 'id')
+        ->assertSee('<html lang="id">', false);
+    expect($page->getContent())->toContain('<article lang="en"><h1>Hello</h1>')
+        ->and(Content::page()?->contentLocale())->toBe('en')
+        ->and((string) Content::page()?->langAttribute())->toBe(' lang="en"');
+
+    $page = get('/blog/hello')->assertOk()->assertViewHas('contentLocale', 'en');
+    expect($page->getContent())->toContain('<article><h1>Hello</h1>')
+        ->and(Content::page()?->contentLocale())->toBe('en')
+        ->and((string) Content::page()?->langAttribute())->toBe('');
+});
+
 it('serves an untranslated term\'s page in the main language too', function () {
     $tags = Taxonomy::query()->firstOrFail();
     $tags->update(['route' => '/tags/{slug}']);
     $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
 
-    get('/id/tags/news')->assertOk()->assertViewHas('fallback', true)->assertViewHas('locale', 'id');
+    $page = get('/id/tags/news')->assertOk()->assertViewHas('fallback', true)->assertViewHas('locale', 'id')->assertViewHas('contentLocale', 'en');
+    expect($page->getContent())->toContain('<article lang="en"><h1>News</h1>')
+        ->and(Content::page()?->contentLocale())->toBe('en');
     expect(Content::localeUrls())->toBe(['en' => url('/tags/news'), 'id' => url('/id/tags/news')]);
 
     app(SaveTerm::class)->handle($tags, ['title' => 'Berita', 'locale' => 'id'], $news);

@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Untranslated pages mark their content's language: templates get `$contentLocale`, and `Page::contentLocale()` and `Page::langAttribute()` (` lang="en"` on fallback pages) are new; the CMS's plain pages and the starter templates use them. See [Untranslated pages](packages/cms/docs/site.md#untranslated-pages).
 - `SortableList` takes `getLabel`: drag-and-drop announcements name items and where they go ("Home moved above About") instead of dnd-kit's ids; every built-in list passes it. A `link` field's inputs are named after the field ("Map link: address").
 - The admin shell has one `<main>` landmark (the sidebar inset is a `div` around it).
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
