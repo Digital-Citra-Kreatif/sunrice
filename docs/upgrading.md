@@ -30,6 +30,7 @@ Until 1.0, APIs may change between versions; every change is recorded in `CHANGE
 
 What changed in the `Unreleased` version that may need a change in your app, templates or plugins:
 
+- **SVG logos uploaded before their size was read get one when you migrate**: `php artisan migrate` (migration `2026_01_01_000012_backfill_svg_sizes_in_sunrice_media`) reads the width and height of every SVG in the media library that has none from its file's `viewBox`, so a wide logo uploaded earlier replaces the name in the sidebar and on the sign-in page and is no longer used as the browser icon. Nothing to do besides migrating; an SVG whose file is gone keeps no size.
 - **PHP 8.4 or newer** is required.
 - **Dashboard widgets must say who sees them**: a `Widget` without `->permission()` or `->visible()` now throws `PanelMisconfigured` when registered. Add `->everyone()` to one meant for everybody who opens the panel. See [Dashboard widgets](../packages/admin/docs/panel.md#dashboard-widgets).
 - **One convention for admin addresses and route names**: `admin/<plugin>/<plural>`, what a record owns nested under its handle, and names that follow the address (`sunrice.admin.<plugin>.<area>.<action>`).
