@@ -43,6 +43,8 @@ export interface EditLock {
     kept: KeptEdit[];
     loadKept: (id: number) => Promise<Record<string, unknown>>;
     discardKept: (id: number) => Promise<void>;
+    /** While viewing: asks to take over (the confirm dialog). */
+    requestTakeOver: () => void;
     /** The dialogs: render them in the page. */
     dialogs: React.ReactNode;
 }
@@ -201,6 +203,10 @@ export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveT
         kept,
         loadKept,
         discardKept,
+        requestTakeOver: () => {
+            const current = stateRef.current;
+            if (current.status === 'viewing') setState({ status: 'locked', by: current.by, since: 0, confirming: true });
+        },
         dialogs,
     };
 }
@@ -231,12 +237,13 @@ export function KeptEditsNotice({ kept, onLoad, onDiscard, disabled }: {
     );
 }
 
-/** The banner while viewing what someone else is editing. */
-export function ViewingNotice({ by }: { by: string | null }) {
+/** The banner while viewing what someone else is editing, with Take over (useEditLock's requestTakeOver). */
+export function ViewingNotice({ by, onTakeOver }: { by: string | null; onTakeOver?: () => void }) {
     if (!by) return null;
     return (
-        <p role="status" className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground">
-            <Lock className="size-4" /> {by} is editing this. You're viewing it; saving is off.
-        </p>
+        <div role="status" className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground">
+            <Lock className="size-4" /> <span className="flex-1">{by} is editing this. You're viewing it; saving is off.</span>
+            {onTakeOver && <Button type="button" size="sm" variant="outline" onClick={onTakeOver}>Take over</Button>}
+        </div>
     );
 }

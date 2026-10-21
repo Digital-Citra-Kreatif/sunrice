@@ -1,9 +1,9 @@
 # Edit locks
 
-One person edits an item at a time. While an editor page is open, it holds the item's **edit lock** and renews it every 15 seconds; a lock nobody renews expires after 2 minutes, so a closed tab never blocks anyone for long. Someone who opens the item meanwhile is told who's editing it and since when, and can:
+One person edits an item at a time. While an editor page is open, it holds the item's **edit lock** and renews it every 15 seconds; a lock nobody renews expires after 2 minutes, so a closed tab never blocks anyone for long (not shorter: browsers slow down the timers of tabs in the background). Someone who opens the item meanwhile is told who's editing it and since when, and can:
 
 - **Go back**,
-- **View only** (the page stays read-only, with a notice), or
+- **View only** (the page stays read-only, with a notice that has **Take over** for changing their mind), or
 - **Take over**: the other editor is told on their next renewal, their unsaved changes are kept for a month, and they're sent back. Whoever opens the item later sees the kept changes with **Load into the form** and **Discard**.
 
 A person's own tabs never lock each other out. Saves are still checked against the item's version (see the CMS's [Save mine anyway](../../cms/docs/collections.md#editing-entries)), so an expired lock can't silently overwrite someone's work.
@@ -35,7 +35,7 @@ useUnsavedChanges(form.isDirty && !lock.takenOver, lock.readOnly ? undefined : s
 return (
     <form>
         {lock.dialogs}
-        <ViewingNotice by={lock.viewingBy} />
+        <ViewingNotice by={lock.viewingBy} onTakeOver={lock.requestTakeOver} />
         <KeptEditsNotice kept={lock.kept} onLoad={async (id) => form.setData(await lock.loadKept(id))} onDiscard={lock.discardKept} />
         <fieldset disabled={lock.readOnly}>…</fieldset>
     </form>

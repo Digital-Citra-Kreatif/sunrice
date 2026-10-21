@@ -36,7 +36,9 @@ export function RichTextEditor({ id, value, onChange, invalid = false, labelledB
     const [dialog, setDialog] = React.useState<'link' | 'image' | null>(null);
     const editor = useEditor({
         extensions: [
-            StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: { openOnClick: false, autolink: true } }),
+            StarterKit.configure({ heading: { levels: [2, 3, 4] },
+                // No rel="nofollow" (TipTap's default) on the site's own links: the servers set rel="noopener noreferrer" themselves.
+                link: { openOnClick: false, autolink: true, HTMLAttributes: { rel: null, target: null } } }),
             LibraryImage,
         ],
         content: value,

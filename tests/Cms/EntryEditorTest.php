@@ -307,3 +307,13 @@ it('checks limits on the server, where the editor shows them inline (the form ha
     put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Villa', 'slug' => 'villa', 'data' => ['summary' => str_repeat('x', 300), 'rating' => 5, 'price' => 0]])
         ->assertSessionHasNoErrors();
 });
+
+it('tells the editor whether the collection has pages, so Preview shows only where there is one', function () {
+    $testimonials = Collection::query()->create(['handle' => 'testimonials', 'title' => 'Testimonials']);
+    $quote = app(CreateEntry::class)->handle($testimonials, ['title' => 'Great agents']);
+    $post = app(CreateEntry::class)->handle(Collection::query()->create(['handle' => 'posts', 'title' => 'Posts', 'route' => '/posts/{slug}']), ['title' => 'Hello']);
+    editor('view', 'update');
+
+    get("/admin/cms/entries/{$quote->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('collection.pages', false));
+    get("/admin/cms/entries/{$post->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('collection.pages', true));
+});

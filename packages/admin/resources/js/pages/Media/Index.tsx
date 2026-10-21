@@ -64,6 +64,13 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             ...(next.trash ? { trash: 1 } : {}),
         }, { preserveState: true, preserveScroll: true });
     };
+    // Searches as you type (after a pause), like the entries list; Enter searches at once.
+    React.useEffect(() => {
+        if (search.trim() === (query.search ?? '').trim()) return;
+        const timer = window.setTimeout(() => visit({ search: search.trim() }), 300);
+        return () => window.clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
     const bulk = (action: 'move' | 'trash' | 'restore' | 'delete', extra: Record<string, unknown> = {}) =>
         router.post(`${base}/bulk`, { action, ids: selected, ...extra }, { preserveScroll: true, onSuccess: () => setSelected([]) });
     const toggle = (id: number, checked: boolean) => setSelected((ids) => (checked ? [...ids, id] : ids.filter((other) => other !== id)));
@@ -113,7 +120,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 <form className="relative w-full sm:w-72" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
                     <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input type="search" aria-label="Search media" placeholder="Search everywhere…" className="pl-8" value={search}
-                        onChange={(e) => { setSearch(e.target.value); if (e.target.value === '' && query.search) visit({ search: '' }); }} />
+                        onChange={(e) => setSearch(e.target.value)} />
                 </form>
                 <Select value={query.type ?? ALL} onValueChange={(value) => visit({ type: value === ALL ? null : (value as MediaQuery['type']) })}>
                     <SelectTrigger aria-label="Type" className="w-36"><SelectValue /></SelectTrigger>

@@ -366,3 +366,22 @@ it('shows the trash with "Trashed" rows, at ?status=trash too, and undoes a tras
         ->assertSessionMissing('success_action');
     expect(listed())->toContain('Gone', 'Kept');
 });
+
+it('gives each row its address on the site, not only its slug', function () {
+    listProduct('Assam Gold');
+    $quotes = Collection::query()->create(['handle' => 'quotes', 'title' => 'Quotes']);
+    app(CreateEntry::class)->handle($quotes, ['title' => 'Lovely']);
+    lister();
+
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.path', '/products/assam-gold'));
+    get('/admin/cms/collections/quotes/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.path', null));
+});
+
+it('groups long numbers in the list, and keeps them as typed in the CSV', function () {
+    listProduct('Villa', ['price' => 18500000000]);
+    $user = lister('cms.entries.view', 'cms.entries.export');
+    app(Preferences::class)->set($user, 'table.cms.entries.products', ['columns' => ['field.price']]);
+
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.cells', ['field.price' => '18,500,000,000']));
+    expect(get('/admin/cms/collections/products/entries/export')->streamedContent())->toContain(',18500000000,');
+});

@@ -283,8 +283,10 @@ export const useEditLock = m.useEditLock as (options: {
     kept: KeptEdit[];
     loadKept: (id: number) => Promise<Record<string, unknown>>;
     discardKept: (id: number) => Promise<void>;
+    /** While viewing: asks to take over (the confirm dialog), as the first dialog's Take over does. */
+    requestTakeOver: () => void;
     dialogs: ReactNode;
 };
 
-/** The banner while viewing what someone else is editing (useEditLock's viewingBy). */
-export const ViewingNotice = m.ViewingNotice as ComponentType<{ by: string | null }>;
+/** The banner while viewing what someone else is editing (useEditLock's viewingBy), with Take over when `onTakeOver` is given. */
+export const ViewingNotice = m.ViewingNotice as ComponentType<{ by: string | null; onTakeOver?: () => void }>;
