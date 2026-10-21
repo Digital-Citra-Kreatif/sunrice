@@ -21,7 +21,7 @@ beforeEach(fn () => config(['inertia.testing.ensure_pages_exist' => false]));
 /** A stat widget with fixed data. */
 function statWidget(string $key, int $value = 1): Widget
 {
-    return Widget::stat($key)->title(ucfirst($key))->data(fn (): array => ['value' => $value]);
+    return Widget::stat($key)->title(ucfirst($key))->everyone()->data(fn (): array => ['value' => $value]);
 }
 
 it('registers widgets with the same ownership rules as permissions', function () {
@@ -42,6 +42,12 @@ it('registers widgets with the same ownership rules as permissions', function ()
         ->toThrow(PanelMisconfigured::class, 'Two widgets have the key "sunrice.media"');
     expect(fn () => Panel::make()->widgets(Widget::list('nodata')))
         ->toThrow(PanelMisconfigured::class, 'has no data');
+    // Every widget says who sees it; everyone() is the deliberate choice.
+    expect(fn () => Panel::make()->widgets(Widget::stat('open')->data(fn (): array => ['value' => 1])))
+        ->toThrow(PanelMisconfigured::class, 'The widget "open" doesn\'t say who may see it')
+        ->and(Widget::stat('open')->isGuarded())->toBeFalse()
+        ->and(Widget::stat('open')->everyone()->isGuarded())->toBeTrue()
+        ->and(Widget::stat('open')->permission('x.y')->isGuarded())->toBeTrue();
     expect(fn () => Widget::stat('Bad Key'))->toThrow(InvalidArgumentException::class)
         ->and(fn () => Widget::stat('ok')->span(4))->toThrow(InvalidArgumentException::class);
 
@@ -104,13 +110,13 @@ it('checks the shape of widget data and drops unsafe links', function () {
 it('sends the definitions with the page and the data deferred, per plugin', function () {
     $ran = (object) ['times' => 0];
     usePanel(fn (Panel $panel) => $panel->widgets(
-        Widget::stat('orders')->title('Orders')->link('shop/orders')->span(2)->data(function () use ($ran): array {
+        Widget::stat('orders')->title('Orders')->link('shop/orders')->span(2)->everyone()->data(function () use ($ran): array {
             $ran->times++;
 
             return ['value' => 42, 'delta' => '+3 today'];
         }),
     )->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->widgets(
-        Widget::list('shop.latest')->title('Latest')->empty('None yet.')->data(fn (): array => ['rows' => [['title' => 'Order 1']]]),
+        Widget::list('shop.latest')->title('Latest')->empty('None yet.')->everyone()->data(fn (): array => ['rows' => [['title' => 'Order 1']]]),
     ))));
     actingAs(adminUser(Panel::ACCESS));
 
@@ -137,7 +143,7 @@ it('sends the definitions with the page and the data deferred, per plugin', func
 it('shows a widget whose data fails as unavailable, and reports it', function () {
     Exceptions::fake();
     usePanel(fn (Panel $panel) => $panel->widgets(
-        Widget::stat('broken')->data(fn (): array => throw new RuntimeException('Database down')),
+        Widget::stat('broken')->everyone()->data(fn (): array => throw new RuntimeException('Database down')),
         statWidget('fine', 7),
     ));
     actingAs(adminUser(Panel::ACCESS));

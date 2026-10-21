@@ -310,6 +310,9 @@ final class Panel
             if (! $widget->hasData()) {
                 throw new PanelMisconfigured("The widget \"{$widget->key}\" has no data: give it ->data(fn (Authorizable \$user) => [...]).");
             }
+            if (! $widget->isGuarded()) {
+                throw new PanelMisconfigured("The widget \"{$widget->key}\" doesn't say who may see it: give it ->permission(), ->visible(), or ->everyone() if it's meant for everyone who opens the panel.");
+            }
             $this->widgets[$widget->key] = $widget->inGroup($owner === null ? 'widgets' : "widgets-{$owner}");
         }
 

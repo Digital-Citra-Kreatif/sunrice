@@ -31,6 +31,7 @@ Until 1.0, APIs may change between versions; every change is recorded in `CHANGE
 What changed in the `Unreleased` version that may need a change in your app, templates or plugins:
 
 - **PHP 8.4 or newer** is required.
+- **Dashboard widgets must say who sees them**: a `Widget` without `->permission()` or `->visible()` now throws `PanelMisconfigured` when registered. Add `->everyone()` to one meant for everybody who opens the panel. See [Dashboard widgets](../packages/admin/docs/panel.md#dashboard-widgets).
 - **Plugin bundles**: `SDK_VERSION` is 2. Rebuild your plugin's admin bundle with the matching `@sunrice/admin-sdk`; the panel refuses bundles built for another version. See [Admin pages in React](../packages/admin/docs/frontend.md#compatibility).
 - **Role rank is strict** (`PermissionRank`): a user or role someone manages, gives out, creates or edits must be strictly below them (all its permissions are theirs, and at least one of theirs is missing). Managers who could manage people with exactly their own access no longer can; give them a higher role if they need to. See [Users and roles](../packages/admin/docs/users.md#who-may-manage-whom).
 - **`SecurityAlerts::PRIVILEGED_PERMISSIONS` is gone.** Mark your own powerful permissions with `$panel->privilegedPermissions()` (see [The panel and plugins](../packages/admin/docs/panel.md#privileged-permissions)); the alerts are now called *Someone / A role was given privileged access*.
