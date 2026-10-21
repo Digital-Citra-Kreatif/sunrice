@@ -167,6 +167,13 @@ it('posts from the site, back to the thread, with errors and the captcha', funct
     expect(Comment::query()->count())->toBe(2);
 });
 
+it('sends commenters back to the entry, never to another site that sent them', function () {
+    commentSettings(['perMinute' => 10]);
+    $evil = fn () => test()->withHeader('referer', 'https://evil.example/phish');
+    $evil()->post("/comments/{$this->post->entry_id}", guest())->assertRedirect('/blog/hello#comments');
+    $evil()->post("/comments/{$this->post->entry_id}", ['body' => ''])->assertRedirect('/blog/hello#comment-form');
+});
+
 it('limits comments per visitor', function () {
     commentSettings(['perMinute' => 2]);
     postJson("/comments/{$this->post->entry_id}", ['body' => ''])->assertUnprocessable(); // doesn't count

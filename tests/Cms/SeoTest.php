@@ -130,6 +130,21 @@ it('refuses addresses that lead off the site in disguise', function () {
         ->and(SafeUrl::isSafe('javascript:alert(1)'))->toBeFalse();
 });
 
+it('tells addresses on this site from others', function () {
+    config(['app.url' => 'https://www.acme.test']);
+    foreach (['/about', '/about?x=1#y', 'http://localhost/about', 'http://localhost:80/x', 'https://www.acme.test/about', 'https://WWW.acme.test:443'] as $local) {
+        expect(SafeUrl::isLocal($local))->toBeTrue();
+    }
+    foreach (['https://evil.example/about', '//evil.example/x', '/\\evil.example', 'http://localhost.evil.example/', 'http://localhost:8080/x',
+        'https://localhost/x', 'http://www.acme.test/x', 'http://user@evil.example/', 'javascript:alert(1)', 'about', '', "/\t/evil.example"] as $foreign) {
+        expect(SafeUrl::isLocal($foreign))->toBeFalse();
+    }
+    request()->headers->set('referer', 'https://evil.example/x');
+    expect(SafeUrl::previous('/fallback'))->toBe('/fallback');
+    request()->headers->set('referer', 'http://localhost/about');
+    expect(SafeUrl::previous('/fallback'))->toBe('http://localhost/about');
+});
+
 it('asks search engines to skip noindex pages', function () {
     seoPost($this->blog, 'Hidden', ['seo' => ['noindex' => true]]);
 

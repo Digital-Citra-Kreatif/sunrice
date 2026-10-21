@@ -40,7 +40,7 @@ In code: `Sunrice\Admin\Security\AccountGuard` has `signOutEverywhere($user)`, `
 
 ## Security headers
 
-Every panel response (`PanelRoutes::middleware()`, so plugin routes too) carries `X-Frame-Options: DENY` (no other site can frame the panel), `Referrer-Policy: same-origin` and `X-Content-Type-Options: nosniff`. The site's own pages aren't touched.
+Every panel response (`PanelRoutes::middleware()`, so plugin routes too) carries `X-Frame-Options: DENY` (no other site can frame the panel), `Referrer-Policy: same-origin` and `X-Content-Type-Options: nosniff`. The site's own pages aren't touched (the CMS sends its own). Media files are served by your web server, not PHP: give them headers there ([Headers at the web server](media.md#headers-at-the-web-server); `sunrice:install` writes an `.htaccess` for Apache), or serve them from an origin of their own.
 
 A `Content-Security-Policy` is sent only when you set one, because what it must allow depends on how your app serves the panel's assets (Vite, a CDN, inline scripts in your layout). Set `SUNRICE_CSP` or `security.headers.csp` in `config/sunrice-admin.php` to the policy string:
 
@@ -48,7 +48,13 @@ A `Content-Security-Policy` is sent only when you set one, because what it must 
 SUNRICE_CSP="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
 ```
 
-Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
+A policy to start from, with the published assets (no Vite dev server) and media on the app's own domain; add your font's origin (`fonts.bunny.net` by default, see [Branding](branding.md)) and a media CDN if you use one:
+
+```
+SUNRICE_CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.bunny.net; font-src 'self' https://fonts.bunny.net; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+```
+
+The panel's inline scripts (the saved appearance, its words) carry Vite's CSP nonce when your app sets one (`Vite::useCspNonce()` in a middleware, then add `'nonce-…'` to `script-src` in that same middleware's header instead of `SUNRICE_CSP`, since the nonce changes on every request); without a nonce, they need `'unsafe-inline'` in `script-src`. Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
 
 ## Links in emails
 
@@ -61,11 +67,32 @@ AppUrl::route('sunrice.admin.shop.orders.show', ['order' => $order->id]); // htt
 AppUrl::url($entry->url()); // an absolute link moved from the request's host to APP_URL
 ```
 
-Also turn on Laravel's `TrustHosts` middleware (`$middleware->trustHosts()` in `bootstrap/app.php`) or have your web server answer only your own host names, so the rest of the app (caches keyed by URL, redirects) never works with a made-up host.
+Also turn on Laravel's `TrustHosts` middleware (`$middleware->trustHosts()` in `bootstrap/app.php`) or have your web server answer only your own host names, so the rest of the app (caches keyed by URL, redirects, links in pages) never works with a made-up host. With it, a request whose `Host` isn't `APP_URL`'s host (or a subdomain of it) gets a 400; Laravel skips the check while `APP_ENV=local` and in tests. The CMS's own redirects are host-relative and its sitemap uses `APP_URL` either way ([The Host header](../../cms/docs/site.md#the-host-header)).
+
+## Fetching URLs people give
+
+Code that downloads a URL someone else chose (the AI tool `upload_media`, an import in your plugin) can be pointed at this server or its network: `http://127.0.0.1:6379`, the cloud metadata service at `169.254.169.254`, an admin page on `10.0.0.5`. `Sunrice\Admin\Support\PublicAddress` (`@api`) says whether a host is out on the public internet: every address it resolves to must be global unicast, so loopback, private, CGNAT (`100.64.0.0/10`), link-local, unique-local (`fc00::/7`), multicast, broadcast, `0.0.0.0/8`, documentation ranges and IPv6 forms that wrap an IPv4 address (`::ffff:127.0.0.1`, NAT64 `64:ff9b::/96`, 6to4, Teredo) are refused.
+
+```php
+use Sunrice\Admin\Support\PublicAddress;
+
+$host = (string) parse_url($url, PHP_URL_HOST);
+$ip = PublicAddress::of($host); // null: not public, or doesn't resolve
+if ($ip === null) {
+    abort(422, 'Only public web addresses can be fetched.');
+}
+$port = parse_url($url, PHP_URL_PORT) ?? (str_starts_with($url, 'https') ? 443 : 80);
+Http::withOptions([
+    'allow_redirects' => false, // a redirect could lead inside
+    'curl' => [CURLOPT_RESOLVE => ["{$host}:{$port}:{$ip}"]], // connect to the address that was checked
+])->get($url);
+```
+
+Don't follow redirects and pin the address, or a host name can resolve to a public address for the check and a private one for the fetch. `PublicAddress::isPublic($ip)` checks one IP address; in tests, `PublicAddress::resolveUsing(fn (string $host): array => ['10.0.0.5'])` replaces DNS (pass `null` to go back).
 
 ## Developer tools
 
-Inertia's DevTools record every request's page props (the users list with emails, settings) and, with `APP_ENV=local`, serve them at `/_inertia/devtools` to anyone, signed in or not. The panel turns them off unless your app turns them on itself (`INERTIA_DEVTOOLS_ENABLED=true`, or `inertia.devtools.enabled`); do that only on a machine nobody else can reach. Never run a reachable site with `APP_ENV=local` or `APP_DEBUG=true`.
+Inertia's DevTools record every request's page props (the users list with emails, settings) and, with `APP_ENV=local`, serve them at `/_inertia/devtools` to anyone, signed in or not. The panel turns them off unless your app turns them on itself (`INERTIA_DEVTOOLS_ENABLED=true`, or `inertia.devtools.enabled`); do that only on a machine nobody else can reach. Never run a reachable site with `APP_ENV=local` or `APP_DEBUG=true`; super admins see a warning in the panel while debug is on in production, or while `APP_URL` is `http://` there. See [Before going live](installation.md#before-going-live).
 
 ## Elsewhere too
 

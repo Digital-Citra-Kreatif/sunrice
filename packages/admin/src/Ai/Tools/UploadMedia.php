@@ -17,6 +17,7 @@ use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\MediaFolder;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Support\PublicAddress;
 use Throwable;
 
 #[Description('Add a file to the media library from a public web address ("url") or its content in base64 ("content_base64" with a "filename" that has the extension), optionally into a folder, with a title and alt text (describe images). The same checks as an upload in the panel: size, allowed types, no scripts. Returns the file with its id for media fields.')]
@@ -87,7 +88,7 @@ final class UploadMedia extends Tool
     private static function download(string $url, int $limit): string|Response
     {
         $host = parse_url($url, PHP_URL_HOST);
-        $ip = is_string($host) ? self::publicAddress(trim($host, '[]')) : null;
+        $ip = is_string($host) ? PublicAddress::of($host) : null;
         if ($ip === null) {
             return Response::error('Only files on public web addresses can be fetched.');
         }
@@ -116,19 +117,6 @@ final class UploadMedia extends Tool
         }
 
         return $body;
-    }
-
-    /** The host's address when it (and every address it has) is public; else null. */
-    public static function publicAddress(string $host): ?string
-    {
-        $ips = filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : (gethostbynamel($host) ?: []);
-        foreach ($ips as $ip) {
-            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
-                return null;
-            }
-        }
-
-        return $ips[0] ?? null;
     }
 
     public function schema(JsonSchema $schema): array

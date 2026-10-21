@@ -47,7 +47,7 @@ It works as the user whose email is in `sunrice-admin.ai.local_user` (`SUNRICE_A
 | `run_action` | Run a resource's row or bulk action on records. |
 | `get_settings`, `update_settings` | Read a settings section (secrets show only whether they're set) and change some of its settings. |
 | `list_media` | Files and folders of the media library, with ids for media fields. |
-| `upload_media` | Add a file from a public URL or base64 content, with a title, alt text and folder. Every check of an upload in the panel (`UploadMedia`: size, allowed types, no scripts, safe SVGs); URLs on this server or its private network are refused, and redirects aren't followed. Needs `sunrice.media.upload`. |
+| `upload_media` | Add a file from a public URL or base64 content, with a title, alt text and folder. Every check of an upload in the panel (`UploadMedia`: size, allowed types, no scripts, safe SVGs); URLs on this server, its network or any non-public range are refused ([`PublicAddress`](security.md#fetching-urls-people-give)), the checked address is the one connected to, and redirects aren't followed. Needs `sunrice.media.upload`. |
 | `update_media` | Change a file's title, alt text or caption (`sunrice.media.update`). |
 | `manage_media` | Folders (list, create, rename, delete), move files, trash and restore (`sunrice.media.delete`), where a file is used, and delete a trashed file permanently: refused while content uses it unless `force` (agents are told to ask). |
 | `get_activity` | The activity log, including what the agent itself did. |
