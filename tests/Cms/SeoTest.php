@@ -89,7 +89,8 @@ it('falls back to the title, and links the other languages', function () {
         ->assertSee('<link rel="alternate" hreflang="en" href="'.url('/blog/hello').'">', false)
         ->assertSee('<link rel="alternate" hreflang="id" href="'.url('/id/blog/halo').'">', false)
         ->assertSee('<link rel="alternate" hreflang="x-default" href="'.url('/blog/hello').'">', false)
-        ->assertSee('<meta property="og:locale" content="id">', false);
+        ->assertSee('<meta property="og:locale" content="id_ID">', false)
+        ->assertSee('<meta property="og:locale:alternate" content="en_US">', false);
 });
 
 it('gives each page of a listing or term its own canonical and alternate URLs', function () {
@@ -328,8 +329,9 @@ it('adds alternate locales, article times and X card tags', function () {
     $hello->refresh();
 
     get('/blog/hello')->assertOk()
-        ->assertSee('<meta property="og:locale:alternate" content="id">', false)
-        ->assertDontSee('og:locale:alternate" content="en"', false)
+        ->assertSee('<meta property="og:locale" content="en_US">', false)
+        ->assertSee('<meta property="og:locale:alternate" content="id_ID">', false)
+        ->assertDontSee('og:locale:alternate" content="en', false)
         ->assertDontSee('x-default" content', false)
         ->assertSee('<meta property="article:published_time" content="'.$hello->published_at?->toIso8601String().'">', false)
         ->assertSee('<meta property="article:modified_time" content="'.$hello->updated_at?->toIso8601String().'">', false)
@@ -355,3 +357,7 @@ it('points a page shown in the main language at the main page, without hreflang 
     get('/blog/hello')->assertOk()->assertDontSee('hreflang="id"', false);
     get('/sitemap.xml')->assertOk()->assertDontSee(url('/id/blog/hello'));
 });
+
+it('names languages for share cards as language_TERRITORY', function (string $locale, string $og) {
+    expect(Seo::ogLocale($locale))->toBe($og);
+})->with([['en', 'en_US'], ['id', 'id_ID'], ['fr', 'fr_FR'], ['ja', 'ja_JP'], ['pt-BR', 'pt_BR'], ['zh_Hant', 'zh_TW'], ['en-gb', 'en_GB']]);

@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- `og:locale` and `og:locale:alternate` are `language_TERRITORY` as Open Graph expects (`id_ID`, `en_US`, `pt_BR`, `zh_TW` for `zh-Hant`), from `Seo::ogLocale()` (`@api`), instead of the bare language code.
 - Machine translation translates link fields' texts too (`TranslatableStrings::TYPES` has `link`; the string is at `<field>.label`), in entries, terms and globals; where a link goes is kept.
 - The CMS's Indonesian lines for Laravel's own (`resources/lang-core`) are a translation path between Laravel's and the app's (`Support\CoreTranslations::loader()`, extending `translation.loader`): read only when a page needs them, instead of every file being globbed and required whenever the translator is made, and the app's `lang/id/validation.php` now wins line by line instead of hiding the CMS's file entirely.
 - Fixed: when `sunrice:switch-main-language` (`SwitchMainLanguage`) failed and putting the languages back failed too, that second error hid the one that stopped the switch; the first is rethrown and the second reported.
