@@ -219,7 +219,7 @@ it('translates from the main language in the editor, when a service is set up', 
     $entry = $this->coffee->entry_id;
 
     get("/admin/cms/entries/{$entry}/edit")->assertInertia(fn (Assert $page) => $page->where('machineTranslate', null));
-    get("/admin/cms/entries/{$entry}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('machineTranslate', $id->id));
+    get("/admin/cms/entries/{$entry}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('machineTranslate', $id->id)->where('machineTranslateMissing', false));
 
     // Translators may not edit the main language.
     post("/admin/cms/entries/{$this->coffee->id}/translate")->assertForbidden();
@@ -228,7 +228,9 @@ it('translates from the main language in the editor, when a service is set up', 
     expect($id->fresh()?->draft_data['intro'])->toBe('ID: Strong');
 
     config(['sunrice-cms.translation.driver' => null]);
-    get("/admin/cms/entries/{$entry}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('machineTranslate', null));
+    // Not set up: the editor says it exists, off, in other languages only.
+    get("/admin/cms/entries/{$entry}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('machineTranslate', null)->where('machineTranslateMissing', true));
+    get("/admin/cms/entries/{$entry}/edit")->assertInertia(fn (Assert $page) => $page->where('machineTranslateMissing', false));
     post("/admin/cms/entries/{$id->id}/translate")->assertNotFound();
 });
 

@@ -142,8 +142,11 @@ it('swaps titles and thank-you messages with the main language', function () {
     Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text']]]);
     $form = Sunrice\Cms\Models\Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact', 'message' => 'Thanks!']);
     $form->translate('message', 'id', 'Terima kasih!')->save();
+    app(Sunrice\Cms\Settings\SiteSettings::class)->fill(['description' => 'Good food.', 'descriptions' => 'id: Makanan enak.'])->save();
 
     app(SwitchMainLanguage::class)->handle('id');
+    app()->forgetInstance(Sunrice\Cms\Settings\SiteSettings::class);
+    expect(array_intersect_key(app(Sunrice\Cms\Settings\SiteSettings::class)->toArray(), ['description' => 1, 'descriptions' => 1]))->toBe(['description' => 'Makanan enak.', 'descriptions' => 'en: Good food.']);
 
     expect($this->dishes->fresh()?->only(['title', 'translations']))->toBe(['title' => 'Hidangan', 'translations' => ['en' => ['title' => 'Dishes']]])
         ->and($this->dishes->fresh()?->titleIn('en'))->toBe('Dishes')

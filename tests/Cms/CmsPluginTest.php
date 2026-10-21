@@ -91,3 +91,11 @@ it('gives the panel its content languages, for media alt text in each', function
 
     expect(array_keys(app(Panel::class)->getContentLocales()))->toBe(['en', 'id']);
 });
+
+it('shares the languages\' names with every admin page', function () {
+    app(Sunrice\Cms\Settings\LocaleSettings::class)->fill(['languages' => "en: English\nid: Bahasa Indonesia"])->save();
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    Pest\Laravel\actingAs(adminUser(Panel::ACCESS));
+
+    Pest\Laravel\get('/admin')->assertInertia(fn (Inertia\Testing\AssertableInertia $page) => $page->where('cms.locales', ['en' => 'English', 'id' => 'Bahasa Indonesia']));
+});

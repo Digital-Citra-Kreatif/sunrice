@@ -52,3 +52,15 @@ test('builds the entry picker\'s query', async () => {
     assert.equal(pickerQuery({ ids: [3, 1], collections: ['pages'] }), 'ids%5B%5D=3&ids%5B%5D=1&collections%5B%5D=pages');
     assert.equal(pickerQuery({ search: 'a&b', collections: [] }), 'search=a%26b');
 });
+
+test('names languages as the site does, else in the reader\'s language', async () => {
+    const { localeName, setLocaleNames } = await import('../../packages/cms/resources/js/lib/entries.ts');
+
+    setLocaleNames({ id: 'Bahasa Indonesia' });
+    assert.equal(localeName('id'), 'Bahasa Indonesia');
+    // Asked in a language, or a code the site doesn't name: as Intl says it.
+    assert.equal(localeName('id', 'en'), 'Indonesian');
+    assert.equal(localeName('xx'), new Intl.DisplayNames(undefined, { type: 'language' }).of('xx') ?? 'xx');
+    setLocaleNames(null);
+    assert.equal(localeName('id'), new Intl.DisplayNames(undefined, { type: 'language' }).of('id'));
+});

@@ -88,7 +88,8 @@ it('serves other languages under their prefix', function () {
     expect($id->fresh()?->url())->toBe(url('/id/blog/halo'));
     get('/id/blog/halo')->assertOk()->assertSee('<html lang="id">', false)->assertSee('Halo');
     get('/blog/halo')->assertNotFound();
-    get('/id/blog/hello')->assertNotFound();
+    // The main language's slug goes to the translation's own address.
+    get('/id/blog/hello?ref=x')->assertRedirect(url('/id/blog/halo').'?ref=x')->assertStatus(301);
 });
 
 it('leaves the app\'s own routes first', function () {
@@ -199,7 +200,7 @@ it('serves the main language where an entry isn\'t translated, at that language\
 
     app(PublishEntry::class)->handle($draft->refresh());
     get('/id/blog/halo')->assertOk()->assertSee('<h1>Halo</h1>', false);
-    get('/id/blog/hello')->assertNotFound();
+    get('/id/blog/hello')->assertRedirect(url('/id/blog/halo'));
 });
 
 it('gives templates $fallback, and answers 404 with the fallback off', function () {
@@ -223,7 +224,7 @@ it('serves an untranslated term\'s page in the main language too', function () {
     expect(Content::localeUrls())->toBe(['en' => url('/tags/news'), 'id' => url('/id/tags/news')]);
 
     app(SaveTerm::class)->handle($tags, ['title' => 'Berita', 'locale' => 'id'], $news);
-    get('/id/tags/news')->assertNotFound();
+    get('/id/tags/news')->assertRedirect(url('/id/tags/berita'));
     get('/id/tags/berita')->assertOk()->assertViewHas('fallback', false);
 });
 

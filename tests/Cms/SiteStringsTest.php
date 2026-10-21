@@ -69,3 +69,14 @@ it('reads its Laravel lines only when a page asks for them, below the app\'s own
         @unlink($file);
     }
 });
+
+it('gives the entry filter, the draft banner and the unsubscribe page Indonesian too', function () {
+    app()->setLocale('id');
+    $filter = Illuminate\Support\Facades\Blade::render('<x-sunrice-cms::entry-filter collection="blog" :filters="[\'q\' => \'search\']" :sorts="[\'new\' => \'latest\', \'old\' => \'oldest\']" />');
+    $banner = view('sunrice-cms::draft-banner', ['entry' => null, 'draft' => true, 'liveUrl' => '/x', 'draftUrl' => null, 'editUrl' => '/admin'])->render();
+    $unsubscribed = view('sunrice-cms::comment-unsubscribed', ['url' => null, 'locale' => 'id'])->render();
+
+    expect($filter)->toContain('aria-label="Saring"')->toContain('Urutkan menurut')->toContain('Tampilkan hasil')->toContain('2 hasil')
+        ->and($banner)->toContain('Draf')->toContain('Lihat halaman yang tayang')->toContain('Sunting')
+        ->and($unsubscribed)->toContain('Anda sudah berhenti berlangganan')->toContain('Ke beranda');
+});

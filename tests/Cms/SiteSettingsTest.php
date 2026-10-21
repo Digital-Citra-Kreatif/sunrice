@@ -202,3 +202,16 @@ it('lists terms with their live entries\' counts, as a tree', function () {
         ->and($render('taxonomy="categories" tree'))->toBe('Local:0[City]')
         ->and($render('taxonomy="nope"'))->toBe('');
 });
+
+it('describes the site in each language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $site = app(Sunrice\Cms\Settings\SiteSettings::class);
+    $site->fill(['description' => 'Premium homes.', 'descriptions' => "id: Rumah premium.\nfr: Maisons."])->save();
+
+    expect($site->descriptionIn('id'))->toBe('Rumah premium.')
+        ->and($site->descriptionIn('en'))->toBe('Premium homes.')
+        ->and($site->descriptionIn('de'))->toBe('Premium homes.')
+        ->and(Sunrice\Cms\Support\Seo::forPage(null)['description'])->toBe('Premium homes.');
+    app()->setLocale('id');
+    expect(Sunrice\Cms\Support\Seo::forPage(null)['description'])->toBe('Rumah premium.');
+});
