@@ -28,8 +28,8 @@ it('shows the site\'s own words in the page\'s language', function () {
     get('/id/blog')->assertOk()->assertSee('Lebih lama')->assertDontSee('Older');
     get('/blog')->assertOk()->assertSee('Older');
 
-    get('/id/blog/kopi')->assertOk()->assertSee('0 komentar')->assertSee('Kirim komentar')->assertSee('Email (tidak ditampilkan)');
-    get('/blog/kopi')->assertOk()->assertSee('0 comments')->assertSee('Post comment');
+    get('/id/blog/kopi')->assertOk()->assertSee('Tinggalkan komentar')->assertSee('Kirim komentar')->assertSee('Email (tidak ditampilkan)');
+    get('/blog/kopi')->assertOk()->assertSee('Leave a comment')->assertSee('Post comment');
 
     commitForFullText();
     get('/id/search?q=kopi')->assertOk()->assertSee('<h1>Cari</h1>', false)->assertSee('1 hasil untuk “kopi”');
