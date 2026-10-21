@@ -433,7 +433,9 @@ it('creates a user with an invitation to choose their own password, and sends a 
     Notification::fake();
     actingAs($this->super);
 
-    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => false, 'roles' => []])->assertSessionHasErrors('password');
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => false, 'roles' => []])
+        ->assertSessionHasErrors(['password' => 'Type a password, or turn on Email an invitation.']); // NEW-admin-3
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'roles' => []])->assertSessionHasErrors(['password' => 'Type a password, or turn on Email an invitation.']);
     post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => true, 'roles' => []])->assertSessionHasNoErrors();
     $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
     expect($dewi->password)->not->toBe('');

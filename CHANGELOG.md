@@ -33,6 +33,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- New user without a password or an invitation says "Type a password, or turn on Email an invitation." instead of Laravel's "The Password field is required unless Email an invitation is in true, 1." (NEW-admin-3)
 - `cms_render_page` checks its "public pages only" rule on the path as routing reads it: percent-encoding decoded (again until nothing changes), backslashes and repeated slashes as one, `.` and `..` resolved, so `/%61dmin` and `/%5Finertia/…` are refused like `/admin` and `/_inertia/…`. (NEW-security-2)
 - `FileContent::containsPhp()` also finds PHP's short echo tag (`<?= … ?>`, always on in PHP 8) and, where `short_open_tag` is on, `<? …`, followed by code (plain text up to `?>` or the end of the file, so those bytes in a photo's data don't count), across the chunks it reads: an image with `<?= … ?>` appended is refused in the media library and in form uploads like one with `<?php`. (SEC-12, NEW-security-3)
 - The invitation and **Email a password link** mail (`PanelInvitation`) builds its link from `APP_URL` (`AppUrl::route()`), like the password reset mail, never from the request's Host. (NEW-security-1)
