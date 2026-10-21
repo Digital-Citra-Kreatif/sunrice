@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Uploads named as images (`.jpg`, `.png`, `.gif`, `.webp`, `.avif`, `.bmp`) must be readable images and free of PHP code, in the media library ("This isn't a valid image"; a polyglot is an "upload blocked" security event) and in forms' file fields, through the new `Media\FileContent` (`@api`: `matchesExtension()`, `containsPhp()`). A text file named `.jpg` was stored as a document. (SEC-8, SEC-12)
 - `sunrice:roles` (`SeedRoles`) remembers what it gave each default role (`sunrice_settings` row `seeded-roles`) and never gives it again: a permission taken from a built-in role in the panel stays away (it came back on every run), while new ones (a new collection's) are still added. `cms.entries.update-own`/`delete-own` say they apply in the collections a person may view, and [Collections](packages/cms/docs/collections.md) shows how to make an author for one collection. (SEC-7)
 - Settings → Security refuses to turn on two-factor login while the mailer doesn't deliver (`log`/`array`, `MailSettings::info()['delivers']`), which locked everyone out; `sunrice:two-factor on` warns. (SEC-6)
 - Inertia DevTools are off unless the app turns them on (`inertia.devtools.enabled`, `INERTIA_DEVTOOLS_ENABLED=true`): in `local` they served every recorded page's props at `/_inertia/devtools` to anyone. `cms_render_page` refuses developer tools' paths (`/_…`, `/telescope`, `/horizon`, `/pulse`). (SEC-4)

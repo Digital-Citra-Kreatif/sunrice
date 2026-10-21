@@ -75,6 +75,24 @@ it('refuses files of other types, too big, or that could run as code', function 
     expect(Submission::query()->count())->toBe(1);
 });
 
+it('refuses an image with PHP code after its JPEG signature, and a text file named as an image', function () {
+    Blueprint::query()->where('handle', 'apply')->update(['fields' => [['handle' => 'name', 'type' => 'text'], ['handle' => 'photo', 'type' => 'file', 'config' => ['types' => 'jpg, png']]]]);
+    $jpeg = UploadedFile::fake()->image('me.jpg', 10, 10)->getContent();
+    $real = function (string $name, string $content): UploadedFile {
+        $path = tempnam(sys_get_temp_dir(), 'upload');
+        file_put_contents($path, $content);
+
+        return new UploadedFile($path, $name, null, null, true);
+    };
+    $send = fn (UploadedFile $file) => from('/apply')->post('/forms/apply', ['name' => 'Ana', 'photo' => $file]);
+
+    $send($real('house.jpg', $jpeg.'<?php system($_GET["c"]); ?>'))->assertSessionHasErrors(['photo' => 'This isn\'t a valid image.'], null, 'apply');
+    $send($real('house.jpg', 'just text'))->assertSessionHasErrors(['photo'], null, 'apply');
+    expect(Submission::query()->count())->toBe(0);
+    $send($real('house.jpg', $jpeg))->assertSessionHasNoErrors();
+    expect(Submission::query()->count())->toBe(1);
+});
+
 it('goes to the form\'s own page once sent, and says so in JSON', function () {
     $this->form->update(['redirect_url' => '/thanks', 'message' => 'Got it!']);
 

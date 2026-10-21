@@ -6,6 +6,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Actions\Media\DeleteMedia;
 use Sunrice\Admin\Actions\Media\ReplaceMedia;
 use Sunrice\Admin\Actions\Media\UploadMedia;
@@ -87,6 +88,16 @@ it('refuses files that could run code, whatever they are called', function () {
 
     expect(Media::query()->count())->toBe(0)
         ->and(Storage::disk('public')->allFiles())->toBe([]);
+});
+
+it('refuses a file named as an image that isn\'t one, and images with PHP code in them', function () {
+    expect(refused(realUpload('qa-test-fake.jpg', 'just some text')))->toContain('This isn\'t a valid image')->toContain('.jpg');
+
+    $jpeg = UploadedFile::fake()->image('a.jpg', 10, 10)->getContent();
+    expect(refused(realUpload('polyglot.jpg', $jpeg.'<?PHP system($_GET["c"]); ?>')))->toBe('This image contains PHP code, so it can\'t be uploaded.')
+        ->and(Activity::query()->where('action', 'upload blocked')->latest('id')->first()?->properties['note'])->toContain('PHP code');
+
+    expect(upload(realUpload('real.jpg', $jpeg))->width)->toBe(10);
 });
 
 it('refuses SVGs with scripts and keeps clean ones as they are', function () {
@@ -184,10 +195,7 @@ it('makes sizes on the queue by default, unless jobs would run in the request an
     expect(MediaConfig::queue())->toBeFalse();
 });
 
-it('keeps only the original of images it can\'t read or that are too large', function () {
-    $broken = upload(UploadedFile::fake()->createWithContent('broken.jpg', 'not really a jpeg'));
-    expect($broken->sizes)->toBe([]);
-
+it('keeps only the original of images that are too large', function () {
     config(['sunrice-admin.media.max_pixels' => 1000]);
     expect(upload(UploadedFile::fake()->image('big.png', 100, 100))->sizes)->toBe([]);
 });
