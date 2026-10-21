@@ -1,3 +1,4 @@
+import type { FormLink } from '@/lib/live-help';
 /** Page data of the Resources pages (see ResourceController). */
 
 export interface ResourceInfo {
@@ -72,6 +73,8 @@ export interface SectionInfo {
     description: string | null;
     columns: number;
     fields: FieldInfo[];
+    /** Section::links(): links in the card's header. */
+    links?: FormLink[];
 }
 
 /** A read-only card from `Resource::aside()` or `Settings::cards()` (Sunrice\Admin\Support\Card). */

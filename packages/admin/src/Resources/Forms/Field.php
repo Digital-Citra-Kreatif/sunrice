@@ -23,6 +23,8 @@ use Sunrice\Admin\Support\Say;
  */
 abstract class Field implements Component
 {
+    use Concerns\HelpExtras;
+
     protected string $label;
 
     protected bool $required = false;
@@ -355,6 +357,7 @@ abstract class Field implements Component
             'warnWhenChanged' => $record !== null && $record->exists ? Say::it($this->warnWhenChanged) : null,
             'span' => $this->span,
             'showWhen' => $this->showWhen,
+            ...$this->helpExtras($record),
             ...$this->props(),
         ];
     }

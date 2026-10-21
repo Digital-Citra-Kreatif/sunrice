@@ -166,3 +166,18 @@ it('names collections by their handle in addresses, and sends an old id address 
     post('/admin/cms/collections', ['title' => 'New', 'handle' => 'create', 'per_page' => 10])->assertSessionHasErrors('handle');
     post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'per_page' => 10])->assertRedirect('/admin/cms/collections/news/edit');
 });
+
+it('says in plain words what a handle is, then what developers write with it as it is typed', function () {
+    actingAs(adminUser(Panel::ACCESS, ...collect(['collections', 'taxonomies', 'forms', 'globals', 'menus'])->map(fn ($area) => "cms.{$area}.create")->all()));
+    $handle = fn (Assert $page): array => collect($page->toArray()['props']['sections'])->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'handle');
+
+    foreach (['collections' => ['collection', 'Cms::entries(\':value\')', 'articles'], 'taxonomies' => ['taxonomy', 'taxonomy=":value"', 'categories'],
+        'forms' => ['form', '<x-sunrice-cms::form handle=":value" />', 'newsletter'], 'globals' => ['global set', 'Cms::global(\':value\')', 'contact'],
+        'menus' => ['menu', 'Cms::menu(\':value\')', 'footer']] as $list => [$name, $code, $example]) {
+        get("/admin/cms/{$list}/create")->assertOk()->assertInertia(function (Assert $page) use ($handle, $name, $code, $example) {
+            expect($handle($page)['help'])->toBe("A short name for this {$name}, used by the site's templates.")
+                ->and($handle($page)['developerHelp']['text'])->toContain($code)
+                ->and($handle($page)['developerHelp']['example'])->toBe($example);
+        });
+    }
+});

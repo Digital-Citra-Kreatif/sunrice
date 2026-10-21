@@ -7,6 +7,7 @@ import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { FieldHelp, SectionLinks } from './field-help';
 import { FieldInput, type FieldValue } from './fields';
 import type { FieldInfo, SectionInfo } from './types';
 
@@ -57,7 +58,7 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
                                     {input}
                                 </>
                             )}
-                            {field.help && <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">{field.help}</p>}
+                            <FieldHelp field={field} data={data} />
                             <div aria-live="polite">
                                 {warning && (
                                     <p id={`field-${field.name}-warning`} className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm whitespace-pre-line text-amber-900 dark:text-amber-200">
@@ -81,7 +82,8 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
         // A titled section folds away (remembered), and opens on an error inside.
         return section.title ? (
             <CollapsibleCard key={index} title={section.title} description={section.description ?? undefined} titleClassName="text-base"
-                storageKey={storageKey ? `${storageKey}:${section.title}` : undefined} hasErrors={fields.some((field) => errors[field.name] !== undefined)}>
+                storageKey={storageKey ? `${storageKey}:${section.title}` : undefined} hasErrors={fields.some((field) => errors[field.name] !== undefined)}
+                headerAction={section.links ? <SectionLinks links={section.links} data={data} /> : undefined}>
                 {content}
             </CollapsibleCard>
         ) : (

@@ -123,6 +123,21 @@ Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `-
 TextInput::make('code')->warnWhenChanged('Invoices printed before keep ":old"; reports that filter by it need ":new".'),
 ```
 
+Under its help, a field can say more, following the form as it's edited:
+
+- `->helpValues(['url' => ['listing_route', '/{handle}']])` fills `:url` in the help with that field's value, or while it's empty with the fallback (`{name}` there is the field `name`'s value).
+- `->developerHelp('In a template: `<x-shop::product sku=":value" />`', 'ABC-1')` adds a line "For developers: …": `backticks` show as code, `:value` is the field's value as it's typed (the example while it's empty). Keep the help itself in plain words for editors.
+- `->helpDetails('Which file?', "1. shop/product.blade.php\n2. …")` adds a disclosure that opens to more text.
+- `->links([...])` puts links under the field, and `Section::make('…')->links([...])` in its card's header. A `Link::make('Edit', url('/admin/blueprints/{blueprint}/edit'))` takes the form's current value of a field for `{name}` in its address; `->showWhen('blueprint')` / `->showUnless('blueprint')` show it only while that field is (or isn't) filled in, and `->newTab()` opens it in a new tab (marked ↗). Either takes a closure that gets the record (null when creating), for links that need a saved one:
+
+```php
+Section::make('Listing page')->links(fn (?Model $record) => $record ? [Link::make('View on site', $record->listingUrl())->newTab()] : []),
+Select::make('blueprint')->links([
+    Link::make('Create blueprint', url('/admin/blueprints/create'))->showUnless('blueprint'),
+    Link::make('Edit', url('/admin/blueprints/{blueprint}/edit'))->showWhen('blueprint'),
+]),
+```
+
 `->disabled()` shows a field without letting anyone change it (it's never validated or written); give it a closure to decide per record: `->disabled(fn (?Model $record) => $record?->locked)` (null when creating).
 
 A field that isn't a column reads and writes with closures; `saveUsing` runs after the record is saved, in the same transaction:
