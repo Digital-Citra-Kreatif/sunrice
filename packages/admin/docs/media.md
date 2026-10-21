@@ -127,19 +127,43 @@ Stored names are new and random, never the uploader's.
 
 ### Headers at the web server
 
-The `allowed_extensions` list includes files that aren't images, such as `json`, `txt`, `csv` and `zip`, and a file's content is checked only as far as its type can be: an image can carry text a browser might read as something else if it guessed. The public disk is served by your web server, not by PHP, so set these headers there for the media directory (`storage/media` with the defaults):
+The `allowed_extensions` list includes files that aren't images, such as `json`, `txt`, `csv` and `zip`, and a file's content is checked only as far as its type can be: an image can carry text a browser might read as something else if it guessed, and an SVG opened by itself (not in an `<img>`) is a document on your domain. The public disk is served by your web server, not by PHP, so the panel can't add headers to it: set these there for the media directory (`storage/media` with the defaults):
 
 - `X-Content-Type-Options: nosniff` on everything, so browsers use the declared type and never guess;
+- for `.svg`, `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src data:` and `Content-Disposition: inline`, so an SVG opened by itself can't run a script or load anything, even if one got past the upload check;
 - `Content-Disposition: attachment` for everything but images (and video and audio, if you embed them), so documents and archives are downloaded rather than opened on your domain.
 
-For nginx, for example:
+**nginx** (in the `server` block; `add_header` in a nested `location` replaces the outer ones, hence the repeats):
 
 ```nginx
-location /storage/media/ {
-    add_header X-Content-Type-Options nosniff always;
-    location ~* \.(json|txt|csv|zip|pdf|docx?|xlsx?|pptx?)$ {
-        add_header X-Content-Type-Options nosniff always;
-        add_header Content-Disposition attachment always;
+location ^~ /storage/media/ {
+    add_header X-Content-Type-Options "nosniff" always;
+
+    location ~* \.svg$ {
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:" always;
+        add_header Content-Disposition "inline" always;
+    }
+    location ~* \.(json|txt|csv|zip|pdf|docx?|xlsx?|pptx?|odt|ods|odp|rtf)$ {
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Content-Disposition "attachment" always;
     }
 }
 ```
+
+**Apache**: `php artisan sunrice:install` writes this as `.htaccess` in the media directory when the media disk is a local one and the file isn't there yet (it's never overwritten, so change it as you like; other web servers ignore it). It needs `mod_headers` and `AllowOverride FileInfo`, as Laravel's own `public/.htaccess` does. In a virtual host instead, put it in `<Directory "/path/to/app/storage/app/public/media">`:
+
+```apache
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    <FilesMatch "(?i)\.svg$">
+        Header always set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+        Header always set Content-Disposition "inline"
+    </FilesMatch>
+    <FilesMatch "(?i)\.(json|txt|csv|zip|pdf|docx?|xlsx?|pptx?|odt|ods|odp|rtf)$">
+        Header always set Content-Disposition "attachment"
+    </FilesMatch>
+</IfModule>
+```
+
+Check with `curl -I https://your-app.example/storage/media/…/logo.svg`. **Stronger still:** serve media from an origin of its own (`media.your-app.example`, a CDN, or an S3 bucket's domain: set the disk's `url`), so a file there can never act on your app's domain, whatever its headers. The panel serves no media through PHP; the Help pages' images it does serve are PNG, JPEG, GIF, WebP or AVIF only, with `nosniff`.

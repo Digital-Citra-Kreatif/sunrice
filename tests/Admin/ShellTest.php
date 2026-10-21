@@ -187,6 +187,29 @@ it('warns super admins when the published assets are older than the installed pa
     (new Filesystem)->deleteDirectory($dist);
 });
 
+it('warns super admins when production runs with debug on or on http', function () {
+    usePanel();
+    $admin = adminUser(Panel::ACCESS);
+    Role::findOrCreate(SyncPermissions::superAdminRole(), 'web');
+    $admin->assignRole(SyncPermissions::superAdminRole());
+    $debug = 'APP_DEBUG is on in production';
+    $http = 'APP_URL starts with http:// in production';
+    actingAs($admin);
+
+    config(['app.env' => 'production', 'app.debug' => true, 'app.url' => 'http://acme.test']);
+    get('/admin')->assertOk()->assertSee($debug)->assertSee($http);
+    // Only to super admins.
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin')->assertOk()->assertDontSee($debug)->assertDontSee($http);
+
+    actingAs($admin);
+    config(['app.debug' => false, 'app.url' => 'https://acme.test']);
+    get('/admin')->assertOk()->assertDontSee($debug)->assertDontSee($http);
+    // Elsewhere than production, debug and http are fine.
+    config(['app.env' => 'local', 'app.debug' => true, 'app.url' => 'http://localhost']);
+    get('/admin')->assertOk()->assertDontSee($debug)->assertDontSee($http);
+});
+
 it('loads the panel font, or the one configured instead', function () {
     usePanel();
 

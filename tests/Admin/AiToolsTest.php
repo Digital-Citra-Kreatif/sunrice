@@ -18,6 +18,7 @@ use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaUsages;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Support\PublicAddress;
 use Sunrice\Tests\Admin\Fixtures\Product;
 use Sunrice\Tests\Admin\Fixtures\ProductResource;
 use Sunrice\Tests\Admin\Fixtures\ShopSettings;
@@ -236,8 +237,20 @@ it('uploads media from base64 and public addresses, with every upload check', fu
 
     Http::fake(['93.184.216.34/*' => Http::response(base64_decode($png), 200)]);
     expect(callTool($this->token, 'upload_media', ['url' => 'http://93.184.216.34/photos/sun.png'])['filename'])->toBe('sun.png');
-    foreach (['http://127.0.0.1/a.png', 'http://localhost/a.png', 'http://10.1.2.3/a.png', 'http://169.254.169.254/latest'] as $inside) {
-        expect(callTool($this->token, 'upload_media', ['url' => $inside]))->toContain('public web addresses');
+    $inside = [
+        'http://127.0.0.1/a.png', 'http://localhost/a.png', 'http://10.1.2.3/a.png', 'http://169.254.169.254/latest',
+        'http://[::ffff:127.0.0.1]/a.png', 'http://[::ffff:169.254.169.254]/latest', 'http://[::ffff:10.0.0.1]/a.png',
+        'http://100.64.0.1/a.png', 'http://[64:ff9b::7f00:1]/a.png', 'http://[64:ff9b:1::1]/a.png', 'http://[fe80::1]/a.png',
+        'http://[fd00::1]/a.png', 'http://224.0.0.1/a.png', 'http://0.0.0.0/a.png', 'http://255.255.255.255/a.png',
+        'http://internal.example/a.png',
+    ];
+    PublicAddress::resolveUsing(fn (string $host): array => $host === 'internal.example' ? ['192.168.0.10'] : (gethostbynamel($host) ?: []));
+    try {
+        foreach ($inside as $url) {
+            expect(callTool($this->token, 'upload_media', ['url' => $url]))->toContain('public web addresses');
+        }
+    } finally {
+        PublicAddress::resolveUsing(null);
     }
     expect(callTool($this->token, 'upload_media', ['url' => 'file:///etc/passwd']))->toContain('url');
     Http::assertSentCount(1);

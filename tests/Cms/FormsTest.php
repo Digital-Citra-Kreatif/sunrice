@@ -96,6 +96,14 @@ it('sends the visitor back with errors under the form\'s bag', function () {
     expect(Submission::query()->count())->toBe(1);
 });
 
+it('never sends the visitor to another site that sent them', function () {
+    $evil = fn () => test()->withHeader('referer', 'https://evil.example/phish');
+    $evil()->post('/forms/contact', contactInput())->assertRedirect('/#form-contact-status');
+    $evil()->post('/forms/contact', contactInput(['email' => 'nope']))->assertRedirect('/#form-contact-errors');
+    test()->withHeader('referer', '//evil.example/x')->post('/forms/contact', contactInput())->assertRedirect('/#form-contact-status');
+    from('/contact-page')->post('/forms/contact', contactInput())->assertRedirect('/contact-page#form-contact-status');
+});
+
 it('answers 404 for an unknown form', function () {
     post('/forms/nope', contactInput())->assertNotFound();
 });
