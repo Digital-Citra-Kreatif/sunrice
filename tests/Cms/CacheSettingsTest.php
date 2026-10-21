@@ -65,7 +65,7 @@ it('adds Settings → Cache, guarded by its own permission, which administrators
     $version = app(SiteCache::class)->version(SiteCache::ROUTES);
     put('/admin/settings/cache', [
         'pageCache' => 'on', 'pageMinutes' => 30, 'exclude' => "/contact\n/account/*", 'collections' => ['blog'],
-        'query' => "tab\nsort", 'otherQuery' => CacheSettings::SKIP, 'ignore' => "utm_*\nfbclid", 'siteMinutes' => 120,
+        'query' => "tab\nsort", 'otherQuery' => CacheSettings::SKIP, 'ignore' => "utm_*\nfbclid", 'siteMinutes' => 120, 'preloadSchedule' => CacheSettings::NEVER,
     ])->assertSessionHasNoErrors()->assertRedirect();
 
     $settings = new CacheSettings;
@@ -92,7 +92,7 @@ it('refuses addresses and parameter names it can\'t use', function () {
     put('/admin/settings/cache', ['pageCache' => 'on', 'collections' => ['nope']])->assertSessionHasErrors('collections.0');
     put('/admin/settings/cache', ['pageCache' => 'sometimes'])->assertSessionHasErrors('pageCache');
     put('/admin/settings/cache', ['pageCache' => 'on', 'pageMinutes' => 0])->assertSessionHasErrors('pageMinutes');
-    put('/admin/settings/cache', ['pageCache' => 'on', 'otherQuery' => 'ignore', 'exclude' => "/a-b_c.html\n*/print\n/search*", 'ignore' => "utm_*\nfilter[x]"])->assertSessionHasNoErrors();
+    put('/admin/settings/cache', ['pageCache' => 'on', 'otherQuery' => 'ignore', 'preloadSchedule' => 'off', 'exclude' => "/a-b_c.html\n*/print\n/search*", 'ignore' => "utm_*\nfilter[x]"])->assertSessionHasNoErrors();
 });
 
 it('turns whole pages on and off over the config, and keeps them as long as it says', function () {
