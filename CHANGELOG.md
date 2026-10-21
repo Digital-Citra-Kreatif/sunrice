@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Saving a settings section records the files its media pickers hold as used (`MediaUsages`, type `sunrice.settings`), so the branding logo, browser icon and sign-in image (and the CMS's share image and logo) are no longer shown as unused and deleted without a warning.
 - Untranslated pages mark their content's language: templates get `$contentLocale`, and `Page::contentLocale()` and `Page::langAttribute()` (` lang="en"` on fallback pages) are new; the CMS's plain pages and the starter templates use them. See [Untranslated pages](packages/cms/docs/site.md#untranslated-pages).
 - `SortableList` takes `getLabel`: drag-and-drop announcements name items and where they go ("Home moved above About") instead of dnd-kit's ids; every built-in list passes it. A `link` field's inputs are named after the field ("Map link: address").
 - The admin shell has one `<main>` landmark (the sidebar inset is a `div` around it).

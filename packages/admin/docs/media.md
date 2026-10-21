@@ -19,7 +19,7 @@ Turn the page off with `$panel->mediaLibrary(false)`; the library still works fr
 
 ## Where files are used
 
-A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets. Moving a file in use to the trash asks first; deleting it for good asks too, and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
+A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets, and the panel reports what a settings section's media pickers hold when it's saved (Branding's logo, browser icon and sign-in image; Settings → Site's share image and logo; your own sections' pickers). Moving a file in use to the trash asks first; deleting it for good asks too, and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
 
 Report your own items' files when they're saved, and forget them when they're deleted (a type starting with your plugin's id, its id, the files, a label and a link):
 
