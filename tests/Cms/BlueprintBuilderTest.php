@@ -118,7 +118,7 @@ it('refuses to delete a blueprint a collection uses', function () {
     builderUser();
 
     delete("/admin/cms/blueprints/{$blueprint->handle}")->assertSessionHasErrors('blueprint');
-    Collection::query()->delete();
+    Collection::query()->forceDelete();
     delete("/admin/cms/blueprints/{$blueprint->handle}")->assertRedirect('/admin/cms/blueprints');
 
     expect(Blueprint::query()->count())->toBe(0);

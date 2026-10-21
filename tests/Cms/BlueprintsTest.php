@@ -81,9 +81,12 @@ it('refuses to delete a blueprint anything uses, naming what', function () {
     Form::query()->update(['blueprint' => null]);
     expect($delete)->toThrow(ValidationException::class, 'used by the collection "Pages", the taxonomy "Topics".');
 
-    // Deleted collections and taxonomies don't count.
+    // Those in the trash count (restoring them needs it); deleted for good, they don't.
     Collection::query()->where('handle', 'pages')->firstOrFail()->delete();
     Taxonomy::query()->where('handle', 'topics')->firstOrFail()->delete();
+    expect($delete)->toThrow(ValidationException::class, 'used by the collection "Pages" (in the trash), the taxonomy "Topics" (in the trash).');
+    Collection::onlyTrashed()->firstOrFail()->forceDelete();
+    Taxonomy::onlyTrashed()->firstOrFail()->forceDelete();
     $delete();
     expect(Blueprint::query()->count())->toBe(0);
 });

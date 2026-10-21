@@ -57,7 +57,7 @@ it('keeps every index name within MySQL\'s 64 characters', function () {
 
     $statements = [];
     try {
-        foreach (glob(dirname(__DIR__, 2).'/packages/{admin,cms}/database/migrations/*.php', GLOB_BRACE) ?: [] as $file) {
+        foreach ([...glob(dirname(__DIR__, 2).'/packages/admin/database/migrations/*.php') ?: [], ...glob(dirname(__DIR__, 2).'/packages/cms/database/migrations/*.php') ?: []] as $file) {
             $migration = require $file;
             foreach ($mysql->pretend(fn () => $migration->up()) as $query) {
                 $statements[] = $query['query'];
