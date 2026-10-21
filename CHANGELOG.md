@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- `SecurityAlerts::DESTRUCTIVE_ACTIONS` includes `purged` (removing deleted content for good, `PurgeDeleted`), so it counts towards the *Many things deleted in a short time* alert.
 - **The default `administrator` role no longer gets `sunrice.ai.run-commands` and `sunrice.ai.error-log`**: `*` silently included letting AI agents run commands and read the error log, which now stay with super admins unless given on purpose. Default role patterns take `!pattern` to leave permissions out (`$panel->defaultRole('administrator', ['*', '!…'])`). Existing administrator roles keep what they have: take the two away in Roles.
 - `ReorderEntries`, `ReorderTerms` and `ReorderMenuItems` return whether the order changed (were `void`) and write and log nothing when it didn't; `cms_reorder` returns `changed` and its description says a short list moves just those ids to the front (partial lists stay allowed). A single `entries` field takes `[]` as well as `null` to clear it (`[]` was refused as "must be an integer"). (AI-5)
 - `cms_seo_audit` judges what a page's head shows (`Seo::for()`): the title with the site name ("Hello | Acme"), the homepage's, and descriptions and images from SEO from fields, instead of the entry's title and SEO card alone; it returns each page's `meta_title`, and says thin content may be fine for a page that is mostly a form. (AI-4)

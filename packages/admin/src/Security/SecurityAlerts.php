@@ -46,7 +46,7 @@ use Throwable;
 final class SecurityAlerts
 {
     /** Activity log actions that take things away (the `mass_deletes` rule). */
-    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed', 'unpublished'];
+    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed', 'unpublished', 'purged'];
 
     public function __construct(private SecurityLog $log, private PermissionRank $rank, private Panel $panel) {}
 

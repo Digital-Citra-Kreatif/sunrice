@@ -163,6 +163,17 @@ it('alerts on dangerous uploads, and bursts of exports, deletes and unpublishes'
     expect(alertsSent())->toBe(['A dangerous upload was blocked', 'Many exports in a short time', 'Many things deleted in a short time']);
 });
 
+it('counts purging deleted content (emptying a trash for good) towards mass deletes', function () {
+    config(['sunrice-admin.security.alerts.mass_deletes' => 2]);
+    actingAs($this->admin);
+
+    expect(SecurityAlerts::DESTRUCTIVE_ACTIONS)->toContain('purged');
+    app(ActivityLog::class)->record('purged', 'collection', 1, 'Blog');
+    app(ActivityLog::class)->record('purged', 'taxonomy', 2, 'Tags');
+
+    expect(alertsSent())->toBe(['Many things deleted in a short time']);
+});
+
 it('records pages refused to a signed-in person, and alerts when it keeps happening', function () {
     config(['sunrice-admin.security.alerts.forbidden' => 3]);
     actingAs($this->rina);
