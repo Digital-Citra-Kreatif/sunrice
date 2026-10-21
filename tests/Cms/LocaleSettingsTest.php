@@ -62,7 +62,8 @@ it('edits the languages behind their permission, and keeps the main one while it
     $page = app(CreateEntry::class)->handle($pages, ['title' => 'Halo']);
     app(CreateTranslation::class)->handle($page->entry, 'en');
 
-    put('/admin/settings/locales', ['languages' => "en: English\nid: Bahasa Indonesia"])->assertSessionHasErrors('languages');
+    // Pointed to the Main language card, not to artisan.
+    put('/admin/settings/locales', ['languages' => "en: English\nid: Bahasa Indonesia"])->assertSessionHasErrors(['languages' => 'Bahasa Indonesia (id) is the main language and content is written in it: keep it first and save. Then, to make English the main language, use its button in the Main language card beside the form.']);
     put('/admin/settings/locales', ['languages' => 'en: English'])->assertSessionHasErrors('languages');
     // Renaming, and adding or dropping another language, is fine.
     put('/admin/settings/locales', ['languages' => "id: Indonesia\nfr: Français"])->assertSessionHasNoErrors();

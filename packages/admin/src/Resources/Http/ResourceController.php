@@ -356,7 +356,7 @@ final class ResourceController
             'values' => $values,
             'can' => ['delete' => $record !== null && $resource->allows($this->user(), 'delete', $record)],
             // A row action keyed "delete" (with its questions) is the edit page's Delete too.
-            'deleteAction' => $this->deleteAction($resource, $record)?->toArray(),
+            'deleteAction' => $record === null ? null : $this->deleteAction($resource, $record)?->toArray($record),
             'aside' => $record === null ? [] : array_map(fn (Card $card) => $card->toArray(), $resource->class::aside($record, $this->user())),
         ]);
     }

@@ -139,3 +139,23 @@ test('keeps a typed handle to what a handle may hold', () => {
     assert.equal(cleanHandle('café  menu!'), 'cafe_menu_');
     assert.equal(cleanHandle('hero_'), 'hero_');
 });
+
+test('offers only fields with a value of their own for "Show when", never a fieldset include or the field itself', async () => {
+    const { conditionChoices } = await import('../../packages/cms/resources/js/lib/builder.ts');
+    const siblings = [
+        { key: 'a', handle: 'show_map', type: 'toggle' },
+        { key: 'b', handle: 'contact', type: 'fieldset' },
+        { key: 'c', handle: '', type: 'text' },
+        { key: 'd', handle: 'map', type: 'text' },
+    ];
+    assert.deepEqual(conditionChoices({ key: 'd' }, siblings).map((s) => s.handle), ['show_map']);
+});
+
+test('puts a builder setting\'s server error on that setting of that field (shown inline, its card opened)', () => {
+    // As BlueprintForm and FieldBuilder pass them on: errors under "fields", then the field's index, then the setting.
+    const server = { 'fields.1.config.collections': 'The "From collections" field is required.' };
+    const field = errorsUnder(errorsUnder(server, 'fields'), '1');
+    assert.equal(hasErrors(errorsUnder(server, 'fields'), '1'), true);
+    assert.deepEqual(errorsAt(field, 'config.collections'), { '': 'The "From collections" field is required.' });
+    assert.equal(hasErrors(errorsUnder(server, 'fields'), '0'), false);
+});

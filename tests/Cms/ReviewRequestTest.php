@@ -10,6 +10,7 @@ use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Mail\ReviewRequested;
+use Sunrice\Cms\Mail\ReviewSentBack;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 
@@ -78,4 +79,53 @@ it('refuses a review of what the site already shows, and to those who may not ed
     actingAs($this->author);
     post("/admin/cms/entries/{$live->entry_id}/review")->assertForbidden();
     expect(EntryTranslation::query()->whereNotNull('review_requested_at')->count())->toBe(0);
+});
+
+it('lets the one who asked withdraw the request, and nobody else', function () {
+    Mail::fake();
+    post("/admin/cms/entries/{$this->draft->entry_id}/review");
+
+    get(entryEditUrl($this->draft->entry_id))->assertInertia(fn (Assert $page) => $page->where('entry.review.mine', true));
+    actingAs($this->editor);
+    get(entryEditUrl($this->draft->entry_id))->assertInertia(fn (Assert $page) => $page->where('entry.review.mine', false));
+    post("/admin/cms/entries/{$this->draft->entry_id}/review/withdraw")->assertSessionHasErrors('entry');
+    expect($this->draft->fresh()->review_requested_at)->not->toBeNull();
+
+    actingAs($this->author);
+    post("/admin/cms/entries/{$this->draft->entry_id}/review/withdraw")
+        ->assertSessionHas('success', 'Request withdrawn. It\'s a draft again, for you to keep working on.');
+    expect($this->draft->fresh()->review_requested_at)->toBeNull()
+        ->and($this->draft->fresh()->review_requested_by)->toBeNull()
+        ->and(Activity::query()->where('action', 'review withdrawn')->exists())->toBeTrue()
+        ->and(app(Panel::class)->getWidgets()['cms.review']->resolve($this->editor)['rows'])->toBe([]);
+    // Nothing left to withdraw.
+    post("/admin/cms/entries/{$this->draft->entry_id}/review/withdraw")->assertSessionHasErrors('entry');
+});
+
+it('lets a publisher send a draft back with a note, emailed to the one who asked', function () {
+    Mail::fake();
+    post("/admin/cms/entries/{$this->draft->entry_id}/review");
+
+    // Those who may not publish it can't send it back.
+    post("/admin/cms/entries/{$this->draft->entry_id}/review/send-back", ['note' => 'No'])->assertForbidden();
+    actingAs($this->pagesEditor);
+    post("/admin/cms/entries/{$this->draft->entry_id}/review/send-back")->assertForbidden();
+
+    actingAs($this->editor);
+    post("/admin/cms/entries/{$this->draft->entry_id}/review/send-back", ['note' => str_repeat('x', 2001)])->assertSessionHasErrors('note');
+    post("/admin/cms/entries/{$this->draft->entry_id}/review/send-back", ['note' => "Shorter intro, please.\nAnd a photo."])
+        ->assertSessionHas('success', 'Sent back. The one who asked has been told.');
+
+    $translation = $this->draft->fresh();
+    expect($translation->review_requested_at)->toBeNull()
+        ->and($translation->status())->toBe('draft')
+        ->and(Activity::query()->where('action', 'review sent back')->exists())->toBeTrue();
+    Mail::assertQueued(ReviewSentBack::class, fn (ReviewSentBack $mail) => $mail->hasTo($this->author->email));
+    $html = (new ReviewSentBack($translation, $this->editor->name, "Shorter intro, please.\nAnd a photo."))->render();
+    expect($html)->toContain('Our first year')->toContain('Shorter intro, please.')->toContain(e($this->editor->name))
+        ->not->toContain('"email"');
+    // Without a note, no quote.
+    expect((new ReviewSentBack($translation, null, null))->render())->toContain('Someone')->not->toContain('<blockquote');
+
+    post("/admin/cms/entries/{$this->draft->entry_id}/review/send-back")->assertSessionHasErrors('entry');
 });

@@ -21,6 +21,8 @@ use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\Actions\Terms\SaveTermContent;
 use Sunrice\Cms\Actions\Terms\TrashTerm;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Fields\Field;
+use Sunrice\Cms\Fields\Schema;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\ContentReference;
@@ -112,6 +114,32 @@ it('names a reference\'s field in words, not as its path', function () {
     expect(References::fieldLabel('sections.2.values.properties'))->toBe('Sections › Properties')
         ->and(References::fieldLabel('hero.featured_image'))->toBe('Hero › Featured Image')
         ->and(References::fieldLabel('related'))->toBe('Related');
+});
+
+it('names a reference\'s field by its label in the source\'s blueprint', function () {
+    Fieldset::query()->create(['handle' => 'listings', 'title' => 'Listings', 'fields' => [
+        ['handle' => 'properties', 'type' => 'entries', 'label' => 'Homes shown', 'config' => ['collections' => ['pages']]],
+    ]]);
+    $schema = Schema::make([
+        Field::fromArray(['handle' => 'author_agent', 'type' => 'entries', 'label' => 'Author', 'config' => ['collections' => ['pages']]]),
+        Field::fromArray(['handle' => 'hero', 'type' => 'group', 'label' => 'Top of the page', 'fields' => [['handle' => 'featured_image', 'type' => 'media', 'label' => 'Picture']]]),
+        Field::fromArray(['handle' => 'sections', 'type' => 'flexible', 'label' => 'Blocks', 'config' => ['blocks' => ['listings']]]),
+        Field::fromArray(['handle' => 'unlabelled', 'type' => 'entries', 'config' => ['collections' => ['pages']]]),
+    ]);
+
+    expect(References::fieldLabel('author_agent', $schema))->toBe('Author')
+        ->and(References::fieldLabel('hero.featured_image', $schema))->toBe('Top of the page › Picture')
+        ->and(References::fieldLabel('sections.2.values.properties', $schema))->toBe('Blocks › Homes shown')
+        ->and(References::fieldLabel('unlabelled', $schema))->toBe('Unlabelled')
+        // A field no longer in the blueprint: its handle in words.
+        ->and(References::fieldLabel('gone.thing', $schema))->toBe('Gone › Thing');
+
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
+        ['handle' => 'author_agent', 'type' => 'entries', 'label' => 'Author', 'config' => ['collections' => ['pages']]],
+    ]]);
+    $posts = Collection::query()->create(['handle' => 'posts', 'title' => 'Posts', 'blueprint' => 'post']);
+    refPage($posts, 'Hello', ['author_agent' => $this->about->id]);
+    get(entryEditUrl($this->about->id))->assertInertia(fn (Assert $page) => $page->where('usedBy.0.fieldLabel', 'Author'));
 });
 
 it('lists where a term is used on its page and in the list', function () {

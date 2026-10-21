@@ -198,11 +198,12 @@ it('publishes on a date, and unpublishes', function () {
     $translation = draft();
     editor('view', 'publish');
 
-    post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-10-25 08:00'])->assertSessionHas('success', fn ($m) => str_starts_with($m, 'Scheduled for'));
+    post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-10-25 20:00'])->assertSessionHas('success', 'Scheduled for Oct 25, 2026, 20:00.');
     expect($translation->fresh()?->isPublished())->toBeTrue()->and($translation->fresh()?->isLive())->toBeFalse();
 
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => 'whenever'])->assertSessionHasErrors('published_at');
-    post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHasNoErrors();
+    // Never live: unscheduled, not "taken off the site".
+    post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHasNoErrors()->assertSessionHas('success', 'Unscheduled. It\'s a draft again.');
     expect($translation->fresh()?->status)->toBe('draft');
 
     // Unscheduled, then published: it goes live now, not on the date it was once scheduled for.
@@ -210,7 +211,7 @@ it('publishes on a date, and unpublishes', function () {
     expect($translation->fresh()?->published_at?->toDateTimeString())->toBe('2026-10-19 09:00:00');
     // Published before, unpublished, published again: it keeps its first date.
     travelTo('2026-10-20 09:00');
-    post("/admin/cms/entries/{$translation->entry_id}/unpublish");
+    post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHas('success', 'Taken off the site. The draft is kept.');
     post("/admin/cms/entries/{$translation->entry_id}/publish");
     expect($translation->fresh()?->published_at?->toDateTimeString())->toBe('2026-10-19 09:00:00');
 

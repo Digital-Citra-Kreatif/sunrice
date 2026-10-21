@@ -38,11 +38,11 @@ Each of these is recorded as a security event in the [activity log](guide:panel/
 
 **Delete…** (in the row's menu, the bin button on their page, or for several ticked users at once) asks what happens to what they made (their entries, comments and uploads):
 
-- **Give it to another user**, chosen in **Give it to**.
+- **Give it to another user**, chosen in **Give it to** (the users you're deleting aren't offered).
 - **Keep it, without an owner** (the default).
 - **Delete it**: entries and comments go to the trash; uploads stay, since other pages may use them.
 
-Their roles, AI tokens and lock state go with them. Prefer **Lock account** when you're not sure: it can be undone.
+On a user's page, the question also says what they own. Their roles, AI tokens and lock state go with them. Prefer **Lock account** when you're not sure: it can be undone.
 
 ## Roles
 

@@ -272,3 +272,11 @@ it('describes the site in each language', function () {
     app()->setLocale('id');
     expect(Seo::forPage(null)['description'])->toBe('Rumah premium.');
 });
+
+it('edits the description per language with a labelled input for each other language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id', 'fr'], 'sunrice-cms.locale_names' => ['id' => 'Bahasa Indonesia', 'fr' => 'Français']]);
+    $field = collect(SiteSettings::form(new Form)->toSections('edit'))->pluck('fields')->flatten(1)->firstWhere('name', 'descriptions');
+
+    expect($field['type'])->toBe('pairs')
+        ->and($field['fixed'])->toBe([['key' => 'id', 'label' => 'Bahasa Indonesia'], ['key' => 'fr', 'label' => 'Français']]);
+});

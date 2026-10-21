@@ -32,6 +32,9 @@ final class Select extends Field
     /** The record the form is shown or saved for, for an options closure. */
     private ?Model $record = null;
 
+    /** In an action's dialog: the records it runs on aren't offered. */
+    private bool $withoutTargets = false;
+
     /** @param array<string|int, string>|Closure(?Model): array<string|int, string> $options value => label */
     public function options(array|Closure $options): self
     {
@@ -55,6 +58,18 @@ final class Select extends Field
     public function verbatim(bool $verbatim = true): self
     {
         $this->verbatim = $verbatim;
+
+        return $this;
+    }
+
+    /**
+     * In an action's dialog, leaves out the options whose value is the key
+     * of a record the action runs on (a Delete dialog's "Give it to"). The
+     * handler still gets to refuse one, for input sent by hand.
+     */
+    public function withoutTargets(bool $without = true): self
+    {
+        $this->withoutTargets = $without;
 
         return $this;
     }
@@ -89,7 +104,7 @@ final class Select extends Field
             fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => $this->verbatim ? $label : Say::it($label)],
             array_keys($options = $this->resolve()),
             array_values($options),
-        )] + ($this->searchable ? ['searchable' => true] : []);
+        )] + ($this->searchable ? ['searchable' => true] : []) + ($this->withoutTargets ? ['withoutTargets' => true] : []);
     }
 
     /** @return array<string|int, string> */

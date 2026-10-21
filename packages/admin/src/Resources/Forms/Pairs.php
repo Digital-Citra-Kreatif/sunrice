@@ -17,6 +17,12 @@ use Sunrice\Admin\Support\Say;
  * ->extra('Address') each row has a third, optional column, kept after a
  * bar: "id: Bahasa Indonesia | indonesia".
  *
+ * With ->fixed() the keys are given: one labelled input per key, nothing
+ * to add, remove or reorder, still kept as "key: value" lines (lines of
+ * other keys stay as they are):
+ *
+ *     Pairs::make('descriptions')->fixed(['id' => 'Bahasa Indonesia', 'fr' => 'Français'])
+ *
  * @api
  */
 final class Pairs extends Field
@@ -36,6 +42,9 @@ final class Pairs extends Field
 
     /** @var array{label: string, placeholder: string|null, firstPlaceholder: string|null}|null */
     private ?array $extra = null;
+
+    /** @var array<string, string>|null key => its input's label */
+    private ?array $fixed = null;
 
     public function type(): string
     {
@@ -77,6 +86,19 @@ final class Pairs extends Field
         return $this;
     }
 
+    /**
+     * The keys, each with its own labelled input (key => label), instead of
+     * rows to add and remove.
+     *
+     * @param  array<string, string>  $keys
+     */
+    public function fixed(array $keys): self
+    {
+        $this->fixed = $keys;
+
+        return $this;
+    }
+
     public function addLabel(string $label): self
     {
         $this->addLabel = $label;
@@ -105,6 +127,7 @@ final class Pairs extends Field
             'firstBadge' => Say::it($this->firstBadge),
             'addLabel' => Say::it($this->addLabel),
             'extra' => $this->extra === null ? null : array_map(fn (?string $text): ?string => Say::it($text), $this->extra),
+            'fixed' => $this->fixed === null ? null : array_map(fn (string $key, string $label): array => ['key' => $key, 'label' => Say::it($label)], array_keys($this->fixed), $this->fixed),
         ];
     }
 }

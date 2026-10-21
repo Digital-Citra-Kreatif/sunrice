@@ -21,6 +21,19 @@ interface Pending {
 }
 
 /**
+ * An action's dialog fields for the records it runs on: a select with
+ * `withoutTargets` (Select::withoutTargets()) leaves out their keys, so a
+ * Delete dialog doesn't offer the users being deleted as "Give it to".
+ */
+export function forTargets(fields: FieldInfo[], keys: (string | number)[]): FieldInfo[] {
+    const targets = keys.map(String);
+
+    return fields.map((field) => (field.withoutTargets === true && Array.isArray(field.options)
+        ? { ...field, options: (field.options as { value: string }[]).filter((option) => !targets.includes(String(option.value))) }
+        : field));
+}
+
+/**
  * A confirm() that looks like the admin: `const [confirm, dialog] = useConfirm()`.
  * With fields, the dialog asks for them and gives their values to `run`;
  * it stays open while `run` resolves to false, showing the page's errors.

@@ -14,6 +14,7 @@ use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Support\Locales;
 use Workbench\App\Models\User;
@@ -323,10 +324,67 @@ it('exports links as their address, rich text as text, and names a field that sh
         'body' => '<p>Five <strong>bedrooms</strong>.</p><p>A pool &amp; garden.</p>',
     ]]));
 
-    $rows = array_map(str_getcsv(...), array_filter(explode("\n", get('/admin/cms/collections/listings/entries/export?sort=title')->streamedContent())));
+    $rows = csvRows(get('/admin/cms/collections/listings/entries/export?sort=title')->streamedContent());
 
     expect($rows[0])->toBe(['ID', 'Title', 'Slug', 'Status', 'Published', 'URL', 'Updated', 'Author', 'Status (field)', 'Map', 'Agent page', 'Body'])
-        ->and(array_slice($rows[2], 8))->toBe(['Available', 'https://maps.google.com/?q=Canggu', url('/listings/anindya'), 'Five bedrooms. A pool & garden.']);
+        ->and(array_slice($rows[2], 8))->toBe(['Available', 'https://maps.google.com/?q=Canggu', url('/listings/anindya'), "Five bedrooms.\nA pool & garden."]);
+});
+
+/** @return list<list<string|null>> a CSV's rows, cells with line breaks kept */
+function csvRows(string $csv): array
+{
+    $handle = fopen('php://memory', 'r+');
+    fwrite($handle, $csv);
+    rewind($handle);
+    $rows = [];
+    while (($row = fgetcsv($handle, escape: '')) !== false) {
+        $rows[] = $row;
+    }
+    fclose($handle);
+
+    return $rows;
+}
+
+it('exports terms and linked entries by title, repeaters and blocks as readable lines, and rich text with its breaks', function () {
+    Fieldset::query()->create(['handle' => 'hero', 'title' => 'Hero', 'fields' => [['handle' => 'heading', 'type' => 'text', 'label' => 'Heading']]]);
+    Blueprint::query()->create(['handle' => 'home', 'title' => 'Home', 'fields' => [
+        ['handle' => 'type', 'type' => 'terms', 'label' => 'Property type', 'config' => ['taxonomy' => 'topics']],
+        ['handle' => 'amenities', 'type' => 'terms', 'label' => 'Amenities', 'config' => ['taxonomy' => 'topics', 'multiple' => true]],
+        ['handle' => 'features', 'type' => 'repeater', 'label' => 'Features', 'fields' => [
+            ['handle' => 'label', 'type' => 'text', 'label' => 'Label'],
+            ['handle' => 'detail', 'type' => 'rich_text', 'label' => 'Detail'],
+        ]],
+        ['handle' => 'contact', 'type' => 'group', 'label' => 'Contact', 'fields' => [['handle' => 'phone', 'type' => 'text', 'label' => 'Phone']]],
+        ['handle' => 'sections', 'type' => 'flexible', 'label' => 'Sections', 'config' => ['blocks' => ['hero']]],
+        ['handle' => 'body', 'type' => 'rich_text', 'label' => 'Body'],
+    ]]);
+    $homes = Collection::query()->create(['handle' => 'homes', 'title' => 'Homes', 'blueprint' => 'home', 'route' => '/homes/{slug}']);
+    lister('cms.entries.view', 'cms.entries.export', 'cms.terms.create', 'cms.terms.update');
+    $villa = app(SaveTerm::class)->handle($this->topics, ['title' => 'Villa']);
+    $pool = app(SaveTerm::class)->handle($this->topics, ['title' => 'Pool']);
+    $garden = app(SaveTerm::class)->handle($this->topics, ['title' => 'Garden']);
+    app(CreateEntry::class)->handle($homes, ['title' => 'Canggu house', 'data' => [
+        'type' => $villa->id,
+        'amenities' => [$pool->id, $garden->id],
+        'features' => [
+            ['label' => 'Freehold', 'detail' => '<p>Clean <em>title</em></p>'],
+            ['label' => 'Draft row', '_hidden' => true],
+        ],
+        'contact' => ['phone' => '+62 361 555'],
+        'sections' => [['type' => 'hero', 'values' => ['heading' => 'Homes of quiet distinction']]],
+        'body' => '<h2>The space</h2><p>140 m² open floor</p><ul><li>Mezzanine</li><li>Glass&nbsp;frontage</li></ul><p>One<br>Two</p>',
+    ]]);
+
+    $rows = csvRows(get('/admin/cms/collections/homes/entries/export')->streamedContent());
+    $row = array_combine($rows[0], $rows[1]);
+
+    expect($row['Property type'])->toBe('Villa')
+        ->and($row['Amenities'])->toBe('Pool, Garden')
+        ->and($row['Features'])->toBe("Label: Freehold; Detail: Clean title\n(hidden) Label: Draft row")
+        ->and($row['Contact'])->toBe('Phone: +62 361 555')
+        ->and($row['Sections'])->toBe('Hero: Heading: Homes of quiet distinction')
+        ->and($row['Body'])->toBe("The space\n140 m² open floor\nMezzanine\nGlass frontage\nOne\nTwo")
+        ->and(implode(',', $rows[1]))->not->toContain('_id')->not->toContain('_key');
 });
 
 it('takes as many queries for many entries as for a few', function () {

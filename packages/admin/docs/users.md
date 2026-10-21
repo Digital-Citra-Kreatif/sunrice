@@ -34,17 +34,17 @@ app(PermissionRank::class)->isStrictlyBelow($admin, $permissions); // all theirs
 
 ## Invitations
 
-**New user** may leave the password empty and turn on **Email an invitation**: the new user gets an email with a link to the panel's reset page to choose their own password (until then the account has an unguessable random one). The row's **Email a password link** sends a fresh link to anyone. Both go through `Sunrice\Admin\Actions\Users\InviteUser` (`handle($user, $inviter = null)`), which uses the panel's password broker (`sunrice-admin.auth.passwords`), so the link lasts as long as its reset links (`auth.passwords.*.expire`, 60 minutes by default: raise it if invitations should last longer), and records the security event `invitation sent`.
+**New user** may leave the password empty and turn on **Email an invitation**: the new user gets an email with a link to the panel's reset page to choose their own password (until then the account has an unguessable random one); the link carries `invited=1`, so the page reads **Choose your password** and ends with "Your password is set" instead of a reset's wording. The row's **Email a password link** sends a fresh link to anyone. Both go through `Sunrice\Admin\Actions\Users\InviteUser` (`handle($user, $inviter = null)`), which uses the panel's password broker (`sunrice-admin.auth.passwords`), so the link lasts as long as its reset links (`auth.passwords.*.expire`, 60 minutes by default: raise it if invitations should last longer), and records the security event `invitation sent`.
 
 ## Deleting a user
 
 What a user made shouldn't point at someone who is gone. **Delete…** on the Users screen (in the row's menu, on the edit page and for the selected users) asks what happens to it:
 
-- **Give it to another user**: their content moves to the user you pick.
+- **Give it to another user**: their content moves to the user you pick (the users being deleted aren't offered).
 - **Keep it, without an owner** (the default): it stays, with no author or uploader.
 - **Delete it**: each kind decides what that means. Uploads stay without an uploader, since other content may use them; the CMS moves their entries and comments to the trash.
 
-The user's Security card says what they own ("Owns: 3 uploads and 12 entries"). Either way the user's AI access tokens, lock state and kept edits go with them, and roles are detached.
+The user's Security card says what they own ("Owns: 3 uploads and 12 entries"), and so does the edit page's **Delete…** ("They own 3 uploads and 12 entries."). Either way the user's AI access tokens, lock state and kept edits go with them, and roles are detached.
 
 In code, `Sunrice\Admin\Actions\Users\DeleteUser` does the same (`REASSIGN`, `KEEP` and `DELETE`); it throws `ActionFailed` when reassigning without another user:
 

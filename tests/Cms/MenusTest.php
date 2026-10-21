@@ -123,6 +123,36 @@ it('edits menus in the admin', function () {
     expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Contact']);
 });
 
+it('shows a target\'s title in the language over a label only given in the main language', function () {
+    $about = page('About');
+    $tentang = app(CreateTranslation::class)->handle($about->entry, 'id');
+    app(SaveDraft::class)->handle($tentang, ['title' => 'Tentang kami', 'slug' => 'tentang']);
+    app(PublishEntry::class)->handle($tentang);
+    $contact = page('Contact');
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    app(SaveTerm::class)->handle($tags, ['title' => 'Berita', 'locale' => 'id'], $news);
+    $this->pages->update(['listing_route' => '/pages']);
+    $team = Collection::query()->create(['handle' => 'team', 'title' => 'Team', 'listing_route' => '/team', 'translations' => ['id' => ['title' => 'Tim']]]);
+    app(SaveMenu::class)->handle($this->main, [
+        ['entry_id' => $about->entry_id, 'labels' => ['en' => 'Our story']],
+        ['entry_id' => $contact->entry_id, 'labels' => ['en' => 'Get in touch']],
+        ['term_id' => $news->id, 'labels' => ['en' => 'Latest']],
+        ['collection_id' => $team->id, 'labels' => ['en' => 'Our team']],
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'All pages']],
+        ['collection_id' => $team->id, 'labels' => ['en' => 'People', 'id' => 'Orang']],
+    ]);
+
+    expect(array_column(app(Menus::class)->get('main', 'id'), 'label'))->toBe([
+        'Tentang kami', // translated: its title there
+        'Get in touch', // not translated: the main language's label
+        'Berita',
+        'Tim',
+        'All pages',    // no title in Indonesian
+        'Orang',        // a label in the language wins
+    ])->and(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Our story', 'Get in touch', 'Latest', 'Our team', 'All pages', 'People']);
+});
+
 it('links to term pages and listing pages, in each language', function () {
     $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/tags/{slug}']);
     $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);

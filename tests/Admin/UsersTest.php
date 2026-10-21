@@ -206,7 +206,8 @@ it('edits roles and their permissions, within the editor\'s own', function () {
         'Boss' => [false, 10],
         'Editor' => [true, 2],
         'Manager' => [false, 9],
-        'Super admin' => [false, 0],
+        // It may do everything: "All", not its 0 permissions of its own.
+        'Super admin' => [false, 'All'],
     ]));
 
     get('/admin/roles/create')->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'permissions')['options'])->pluck('value')->all())->toEqualCanonicalizing(MANAGES_USERS)
@@ -291,8 +292,9 @@ it('deletes a user and gives their content to someone else, keeps it or deletes 
         ->where('rows.data', fn ($rows) => collect($rows)->every(fn ($row) => $row['title'] === 'Super' ? ! in_array('delete', $row['actions'], true) : in_array('delete', $row['actions'], true))));
 
     post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'nope'])->assertSessionHasErrors('content');
-    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign'])->assertSessionHas('error', 'Choose another user to give their content to.');
-    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign', 'heir' => $this->editor->id])->assertSessionHas('error');
+    // Under the field, so the dialog stays open with the choices made.
+    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign'])->assertSessionHasErrors(['heir' => 'Choose another user to give their content to.']);
+    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign', 'heir' => $this->editor->id])->assertSessionHasErrors('heir');
     expect($this->editor->fresh())->not->toBeNull();
 
     post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign', 'heir' => $this->boss->id])
@@ -382,7 +384,11 @@ it('asks what happens to a user\'s content on the edit page and in bulk too', fu
     get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('deleteAction.key', 'delete')
         ->where('deleteAction.fields.0.name', 'content')
-        ->where('deleteAction.fields.1.name', 'heir'));
+        ->where('deleteAction.fields.1.name', 'heir')
+        // The users being deleted aren't offered as heirs (the dialog leaves them out), and it says what they own.
+        ->where('deleteAction.fields.1.withoutTargets', true)
+        ->where('deleteAction.confirm', fn (string $question) => str_ends_with($question, 'They own 1 upload.')));
+    get("/admin/users/{$this->boss->id}/edit")->assertInertia(fn (Assert $page) => $page->where('deleteAction.confirm', fn (string $question) => ! str_contains($question, 'They own')));
     get("/admin/users/{$this->super->id}/edit")->assertInertia(fn (Assert $page) => $page->where('deleteAction', null));
 
     // Run from the edit page, it goes back to the list: the page is gone.
@@ -399,7 +405,7 @@ it('asks what happens to a user\'s content on the edit page and in bulk too', fu
         ->assertSessionHas('success', '2 users deleted. Their 2 uploads went to Boss.');
     expect(User::query()->whereKey([$this->manager->id, $other->id])->count())->toBe(0)
         ->and(Media::query()->where('uploaded_by', (string) $this->boss->id)->count())->toBe(3);
-    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->boss->id], 'content' => 'reassign', 'heir' => $this->boss->id])->assertSessionHas('error');
+    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->boss->id], 'content' => 'reassign', 'heir' => $this->boss->id])->assertSessionHasErrors('heir');
     post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->super->id], 'content' => 'keep'])->assertForbidden();
     expect($this->boss->fresh())->not->toBeNull();
 });
@@ -452,7 +458,11 @@ it('creates a user with an invitation to choose their own password, and sends a 
     // The link is the panel's reset page: Dewi chooses a password and can log in.
     $token = Str::between($link, 'reset-password/', '?');
     auth()->logout();
-    post('/admin/reset-password', ['token' => $token, 'email' => 'dewi@example.com', 'password' => 'dewis-own-password', 'password_confirmation' => 'dewis-own-password'])->assertRedirect('/admin/login');
+    // It's her first password: the page and the message say so.
+    expect($link)->toContain('invited=1');
+    get($link)->assertOk()->assertInertia(fn (Assert $page) => $page->component('Auth/ResetPassword', false)->where('invited', true));
+    post('/admin/reset-password', ['token' => $token, 'email' => 'dewi@example.com', 'password' => 'dewis-own-password', 'password_confirmation' => 'dewis-own-password', 'invited' => true])
+        ->assertRedirect('/admin/login')->assertSessionHas('success', 'Your password is set. You can log in now.');
     expect(Hash::check('dewis-own-password', $dewi->fresh()->password))->toBeTrue();
 
     // Later: the row's "Email a password link".
