@@ -3,8 +3,6 @@
  * results of sources plugins register (search entries, orders…).
  */
 
-import { t } from '@/lib/i18n';
-
 export interface CommandItem {
     /** Unique within its source. */
     id: string;
@@ -119,14 +117,17 @@ export interface NavigationLike {
     items: { key: string; label: string; url: string; icon: string; children: { key: string; label: string; url: string; icon: string }[] }[];
 }
 
-/** The navigation as commands: every item and its children, grouped as in the sidebar. */
-export function navigationCommands(navigation: readonly NavigationLike[], href: (url: string) => string): CommandItem[] {
+/**
+ * The navigation as commands: every item and its children, grouped as in the sidebar;
+ * ungrouped ones under `pages` (t('Pages'): this file stays free of imports for the node tests).
+ */
+export function navigationCommands(navigation: readonly NavigationLike[], href: (url: string) => string, pages = 'Pages'): CommandItem[] {
     const commands: CommandItem[] = [];
     for (const group of navigation) {
         for (const item of group.items) {
-            commands.push({ id: item.key, label: item.label, group: group.group ?? t('Pages'), icon: item.icon, url: href(item.url) });
+            commands.push({ id: item.key, label: item.label, group: group.group ?? pages, icon: item.icon, url: href(item.url) });
             for (const child of item.children) {
-                commands.push({ id: child.key, label: child.label, description: item.label, group: group.group ?? t('Pages'), icon: child.icon || item.icon, url: href(child.url), keywords: [item.label] });
+                commands.push({ id: child.key, label: child.label, description: item.label, group: group.group ?? pages, icon: child.icon || item.icon, url: href(child.url), keywords: [item.label] });
             }
         }
     }

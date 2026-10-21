@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { router } from '@inertiajs/react';
+import { t } from '@/lib/i18n';
 
 /**
  * Guards a form with unsaved edits: asks before leaving the page (links,
@@ -25,7 +26,7 @@ export function useUnsavedChanges(dirty: boolean, onSave?: () => void): void {
         const removeBefore = router.on('before', (event) => {
             const visit = event.detail.visit;
             if (!dirtyRef.current || confirmed || visit.method !== 'get' || visit.prefetch || visit.only.length > 0) return;
-            if (window.confirm('You have unsaved changes. Leave without saving?')) {
+            if (window.confirm(t('You have unsaved changes. Leave without saving?'))) {
                 confirmed = true;
             } else {
                 event.preventDefault();

@@ -94,9 +94,12 @@ interface NavLinkLike {
     icon: string;
 }
 
-/** The hero's quick links: the first top-level items of the sidebar, the administration ones last. */
-export function quickLinks(navigation: readonly { group: string | null; items: readonly NavLinkLike[] }[], max = 4): NavLinkLike[] {
-    const groups = [...navigation].sort((a, b) => Number(a.group === 'Administration') - Number(b.group === 'Administration'));
+/**
+ * The hero's quick links: the first top-level items of the sidebar, the administration ones last.
+ * `administration` is that group's name as the sidebar shows it (t('Administration') in another language).
+ */
+export function quickLinks(navigation: readonly { group: string | null; items: readonly NavLinkLike[] }[], max = 4, administration = 'Administration'): NavLinkLike[] {
+    const groups = [...navigation].sort((a, b) => Number(a.group === administration) - Number(b.group === administration));
 
     return groups.flatMap((group) => group.items.map(({ key, label, url, icon }) => ({ key, label, url, icon }))).slice(0, max);
 }

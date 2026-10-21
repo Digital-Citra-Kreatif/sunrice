@@ -11,6 +11,7 @@ import { ResourcePathContext } from '@/components/resources/resource-context';
 import type { InfoCard, ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 import { withSlugs } from '@/lib/slug-from';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
@@ -26,7 +27,7 @@ interface Props {
 
 export default function ResourceEdit({ resource, record, sections, values, can, aside = [] }: Props) {
     const base = adminUrl(resource.path);
-    const title = record ? record.title : `New ${resource.singularLabel.toLowerCase()}`;
+    const title = record ? record.title : t('New :resource', { resource: resource.singularLabel.toLowerCase() });
     useBreadcrumbs([{ label: resource.label, href: base }, { label: title }]);
     const [confirm, confirmDialog] = useConfirm();
     const form = useForm<Record<string, FieldValue>>(values);
@@ -57,7 +58,7 @@ export default function ResourceEdit({ resource, record, sections, values, can, 
     };
     useUnsavedChanges(form.isDirty, save);
 
-    const remove = () => record && confirm(`Delete ${record.title}? This can't be undone.`, () => router.delete(`${base}/${record.key}`), true);
+    const remove = () => record && confirm(t('Delete :title? This can\'t be undone.', { title: record.title }), () => router.delete(`${base}/${record.key}`), true);
 
     const page = (
         <form onSubmit={submit} className="flex max-w-5xl min-w-0 flex-1 flex-col gap-6">
@@ -66,17 +67,17 @@ export default function ResourceEdit({ resource, record, sections, values, can, 
 
             <PageHeader
                 title={title}
-                back={{ href: base, label: `Back to ${resource.label.toLowerCase()}` }}
+                back={{ href: base, label: t('Back to :resource', { resource: resource.label.toLowerCase() }) }}
                 actions={
                     <>
                         {can.delete && (
-                            <Button type="button" variant="outline" size="icon" className="text-destructive" aria-label={`Delete ${title}`} onClick={remove}>
+                            <Button type="button" variant="outline" size="icon" className="text-destructive" aria-label={t('Delete :title', { title })} onClick={remove}>
                                 <Trash2 />
                             </Button>
                         )}
                         <Button type="submit" disabled={form.processing}>
                             {form.processing && <LoaderCircle className="animate-spin" />}
-                            {record ? 'Save' : `Create ${resource.singularLabel.toLowerCase()}`}
+                            {record ? t('Save') : t('Create :resource', { resource: resource.singularLabel.toLowerCase() })}
                         </Button>
                     </>
                 }

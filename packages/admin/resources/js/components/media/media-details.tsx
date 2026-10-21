@@ -14,6 +14,7 @@ import { copyText } from '@/lib/clipboard';
 import { fetchJson } from '@/lib/fetch-json';
 import { formatBytes, mediaKind } from './format';
 import type { MediaItem, MediaUsageInfo } from './types';
+import { t } from '@/lib/i18n';
 
 interface Props {
     item: MediaItem | null;
@@ -45,11 +46,12 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
         if (!item.usages) return;
         fetchJson<{ usages: MediaUsageInfo[] }>(`${url}/usages`).then((r) => setUsages(r.usages)).catch(() => setUsages([]));
     }, [item.usages, url]);
-    const usedBy = usages.length > 0 ? ` It's used by ${usages.slice(0, 5).map((u) => u.label).join(', ')}${usages.length > 5 ? ` and ${usages.length - 5} more` : ''}.` : '';
+    const usedList = usages.slice(0, 5).map((u) => u.label).join(', ');
+    const usedBy = usages.length === 0 ? '' : ` ${usages.length > 5 ? t('It\'s used by :list and :count more.', { list: usedList, count: usages.length - 5 }) : t('It\'s used by :list.', { list: usedList })}`;
     const trash = () => {
         const go = () => router.delete(url, { preserveScroll: true, onSuccess: onClose });
         if (usages.length > 0) {
-            confirm(`Move ${item.filename} to the trash?${usedBy} You can restore it.`, go, true);
+            confirm(`${t('Move :name to the trash?', { name: item.filename })}${usedBy} ${t('You can restore it.')}`, go, true);
         } else {
             go();
         }
@@ -62,8 +64,8 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
     const replace = (file: File | undefined) => file && router.post(`${url}/replace`, { file }, { forceFormData: true, preserveScroll: true, preserveState: true });
     const copy = () =>
         copyText(new URL(item.url, window.location.href).toString())
-            .then(() => toast.success('Link copied.'))
-            .catch(() => toast.error('Couldn\'t copy the link.'));
+            .then(() => toast.success(t('Link copied.')))
+            .catch(() => toast.error(t('Couldn\'t copy the link.')));
 
     return (
         <>
@@ -83,15 +85,15 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
                 </div>
 
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-                    <dt className="text-muted-foreground">Type</dt><dd className="truncate">{item.mimeType}</dd>
-                    <dt className="text-muted-foreground">Size</dt><dd>{formatBytes(item.size)}</dd>
-                    {item.width && item.height && (<><dt className="text-muted-foreground">Dimensions</dt><dd>{item.width} × {item.height}</dd></>)}
-                    {item.createdAt && (<><dt className="text-muted-foreground">Uploaded</dt><dd>{new Date(item.createdAt).toLocaleString()}</dd></>)}
+                    <dt className="text-muted-foreground">{t('Type')}</dt><dd className="truncate">{item.mimeType}</dd>
+                    <dt className="text-muted-foreground">{t('Size')}</dt><dd>{formatBytes(item.size)}</dd>
+                    {item.width && item.height && (<><dt className="text-muted-foreground">{t('Dimensions')}</dt><dd>{item.width} × {item.height}</dd></>)}
+                    {item.createdAt && (<><dt className="text-muted-foreground">{t('Uploaded')}</dt><dd>{new Date(item.createdAt).toLocaleString()}</dd></>)}
                 </dl>
 
                 {usages.length > 0 && (
                     <div className="grid gap-1 text-sm">
-                        <p className="font-medium">Used by</p>
+                        <p className="font-medium">{t('Used by')}</p>
                         <ul className="grid gap-1">
                             {usages.map((u, i) => (
                                 <li key={i} className="truncate">
@@ -103,14 +105,14 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={copy}><Copy />Copy link</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={copy}><Copy />{t('Copy link')}</Button>
                     {kind === 'video' || kind === 'audio' || kind === 'document' ? (
-                        <Button variant="outline" size="sm" asChild><a href={item.url} target="_blank" rel="noreferrer"><FileText />Open</a></Button>
+                        <Button variant="outline" size="sm" asChild><a href={item.url} target="_blank" rel="noreferrer"><FileText />{t('Open')}</a></Button>
                     ) : null}
                     {editable && (
                         <>
                             <input ref={replaceInput} type="file" accept={accept} className="hidden" onChange={(e) => replace(e.target.files?.[0])} />
-                            <Button type="button" variant="outline" size="sm" onClick={() => replaceInput.current?.click()}><UploadIcon />Replace file</Button>
+                            <Button type="button" variant="outline" size="sm" onClick={() => replaceInput.current?.click()}><UploadIcon />{t('Replace file')}</Button>
                         </>
                     )}
                 </div>
@@ -118,37 +120,37 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
                 {editable ? (
                     <form onSubmit={save} className="grid gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="media-title">Title</Label>
+                            <Label htmlFor="media-title">{t('Title')}</Label>
                             <Input id="media-title" value={form.data.title} maxLength={250} onChange={(e) => form.setData('title', e.target.value)} />
                             <InputError message={form.errors.title} />
                         </div>
                         {kind === 'image' && (
                             <div className="grid gap-2">
-                                <Label htmlFor="media-alt">Alternative text</Label>
+                                <Label htmlFor="media-alt">{t('Alternative text')}</Label>
                                 <Input id="media-alt" value={form.data.alt} maxLength={250} onChange={(e) => form.setData('alt', e.target.value)} />
-                                <p className="text-sm text-muted-foreground">What the image shows, for people who can't see it.</p>
+                                <p className="text-sm text-muted-foreground">{t('What the image shows, for people who can\'t see it.')}</p>
                                 <InputError message={form.errors.alt} />
                             </div>
                         )}
                         <div className="grid gap-2">
-                            <Label htmlFor="media-caption">Caption</Label>
+                            <Label htmlFor="media-caption">{t('Caption')}</Label>
                             <Textarea id="media-caption" rows={3} value={form.data.caption} maxLength={2000} onChange={(e) => form.setData('caption', e.target.value)} />
                             <InputError message={form.errors.caption} />
                         </div>
                         <div className="flex justify-between gap-2">
                             {can.delete ? (
                                 <Button type="button" variant="outline" className="text-destructive" onClick={trash}>
-                                    <Trash2 />Move to trash
+                                    <Trash2 />{t('Move to trash')}
                                 </Button>
                             ) : <span />}
-                            <Button type="submit" disabled={form.processing || !form.isDirty}>Save</Button>
+                            <Button type="submit" disabled={form.processing || !form.isDirty}>{t('Save')}</Button>
                         </div>
                     </form>
                 ) : item.trashed && can.delete ? (
                     <div className="flex justify-between gap-2">
-                        <Button type="button" variant="outline" onClick={() => router.post(`${url}/restore`, {}, { preserveScroll: true, onSuccess: onClose })}><RotateCcw />Restore</Button>
-                        <Button type="button" variant="destructive" onClick={() => confirm(`Delete ${item.filename} for good?${usedBy || ' Pages using it will show a broken link.'}`, () => router.delete(`${url}/force`, { data: { force: usages.length > 0 }, preserveScroll: true, onSuccess: onClose }), true)}>
-                            <Trash2 />Delete for good
+                        <Button type="button" variant="outline" onClick={() => router.post(`${url}/restore`, {}, { preserveScroll: true, onSuccess: onClose })}><RotateCcw />{t('Restore')}</Button>
+                        <Button type="button" variant="destructive" onClick={() => confirm(`${t('Delete :name for good?', { name: item.filename })}${usedBy || ` ${t('Pages using it will show a broken link.')}`}`, () => router.delete(`${url}/force`, { data: { force: usages.length > 0 }, preserveScroll: true, onSuccess: onClose }), true)}>
+                            <Trash2 />{t('Delete for good')}
                         </Button>
                     </div>
                 ) : null}

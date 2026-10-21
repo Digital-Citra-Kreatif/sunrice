@@ -4,18 +4,17 @@ import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 import type { SharedProps } from '@/types';
 
-/** What each status says (the panel's ErrorPages sends 403, 404, 419 and 500). */
-export const ERROR_MESSAGES: Record<number, { title: string; body: string }> = {
-    403: { title: 'Not allowed', body: 'You don\'t have permission to see this page. Ask an administrator if you need it.' },
-    404: { title: 'Page not found', body: 'There is nothing at this address. It may have moved, or the link is wrong.' },
-    419: { title: 'Page expired', body: 'The page was open too long. Reload it and try again.' },
-    500: { title: 'Something went wrong', body: 'An unexpected error happened. It was recorded; try again in a moment.' },
-};
-
+/** What each status says (the panel's ErrorPages sends 403, 404, 419 and 500), in the user's language. */
 export function errorMessage(status: number): { title: string; body: string } {
-    return ERROR_MESSAGES[status] ?? ERROR_MESSAGES[500]!;
+    switch (status) {
+        case 403: return { title: t('Not allowed'), body: t('You don\'t have permission to see this page. Ask an administrator if you need it.') };
+        case 404: return { title: t('Page not found'), body: t('There is nothing at this address. It may have moved, or the link is wrong.') };
+        case 419: return { title: t('Page expired'), body: t('The page was open too long. Reload it and try again.') };
+        default: return { title: t('Something went wrong'), body: t('An unexpected error happened. It was recorded; try again in a moment.') };
+    }
 }
 
 /** An error page under the panel's path, in the admin layout when someone is signed in. */
@@ -31,9 +30,9 @@ export default function ErrorPage({ status }: { status: number }) {
             <p className="max-w-md text-sm text-muted-foreground">{message.body}</p>
             <div className="flex gap-2">
                 {status === 419 ? (
-                    <Button variant="outline" onClick={() => window.location.reload()}>Reload</Button>
+                    <Button variant="outline" onClick={() => window.location.reload()}>{t('Reload')}</Button>
                 ) : (
-                    <Button asChild variant="outline"><Link href={adminUrl()}>Back to the dashboard</Link></Button>
+                    <Button asChild variant="outline"><Link href={adminUrl()}>{t('Back to the dashboard')}</Link></Button>
                 )}
             </div>
         </div>

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 import { queryParams } from '@/lib/query-params';
 
 interface Row {
@@ -59,11 +60,20 @@ interface Props {
 
 const ALL = '__all';
 
-const SOURCE_LABELS: Record<string, string> = { admin: 'Admin', ai: 'AI agent', system: 'System', security: 'Security' };
+/** A source's name in the user's language; an unknown one as it is. */
+function sourceLabel(source: string): string {
+    switch (source) {
+        case 'admin': return t('Admin');
+        case 'ai': return t('AI agent');
+        case 'system': return t('System');
+        case 'security': return t('Security');
+        default: return source;
+    }
+}
 
 /** Who changed what, newest first. */
 export default function ActivityIndex({ query, types, actions, sources, perPageOptions, defaultPerPage, prune, rows }: Props) {
-    useBreadcrumbs([{ label: 'Activity log' }]);
+    useBreadcrumbs([{ label: t('Activity log') }]);
     const [search, setSearch] = React.useState(query.search);
     const [confirm, confirmDialog] = useConfirm();
     const base = adminUrl('activity');
@@ -78,58 +88,58 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
 
     const pruneLog = () => {
         const days: FieldInfo = {
-            kind: 'field', type: 'number', name: 'days', label: 'Keep the last … days', required: true, disabled: false,
-            help: 'Older lines are deleted for good. Pruning is itself recorded, and alerts are sent.', placeholder: null, span: 1,
+            kind: 'field', type: 'number', name: 'days', label: t('Keep the last … days'), required: true, disabled: false,
+            help: t('Older lines are deleted for good. Pruning is itself recorded, and alerts are sent.'), placeholder: null, span: 1,
             default: prune?.keepDays ?? 365, min: 1,
         };
-        confirm('Delete old activity log lines?', (values) => new Promise<boolean>((resolve) => router.post(`${base}/prune`, { days: values.days }, {
+        confirm(t('Delete old activity log lines?'), (values) => new Promise<boolean>((resolve) => router.post(`${base}/prune`, { days: values.days }, {
             preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
         })), true, [days]);
     };
 
     return (
         <div className="flex flex-col gap-4">
-            <Head title="Activity log" />
+            <Head title={t('Activity log')} />
             {confirmDialog}
             <PageHeader
-                title="Activity log"
-                actions={prune && <Button variant="outline" onClick={pruneLog}><Trash2 />Prune…</Button>}
+                title={t('Activity log')}
+                actions={prune && <Button variant="outline" onClick={pruneLog}><Trash2 />{t('Prune…')}</Button>}
             />
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-64" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
                     <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input type="search" aria-label="Search the activity log" placeholder="Search…" className="pl-8" value={search}
+                    <Input type="search" aria-label={t('Search the activity log')} placeholder={t('Search…')} className="pl-8" value={search}
                         onChange={(e) => { setSearch(e.target.value); if (e.target.value === '' && query.search) visit({ search: '' }); }} />
                 </form>
                 <Select value={query.source ?? ALL} onValueChange={(value) => visit({ source: value === ALL ? null : value })}>
-                    <SelectTrigger aria-label="Source" className="w-36"><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label={t('Source')} className="w-36"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={ALL}>All sources</SelectItem>
-                        {sources.map((source) => <SelectItem key={source} value={source}>{SOURCE_LABELS[source] ?? source}</SelectItem>)}
+                        <SelectItem value={ALL}>{t('All sources')}</SelectItem>
+                        {sources.map((source) => <SelectItem key={source} value={source}>{sourceLabel(source)}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select value={query.type ?? ALL} onValueChange={(value) => visit({ type: value === ALL ? null : value, subject: null })}>
-                    <SelectTrigger aria-label="Type" className="w-40"><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label={t('Type')} className="w-40"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={ALL}>Everything</SelectItem>
+                        <SelectItem value={ALL}>{t('Everything')}</SelectItem>
                         {types.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select value={query.action ?? ALL} onValueChange={(value) => visit({ action: value === ALL ? null : value })}>
-                    <SelectTrigger aria-label="Action" className="w-44"><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label={t('Action')} className="w-44"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={ALL}>Any action</SelectItem>
+                        <SelectItem value={ALL}>{t('Any action')}</SelectItem>
                         {actions.map((action) => <SelectItem key={action} value={action}>{action}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <div className="flex items-center gap-2">
-                    <DatePicker className="w-36" placeholder="From" value={query.from} onChange={(from) => visit({ from })} />
-                    <DatePicker className="w-36" placeholder="To" value={query.to} onChange={(to) => visit({ to })} />
+                    <DatePicker className="w-36" placeholder={t('From')} value={query.from} onChange={(from) => visit({ from })} />
+                    <DatePicker className="w-36" placeholder={t('To')} value={query.to} onChange={(to) => visit({ to })} />
                 </div>
                 {(query.subject || query.user) && (
                     <Button variant="secondary" size="sm" onClick={() => visit({ subject: null, user: null })}>
-                        {query.subject ? `History of ${historyOf ?? 'one item'}` : 'One person\'s activity'}<X />
+                        {query.subject ? (historyOf ? t('History of :item', { item: historyOf }) : t('History of one item')) : t('One person\'s activity')}<X />
                     </Button>
                 )}
             </div>
@@ -138,15 +148,15 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-44">When</TableHead>
-                            <TableHead className="w-48">Who</TableHead>
-                            <TableHead>What</TableHead>
-                            <TableHead>Details</TableHead>
+                            <TableHead className="w-44">{t('When')}</TableHead>
+                            <TableHead className="w-48">{t('Who')}</TableHead>
+                            <TableHead>{t('What')}</TableHead>
+                            <TableHead>{t('Details')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {rows.data.length === 0 && (
-                            <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Nothing recorded{query.search || query.source || query.type || query.action || query.from || query.to ? ' that matches' : ' yet'}.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">{query.search || query.source || query.type || query.action || query.from || query.to ? t('Nothing recorded that matches.') : t('Nothing recorded yet.')}</TableCell></TableRow>
                         )}
                         {rows.data.map((row, i) => (
                             <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties}>
@@ -154,9 +164,9 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                                 <TableCell className="align-top">
                                     {row.userId ? (
                                         <button type="button" className="text-left hover:underline" onClick={() => visit({ user: row.userId })}>{row.user}</button>
-                                    ) : <span>{row.user ?? (row.source === 'system' ? 'System' : 'Someone not signed in')}</span>}
+                                    ) : <span>{row.user ?? (row.source === 'system' ? t('System') : t('Someone not signed in'))}</span>}
                                     <div className="mt-0.5 flex flex-wrap gap-1">
-                                        {row.source !== 'admin' && <Badge variant={row.source === 'security' ? 'warning' : 'secondary'}>{SOURCE_LABELS[row.source] ?? row.source}{row.via ? ` · ${row.via}` : ''}</Badge>}
+                                        {row.source !== 'admin' && <Badge variant={row.source === 'security' ? 'warning' : 'secondary'}>{sourceLabel(row.source)}{row.via ? ` · ${row.via}` : ''}</Badge>}
                                     </div>
                                 </TableCell>
                                 <TableCell className="align-top">
@@ -164,8 +174,8 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                                     <span className="text-muted-foreground">{row.typeLabel.toLowerCase()}</span>{' '}
                                     {row.url ? <Link href={row.url} className="underline-offset-4 hover:underline">{row.subject}</Link> : <span>{row.subject}</span>}
                                     {row.subjectId && !(query.subject === row.subjectId && query.type === row.type) && (
-                                        <Button variant="ghost" size="icon" className="ml-1 size-6 align-middle" aria-label={`History of ${row.subject ?? 'this item'}`}
-                                            title={`Show only the history of ${row.subject ?? 'this item'}`}
+                                        <Button variant="ghost" size="icon" className="ml-1 size-6 align-middle" aria-label={row.subject ? t('History of :item', { item: row.subject }) : t('History of this item')}
+                                            title={row.subject ? t('Show only the history of :item', { item: row.subject }) : t('Show only the history of this item')}
                                             onClick={() => visit({ type: row.type, subject: row.subjectId })}>
                                             <History className="size-3.5" />
                                         </Button>
@@ -174,7 +184,7 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                                 <TableCell className="align-top text-sm text-muted-foreground">
                                     {row.changed.length > 0 && <span>{row.changed.join(', ')}</span>}
                                     {row.note && <span>{row.changed.length > 0 ? ' · ' : ''}{row.note}</span>}
-                                    {row.ip && <span className="block text-xs">IP {row.ip}</span>}
+                                    {row.ip && <span className="block text-xs">{t('IP :ip', { ip: row.ip })}</span>}
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -185,16 +195,16 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
             {rows.total > (perPageOptions[0] ?? 25) && (
                 <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-muted-foreground">
                     <Select value={String(query.perPage)} onValueChange={(value) => visit({ perPage: Number(value) })}>
-                        <SelectTrigger aria-label="Lines per page" className="h-8 w-auto"><SelectValue /></SelectTrigger>
+                        <SelectTrigger aria-label={t('Lines per page')} className="h-8 w-auto"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            {perPageOptions.map((n) => <SelectItem key={n} value={String(n)}>{n} per page</SelectItem>)}
+                            {perPageOptions.map((n) => <SelectItem key={n} value={String(n)}>{t(':count per page', { count: n })}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                    <span>Page {rows.currentPage} of {rows.lastPage} · {rows.total} lines</span>
-                    <Button variant="outline" size="icon" className="size-8" disabled={!rows.prevUrl} asChild={!!rows.prevUrl} aria-label="Previous page">
+                    <span>{t('Page :page of :pages · :count lines', { page: rows.currentPage, pages: rows.lastPage, count: rows.total })}</span>
+                    <Button variant="outline" size="icon" className="size-8" disabled={!rows.prevUrl} asChild={!!rows.prevUrl} aria-label={t('Previous page')}>
                         {rows.prevUrl ? <Link href={rows.prevUrl} preserveScroll><ChevronLeft /></Link> : <ChevronLeft />}
                     </Button>
-                    <Button variant="outline" size="icon" className="size-8" disabled={!rows.nextUrl} asChild={!!rows.nextUrl} aria-label="Next page">
+                    <Button variant="outline" size="icon" className="size-8" disabled={!rows.nextUrl} asChild={!!rows.nextUrl} aria-label={t('Next page')}>
                         {rows.nextUrl ? <Link href={rows.nextUrl} preserveScroll><ChevronRight /></Link> : <ChevronRight />}
                     </Button>
                 </div>

@@ -48,7 +48,7 @@ export function CommandPalette() {
     const sources = React.useSyncExternalStore(subscribeCommandSources, commandSourcesSnapshot, commandSourcesSnapshot);
 
     const pages = React.useMemo(
-        () => [{ id: 'dashboard', label: t('Dashboard'), group: t('Pages'), icon: 'layout-grid', url: adminUrl() }, ...navigationCommands(navigation, adminUrl)],
+        () => [{ id: 'dashboard', label: t('Dashboard'), group: t('Pages'), icon: 'layout-grid', url: adminUrl() }, ...navigationCommands(navigation, adminUrl, t('Pages'))],
         [navigation],
     );
     const matched = React.useMemo(() => matchCommands(pages, query), [pages, query]);

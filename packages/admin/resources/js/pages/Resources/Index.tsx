@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 import { toggleColumn, type TablePreferences } from '@/lib/table-preferences';
 import { useTablePreferences } from '@/lib/use-table-preferences';
 
@@ -97,14 +98,14 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
     // A row action keyed "delete" replaces the built-in Delete in the row's menu.
     const customDelete = rowActions.some((action) => action.key === 'delete');
     const deleteRow = (row: Row) =>
-        confirm(can.trash ? `Move ${row.title} to the trash? You can restore it.` : `Delete ${row.title}? This can't be undone.`,
+        confirm(can.trash ? t('Move :title to the trash? You can restore it.', { title: row.title }) : t('Delete :title? This can\'t be undone.', { title: row.title }),
             () => router.delete(`${base}/${row.key}`, { preserveScroll: true }), true);
     const restoreRow = (row: Row) => router.post(`${base}/${row.key}/restore`, {}, { preserveScroll: true });
     const runBulk = (action: ActionInfo) =>
         confirm(action.confirm, () => router.post(`${base}/bulk`, { action: action.key, ids: selected }, { preserveScroll: true }), action.destructive);
     // In the trash: only Restore, for the selected rows too.
     const shownBulkActions: ActionInfo[] = trashed
-        ? [{ key: 'restore', label: 'Restore', confirm: null, destructive: false, url: false, newTab: false, fields: [] }]
+        ? [{ key: 'restore', label: t('Restore'), confirm: null, destructive: false, url: false, newTab: false, fields: [] }]
         : bulkActions;
 
     const exportUrl = () => {
@@ -124,22 +125,22 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
             {confirmDialog}
 
             <PageHeader
-                title={trashed ? `${resource.label} — trash` : resource.label}
+                title={trashed ? t(':resource — trash', { resource: resource.label }) : resource.label}
                 actions={
                     <>
                         {can.trash && (
                             <Button variant={trashed ? 'secondary' : 'ghost'} onClick={() => visit({ status: trashed ? '' : 'trashed' })}>
-                                {trashed ? 'Back to the list' : <><Trash2 /> Trash</>}
+                                {trashed ? t('Back to the list') : <><Trash2 /> {t('Trash')}</>}
                             </Button>
                         )}
                         {can.export && !trashed && (
                             <Button variant="outline" asChild>
-                                <a href={exportUrl()}><Download /> Export</a>
+                                <a href={exportUrl()}><Download /> {t('Export')}</a>
                             </Button>
                         )}
                         {can.create && !trashed && (
                             <Button asChild>
-                                <Link href={`${base}/create`}><Plus /> New {resource.singularLabel.toLowerCase()}</Link>
+                                <Link href={`${base}/create`}><Plus /> {t('New :resource', { resource: resource.singularLabel.toLowerCase() })}</Link>
                             </Button>
                         )}
                     </>
@@ -149,7 +150,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
             <div className="flex flex-wrap items-center gap-2">
                 <div className="relative w-full max-w-xs">
                     <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input className="pl-9" placeholder="Search…" aria-label="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <Input className="pl-9" placeholder={t('Search…')} aria-label={t('Search')} value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
                 {filters.map((filter) => filter.type === 'date_range' ? (
                     <DateRangeFilter key={filter.name} filter={filter} value={query.filters[filter.name]} onChange={(value) => {
@@ -171,7 +172,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                     >
                         <SelectTrigger className="w-40" aria-label={filter.label}><SelectValue placeholder={filter.label} /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value={ALL}>{filter.label}: all</SelectItem>
+                            <SelectItem value={ALL}>{t(':filter: all', { filter: filter.label })}</SelectItem>
                             {filter.options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -179,10 +180,10 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                 {allColumns.length > 1 && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="ml-auto"><Columns3 /> Columns</Button>
+                            <Button variant="outline" className="ml-auto"><Columns3 /> {t('Columns')}</Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Show columns</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t('Show columns')}</DropdownMenuLabel>
                             {allColumns.slice(1).map((column) => (
                                 <DropdownMenuCheckboxItem key={column.name} checked={visible.includes(column.name)}
                                     onSelect={(event) => event.preventDefault()}
@@ -195,7 +196,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                 )}
                 {selected.length > 0 && shownBulkActions.length > 0 && (
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">{selected.length} selected</span>
+                        <span className="text-sm text-muted-foreground">{t(':count selected', { count: selected.length })}</span>
                         {shownBulkActions.map((action) => (
                             <Button key={action.key} variant={action.destructive ? 'destructive' : 'outline'} onClick={() => runBulk(action)}>{action.label}</Button>
                         ))}
@@ -209,7 +210,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                         <TableRow className="hover:bg-transparent">
                             {shownBulkActions.length > 0 && (
                                 <TableHead className="w-8">
-                                    <Checkbox aria-label="Select all rows" checked={allSelected}
+                                    <Checkbox aria-label={t('Select all rows')} checked={allSelected}
                                         onCheckedChange={(checked) => setSelected(checked ? rows.data.map((row) => row.id) : [])} />
                                 </TableHead>
                             )}
@@ -226,7 +227,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                     ) : column.label}
                                 </TableHead>
                             ))}
-                            {hasRowMenu && <TableHead className="w-px"><span className="sr-only">Actions</span></TableHead>}
+                            {hasRowMenu && <TableHead className="w-px"><span className="sr-only">{t('Actions')}</span></TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -241,7 +242,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                             <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties} data-state={selected.includes(row.id) ? 'selected' : undefined}>
                                 {shownBulkActions.length > 0 && (
                                     <TableCell>
-                                        <Checkbox aria-label={`Select ${row.title}`} checked={selected.includes(row.id)}
+                                        <Checkbox aria-label={t('Select :title', { title: row.title })} checked={selected.includes(row.id)}
                                             onCheckedChange={(checked) => setSelected((current) => checked ? [...current, row.id] : current.filter((id) => id !== row.id))} />
                                     </TableCell>
                                 )}
@@ -259,15 +260,15 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                 {hasRowMenu && (
                                     <TableCell className="w-px text-right">
                                         {trashed ? (
-                                            row.can.delete && <Button variant="outline" size="sm" onClick={() => restoreRow(row)}><RotateCcw /> Restore</Button>
+                                            row.can.delete && <Button variant="outline" size="sm" onClick={() => restoreRow(row)}><RotateCcw /> {t('Restore')}</Button>
                                         ) : (row.can.update || row.can.delete || row.actions.length > 0) && (
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${row.title}`}><MoreHorizontal /></Button>
+                                                    <Button variant="ghost" size="icon" className="size-8" aria-label={t('Actions for :title', { title: row.title })}><MoreHorizontal /></Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    {row.url && <DropdownMenuItem asChild><Link href={row.url}>Open</Link></DropdownMenuItem>}
-                                                    {row.can.update && <DropdownMenuItem asChild><Link href={`${base}/${row.key}/edit`}>{row.url ? 'Settings' : 'Edit'}</Link></DropdownMenuItem>}
+                                                    {row.url && <DropdownMenuItem asChild><Link href={row.url}>{t('Open')}</Link></DropdownMenuItem>}
+                                                    {row.can.update && <DropdownMenuItem asChild><Link href={`${base}/${row.key}/edit`}>{row.url ? t('Settings') : t('Edit')}</Link></DropdownMenuItem>}
                                                     {rowActions.filter((action) => row.actions.includes(action.key)).map((action) => action.url ? (
                                                         <DropdownMenuItem key={action.key} asChild>
                                                             <a href={row.urls[action.key]} {...(action.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{action.label}</a>
@@ -280,7 +281,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                                     {row.can.delete && !customDelete && (
                                                         <>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem variant="destructive" onSelect={() => deleteRow(row)}>{can.trash ? 'Move to trash' : 'Delete'}</DropdownMenuItem>
+                                                            <DropdownMenuItem variant="destructive" onSelect={() => deleteRow(row)}>{can.trash ? t('Move to trash') : t('Delete')}</DropdownMenuItem>
                                                         </>
                                                     )}
                                                 </DropdownMenuContent>
@@ -293,7 +294,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                         {!loading && rows.data.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={columns.length + 2} className="h-24 text-center text-muted-foreground">
-                                    {query.search || Object.keys(query.filters).length ? 'Nothing matches.' : trashed ? 'The trash is empty.' : `No ${resource.label.toLowerCase()} yet.`}
+                                    {query.search || Object.keys(query.filters).length ? t('Nothing matches.') : trashed ? t('The trash is empty.') : t('No :resource yet.', { resource: resource.label.toLowerCase() })}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -302,21 +303,21 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
 
                 <div className="flex flex-wrap items-center justify-between gap-4 border-t px-6 py-3 text-sm text-muted-foreground">
                     <div className="flex items-center gap-4">
-                        <span>{rows.total === 0 ? 'No rows' : `${rows.from}–${rows.to} of ${rows.total}`}</span>
+                        <span>{rows.total === 0 ? t('No rows') : t(':from–:to of :total', { from: rows.from, to: rows.to, total: rows.total })}</span>
                         {rows.total > perPageOptions[0]! && (
                             <Select value={String(rows.perPage)} onValueChange={(value) => { void setPerPage(Number(value)); visit({ per_page: Number(value) }); }}>
-                                <SelectTrigger className="h-8 w-auto" aria-label="Rows per page"><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="h-8 w-auto" aria-label={t('Rows per page')}><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    {perPageOptions.map((option) => <SelectItem key={option} value={String(option)}>{option} per page</SelectItem>)}
+                                    {perPageOptions.map((option) => <SelectItem key={option} value={String(option)}>{t(':count per page', { count: option })}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         )}
                     </div>
                     {rows.lastPage > 1 && (
                         <div className="flex items-center gap-2">
-                            <span>Page {rows.currentPage} of {rows.lastPage}</span>
-                            <PageLink url={rows.prevUrl} label="Previous page"><ChevronLeft /></PageLink>
-                            <PageLink url={rows.nextUrl} label="Next page"><ChevronRight /></PageLink>
+                            <span>{t('Page :page of :pages', { page: rows.currentPage, pages: rows.lastPage })}</span>
+                            <PageLink url={rows.prevUrl} label={t('Previous page')}><ChevronLeft /></PageLink>
+                            <PageLink url={rows.nextUrl} label={t('Next page')}><ChevronRight /></PageLink>
                         </div>
                     )}
                 </div>

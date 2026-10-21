@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 import {
     formatStat, greeting, isExternal, quickLinks, relativeTime, spanClass, widgetHref,
     type CardsData, type ListData, type ListRow, type StatData, type Tone, type WidgetDefinition, type WidgetResult,
@@ -23,13 +24,13 @@ const BADGE: Record<Tone, 'outline' | 'success' | 'warning' | 'destructive'> = {
 /** The dashboard: a greeting, then the widgets the panel and its plugins registered, their data arriving after the page. */
 export default function Dashboard({ widgets }: Props) {
     const { auth, sunrice, navigation } = usePage<SharedProps>().props;
-    useBreadcrumbs([{ label: 'Dashboard' }]);
+    useBreadcrumbs([{ label: t('Dashboard') }]);
     const now = React.useMemo(() => new Date(), []);
     const name = auth.user?.name?.trim().split(/\s+/)[0];
 
     return (
         <>
-            <Head title="Dashboard" />
+            <Head title={t('Dashboard')} />
             <div className="space-y-6">
                 <section className="sunrice-atmosphere relative isolate overflow-hidden rounded-xl px-6 py-7 shadow-card sm:px-8 sm:py-9">
                     <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 -z-10 hidden w-80 sm:block">
@@ -40,16 +41,16 @@ export default function Dashboard({ widgets }: Props) {
                     <p className="text-xs font-medium tracking-[0.14em] uppercase opacity-60">
                         {sunrice.brand} · <time dateTime={now.toISOString()}>{now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</time>
                     </p>
-                    <h1 className="sunrice-page-title mt-2">{greeting(now)}{name ? `, ${name}` : ''}</h1>
-                    <p className="mt-1 max-w-xl text-sm leading-relaxed opacity-70">Here's what's happening.</p>
-                    <QuickLinks links={quickLinks(navigation)} />
+                    <h1 className="sunrice-page-title mt-2">{t(greeting(now))}{name ? `, ${name}` : ''}</h1>
+                    <p className="mt-1 max-w-xl text-sm leading-relaxed opacity-70">{t('Here\'s what\'s happening.')}</p>
+                    <QuickLinks links={quickLinks(navigation, 4, t('Administration'))} />
                 </section>
 
                 {widgets.length === 0 ? (
                     <Card className="items-center gap-2 py-14 text-center">
                         <span className="grid size-10 place-items-center rounded-full bg-muted text-muted-foreground"><Sparkles className="size-5" /></span>
-                        <p className="text-sm font-medium">Nothing to show yet</p>
-                        <p className="max-w-sm text-[13px] text-muted-foreground">Widgets appear here as you get access to content and tools.</p>
+                        <p className="text-sm font-medium">{t('Nothing to show yet')}</p>
+                        <p className="max-w-sm text-[13px] text-muted-foreground">{t('Widgets appear here as you get access to content and tools.')}</p>
                     </Card>
                 ) : (
                     <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -69,7 +70,7 @@ function QuickLinks({ links }: { links: ReturnType<typeof quickLinks> }) {
     if (links.length === 0) return null;
 
     return (
-        <nav aria-label="Quick links" className="mt-6 flex flex-wrap gap-2">
+        <nav aria-label={t('Quick links')} className="mt-6 flex flex-wrap gap-2">
             {links.map((link) => {
                 const Icon = navIcon(link.icon);
 
@@ -152,7 +153,7 @@ function Widget({ widget, now }: { widget: WidgetDefinition; now: Date }) {
                 </div>
                 {widget.link && (
                     <SmartLink url={widget.link.url} className="inline-flex shrink-0 items-center gap-1 rounded-md text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-4 focus-visible:ring-ring-glow focus-visible:outline-none">
-                        {widget.link.label ?? 'See all'}
+                        {widget.link.label ?? t('See all')}
                         <ArrowRight className="size-3.5" />
                     </SmartLink>
                 )}
@@ -191,7 +192,7 @@ function StatBody({ widget, data }: { widget: WidgetDefinition; data: StatData }
 }
 
 function ListBody({ widget, data, now }: { widget: WidgetDefinition; data: ListData; now: Date }) {
-    if (data.rows.length === 0) return <Empty text={widget.empty ?? 'Nothing here yet.'} icon={widget.icon} />;
+    if (data.rows.length === 0) return <Empty text={widget.empty ?? t('Nothing here yet.')} icon={widget.icon} />;
 
     return (
         <ul className="divide-y divide-border/60">
@@ -220,7 +221,7 @@ function Row({ row, now }: { row: ListRow; now: Date }) {
 }
 
 function CardsBody({ widget, data }: { widget: WidgetDefinition; data: CardsData }) {
-    if (data.cards.length === 0) return <Empty text={widget.empty ?? 'Nothing here yet.'} icon={widget.icon} />;
+    if (data.cards.length === 0) return <Empty text={widget.empty ?? t('Nothing here yet.')} icon={widget.icon} />;
 
     return (
         <div className="grid gap-3 p-4 sm:grid-cols-2">
@@ -260,7 +261,7 @@ function Unavailable() {
     return (
         <div role="status" className="flex items-center gap-2 px-5 py-6 text-[13px] text-muted-foreground">
             <CircleAlert className="size-4 shrink-0" />
-            This couldn't be loaded right now.
+            {t('This couldn\'t be loaded right now.')}
         </div>
     );
 }

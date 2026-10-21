@@ -15,6 +15,7 @@ import { isHexColor, readableOn } from '@/lib/branding';
 import { formatPairs, parsePairs, type Pair } from '@/lib/pairs';
 import { RelationSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
+import { t } from '@/lib/i18n';
 
 export type FieldValue = string | number | boolean | string[] | number[] | (string | number)[] | null;
 
@@ -65,7 +66,7 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
             return (
                 <Select value={value === null || value === '' ? (field.required ? undefined : NONE) : String(value)}
                     disabled={disabled} onValueChange={(selected) => onChange(selected === NONE ? null : selected)}>
-                    <SelectTrigger id={id} aria-invalid={invalid} className="w-full"><SelectValue placeholder={field.placeholder ?? 'Choose…'} /></SelectTrigger>
+                    <SelectTrigger id={id} aria-invalid={invalid} className="w-full"><SelectValue placeholder={field.placeholder ?? t('Choose…')} /></SelectTrigger>
                     <SelectContent>
                         {!field.required && <SelectItem value={NONE}>—</SelectItem>}
                         {options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
@@ -107,7 +108,7 @@ function CheckboxList({ id, options, value, disabled, onChange }: {
     onChange: (value: string[]) => void;
 }) {
     if (options.length === 0) {
-        return <p id={id} className="text-sm text-muted-foreground">Nothing to choose from.</p>;
+        return <p id={id} className="text-sm text-muted-foreground">{t('Nothing to choose from.')}</p>;
     }
     const groups = new Map<string, CheckboxOption[]>();
     for (const option of options) {
@@ -152,7 +153,7 @@ function ColorInput({ common, value, onChange }: {
             {/* The swatch is ours (the native one shows black when empty); the picker sits invisibly on top. */}
             <span className="relative size-10 shrink-0 overflow-hidden rounded-lg border border-input bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out-quart focus-within:border-ring/70 focus-within:ring-4 focus-within:ring-ring-glow hover:border-ring/45"
                 style={{ background: valid ? value : 'linear-gradient(to top right, transparent calc(50% - 0.75px), var(--border) 50%, transparent calc(50% + 0.75px)), var(--card)' }}>
-                <input type="color" aria-label="Pick a colour" disabled={common.disabled} value={valid ? value.toLowerCase() : '#000000'}
+                <input type="color" aria-label={t('Pick a colour')} disabled={common.disabled} value={valid ? value.toLowerCase() : '#000000'}
                     onChange={(e) => onChange(e.target.value)}
                     className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed" />
             </span>
@@ -194,19 +195,19 @@ function PairsInput({ id, field, value, disabled, invalid, onChange }: {
         <div id={id} role="group" aria-invalid={invalid} className="grid gap-2">
             {rows.length > 0 && (
                 <div className={`grid ${columns} gap-2 text-xs font-medium text-muted-foreground`}>
-                    <span>{String(field.keyLabel ?? 'Key')}</span><span>{String(field.valueLabel ?? 'Value')}</span>{extra && <span>{extra.label}</span>}<span className="sr-only">Order</span>
+                    <span>{String(field.keyLabel ?? t('Key'))}</span><span>{String(field.valueLabel ?? t('Value'))}</span>{extra && <span>{extra.label}</span>}<span className="sr-only">{t('Order')}</span>
                 </div>
             )}
             {rows.map((row, index) => (
                 <div key={index} className={`grid ${columns} items-center gap-2`}>
-                    <Input aria-label={`${String(field.keyLabel ?? 'Key')} ${index + 1}`} list={listId} disabled={disabled} className="font-mono" value={row.key}
+                    <Input aria-label={`${String(field.keyLabel ?? t('Key'))} ${index + 1}`} list={listId} disabled={disabled} className="font-mono" value={row.key}
                         onChange={(e) => {
                             const key = e.target.value;
                             const known = suggestions.find((s) => s.key === key.trim());
                             set(index, { key, value: row.value === '' && known ? known.value : row.value });
                         }} />
                     <div className="flex items-center gap-2">
-                        <Input aria-label={`${String(field.valueLabel ?? 'Value')} ${index + 1}`} disabled={disabled} value={row.value}
+                        <Input aria-label={`${String(field.valueLabel ?? t('Value'))} ${index + 1}`} disabled={disabled} value={row.value}
                             onChange={(e) => set(index, { ...row, value: e.target.value })} />
                         {index === 0 && typeof field.firstBadge === 'string' && <Badge variant="secondary">{field.firstBadge}</Badge>}
                     </div>
@@ -216,16 +217,16 @@ function PairsInput({ id, field, value, disabled, invalid, onChange }: {
                             onChange={(e) => set(index, { ...row, extra: e.target.value })} />
                     )}
                     <div className="flex items-center">
-                        <Button type="button" variant="ghost" size="icon" className="size-8" disabled={disabled || index === 0} aria-label="Move up" onClick={() => move(index, -1)}><ArrowUp /></Button>
-                        <Button type="button" variant="ghost" size="icon" className="size-8" disabled={disabled || index === rows.length - 1} aria-label="Move down" onClick={() => move(index, 1)}><ArrowDown /></Button>
-                        <Button type="button" variant="ghost" size="icon" className="size-8 text-destructive" disabled={disabled} aria-label="Remove" onClick={() => update(rows.filter((_, i) => i !== index))}><X /></Button>
+                        <Button type="button" variant="ghost" size="icon" className="size-8" disabled={disabled || index === 0} aria-label={t('Move up')} onClick={() => move(index, -1)}><ArrowUp /></Button>
+                        <Button type="button" variant="ghost" size="icon" className="size-8" disabled={disabled || index === rows.length - 1} aria-label={t('Move down')} onClick={() => move(index, 1)}><ArrowDown /></Button>
+                        <Button type="button" variant="ghost" size="icon" className="size-8 text-destructive" disabled={disabled} aria-label={t('Remove')} onClick={() => update(rows.filter((_, i) => i !== index))}><X /></Button>
                     </div>
                 </div>
             ))}
             <datalist id={listId}>{suggestions.map((s) => <option key={s.key} value={s.key}>{s.value}</option>)}</datalist>
             <div>
                 <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setRows([...rows, { key: '', value: '' }])}>
-                    <Plus />{String(field.addLabel ?? 'Add')}
+                    <Plus />{String(field.addLabel ?? t('Add'))}
                 </Button>
             </div>
         </div>

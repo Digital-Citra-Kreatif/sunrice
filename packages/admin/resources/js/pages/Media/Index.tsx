@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 import { MEDIA_DRAG, parseDraggedIds } from '@/lib/media-drag';
 import { cn } from '@/lib/utils';
 
@@ -37,11 +38,19 @@ interface Props {
 
 const ALL = '__all';
 const TOP = '__top';
-const TYPES = [{ value: 'image', label: 'Images' }, { value: 'video', label: 'Videos' }, { value: 'audio', label: 'Audio' }, { value: 'document', label: 'Documents' }];
+const types = () => [{ value: 'image', label: t('Images') }, { value: 'video', label: t('Videos') }, { value: 'audio', label: t('Audio') }, { value: 'document', label: t('Documents') }];
+
+/** A translated sentence with :placeholders shown as code. */
+function withCode(text: string, codes: Record<string, string>): React.ReactNode {
+    return text.split(/(:[a-z_]+)/).map((part, i) => {
+        const code = codes[part.slice(1)];
+        return part.startsWith(':') && code !== undefined ? <code key={i} className="rounded bg-muted px-1">{code}</code> : part;
+    });
+}
 
 export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false }: Props) {
     const base = adminUrl('media');
-    useBreadcrumbs(path.length === 0 ? [{ label: 'Media' }] : [{ label: 'Media', href: base }, ...path.map((f, i) => (i === path.length - 1 ? { label: f.name } : { label: f.name, href: `${base}?folder=${f.id}` }))]);
+    useBreadcrumbs(path.length === 0 ? [{ label: t('Media') }] : [{ label: t('Media'), href: base }, ...path.map((f, i) => (i === path.length - 1 ? { label: f.name } : { label: f.name, href: `${base}?folder=${f.id}` }))]);
     const [confirm, confirmDialog] = useConfirm();
     const [search, setSearch] = React.useState(query.search);
     const [selected, setSelected] = React.useState<number[]>([]);
@@ -108,21 +117,21 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
             onDrop={drop}
         >
-            <Head title={folder ? `${folder.name} · Media` : 'Media'} />
+            <Head title={folder ? `${folder.name} · ${t('Media')}` : t('Media')} />
             {confirmDialog}
 
             <PageHeader
-                title={query.trash ? 'Trash' : (folder?.name ?? 'Media')}
+                title={query.trash ? t('Trash') : (folder?.name ?? t('Media'))}
                 actions={
                     <>
                         {can.update && !query.trash && !query.search && (
-                            <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />New folder</Button>
+                            <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />{t('New folder')}</Button>
                         )}
                         {canUpload && (
                             <>
-                                <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label="Files to upload"
+                                <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label={t('Files to upload')}
                                     onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
-                                <Button onClick={() => fileInput.current?.click()}><UploadIcon />Upload</Button>
+                                <Button onClick={() => fileInput.current?.click()}><UploadIcon />{t('Upload')}</Button>
                             </>
                         )}
                     </>
@@ -131,34 +140,34 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
 
             {storageLinkMissing && (
                 <div role="alert" className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-                    <p className="font-medium">Files can't be shown: the storage link is missing.</p>
-                    <p className="text-muted-foreground">Run <code className="rounded bg-muted px-1">php artisan storage:link</code> on the server, so the public disk's files are served from <code className="rounded bg-muted px-1">public/storage</code>.</p>
+                    <p className="font-medium">{t('Files can\'t be shown: the storage link is missing.')}</p>
+                    <p className="text-muted-foreground">{withCode(t('Run :command on the server, so the public disk\'s files are served from :path.'), { command: 'php artisan storage:link', path: 'public/storage' })}</p>
                 </div>
             )}
 
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-72" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
                     <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input type="search" aria-label="Search media" placeholder="Search everywhere…" className="pl-8" value={search}
+                    <Input type="search" aria-label={t('Search media')} placeholder={t('Search everywhere…')} className="pl-8" value={search}
                         onChange={(e) => { setSearch(e.target.value); if (e.target.value === '' && query.search) visit({ search: '' }); }} />
                 </form>
                 <Select value={query.type ?? ALL} onValueChange={(value) => visit({ type: value === ALL ? null : (value as MediaQuery['type']) })}>
-                    <SelectTrigger aria-label="Type" className="w-36"><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label={t('Type')} className="w-36"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={ALL}>All types</SelectItem>
-                        {TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}
+                        <SelectItem value={ALL}>{t('All types')}</SelectItem>
+                        {types().map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 {can.delete && (
                     <Button variant={query.trash ? 'secondary' : 'ghost'} onClick={() => visit({ trash: !query.trash, folder: null })}>
-                        <Trash2 />{query.trash ? 'Leave the trash' : 'Trash'}
+                        <Trash2 />{query.trash ? t('Leave the trash') : t('Trash')}
                     </Button>
                 )}
             </div>
 
             {!query.trash && !query.search && (
-                <nav aria-label="Folder" className="flex flex-wrap items-center gap-1 text-sm">
-                    {[{ id: null as number | null, name: 'All media' }, ...path].map((step, i, steps) => {
+                <nav aria-label={t('Folder')} className="flex flex-wrap items-center gap-1 text-sm">
+                    {[{ id: null as number | null, name: t('All media') }, ...path].map((step, i, steps) => {
                         const last = i === steps.length - 1;
                         const key = `path-${step.id ?? 'top'}`;
                         return (
@@ -178,7 +187,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                         );
                     })}
                     {canMove && (media.data.length > 0 && (folders.length > 0 || path.length > 0)) && (
-                        <span className="ml-auto text-xs text-muted-foreground">Drag files onto a folder to move them.</span>
+                        <span className="ml-auto text-xs text-muted-foreground">{t('Drag files onto a folder to move them.')}</span>
                     )}
                 </nav>
             )}
@@ -186,8 +195,8 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             {uploads.length > 0 && (
                 <div className="rounded-md border bg-card p-3 text-sm">
                     <div className="mb-2 flex items-center justify-between">
-                        <span className="font-medium">Uploads</span>
-                        <Button variant="ghost" size="icon" className="size-7" aria-label="Clear the finished uploads" onClick={clear}><X /></Button>
+                        <span className="font-medium">{t('Uploads')}</span>
+                        <Button variant="ghost" size="icon" className="size-7" aria-label={t('Clear the finished uploads')} onClick={clear}><X /></Button>
                     </div>
                     <ul className="grid gap-1.5">
                         {uploads.map((u) => (
@@ -196,7 +205,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                                 <span className="min-w-0 flex-1 truncate">{u.name}</span>
                                 {u.status === 'failed' ? <span className="text-destructive">{u.error}</span>
                                     : u.status === 'uploading' ? <span className="text-muted-foreground tabular-nums">{u.progress}%</span>
-                                        : u.status === 'waiting' ? <span className="text-muted-foreground">Waiting</span> : null}
+                                        : u.status === 'waiting' ? <span className="text-muted-foreground">{t('Waiting')}</span> : null}
                             </li>
                         ))}
                     </ul>
@@ -205,19 +214,19 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
 
             {selected.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-sm">
-                    <span className="mr-auto">{selected.length} selected</span>
+                    <span className="mr-auto">{t(':count selected', { count: selected.length })}</span>
                     {query.trash ? (
                         <>
-                            <Button size="sm" variant="outline" onClick={() => bulk('restore')}><RotateCcw />Restore</Button>
-                            <Button size="sm" variant="destructive" onClick={() => confirm(`Delete ${selected.length} ${selected.length === 1 ? 'file' : 'files'} for good?`, () => bulk('delete'), true)}><Trash2 />Delete for good</Button>
+                            <Button size="sm" variant="outline" onClick={() => bulk('restore')}><RotateCcw />{t('Restore')}</Button>
+                            <Button size="sm" variant="destructive" onClick={() => confirm(selected.length === 1 ? t('Delete 1 file for good?') : t('Delete :count files for good?', { count: selected.length }), () => bulk('delete'), true)}><Trash2 />{t('Delete for good')}</Button>
                         </>
                     ) : (
                         <>
-                            {can.update && <Button size="sm" variant="outline" onClick={() => setMoving(true)}><Folder />Move</Button>}
-                            {can.delete && <Button size="sm" variant="outline" className="text-destructive" onClick={() => bulk('trash')}><Trash2 />Move to trash</Button>}
+                            {can.update && <Button size="sm" variant="outline" onClick={() => setMoving(true)}><Folder />{t('Move')}</Button>}
+                            {can.delete && <Button size="sm" variant="outline" className="text-destructive" onClick={() => bulk('trash')}><Trash2 />{t('Move to trash')}</Button>}
                         </>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => setSelected([])}>Clear</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSelected([])}>{t('Clear')}</Button>
                 </div>
             )}
 
@@ -232,12 +241,12 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                             {can.update && (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="size-7" aria-label={`Actions for ${f.name}`}><MoreHorizontal /></Button>
+                                        <Button variant="ghost" size="icon" className="size-7" aria-label={t('Actions for :title', { title: f.name })}><MoreHorizontal /></Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onSelect={() => setFolderDialog({ folder: f })}>Rename</DropdownMenuItem>
-                                        <DropdownMenuItem variant="destructive" onSelect={() => confirm(`Delete the folder "${f.name}"? What's in it moves up here.`, () => router.delete(`${base}/folders/${f.id}`, { preserveScroll: true }), true)}>
-                                            Delete
+                                        <DropdownMenuItem onSelect={() => setFolderDialog({ folder: f })}>{t('Rename')}</DropdownMenuItem>
+                                        <DropdownMenuItem variant="destructive" onSelect={() => confirm(t('Delete the folder ":name"? What\'s in it moves up here.', { name: f.name }), () => router.delete(`${base}/folders/${f.id}`, { preserveScroll: true }), true)}>
+                                            {t('Delete')}
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
@@ -249,7 +258,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
 
             {media.data.length === 0 ? (
                 <div className="rounded-xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
-                    {query.trash ? 'The trash is empty.' : query.search || query.type ? 'Nothing matches.' : canUpload ? 'No files here yet. Drop files on this page or use Upload.' : 'No files here yet.'}
+                    {query.trash ? t('The trash is empty.') : query.search || query.type ? t('Nothing matches.') : canUpload ? t('No files here yet. Drop files on this page or use Upload.') : t('No files here yet.')}
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -258,7 +267,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                         return (
                             <div key={item.id} style={{ '--i': i } as React.CSSProperties} draggable={canMove} onDragStart={(event) => dragFiles(event, item.id)}
                                 className={cn('sunrice-row-in group relative overflow-hidden rounded-lg border bg-card transition-[transform,box-shadow,border-color] duration-200 ease-out-quart hover:-translate-y-0.5 hover:border-border hover:shadow-card', checked && 'ring-2 ring-primary')}>
-                                <button type="button" className="block w-full text-left" onClick={() => setOpenId(item.id)} aria-label={`Open ${item.title || item.filename}`}>
+                                <button type="button" className="block w-full text-left" onClick={() => setOpenId(item.id)} aria-label={t('Open :title', { title: item.title || item.filename })}>
                                     <div className="flex aspect-square items-center justify-center bg-muted">
                                         {item.thumbnail
                                             ? <img src={item.thumbnail} alt="" loading="lazy" draggable={false} className="size-full object-cover" />
@@ -270,7 +279,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                                     </div>
                                 </button>
                                 {(can.update || can.delete) && (
-                                    <Checkbox checked={checked} onCheckedChange={(value) => toggle(item.id, value === true)} aria-label={`Select ${item.title || item.filename}`}
+                                    <Checkbox checked={checked} onCheckedChange={(value) => toggle(item.id, value === true)} aria-label={t('Select :title', { title: item.title || item.filename })}
                                         className={cn('absolute top-2 left-2 bg-background', !checked && selected.length === 0 && 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100')} />
                                 )}
                             </div>
@@ -281,11 +290,11 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
 
             {media.lastPage > 1 && (
                 <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
-                    <span>Page {media.currentPage} of {media.lastPage} · {media.total} files</span>
-                    <Button variant="outline" size="icon" className="size-8" disabled={!media.prevUrl} asChild={!!media.prevUrl} aria-label="Previous page">
+                    <span>{t('Page :page of :pages · :count files', { page: media.currentPage, pages: media.lastPage, count: media.total })}</span>
+                    <Button variant="outline" size="icon" className="size-8" disabled={!media.prevUrl} asChild={!!media.prevUrl} aria-label={t('Previous page')}>
                         {media.prevUrl ? <Link href={media.prevUrl} preserveScroll><ChevronLeft /></Link> : <ChevronLeft />}
                     </Button>
-                    <Button variant="outline" size="icon" className="size-8" disabled={!media.nextUrl} asChild={!!media.nextUrl} aria-label="Next page">
+                    <Button variant="outline" size="icon" className="size-8" disabled={!media.nextUrl} asChild={!!media.nextUrl} aria-label={t('Next page')}>
                         {media.nextUrl ? <Link href={media.nextUrl} preserveScroll><ChevronRight /></Link> : <ChevronRight />}
                     </Button>
                 </div>
@@ -293,7 +302,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
 
             {dragging && (
                 <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-background/80 text-lg font-medium">
-                    Drop to upload{folder ? ` to ${folder.name}` : ''}
+                    {folder ? t('Drop to upload to :folder', { folder: folder.name }) : t('Drop to upload')}
                 </div>
             )}
 
@@ -331,15 +340,15 @@ function FolderDialog({ state, parentId, onClose }: { state: { folder: FolderInf
         <Dialog open={state !== null} onOpenChange={(open) => !open && onClose()}>
             <DialogContent>
                 <form onSubmit={submit} className="grid gap-4">
-                    <DialogHeader><DialogTitle>{state?.folder ? 'Rename folder' : 'New folder'}</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{state?.folder ? t('Rename folder') : t('New folder')}</DialogTitle></DialogHeader>
                     <div className="grid gap-2">
-                        <Label htmlFor="folder-name">Name</Label>
+                        <Label htmlFor="folder-name">{t('Name')}</Label>
                         <Input id="folder-name" autoFocus required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} />
                         <InputError message={error} />
                     </div>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                        <Button type="submit" disabled={processing}>{state?.folder ? 'Rename' : 'Create'}</Button>
+                        <Button type="button" variant="outline" onClick={onClose}>{t('Cancel')}</Button>
+                        <Button type="submit" disabled={processing}>{state?.folder ? t('Rename') : t('Create')}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -353,17 +362,17 @@ function MoveDialog({ open, tree, onClose, onMove }: { open: boolean; tree: Tree
     return (
         <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
             <DialogContent>
-                <DialogHeader><DialogTitle>Move to folder</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{t('Move to folder')}</DialogTitle></DialogHeader>
                 <Select value={target} onValueChange={setTarget}>
-                    <SelectTrigger aria-label="Folder" className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label={t('Folder')} className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={TOP}>Media (top level)</SelectItem>
+                        <SelectItem value={TOP}>{t('Media (top level)')}</SelectItem>
                         {tree.map((f) => <SelectItem key={f.id} value={String(f.id)}><span style={{ paddingLeft: `${f.depth}rem` }}>{f.name}</span></SelectItem>)}
                     </SelectContent>
                 </Select>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                    <Button type="button" onClick={() => onMove(target === TOP ? null : Number(target))}>Move</Button>
+                    <Button type="button" variant="outline" onClick={onClose}>{t('Cancel')}</Button>
+                    <Button type="button" onClick={() => onMove(target === TOP ? null : Number(target))}>{t('Move')}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

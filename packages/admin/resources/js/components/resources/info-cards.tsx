@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { useConfirm } from './confirm';
 import type { InfoBlock, InfoCard } from './types';
+import { t } from '@/lib/i18n';
 
 export const formatDateTime = (iso: string | null): string => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
 
@@ -69,7 +70,7 @@ function EventList({ heading, empty, items }: { heading: string; empty: string; 
             )}
             {items.length > SHOWN && (
                 <button type="button" className="self-start text-xs font-medium text-muted-foreground hover:text-foreground" onClick={() => setAll(!all)}>
-                    {all ? 'Show fewer' : `Show ${items.length - SHOWN} more`}
+                    {all ? t('Show fewer') : t('Show :count more', { count: items.length - SHOWN })}
                 </button>
             )}
         </div>

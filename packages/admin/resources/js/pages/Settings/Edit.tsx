@@ -9,6 +9,7 @@ import { InfoCards } from '@/components/resources/info-cards';
 import type { InfoCard, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 import { useScrollFade } from '@/hooks/use-scroll-fade';
 import { cn } from '@/lib/utils';
@@ -31,14 +32,14 @@ export default function SettingsEdit(props: Props) {
 }
 
 function SettingsForm({ section, sections, form: schema, values, secrets, cards = [] }: Props) {
-    useBreadcrumbs([{ label: 'Settings', href: adminUrl('settings') }, { label: section.label }]);
+    useBreadcrumbs([{ label: t('Settings'), href: adminUrl('settings') }, { label: section.label }]);
     const form = useForm<Record<string, FieldValue>>(values);
 
     // A saved secret may stay empty: say so instead of asking for it.
     const shown = React.useMemo(() => schema.map((s) => ({
         ...s,
         fields: s.fields.map((field) => (secrets[field.name]
-            ? { ...field, required: false, placeholder: 'Saved. Leave empty to keep it.' }
+            ? { ...field, required: false, placeholder: t('Saved. Leave empty to keep it.') }
             : field)),
     })), [schema, secrets]);
 
@@ -64,9 +65,9 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
 
     return (
         <div className="flex flex-col gap-6 lg:flex-row">
-            <Head title={`${section.label} settings`} />
+            <Head title={t(':section settings', { section: section.label })} />
             {sections.length > 1 && (
-                <nav ref={tabs} aria-label="Settings sections" className="sunrice-scroll-fade-x -mx-1 flex shrink-0 snap-x snap-proximity scroll-px-1 gap-1 overflow-x-auto px-1 [scrollbar-width:none] lg:mx-0 lg:w-48 lg:flex-col lg:px-0">
+                <nav ref={tabs} aria-label={t('Settings sections')} className="sunrice-scroll-fade-x -mx-1 flex shrink-0 snap-x snap-proximity scroll-px-1 gap-1 overflow-x-auto px-1 [scrollbar-width:none] lg:mx-0 lg:w-48 lg:flex-col lg:px-0">
                     {sections.map((s) => (
                         <Link key={s.key} href={adminUrl(`settings/${s.key}`)} aria-current={s.key === section.key ? 'page' : undefined}
                             className={cn('shrink-0 snap-start rounded-md px-3 py-2 text-sm whitespace-nowrap hover:bg-muted', s.key === section.key && 'bg-muted font-medium')}>
@@ -82,7 +83,7 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
                     actions={editable && (
                         <Button type="submit" disabled={form.processing}>
                             {form.processing && <LoaderCircle className="animate-spin" />}
-                            Save
+                            {t('Save')}
                         </Button>
                     )}
                 />

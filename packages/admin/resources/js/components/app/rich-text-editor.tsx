@@ -16,6 +16,7 @@ import { adminUrl } from '@/lib/admin-url';
 import { isSafeUrl } from '@/lib/safe-url';
 import { cn } from '@/lib/utils';
 import type { RichTextEditorProps } from './rich-text';
+import { t } from '@/lib/i18n';
 
 /** Images keep their media library id, so the server knows which files a text uses. */
 const LibraryImage = Image.extend({
@@ -77,25 +78,25 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
     const chain = () => editor.chain().focus();
 
     return (
-        <div role="toolbar" aria-label="Formatting" className="flex flex-wrap gap-0.5 border-b p-1">
-            <Tool label="Bold" active={state.bold} onClick={() => chain().toggleBold().run()}><Bold /></Tool>
-            <Tool label="Italic" active={state.italic} onClick={() => chain().toggleItalic().run()}><Italic /></Tool>
-            <Tool label="Underline" active={state.underline} onClick={() => chain().toggleUnderline().run()}><Underline /></Tool>
-            <Tool label="Strikethrough" active={state.strike} onClick={() => chain().toggleStrike().run()}><Strikethrough /></Tool>
-            <Tool label="Code" active={state.code} onClick={() => chain().toggleCode().run()}><Code /></Tool>
+        <div role="toolbar" aria-label={t('Formatting')} className="flex flex-wrap gap-0.5 border-b p-1">
+            <Tool label={t('Bold')} active={state.bold} onClick={() => chain().toggleBold().run()}><Bold /></Tool>
+            <Tool label={t('Italic')} active={state.italic} onClick={() => chain().toggleItalic().run()}><Italic /></Tool>
+            <Tool label={t('Underline')} active={state.underline} onClick={() => chain().toggleUnderline().run()}><Underline /></Tool>
+            <Tool label={t('Strikethrough')} active={state.strike} onClick={() => chain().toggleStrike().run()}><Strikethrough /></Tool>
+            <Tool label={t('Code')} active={state.code} onClick={() => chain().toggleCode().run()}><Code /></Tool>
             <Separator />
-            <Tool label="Heading" active={state.h2} onClick={() => chain().toggleHeading({ level: 2 }).run()}><Heading2 /></Tool>
-            <Tool label="Subheading" active={state.h3} onClick={() => chain().toggleHeading({ level: 3 }).run()}><Heading3 /></Tool>
-            <Tool label="Bulleted list" active={state.bullet} onClick={() => chain().toggleBulletList().run()}><List /></Tool>
-            <Tool label="Numbered list" active={state.ordered} onClick={() => chain().toggleOrderedList().run()}><ListOrdered /></Tool>
-            <Tool label="Quote" active={state.quote} onClick={() => chain().toggleBlockquote().run()}><Quote /></Tool>
-            <Tool label="Divider" onClick={() => chain().setHorizontalRule().run()}><Minus /></Tool>
+            <Tool label={t('Heading')} active={state.h2} onClick={() => chain().toggleHeading({ level: 2 }).run()}><Heading2 /></Tool>
+            <Tool label={t('Subheading')} active={state.h3} onClick={() => chain().toggleHeading({ level: 3 }).run()}><Heading3 /></Tool>
+            <Tool label={t('Bulleted list')} active={state.bullet} onClick={() => chain().toggleBulletList().run()}><List /></Tool>
+            <Tool label={t('Numbered list')} active={state.ordered} onClick={() => chain().toggleOrderedList().run()}><ListOrdered /></Tool>
+            <Tool label={t('Quote')} active={state.quote} onClick={() => chain().toggleBlockquote().run()}><Quote /></Tool>
+            <Tool label={t('Divider')} onClick={() => chain().setHorizontalRule().run()}><Minus /></Tool>
             <Separator />
-            <Tool label="Link" active={state.link} onClick={onLink}><Link2 /></Tool>
-            {onImage && <Tool label="Image from the media library" onClick={onImage}><ImagePlus /></Tool>}
+            <Tool label={t('Link')} active={state.link} onClick={onLink}><Link2 /></Tool>
+            {onImage && <Tool label={t('Image from the media library')} onClick={onImage}><ImagePlus /></Tool>}
             <Separator />
-            <Tool label="Undo" disabled={!state.undo} onClick={() => chain().undo().run()}><Undo2 /></Tool>
-            <Tool label="Redo" disabled={!state.redo} onClick={() => chain().redo().run()}><Redo2 /></Tool>
+            <Tool label={t('Undo')} disabled={!state.undo} onClick={() => chain().undo().run()}><Undo2 /></Tool>
+            <Tool label={t('Redo')} disabled={!state.redo} onClick={() => chain().redo().run()}><Redo2 /></Tool>
         </div>
     );
 }
@@ -142,24 +143,24 @@ function LinkDialog({ editor, open, onClose }: { editor: Editor; open: boolean; 
         <Dialog open={open} onOpenChange={(next: boolean) => !next && onClose()}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Link</DialogTitle>
-                    <DialogDescription>A web address, a path on this site (/about), mailto: or tel:. Empty removes the link.</DialogDescription>
+                    <DialogTitle>{t('Link')}</DialogTitle>
+                    <DialogDescription>{t('A web address, a path on this site (/about), mailto: or tel:. Empty removes the link.')}</DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-2">
-                        <Label htmlFor="rich-link-url">Address</Label>
+                        <Label htmlFor="rich-link-url">{t('Address')}</Label>
                         <Input id="rich-link-url" value={url} placeholder="https://…" aria-invalid={!safe}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
                             onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); if (safe) apply(); } }} />
-                        {!safe && <p className="text-sm text-destructive">This address could run code; use https://, a path, mailto: or tel:.</p>}
+                        {!safe && <p className="text-sm text-destructive">{t('This address could run code; use https://, a path, mailto: or tel:.')}</p>}
                     </div>
                     <label className="flex items-center gap-2 text-sm">
-                        <Checkbox checked={newTab} onCheckedChange={(checked) => setNewTab(checked === true)} /> Open in a new tab
+                        <Checkbox checked={newTab} onCheckedChange={(checked) => setNewTab(checked === true)} /> {t('Open in a new tab')}
                     </label>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                    <Button type="button" disabled={!safe} onClick={apply}>Apply</Button>
+                    <Button type="button" variant="outline" onClick={onClose}>{t('Cancel')}</Button>
+                    <Button type="button" disabled={!safe} onClick={apply}>{t('Apply')}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -182,7 +183,7 @@ function ImageDialog({ editor, open, onClose }: { editor: Editor; open: boolean;
             editor.chain().focus().setImage({ src: item.url, alt: item.alt ?? item.title ?? '', title: item.title ?? undefined }).updateAttributes('image', { 'data-media-id': String(item.id) }).run();
             onClose();
         } catch {
-            setError('That file could not be loaded. Try again, or choose another.');
+            setError(t('That file could not be loaded. Try again, or choose another.'));
         }
     };
 
@@ -190,15 +191,15 @@ function ImageDialog({ editor, open, onClose }: { editor: Editor; open: boolean;
         <Dialog open={open} onOpenChange={(next: boolean) => !next && onClose()}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Image</DialogTitle>
-                    <DialogDescription>Choose an image from the media library. Its alt text goes with it.</DialogDescription>
+                    <DialogTitle>{t('Image')}</DialogTitle>
+                    <DialogDescription>{t('Choose an image from the media library. Its alt text goes with it.')}</DialogDescription>
                 </DialogHeader>
                 <MediaPickerInput id="rich-image" value={id} multiple={false} max={null} types={['image']} disabled={false} invalid={error !== null}
                     onChange={(value) => setId(typeof value === 'number' ? value : null)} />
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                    <Button type="button" disabled={id === null} onClick={() => void insert()}>Insert</Button>
+                    <Button type="button" variant="outline" onClick={onClose}>{t('Cancel')}</Button>
+                    <Button type="button" disabled={id === null} onClick={() => void insert()}>{t('Insert')}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
