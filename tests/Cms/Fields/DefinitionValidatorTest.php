@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Validation\ValidationException;
 use Sunrice\Cms\Fields\DefinitionValidator;
 use Sunrice\Cms\Fields\Field;
+use Sunrice\Cms\Fields\FieldTypes;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Fieldset;
 
@@ -91,4 +92,13 @@ it('refuses a fieldset that would include itself', function () {
 it('only offers existing fieldsets', function () {
     expect(definitionErrors([['handle' => 'x', 'type' => 'fieldset', 'config' => ['fieldset' => 'nope']]]))->toHaveKey('fields.0.config.fieldset')
         ->and(definitionErrors([['handle' => 'x', 'type' => 'flexible', 'config' => ['blocks' => ['nope']]]]))->toHaveKey('fields.0.config.blocks.0');
+});
+
+it('names settings by their label in errors, and says what to create when there is nothing to choose', function () {
+    $errors = definitionErrors([['handle' => 'agent', 'type' => 'entries']]);
+
+    expect($errors['fields.0.config.collections'][0])->toBe('The "From collections" field is required.')
+        ->and(definitionErrors([['handle' => '', 'type' => 'text']])['fields.0.handle'][0])->toBe('The handle field is required.');
+    $setting = collect(app(FieldTypes::class)->get('entries')->settings())->firstWhere('handle', 'collections');
+    expect($setting->config['empty'])->toContain('Structure → Collections');
 });

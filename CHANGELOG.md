@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Blueprint builder errors name a setting by its label (`The "From collections" field is required.`) instead of its path (`fields.0.config.collections`), and the entries, link and flexible fields say what to create first when there's nothing to choose (a multiple select setting's `config.empty`).
 - "SEO from fields" (Structure → Collections and Taxonomies) offers only the fields of the collection's own blueprints (and other blueprints) or the taxonomy's, not every blueprint's; a `Select`'s options closure gets the record being edited (`->options(fn (?Model $record) => …)`, null when creating).
 - A Fieldset field in the builder shows only which fieldset it includes (its handle and settings were never used) and says its fields land at its level with their own handles; a clash with them names the fieldset and suggests wrapping it in a Group (on the include's fieldset choice).
 - The blueprint builder warns while you type a field handle that content keeps for itself (`Blueprint::RESERVED`, now sent to the builder as `reserved`) or that's taken on its level, instead of only when saving; the docs and the guide list the reserved handles.
