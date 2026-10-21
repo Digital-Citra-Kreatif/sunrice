@@ -33,6 +33,8 @@ final class PluginBundle
 
     private ?string $published = null;
 
+    private ?string $name = null;
+
     private function __construct(public readonly string $id) {}
 
     public static function make(string $id): self
@@ -74,6 +76,20 @@ final class PluginBundle
         }
 
         return $this;
+    }
+
+    /** The name admins know the plugin by ("Sunrice CMS"), in messages about its bundle. */
+    public function named(string $name): self
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    /** The bundle's name for people: named()'s, else its id. */
+    public function displayName(): string
+    {
+        return $this->name ?? $this->id;
     }
 
     /**

@@ -54,8 +54,9 @@ final class AdminAssets
 
     /**
      * What's published older than the installed packages: "Sunrice" for
-     * the panel's own, and the id of each plugin bundle that said where it's
-     * published from (PluginBundle::publishedFrom()). Admins see a warning.
+     * the panel's own, and the display name of each plugin bundle that said
+     * where it's published from (PluginBundle::publishedFrom(), named()).
+     * Super admins see a warning.
      *
      * @return list<string>
      */
@@ -64,7 +65,7 @@ final class AdminAssets
         $stale = self::outdated() ? ['Sunrice'] : [];
         foreach (app(Panel::class)->getBundles() as $bundle) {
             if ($bundle->outdated()) {
-                $stale[] = $bundle->id;
+                $stale[] = $bundle->displayName();
             }
         }
 
