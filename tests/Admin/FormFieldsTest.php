@@ -57,3 +57,26 @@ it('marks a select whose options leave out an action\'s own records, and adds wh
         ->and($action->toArray($rina)['confirm'])->toBe('Delete? She owns 2 pages.')
         ->and($action->toArray(new class extends Model {})['confirm'])->toBe('Delete?');
 });
+
+it('groups a select\'s options under headings, and accepts only listed values', function () {
+    $field = Select::make('kind')->options(['Shops' => ['Store' => 'Store', 'Bakery' => 'Bakery'], 'Other' => 'Something else']);
+
+    expect($field->toArray()['options'])->toBe([
+        ['value' => 'Store', 'label' => 'Store', 'group' => 'Shops'],
+        ['value' => 'Bakery', 'label' => 'Bakery', 'group' => 'Shops'],
+        ['value' => 'Other', 'label' => 'Something else'],
+    ])->and($field->toArray())->not->toHaveKey('other')
+        ->and(validator(['kind' => 'Bakery'], ['kind' => $field->validationRules(null)])->passes())->toBeTrue()
+        ->and(validator(['kind' => 'Shops'], ['kind' => $field->validationRules(null)])->passes())->toBeFalse();
+});
+
+it('takes a value besides the options with ->other(), checked by its rules', function () {
+    $field = Select::make('type')->label('Type')->options(['Store' => 'Store'])->searchable()->other('Other…', ['regex:/^[A-Z][A-Za-z]+$/'], 'Brewery');
+    $passes = fn (mixed $value): bool => validator(['type' => $value], ['type' => $field->validationRules(null)])->passes();
+
+    expect($field->toArray())->toMatchArray(['searchable' => true, 'other' => ['label' => 'Other…', 'placeholder' => 'Brewery']])
+        ->and($passes('Store'))->toBeTrue()
+        ->and($passes('Brewery'))->toBeTrue()
+        ->and($passes('not a type'))->toBeFalse()
+        ->and(validator(['type' => 'no'], ['type' => $field->validationRules(null)])->errors()->first('type'))->toContain('Type');
+});

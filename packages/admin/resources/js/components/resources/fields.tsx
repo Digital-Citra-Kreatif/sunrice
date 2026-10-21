@@ -8,13 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
 import { fixedValues, formatPairs, parsePairs, type Pair, withFixedValue } from '@/lib/pairs';
 import { slugInput } from '@/lib/slug';
-import { RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
+import { type ChoiceOption, groupOptions, RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
 import { t } from '@/lib/i18n';
 
@@ -63,21 +63,18 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
         case 'toggle':
             return <Switch id={id} disabled={disabled} aria-invalid={invalid} checked={value === true} onCheckedChange={(checked) => onChange(checked)} />;
         case 'select': {
-            const options = (field.options as { value: string; label: string }[] | undefined) ?? [];
+            const options = (field.options as ChoiceOption[] | undefined) ?? [];
+            const other = field.other as { label: string; placeholder: string | null } | undefined;
+            if (other) {
+                return <SelectWithOther id={id} field={field} options={options} other={other} disabled={disabled} invalid={invalid}
+                    value={value === null || value === '' ? null : String(value)} onChange={onChange} />;
+            }
             if (field.searchable === true) {
                 return <SearchableSelect id={id} options={options} required={field.required === true} disabled={disabled} invalid={invalid}
                     placeholder={field.placeholder ?? undefined} value={value === null || value === '' ? null : String(value)} onChange={onChange} />;
             }
-            return (
-                <Select value={value === null || value === '' ? (field.required ? undefined : NONE) : String(value)}
-                    disabled={disabled} onValueChange={(selected) => onChange(selected === NONE ? null : selected)}>
-                    <SelectTrigger id={id} aria-invalid={invalid} className="w-full"><SelectValue placeholder={field.placeholder ?? t('Choose…')} /></SelectTrigger>
-                    <SelectContent>
-                        {!field.required && <SelectItem value={NONE}>—</SelectItem>}
-                        {options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            );
+            return <PlainSelect id={id} options={options} required={field.required === true} disabled={disabled} invalid={invalid}
+                placeholder={field.placeholder ?? undefined} value={value === null || value === '' ? null : String(value)} onChange={onChange} />;
         }
         case 'belongs_to':
         case 'belongs_to_many': {
@@ -110,6 +107,66 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
             return <Input {...common} type={String(field.inputType ?? 'text')} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
     }
+}
+
+/** A choice from fixed options (Select), under headings when they have groups. */
+function PlainSelect({ id, options, value, required, disabled, invalid, placeholder, onChange, extra }: {
+    id: string; options: ChoiceOption[]; value: string | null; required: boolean; disabled: boolean; invalid: boolean;
+    placeholder?: string; onChange: (value: string | null) => void; extra?: ChoiceOption;
+}) {
+    const item = (option: ChoiceOption) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>;
+
+    return (
+        <Select value={value === null ? (required ? undefined : NONE) : value} disabled={disabled} onValueChange={(selected) => onChange(selected === NONE ? null : selected)}>
+            <SelectTrigger id={id} aria-invalid={invalid} className="w-full"><SelectValue placeholder={placeholder ?? t('Choose…')} /></SelectTrigger>
+            <SelectContent>
+                {!required && <SelectItem value={NONE}>—</SelectItem>}
+                {groupOptions(options).map(([group, items]) => group === ''
+                    ? <React.Fragment key="">{items.map(item)}</React.Fragment>
+                    : <SelectGroup key={group}><SelectLabel>{group}</SelectLabel>{items.map(item)}</SelectGroup>)}
+                {extra && item(extra)}
+            </SelectContent>
+        </Select>
+    );
+}
+
+const OTHER = '__other';
+
+/**
+ * Select::other(): the options and "Other…", which shows a text input for a
+ * value not listed. A saved value that isn't an option shows in that input.
+ */
+function SelectWithOther({ id, field, options, other, value, disabled, invalid, onChange }: {
+    id: string; field: FieldInfo; options: ChoiceOption[]; other: { label: string; placeholder: string | null };
+    value: string | null; disabled: boolean; invalid: boolean; onChange: (value: string | null) => void;
+}) {
+    const listed = value !== null && options.some((option) => option.value === value);
+    const [typing, setTyping] = React.useState(value !== null && !listed);
+    const input = React.useRef<HTMLInputElement>(null);
+    const showOther = typing || (value !== null && !listed);
+    const extra = { value: OTHER, label: other.label };
+    const choose = (chosen: string | null) => {
+        if (chosen === OTHER) {
+            setTyping(true);
+            onChange(listed ? '' : value);
+            window.setTimeout(() => input.current?.focus(), 0);
+            return;
+        }
+        setTyping(false);
+        onChange(chosen);
+    };
+    const props = { id, options, required: field.required === true, disabled, invalid, placeholder: field.placeholder ?? undefined, extra,
+        value: showOther ? OTHER : value, onChange: choose };
+
+    return (
+        <div className="grid gap-2">
+            {field.searchable === true ? <SearchableSelect {...props} /> : <PlainSelect {...props} />}
+            {showOther && (
+                <Input ref={input} id={`${id}-other`} aria-label={other.label} aria-invalid={invalid} disabled={disabled} placeholder={other.placeholder ?? undefined}
+                    value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? '' : e.target.value)} />
+            )}
+        </div>
+    );
 }
 
 /** Checkboxes for several choices, under group headings when the options have groups. */

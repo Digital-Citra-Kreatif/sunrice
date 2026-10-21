@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { SortableHandle, SortableList } from '@/components/app/sortable-list';
 import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { adminUrl } from '@/lib/admin-url';
 import { fetchJson, withQuery } from '@/lib/fetch-json';
@@ -85,7 +85,7 @@ export function RelationSelect({ id, field, multiple, value, selected, required,
         <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(''); }}>
             <PopoverTrigger asChild>
                 <Button id={id} type="button" variant="outline" role="combobox" aria-expanded={open} aria-invalid={invalid} disabled={disabled}
-                    className={cn('w-full justify-between font-normal', !multiple && chosen.length === 0 && 'text-muted-foreground')}>
+                    className={cn('w-full min-w-0 shrink justify-between font-normal', !multiple && chosen.length === 0 && 'text-muted-foreground')}>
                     <span className="truncate">{multiple ? t('Add…') : chosen.length > 0 ? labelOf(chosen[0]!) : (placeholder ?? t('Choose…'))}</span>
                     <ChevronsUpDown className="opacity-50" />
                 </Button>
@@ -143,27 +143,55 @@ export function RelationSelect({ id, field, multiple, value, selected, required,
     );
 }
 
-/** A choice from fixed options with a search box over them (Select::searchable()). */
-export function SearchableSelect({ id, options, value, required, disabled, invalid, placeholder, onChange }: {
+export interface ChoiceOption {
+    value: string;
+    label: string;
+    /** Its heading, when the options are grouped. */
+    group?: string | null;
+}
+
+/** Options by their group's heading ('' for those without one), in the order given. */
+export function groupOptions<T extends { group?: string | null }>(options: T[]): [string, T[]][] {
+    const groups = new Map<string, T[]>();
+    for (const option of options) {
+        const key = option.group ?? '';
+        groups.set(key, [...(groups.get(key) ?? []), option]);
+    }
+
+    return [...groups];
+}
+
+/**
+ * A choice from fixed options with a search box over them (Select::searchable()),
+ * under headings when they have groups. `extra` is an item after them all (Select::other()'s "Other…").
+ */
+export function SearchableSelect({ id, options, value, required, disabled, invalid, placeholder, onChange, extra }: {
     id: string;
-    options: { value: string; label: string }[];
+    options: ChoiceOption[];
     value: string | null;
     required: boolean;
     disabled: boolean;
     invalid: boolean;
     placeholder?: string;
     onChange: (value: string | null) => void;
+    extra?: ChoiceOption;
 }) {
     const [open, setOpen] = React.useState(false);
-    const current = options.find((option) => option.value === value);
+    const current = options.find((option) => option.value === value) ?? (extra && extra.value === value ? extra : undefined);
+    const item = (option: ChoiceOption) => (
+        <CommandItem key={option.value} value={`${option.label} ${option.value}`} onSelect={() => { onChange(option.value); setOpen(false); }}>
+            <Check className={cn(option.value === value ? 'opacity-100' : 'opacity-0')} />
+            <span className="truncate">{option.label}</span>
+        </CommandItem>
+    );
 
     return (
         <div className="flex items-center gap-2">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button id={id} type="button" variant="outline" role="combobox" aria-expanded={open} aria-invalid={invalid} disabled={disabled}
-                        className={cn('w-full justify-between font-normal', !current && 'text-muted-foreground')}>
-                        <span className="truncate">{current ? current.label : (placeholder ?? 'Choose…')}</span>
+                        className={cn('w-full min-w-0 shrink justify-between font-normal', !current && 'text-muted-foreground')}>
+                        <span className="truncate">{current ? current.label : (placeholder ?? t('Choose…'))}</span>
                         <ChevronsUpDown className="opacity-50" />
                     </Button>
                 </PopoverTrigger>
@@ -172,12 +200,10 @@ export function SearchableSelect({ id, options, value, required, disabled, inval
                         <CommandInput placeholder={t('Search…')} />
                         <CommandList>
                             <CommandEmpty>{t('Nothing found.')}</CommandEmpty>
-                            {options.map((option) => (
-                                <CommandItem key={option.value} value={`${option.label} ${option.value}`} onSelect={() => { onChange(option.value); setOpen(false); }}>
-                                    <Check className={cn(option.value === value ? 'opacity-100' : 'opacity-0')} />
-                                    <span className="truncate">{option.label}</span>
-                                </CommandItem>
-                            ))}
+                            {groupOptions(options).map(([group, items]) => group === ''
+                                ? <React.Fragment key="">{items.map(item)}</React.Fragment>
+                                : <CommandGroup key={group} heading={group}>{items.map(item)}</CommandGroup>)}
+                            {extra && <CommandGroup key="__extra">{item(extra)}</CommandGroup>}
                         </CommandList>
                     </Command>
                 </PopoverContent>

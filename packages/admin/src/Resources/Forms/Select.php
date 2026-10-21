@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Resources\Forms;
 
 use Closure;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Sunrice\Admin\Support\Say;
 
@@ -17,12 +18,21 @@ use Sunrice\Admin\Support\Say;
  * the listed values are accepted. ->searchable() adds a search box over
  * the options, for long lists.
  *
+ * Options may be grouped under headings: an array as a value is a group,
+ * ['Shops' => ['Store' => 'Store', 'Bakery' => 'Bakery'], …]. With
+ * ->other() the list ends with "Other…", which shows a text input for a
+ * value that isn't listed, checked by the rules given; a saved value
+ * that isn't an option shows there.
+ *
  * @api
  */
 final class Select extends Field
 {
-    /** @var array<string|int, string>|Closure(?Model): array<string|int, string> */
+    /** @var array<string|int, string|array<string|int, string>>|Closure(?Model): array<string|int, string|array<string|int, string>> */
     private array|Closure $options = [];
+
+    /** @var array{label: string, placeholder: string|null, rules: list<string|object>}|null */
+    private ?array $other = null;
 
     private bool $searchable = false;
 
@@ -35,10 +45,25 @@ final class Select extends Field
     /** In an action's dialog: the records it runs on aren't offered. */
     private bool $withoutTargets = false;
 
-    /** @param array<string|int, string>|Closure(?Model): array<string|int, string> $options value => label */
+    /** @param array<string|int, string|array<string|int, string>>|Closure(?Model): array<string|int, string|array<string|int, string>> $options value => label, or group => [value => label] */
     public function options(array|Closure $options): self
     {
         $this->options = $options;
+
+        return $this;
+    }
+
+    /**
+     * Ends the list with "Other…" (or `$label`), which shows a text input
+     * for any value besides the options, accepted when it passes `$rules`:
+     * ->other('Other…', ['regex:/^[A-Z][A-Za-z]+$/'], 'Brewery'). The value
+     * kept is what's typed.
+     *
+     * @param  list<string|object>  $rules
+     */
+    public function other(string $label = 'Other…', array $rules = [], ?string $placeholder = null): self
+    {
+        $this->other = ['label' => $label, 'placeholder' => $placeholder, 'rules' => $rules];
 
         return $this;
     }
@@ -95,21 +120,62 @@ final class Select extends Field
 
     protected function typeRules(): array
     {
-        return [Rule::in(array_map('strval', array_keys($this->resolve())))];
+        $values = array_map('strval', array_keys($this->flat()));
+        if ($this->other === null) {
+            return [Rule::in($values)];
+        }
+        $rules = $this->other['rules'];
+
+        // A listed value, or another that passes the "Other…" rules.
+        return ['string', function (string $attribute, mixed $value, Closure $fail) use ($values, $rules): void {
+            if (in_array((string) (is_scalar($value) ? $value : ''), $values, true)) {
+                return;
+            }
+            $validator = Validator::make([$attribute => $value], [$attribute => $rules], [], [$attribute => Say::it($this->label)]);
+            if ($validator->fails()) {
+                $fail((string) $validator->errors()->first($attribute));
+            }
+        }];
     }
 
     protected function props(): array
     {
-        return ['options' => array_map(
-            fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => $this->verbatim ? $label : Say::it($label)],
-            array_keys($options = $this->resolve()),
-            array_values($options),
-        )] + ($this->searchable ? ['searchable' => true] : []) + ($this->withoutTargets ? ['withoutTargets' => true] : []);
+        $options = [];
+        foreach ($this->resolve() as $value => $label) {
+            if (is_array($label)) {
+                $group = $this->verbatim ? (string) $value : Say::it((string) $value);
+                foreach ($label as $inner => $text) {
+                    $options[] = ['value' => (string) $inner, 'label' => $this->verbatim ? $text : Say::it($text), 'group' => $group];
+                }
+            } else {
+                $options[] = ['value' => (string) $value, 'label' => $this->verbatim ? $label : Say::it($label)];
+            }
+        }
+
+        return ['options' => $options]
+            + ($this->searchable ? ['searchable' => true] : [])
+            + ($this->withoutTargets ? ['withoutTargets' => true] : [])
+            + ($this->other !== null ? ['other' => ['label' => Say::it($this->other['label']), 'placeholder' => Say::it($this->other['placeholder'])]] : []);
     }
 
-    /** @return array<string|int, string> */
+    /** @return array<string|int, string|array<string|int, string>> */
     private function resolve(): array
     {
         return $this->options instanceof Closure ? ($this->options)($this->record?->exists === true ? $this->record : null) : $this->options;
+    }
+
+    /** @return array<string|int, string> the options without their groups */
+    private function flat(): array
+    {
+        $flat = [];
+        foreach ($this->resolve() as $value => $label) {
+            if (is_array($label)) {
+                $flat += $label;
+            } else {
+                $flat[$value] = $label;
+            }
+        }
+
+        return $flat;
     }
 }
