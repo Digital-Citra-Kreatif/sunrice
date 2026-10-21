@@ -202,7 +202,7 @@ it('exports links to entries by collection and slug, those in the trash included
     $team = Entry::query()->whereHas('translations', fn ($q) => $q->where('draft_slug', 'team'))->first();
     $team->delete(); // in the trash
     $menu = Menu::query()->where('handle', 'main')->first();
-    $menu->items()->create(['url' => null, 'labels' => [], 'sort_order' => 9]); // its entry deleted for good
+    $menu->items()->create(['url' => null, 'labels' => [], 'sort_order' => 9]); // its entry permanently deleted
 
     expect(importedMenu())->toBe(['pages/about', '-pages/team', 'posts', 'topics/news', 'https://example.com']);
 });

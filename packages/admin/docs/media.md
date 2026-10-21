@@ -4,14 +4,14 @@ The panel has one media library, shared by your app and every plugin: files on a
 
 ## The Media page
 
-**Media** in the sidebar: folders, a grid of files (thumbnails for images), search across every folder, a filter by type, and the trash. Drop files anywhere on the page (or use Upload) to add them to the folder you're in; each file uploads on its own, with its progress and any error. Click a file for its preview and details: title, alternative text, caption (and both in each of the content's other languages, when a plugin gives them: see below), copy its link, or replace its file (the link stays the same). The path above the files (All media › Photos › …) shows where you are. Drag files onto a folder, or onto a step of the path, to move them there (dragging a selected file moves every selected one), or select them and use **Move**; select files to put them in the trash too; in the trash, restore them or delete them for good. Deleting a folder moves what's in it up a level, so nothing is lost.
+**Media** in the sidebar: folders, a grid of files (thumbnails for images), search across every folder, a filter by type, and the trash. Drop files anywhere on the page (or use Upload) to add them to the folder you're in; each file uploads on its own, with its progress and any error. Click a file for its preview and details: title, alternative text, caption (and both in each of the content's other languages, when a plugin gives them: see below), copy its link, or replace its file (the link stays the same). The path above the files (All media › Photos › …) shows where you are. Drag files onto a folder, or onto a step of the path, to move them there (dragging a selected file moves every selected one), or select them and use **Move**; select files to put them in the trash too; in the trash, restore them or delete them permanently. Deleting a folder moves what's in it up a level, so nothing is lost.
 
 | Permission | Allows |
 | --- | --- |
 | `sunrice.media.view` | Seeing the library |
 | `sunrice.media.upload` | Uploading |
 | `sunrice.media.update` | Editing details, replacing files, folders and moving |
-| `sunrice.media.delete` | The trash: moving to it, restoring, deleting for good |
+| `sunrice.media.delete` | The trash: moving to it, restoring, permanently deleting |
 
 When the media disk is a local disk served through a link in `filesystems.links` that doesn't exist (`php artisan storage:link` wasn't run), the page tells those who may upload, since files' links lead nowhere until it is.
 
@@ -19,7 +19,7 @@ Turn the page off with `$panel->mediaLibrary(false)`; the library still works fr
 
 ## Where files are used
 
-A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets, and the panel reports what a settings section's media pickers hold whenever it's saved, changed or not (Branding's logo, browser icon and sign-in image; Settings → Site's share image and logo; your own sections' pickers; `php artisan migrate` recorded those of sections saved before). Moving a file in use to the trash asks first; deleting it for good asks too, and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
+A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets, and the panel reports what a settings section's media pickers hold whenever it's saved, changed or not (Branding's logo, browser icon and sign-in image; Settings → Site's share image and logo; your own sections' pickers; `php artisan migrate` recorded those of sections saved before). Moving a file in use to the trash asks first; deleting it permanently asks too, and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
 
 Report your own items' files when they're saved, and forget them when they're deleted (a type starting with your plugin's id, its id, the files, a label and a link):
 

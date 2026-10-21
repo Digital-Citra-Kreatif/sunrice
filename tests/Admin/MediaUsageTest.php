@@ -66,7 +66,7 @@ it('asks before deleting a file in use, and shows where', function () {
     actingAs(adminUser(Panel::ACCESS, 'sunrice.media.view', 'sunrice.media.delete'));
     getJson("/admin/media/{$file->id}/usages")->assertJson(['usages' => [['label' => 'Product: Kettle']]]);
     delete("/admin/media/{$file->id}/force")->assertSessionHasErrors('media');
-    post('/admin/media/bulk', ['action' => 'delete', 'ids' => [$file->id]])->assertSessionHas('success', '0 files deleted for good. 1 in use was kept: open it to see where, and delete it from there.');
+    post('/admin/media/bulk', ['action' => 'delete', 'ids' => [$file->id]])->assertSessionHas('success', '0 files permanently deleted. 1 in use was kept: open it to see where, and delete it from there.');
     expect(Media::withTrashed()->find($file->id))->not->toBeNull();
 
     delete("/admin/media/{$file->id}/force", ['force' => true])->assertSessionHasNoErrors();

@@ -89,7 +89,7 @@ it('saves the parent and template from the editor, and renders the entry\'s own 
     expect(Content::entries('pages')->childrenOf($about)->get()->pluck('title')->all())->toBe(['Team']);
 });
 
-it('moves children up when their parent is deleted for good', function () {
+it('moves children up when their parent is permanently deleted', function () {
     [$about, $team] = [structurePage('About'), structurePage('Team')];
     app(SaveEntrySettings::class)->handle($team, ['parent_id' => $about->id]);
     $about->delete();

@@ -171,7 +171,7 @@ it('edits taxonomies and their terms in the admin', function () {
         // Settings only for those who may change the taxonomy.
         ->where('taxonomy.settings', null));
 
-    // To the trash with the term under it, back, and deleted for good (its child moves up).
+    // To the trash with the term under it, back, and permanently deleted (its child moves up).
     delete("/admin/cms/terms/{$news->id}")->assertSessionHasNoErrors();
     expect(Term::query()->count())->toBe(0)->and(Term::onlyTrashed()->count())->toBe(2);
     post("/admin/cms/terms/{$news->id}/restore")->assertSessionHasNoErrors();

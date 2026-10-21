@@ -64,7 +64,7 @@ final class Select extends Field
 
     /**
      * In an action's dialog, leaves out the options whose value is the key
-     * of a record the action runs on (a Delete dialog's "Give it to"). The
+     * of a record the action runs on (a Delete dialog's "Transfer to"). The
      * handler still gets to refuse one, for input sent by hand.
      */
     public function withoutTargets(bool $without = true): self

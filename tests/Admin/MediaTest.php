@@ -208,7 +208,7 @@ it('replaces a file in place, bumping the version and remaking its sizes', funct
     expect(Storage::disk('public')->allFiles())->toEqualCanonicalizing($media->files());
 });
 
-it('trashes, and deletes for good with its files', function () {
+it('trashes, and permanently deletes with its files', function () {
     $media = upload(UploadedFile::fake()->image('photo.jpg', 600, 600));
     $files = $media->files();
 

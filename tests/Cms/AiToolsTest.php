@@ -274,7 +274,7 @@ it('deletes form submissions with their permission', function () {
         ->and(Activity::query()->where('subject_type', 'submissions')->where('action', 'deleted')->sole()->source)->toBe('ai');
 });
 
-it('deletes for good, duplicates and sets the homepage', function () {
+it('permanently deletes, duplicates and sets the homepage', function () {
     $token = cmsAgent(['cms.entries.view', 'cms.entries.create', 'cms.entries.delete']);
     $id = $this->hello->entry_id;
 

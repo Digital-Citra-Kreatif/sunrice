@@ -237,7 +237,7 @@ final class MediaController
         $this->authorize($request, 'delete');
         $delete->handle(Media::onlyTrashed()->findOrFail($media), $request->boolean('force'));
 
-        return back()->with('success', 'Deleted for good.');
+        return back()->with('success', 'Permanently deleted.');
     }
 
     /** Where a file is used (MediaUsages), for its details. */
@@ -273,9 +273,9 @@ final class MediaController
         };
         $kept = $action === 'delete' ? Media::onlyTrashed()->whereKey($ids)->count() : 0;
         $done = $count === 1
-            ? ['move' => __('1 file moved.'), 'trash' => __('1 file moved to the trash.'), 'restore' => __('1 file restored.'), 'delete' => __('1 file deleted for good.')][$action]
+            ? ['move' => __('1 file moved.'), 'trash' => __('1 file moved to the trash.'), 'restore' => __('1 file restored.'), 'delete' => __('1 file permanently deleted.')][$action]
             : ['move' => __(':count files moved.', ['count' => $count]), 'trash' => __(':count files moved to the trash.', ['count' => $count]),
-                'restore' => __(':count files restored.', ['count' => $count]), 'delete' => __(':count files deleted for good.', ['count' => $count])][$action];
+                'restore' => __(':count files restored.', ['count' => $count]), 'delete' => __(':count files permanently deleted.', ['count' => $count])][$action];
         $keptNote = match (true) {
             $kept === 0 => '',
             $kept === 1 => ' '.__('1 in use was kept: open it to see where, and delete it from there.'),

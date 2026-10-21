@@ -93,7 +93,7 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
     const pruneLog = () => {
         const days: FieldInfo = {
             kind: 'field', type: 'number', name: 'days', label: t('Keep the last … days'), required: true, disabled: false,
-            help: t('Older lines are deleted for good. Pruning is itself recorded, and alerts are sent.'), placeholder: null, span: 1,
+            help: t('Older lines are permanently deleted. Pruning is itself recorded, and alerts are sent.'), placeholder: null, span: 1,
             default: prune?.keepDays ?? 365, min: 1,
         };
         confirm(t('Delete old activity log lines?'), (values) => new Promise<boolean>((resolve) => router.post(`${base}/prune`, { days: values.days }, {
@@ -211,7 +211,7 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
             {rows.total > (perPageOptions[0] ?? 25) && (
                 <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-muted-foreground">
                     <Select value={String(query.perPage)} onValueChange={(value) => visit({ perPage: Number(value) })}>
-                        <SelectTrigger aria-label={t('Lines per page')} className="h-8 w-auto"><SelectValue /></SelectTrigger>
+                        <SelectTrigger aria-label={t('Rows per page')} className="h-8 w-auto"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             {perPageOptions.map((n) => <SelectItem key={n} value={String(n)}>{t(':count per page', { count: n })}</SelectItem>)}
                         </SelectContent>

@@ -99,7 +99,7 @@ When something may be a break-in, the panel emails super admins, users with the 
 | The activity log was pruned | `log pruned` |
 | Someone keeps opening pages they may not see | `forbidden` (15) panel pages refused (`page refused`) to one signed-in account within 10 minutes. |
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
-| Many things deleted in a short time | `mass_deletes` (20) deletes, trashes, unpublishes or purges (deleted content removed for good, `purged`) by one person or AI agent within 10 minutes (`SecurityAlerts::DESTRUCTIVE_ACTIONS`). |
+| Many things deleted in a short time | `mass_deletes` (20) deletes, trashes, unpublishes or purges (deleted content permanently removed, `purged`) by one person or AI agent within 10 minutes (`SecurityAlerts::DESTRUCTIVE_ACTIONS`). |
 
 **Privileged permissions** are the panel's `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.*` (connecting agents, letting them read the error log and run commands) and `sunrice.activity.*`, plus what plugins register with `$panel->privilegedPermissions()` (the CMS: `cms.settings.code` and creating, editing and deleting blueprints and fieldsets); `Panel::isPrivilegedPermission()` tells.
 

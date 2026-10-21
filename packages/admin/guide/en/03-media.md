@@ -7,7 +7,7 @@
 - **Folders** are shown above the files. Click a folder to open it; the breadcrumb above returns to **Media (top level)** or a parent folder.
 - **Search media** looks through every folder (*Search everywhere…*), by title and file name.
 - The type filter shows only **Images**, **Videos**, **Audio** or **Documents** (or **All types**).
-- **Trash** shows files moved to the trash; **Leave the trash** returns to the library.
+- **Trash** shows files moved to the trash; **Back to the list** returns to the library.
 
 ## Uploading
 
@@ -41,7 +41,7 @@ Click **Save** after changing the title, caption or alternative text.
 
 **Move to trash** takes a file out of the library without deleting it. If the file is used somewhere, the panel asks first and names where: pages using it would show a broken image.
 
-In the **Trash**, **Restore** brings a file back as it was, and **Delete for good** removes it permanently. Deleting several files for good keeps the ones that are still in use; open each to see where it's used.
+In the **Trash**, **Restore** brings a file back as it was, and **Permanently delete** removes it; this can't be undone. Deleting several files permanently keeps the ones that are still in use; open each to see where it's used.
 
 ## Who may do what
 

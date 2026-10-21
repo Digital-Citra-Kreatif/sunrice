@@ -169,7 +169,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 </Select>
                 {can.delete && (
                     <Button variant={query.trash ? 'secondary' : 'ghost'} onClick={() => visit({ trash: !query.trash, folder: null })}>
-                        <Trash2 />{query.trash ? t('Leave the trash') : t('Trash')}
+                        <Trash2 />{query.trash ? t('Back to the list') : t('Trash')}
                     </Button>
                 )}
             </div>
@@ -227,7 +227,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                     {query.trash ? (
                         <>
                             <Button size="sm" variant="outline" onClick={() => bulk('restore')}><RotateCcw />{t('Restore')}</Button>
-                            <Button size="sm" variant="destructive" onClick={() => confirm(selected.length === 1 ? t('Delete 1 file for good?') : t('Delete :count files for good?', { count: selected.length }), () => bulk('delete'), true)}><Trash2 />{t('Delete for good')}</Button>
+                            <Button size="sm" variant="destructive" onClick={() => confirm(selected.length === 1 ? t('Permanently delete 1 file?') : t('Permanently delete :count files?', { count: selected.length }), () => bulk('delete'), true)}><Trash2 />{t('Permanently delete')}</Button>
                         </>
                     ) : (
                         <>

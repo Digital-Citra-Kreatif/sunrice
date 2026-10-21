@@ -7,7 +7,7 @@
 - **Folder** tampil di atas daftar berkas. Klik folder untuk membukanya; jejak di atasnya kembali ke **Media (tingkat teratas)** atau folder induk.
 - **Cari media** mencari di semua folder (*Cari di mana saja…*), berdasarkan judul dan nama berkas.
 - Filter jenis menampilkan hanya **Gambar**, **Video**, **Audio**, atau **Dokumen**, atau **Semua jenis**.
-- **Tempat sampah** menampilkan berkas di tempat sampah; **Keluar dari tempat sampah** kembali ke pustaka.
+- **Tempat sampah** menampilkan berkas di tempat sampah; **Kembali ke daftar** kembali ke pustaka.
 
 ## Mengunggah
 
@@ -41,7 +41,7 @@ Klik **Simpan** setelah mengubah judul, keterangan, atau teks alternatif.
 
 **Pindahkan ke tempat sampah** mengeluarkan berkas dari pustaka tanpa menghapusnya. Jika berkas sedang dipakai, panel bertanya dulu dan menyebutkan di mana: halaman yang memakainya akan menampilkan gambar rusak.
 
-Di **Tempat sampah**, **Pulihkan** mengembalikan berkas seperti semula, dan **Hapus permanen** menghapusnya selamanya. Menghapus beberapa berkas sekaligus melewati berkas yang masih dipakai; buka masing-masing untuk melihat di mana dipakainya.
+Di **Tempat sampah**, **Pulihkan** mengembalikan berkas seperti semula, dan **Hapus permanen** menghapusnya; ini tidak dapat dibatalkan. Menghapus beberapa berkas sekaligus melewati berkas yang masih dipakai; buka masing-masing untuk melihat di mana dipakainya.
 
 ## Siapa boleh apa
 

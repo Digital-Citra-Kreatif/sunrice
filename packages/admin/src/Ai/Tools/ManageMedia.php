@@ -20,7 +20,7 @@ use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaFolder;
 use Sunrice\Admin\Media\MediaUsages;
 
-#[Description('Organise the media library. "folders": every folder (id, name, depth). "create_folder" (name, parent_id), "rename_folder" (folder_id, name), "delete_folder" (folder_id; what is in it moves up). "move": files ("ids") into a folder ("folder_id", none for the top level). "trash" / "restore" a file ("id"). "usages": where a file is used. "delete": delete a trashed file for good; refused while content uses it unless "force": true. Ask the user before deleting.')]
+#[Description('Organise the media library. "folders": every folder (id, name, depth). "create_folder" (name, parent_id), "rename_folder" (folder_id, name), "delete_folder" (folder_id; what is in it moves up). "move": files ("ids") into a folder ("folder_id", none for the top level). "trash" / "restore" a file ("id"). "usages": where a file is used. "delete": delete a trashed file permanently; refused while content uses it unless "force": true. Ask the user before deleting.')]
 final class ManageMedia extends Tool
 {
     protected string $name = 'manage_media';
@@ -100,7 +100,7 @@ final class ManageMedia extends Tool
                 return $this->json(['restored' => true, ...self::describe($media)]);
             default:
                 if (! $media->trashed()) {
-                    return Response::error('Trash the file first ("trash"); only files in the trash can be deleted for good.');
+                    return Response::error('Trash the file first ("trash"); only files in the trash can be permanently deleted.');
                 }
                 // Refused while in use (ValidationException, naming where), unless forced.
                 app(DeleteMedia::class)->handle($media, ($args['force'] ?? false) === true);

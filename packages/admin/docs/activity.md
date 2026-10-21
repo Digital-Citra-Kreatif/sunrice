@@ -33,4 +33,4 @@ The subject type is a short name (`order`); use a resource's key (`products`) to
 
 Lines older than `activity.keep_days` (365 by default, `null` for forever) in `config/sunrice-admin.php` are deleted daily by `sunrice:activity-prune`, scheduled by the panel (your app needs Laravel's scheduler running). `activity.enabled => false` stops recording.
 
-Users with `sunrice.activity.prune` also get **Prune…** on the activity log page: it asks how many days to keep (the configured `keep_days` is suggested) and deletes older lines for good, as the command does. Pruning from the panel is a `log pruned` [security event](security.md) and sends an alert, since deleting the log can cover someone's tracks; the daily command records nothing.
+Users with `sunrice.activity.prune` also get **Prune…** on the activity log page: it asks how many days to keep (the configured `keep_days` is suggested) and deletes older lines permanently, as the command does. Pruning from the panel is a `log pruned` [security event](security.md) and sends an alert, since deleting the log can cover someone's tracks; the daily command records nothing.

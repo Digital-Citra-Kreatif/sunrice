@@ -149,7 +149,7 @@ it('lists where a term is used on its page and in the list', function () {
     get(route('sunrice.admin.cms.taxonomies.terms.index', 'topics'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('terms.0.usedBy', ['Pages: Home (EN)']));
 });
 
-it('refuses to delete a referenced entry for good unless forced', function () {
+it('refuses to delete a referenced entry permanently unless forced', function () {
     $home = refPage($this->pages, 'Home', ['related' => [$this->about->id]]);
     app(TrashEntry::class)->handle($this->about);
 
@@ -174,7 +174,7 @@ it('lets an entry that only points at itself go', function () {
     expect(ContentReference::query()->count())->toBe(0);
 });
 
-it('refuses to delete a referenced term for good unless forced', function () {
+it('refuses to delete a referenced term permanently unless forced', function () {
     refPage($this->pages, 'Home', ['topics' => [$this->news->id]]);
     app(TrashTerm::class)->handle($this->news);
 

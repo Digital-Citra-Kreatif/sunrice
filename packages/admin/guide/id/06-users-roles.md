@@ -38,7 +38,7 @@ Setiap tindakan ini dicatat sebagai kejadian keamanan di [log aktivitas](guide:p
 
 **Hapus…** (di menu baris, tombol tempat sampah di halamannya, atau untuk beberapa pengguna yang dicentang sekaligus) menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
 
-- **Berikan ke pengguna lain**: diberikan kepada pengguna lain, dipilih di **Berikan ke** (pengguna yang sedang dihapus tidak ditawarkan).
+- **Alihkan ke pengguna lain**: dialihkan kepada pengguna lain, dipilih di **Alihkan ke** (pengguna yang sedang dihapus tidak ditawarkan).
 - **Simpan, tanpa pemilik**: tetap ada tanpa pemilik (pilihan bawaan).
 - **Hapus**: entri dan komentar masuk tempat sampah; unggahan tetap ada, karena mungkin dipakai halaman lain.
 

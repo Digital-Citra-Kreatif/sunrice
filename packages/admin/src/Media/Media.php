@@ -23,8 +23,8 @@ use Illuminate\Support\Facades\Storage;
  *     $media->srcset();          // "…-medium.jpg?v=1 800w, …-large.jpg?v=1 1600w, ….jpg?v=1 2400w"
  *
  * URLs carry the version, so browsers fetch a replaced file again.
- * Deleting moves a file to the trash (soft delete); DeleteMedia removes
- * it and its files for good.
+ * Deleting moves a file to the trash (soft delete); DeleteMedia permanently
+ * removes it and its files.
  *
  * @property int $id
  * @property int|null $folder_id

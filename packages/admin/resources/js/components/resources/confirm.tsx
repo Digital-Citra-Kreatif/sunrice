@@ -23,7 +23,7 @@ interface Pending {
 /**
  * An action's dialog fields for the records it runs on: a select with
  * `withoutTargets` (Select::withoutTargets()) leaves out their keys, so a
- * Delete dialog doesn't offer the users being deleted as "Give it to".
+ * Delete dialog doesn't offer the users being deleted as "Transfer to".
  */
 export function forTargets(fields: FieldInfo[], keys: (string | number)[]): FieldInfo[] {
     const targets = keys.map(String);

@@ -15,7 +15,7 @@ Each line shows **When**, **Who**, **What** (the action and the item) and **Deta
 - Filter by **Source**, by **Who** did it, by kind of item, by **Action** (*published*, *deleted*, *logged in*…) or by dates.
 - Click a person's name to see only their activity.
 - Click the history icon on a line to see the whole history of that one item.
-- **Lines per page** shows 25, 50, 100 or 200 lines.
+- **Rows per page** shows 25, 50, 100 or 200 lines.
 
 The filters stay in the page's address, so you can bookmark a search or send it to a colleague.
 
