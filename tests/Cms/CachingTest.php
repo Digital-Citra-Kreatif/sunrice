@@ -20,6 +20,7 @@ use Sunrice\Cms\Actions\Entries\RestoreEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\TrashEntry;
 use Sunrice\Cms\Actions\Entries\UnpublishEntry;
+use Sunrice\Cms\Actions\Globals\SaveGlobals;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
@@ -35,7 +36,9 @@ use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Comment;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Form;
+use Sunrice\Cms\Models\GlobalSet;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Settings\SiteSettings;
@@ -381,4 +384,29 @@ it('refuses to keep pages without the CSRF token replacer', function () {
     config(['sunrice-cms.cache.pages' => true, 'responsecache.replacers' => []]);
 
     expect(fn () => app()->register(CmsServiceProvider::class, force: true))->toThrow(PanelMisconfigured::class, 'CsrfTokenReplacer');
+});
+
+it('reads global sets, fieldsets and forms from the site cache until they change', function () {
+    Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'phone', 'type' => 'text'], ['handle' => 'more', 'type' => 'fieldset', 'config' => ['fieldset' => 'extra']]]]);
+    Blueprint::query()->create(['handle' => 'newsletter', 'title' => 'Newsletter', 'fields' => [['handle' => 'email', 'type' => 'text']]]);
+    Fieldset::query()->create(['handle' => 'extra', 'title' => 'Extra', 'fields' => [['handle' => 'fax', 'type' => 'text']]]);
+    $contact = GlobalSet::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
+    app(SaveGlobals::class)->handle($contact, ['phone' => '+62 1', 'fax' => '+62 2']);
+    Form::query()->create(['handle' => 'newsletter', 'title' => 'Newsletter', 'blueprint' => 'newsletter']);
+    $views = sys_get_temp_dir().'/sunrice-globals-'.uniqid();
+    mkdir("{$views}/cms", recursive: true);
+    file_put_contents("{$views}/cms/blog.blade.php", '{{ $title }}|{{ Cms::global("contact")["phone"] }}|{{ Cms::global("contact")["fax"] }}|<x-sunrice-cms::form handle="newsletter" />');
+    View::addLocation($views);
+    cachedPost('Hello');
+
+    get('/blog/hello')->assertOk()->assertSee('+62 1|+62 2|', false)->assertSee('name="data[email]"', false);
+    app()->forgetScopedInstances();
+    [$response, $warm] = withQueries(fn () => get('/blog/hello'));
+    $response->assertSee('+62 1|+62 2|', false)->assertSee('name="data[email]"', false);
+    expect($warm)->toBeLessThanOrEqual(5); // as a page without them
+
+    // A change shows at once.
+    app(SaveGlobals::class)->handle($contact->fresh(), ['phone' => '+62 9', 'fax' => '+62 2']);
+    app()->forgetScopedInstances();
+    get('/blog/hello')->assertSee('+62 9|', false);
 });
