@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Settings → Security refuses to turn on two-factor login while the mailer doesn't deliver (`log`/`array`, `MailSettings::info()['delivers']`), which locked everyone out; `sunrice:two-factor on` warns. (SEC-6)
 - Inertia DevTools are off unless the app turns them on (`inertia.devtools.enabled`, `INERTIA_DEVTOOLS_ENABLED=true`): in `local` they served every recorded page's props at `/_inertia/devtools` to anyone. `cms_render_page` refuses developer tools' paths (`/_…`, `/telescope`, `/horizon`, `/pulse`). (SEC-4)
 - `cms_render_page` renders on `APP_URL` (links and canonical URLs were `http://localhost/…`) and its `error` is the message a template threw without file paths, and none for answers such as 404 (was `" in vendor/laravel/…:1445"`). (AI-1)
 - Translators (`cms.entries.translate` only) can no longer change what every language shares by sending a `locale`: an entry's Page settings (`parent_id`, `comments_closed`, as `template` and `blueprint` already were) and moving it up or down need `cms.entries.update` (or `update-own` for one's own), and the editor no longer shows them Page settings. (SEC-3)

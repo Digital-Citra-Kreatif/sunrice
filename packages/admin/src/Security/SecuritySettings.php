@@ -12,6 +12,7 @@ use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Section;
 use Sunrice\Admin\Resources\Forms\Textarea;
 use Sunrice\Admin\Resources\Forms\Toggle;
+use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\Settings;
 
 /**
@@ -41,6 +42,12 @@ final class SecuritySettings extends Settings
         return $form->schema([
             Section::make('Signing in')->schema([
                 Toggle::make('twoFactor')->label('Two-factor login')
+                    ->rules([function (string $attribute, mixed $value, \Closure $fail): void {
+                        // Turning it on while mail only goes to the log would lock everyone out.
+                        if (filter_var($value, FILTER_VALIDATE_BOOLEAN) && ! app(self::class)->twoFactor && ! MailSettings::info()['delivers']) {
+                            $fail('The app can\'t send email yet (the '.MailSettings::info()['transport'].' mailer only writes to the log), so nobody would get their login code. Set up mail first: see Settings → Mail.');
+                        }
+                    }])
                     ->help('After the password, everyone also types a 6-digit code we email them. Make sure the app can send email first: without it, nobody can log in (php artisan sunrice:two-factor off turns it off again).'),
             ]),
             Section::make('Security alerts')->schema([
