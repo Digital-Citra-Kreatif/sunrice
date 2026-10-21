@@ -40,6 +40,6 @@ it('gives the gallery lightbox the alt text in the page\'s language', function (
     app(PublishEntry::class)->handle($property);
 
     // The lightbox's items are JSON in an attribute.
-    expect($this->get('/id/properties/villa-samudra')->assertOk()->getContent())->toContain('&quot;alt&quot;:&quot;Kolam renang saat senja&quot;')
+    expect($this->get('/id/properties/vila-samudra')->assertOk()->getContent())->toContain('&quot;alt&quot;:&quot;Kolam renang saat senja&quot;')
         ->and($this->get('/properties/villa-samudra')->getContent())->toContain('&quot;alt&quot;:&quot;The infinity pool at dusk&quot;');
 });
