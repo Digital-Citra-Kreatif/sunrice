@@ -32,13 +32,15 @@ interface Props {
     upload: { maxKb: number; accept: string };
     /** The public disk's storage link is missing (php artisan storage:link). */
     storageLinkMissing?: boolean;
+    /** The content's other languages (Panel::contentLocales()): alt text and captions in each. */
+    locales?: { code: string; name: string }[];
 }
 
 const ALL = '__all';
 const TOP = '__top';
 const TYPES = [{ value: 'image', label: 'Images' }, { value: 'video', label: 'Videos' }, { value: 'audio', label: 'Audio' }, { value: 'document', label: 'Documents' }];
 
-export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false }: Props) {
+export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false, locales = [] }: Props) {
     const base = adminUrl('media');
     useBreadcrumbs(path.length === 0 ? [{ label: 'Media' }] : [{ label: 'Media', href: base }, ...path.map((f, i) => (i === path.length - 1 ? { label: f.name } : { label: f.name, href: `${base}?folder=${f.id}` }))]);
     const [confirm, confirmDialog] = useConfirm();
@@ -242,7 +244,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 </div>
             )}
 
-            <MediaDetails item={open} can={can} accept={upload.accept} onClose={() => setOpenId(null)} />
+            <MediaDetails item={open} can={can} accept={upload.accept} locales={locales} onClose={() => setOpenId(null)} />
             <FolderDialog state={folderDialog} parentId={folder?.id ?? null} onClose={() => setFolderDialog(null)} />
             <MoveDialog open={moving} tree={tree} onClose={() => setMoving(false)} onMove={(folderId) => { bulk('move', { folder_id: folderId }); setMoving(false); }} />
         </div>

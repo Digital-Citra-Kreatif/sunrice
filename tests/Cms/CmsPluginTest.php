@@ -84,3 +84,10 @@ it('reassigns, keeps or trashes a deleted user\'s entries and comments', functio
         ->and($one->fresh()->trashed())->toBeFalse()
         ->and(Comment::query()->where('entry_id', $three->id)->sole())->user_id->toBeNull()->author_name->toBe('Rina');
 });
+
+it('gives the panel its content languages, for media alt text in each', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+
+    expect(array_keys(app(Panel::class)->getContentLocales()))->toBe(['en', 'id']);
+});

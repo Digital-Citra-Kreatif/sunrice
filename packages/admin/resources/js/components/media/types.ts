@@ -6,6 +6,8 @@ export interface MediaItem {
     filename: string;
     alt: string | null;
     caption: string | null;
+    /** Alt text and caption in the content's other languages, by language code. */
+    translations?: Record<string, { alt?: string; caption?: string }>;
     mimeType: string;
     size: number;
     width: number | null;

@@ -4,7 +4,7 @@ The panel has one media library, shared by your app and every plugin: files on a
 
 ## The Media page
 
-**Media** in the sidebar: folders, a grid of files (thumbnails for images), search across every folder, a filter by type, and the trash. Drop files anywhere on the page (or use Upload) to add them to the folder you're in; each file uploads on its own, with its progress and any error. Click a file for its preview and details: title, alternative text, caption, copy its link, or replace its file (the link stays the same). Select files to move them to another folder or to the trash; in the trash, restore them or delete them for good. Deleting a folder moves what's in it up a level, so nothing is lost.
+**Media** in the sidebar: folders, a grid of files (thumbnails for images), search across every folder, a filter by type, and the trash. Drop files anywhere on the page (or use Upload) to add them to the folder you're in; each file uploads on its own, with its progress and any error. Click a file for its preview and details: title, alternative text, caption (and both in each of the content's other languages, when a plugin gives them: see below), copy its link, or replace its file (the link stays the same). Select files to move them to another folder or to the trash; in the trash, restore them or delete them for good. Deleting a folder moves what's in it up a level, so nothing is lost.
 
 | Permission | Allows |
 | --- | --- |
@@ -82,6 +82,7 @@ $media->delete();                                      // to the trash (soft del
 app(DeleteMedia::class)->handle($media);               // gone, with its files
 
 app(UpdateMedia::class)->handle($media, ['alt' => 'The shop front', 'caption' => null]);
+app(UpdateMedia::class)->handle($media, ['translations' => ['id' => ['alt' => 'Bagian depan toko']]]);
 $folder = app(SaveMediaFolder::class)->handle('Products');          // or (name, parent), or rename: (name, folder: $folder)
 app(MoveMedia::class)->handle([$media], $folder);                    // null: the top level
 app(DeleteMediaFolder::class)->handle($folder);                      // its contents move up
@@ -92,8 +93,10 @@ URLs end in `?v=<version>`, so a replaced file is fetched again rather than serv
 `srcset()` gives the value of an `<img srcset>`: each size's URL with its width, worked out from the size's settings and the original's dimensions, and the original's. Without names it uses the sizes that keep the picture's proportions (`fit`, not `crop`); sizes as wide as the original, or as one already listed, are left out, and files that can't have sizes (SVGs, documents) give `''`:
 
 ```blade
-<img src="{{ $media->url('medium') }}" srcset="{{ $media->srcset() }}" sizes="(min-width: 50rem) 50rem, 100vw" alt="{{ $media->alt }}">
+<img src="{{ $media->url('medium') }}" srcset="{{ $media->srcset() }}" sizes="(min-width: 50rem) 50rem, 100vw" alt="{{ $media->altIn() }}">
 ```
+
+**Alternative text and captions per language.** A plugin with content in several languages (the CMS) gives the panel its languages, main first: `$panel->contentLocales(fn (): array => ['en' => 'English', 'id' => 'Indonesian'])` (`@api`; `getContentLocales()` reads them). Each file then takes its alt text and caption in the others (`Media::$translations`, `{"id": {"alt": "…", "caption": "…"}}`, new migration `2026_01_01_000011_add_translations_to_sunrice_media`). `$media->altIn($locale)` and `captionIn($locale)` give them in a language (default: the app's locale, which the CMS sets to the page's), else the file's own: write `alt="{{ $media->altIn() }}"` in templates.
 
 ## Settings
 

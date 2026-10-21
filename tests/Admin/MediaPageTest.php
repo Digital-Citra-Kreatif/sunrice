@@ -170,3 +170,33 @@ it('warns uploaders when the public disk\'s storage link is missing', function (
     mediaUser('view', 'upload');
     get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('storageLinkMissing', false));
 });
+
+it('takes alt text and captions in the content\'s other languages, when a plugin gives them', function () {
+    $media = mediaFile();
+    mediaUser('view', 'update');
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('locales', []));
+    // Without content languages, translations are ignored.
+    put("/admin/media/{$media->id}", ['alt' => 'A sun', 'translations' => ['id' => ['alt' => 'Matahari']]])->assertSessionHas('success');
+    expect($media->fresh()?->translations)->toBeNull();
+});
+
+it('keeps alt text and captions per content language', function () {
+    $this->app->forgetInstance(Panel::class);
+    usePanel(fn (Panel $panel) => $panel->contentLocales(fn (): array => ['en' => 'English', 'id' => 'Indonesian']));
+    $media = mediaFile();
+    $media->update(['alt' => 'A sun']);
+    mediaUser('view', 'update');
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('locales', [['code' => 'id', 'name' => 'Indonesian']]));
+    put("/admin/media/{$media->id}", ['translations' => ['id' => ['alt' => ' Matahari ', 'caption' => ''], 'fr' => ['alt' => 'Soleil']]])->assertSessionHas('success');
+    $media = $media->fresh();
+    expect($media?->translations)->toBe(['id' => ['alt' => 'Matahari']])
+        ->and($media?->altIn('id'))->toBe('Matahari')
+        ->and($media?->altIn('en'))->toBe('A sun')
+        ->and($media?->captionIn('id'))->toBeNull();
+    app()->setLocale('id');
+    expect($media?->altIn())->toBe('Matahari');
+    app()->setLocale('en');
+    put("/admin/media/{$media?->id}", ['translations' => ['id' => ['alt' => '']]])->assertSessionHas('success');
+    expect($media?->fresh()?->translations)->toBeNull();
+    put("/admin/media/{$media?->id}", ['translations' => ['id' => ['alt' => str_repeat('x', 251)]]])->assertSessionHasErrors('translations.id.alt');
+});
