@@ -105,3 +105,23 @@ it('takes nodes from templates, prints them safely, and can be turned off', func
     app(SiteSettings::class)->fill(['structuredData' => false, 'publisher' => 'Person'])->save();
     expect(Blade::render('<x-sunrice-cms::seo title="Events" />'))->not->toContain('application/ld+json');
 });
+
+it('describes the publisher with its own name, type, contact details and profiles', function () {
+    \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    \Pest\Laravel\put('/admin/settings/site', ['structuredData' => true, 'publisher' => 'Organization', 'publisherType' => 'RealEstate Agent', 'sameAs' => 'not a url'])
+        ->assertSessionHasErrors(['publisherType', 'sameAs']);
+    \Pest\Laravel\put('/admin/settings/site', [
+        'structuredData' => true, 'appendName' => true, 'separator' => '|', 'publisher' => 'Organization',
+        'publisherName' => 'Lumina Estates PT', 'publisherType' => 'RealEstateAgent', 'telephone' => '+62 21 555 0100',
+        'address' => "Jl. Senopati 10\nJakarta 12190, Indonesia", 'sameAs' => "https://instagram.com/lumina\n\nhttps://www.linkedin.com/company/lumina",
+    ])->assertSessionHasNoErrors();
+    schemaPost($this->blog, 'Hello world');
+
+    expect(nodes(get('/blog/hello-world')->assertOk())['RealEstateAgent'])->toMatchArray([
+        '@id' => url('/').'#publisher',
+        'name' => 'Lumina Estates PT',
+        'telephone' => '+62 21 555 0100',
+        'address' => 'Jl. Senopati 10, Jakarta 12190, Indonesia',
+        'sameAs' => ['https://instagram.com/lumina', 'https://www.linkedin.com/company/lumina'],
+    ]);
+});

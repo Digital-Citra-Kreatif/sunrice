@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Settings → Site → Structured data describes the publisher fully: its own name (`SiteSettings::$publisherName`, else the site name), a more specific schema.org type (`$publisherType`: `LocalBusiness`, `RealEstateAgent` …), phone (`$telephone`), address (`$address`) and profiles elsewhere (`$sameAs`, one URL per line, `profiles()`).
 - Settings → Languages opens with the languages in use (from config) instead of an empty box, and its **Main language** card switches the main language from the panel (`POST admin/cms/languages/{locale}/main`, `sunrice.admin.cms.languages.main`, behind `cms.settings.locales`, through `SwitchMainLanguage`). Generally, an empty setting shows its form field's `->default()`.
 - Settings → Branding's Font says that every font but System loads from Bunny Fonts (`fonts.bunny.net`) and to choose System for intranets, offline servers or privacy; the branding docs explain the fallback and how to self-host through `sunrice-admin.font`.
 - Branding: a wide logo (a wordmark) shows at its own proportions instead of the name in the sidebar and on the sign-in page (`sunrice.branding.logoWide`; the collapsed sidebar shows the lettermark), and is no longer used as the browser icon: an uploaded SVG's width and height are read from its `viewBox` (`SafeSvg::dimensions()`), so a wide SVG isn't taken for a square one. The media field's preview shows SVGs whole instead of cropped.
