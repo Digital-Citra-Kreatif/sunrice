@@ -33,6 +33,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Unscheduling an entry that isn't live says "Unscheduled. It's a draft again." instead of "Taken off the site", and the "Scheduled for …" message uses the 24-hour clock, as the editor's header and date picker do.
 - **Used by** names each field by its label in the source's blueprint ("Author", "Blocks › Homes shown"), not its handle in words ("Author Agent"); `References::fieldLabel()` takes the source's schema.
 - The entries CSV reads like the editor: terms and linked entries by title (not ids), groups, repeater rows and flexible blocks as "Label: value" lines without `_id`, `_key` or `_hidden`, and rich text with a line per paragraph, heading and list item instead of running them together.
 - Review requests can be answered without publishing: **Send back…** (those who may publish; `SendBackReview`, `@api`) clears the request and emails the requester an optional note, and **Withdraw the request** (only the requester; `WithdrawReview`, `@api`) takes it back. Routes `sunrice.admin.cms.entries.review.send-back` (behind `publish`) and `sunrice.admin.cms.entries.review.withdraw` (behind `update`); the editor's `entry.review` prop gets `mine`. See [Collections](packages/cms/docs/collections.md).
