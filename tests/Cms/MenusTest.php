@@ -182,3 +182,25 @@ it('labels the menus resource apart from the menu editor in the sidebar', functi
     });
     expect(app(Panel::class)->getPermissions()['cms.menus.view']->label)->toBe('View Menus');
 });
+
+it('replaces a nested menu\'s links when saved again, without duplicating them', function () {
+    $tree = [
+        ['url' => '/properties', 'labels' => ['en' => 'Properties'], 'children' => [
+            ['url' => '/for-sale', 'labels' => ['en' => 'For sale']],
+            ['url' => '/for-rent', 'labels' => ['en' => 'For rent'], 'children' => [
+                ['url' => '/villas', 'labels' => ['en' => 'Villas']],
+            ]],
+        ]],
+        ['url' => '/team', 'labels' => ['en' => 'Team']],
+        ['url' => '/about', 'labels' => ['en' => 'About'], 'children' => [
+            ['url' => '/story', 'labels' => ['en' => 'Our story']],
+        ]],
+        ['url' => '/contact', 'labels' => ['en' => 'Contact']],
+    ];
+    app(SaveMenu::class)->handle($this->main, $tree);
+    app(SaveMenu::class)->handle($this->main->fresh(), $tree);
+    app(SaveMenu::class)->handle($this->main->fresh(), $tree);
+
+    expect($this->main->items()->count())->toBe(8)
+        ->and(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Properties', 'Team', 'About', 'Contact']);
+});

@@ -173,6 +173,15 @@ it('publishes on a date, and unpublishes', function () {
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => 'whenever'])->assertSessionHasErrors('published_at');
     post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHasNoErrors();
     expect($translation->fresh()?->status)->toBe('draft');
+
+    // Unscheduled, then published: it goes live now, not on the date it was once scheduled for.
+    post("/admin/cms/entries/{$translation->entry_id}/publish")->assertSessionHas('success', 'Published.');
+    expect($translation->fresh()?->published_at?->toDateTimeString())->toBe('2026-10-19 09:00:00');
+    // Published before, unpublished, published again: it keeps its first date.
+    travelTo('2026-10-20 09:00');
+    post("/admin/cms/entries/{$translation->entry_id}/unpublish");
+    post("/admin/cms/entries/{$translation->entry_id}/publish");
+    expect($translation->fresh()?->published_at?->toDateTimeString())->toBe('2026-10-19 09:00:00');
 });
 
 it('trashes and restores', function () {
@@ -287,4 +296,52 @@ it('keeps the editor to a query budget', function () {
 
     // However many terms, revisions and rows: no queries in loops, and the term options aren't in the page.
     expect($queries)->toBeLessThanOrEqual(10);
+});
+
+it('changes a published entry\'s date without publishing its draft', function () {
+    travelTo('2026-10-19 09:00');
+    $translation = app(PublishEntry::class)->handle(draft('Hello'));
+    app(SaveDraft::class)->handle($translation->fresh(), ['title' => 'Hello again', 'data' => ['intro' => 'Hi'], 'version' => $translation->fresh()?->version]);
+    $draft = draft('Draft');
+    editor('view', 'update');
+    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => '2026-09-01 08:00'])->assertForbidden();
+
+    editor('view', 'publish');
+    // Back-dated: still live, the draft's changes still waiting.
+    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => '2026-09-01 08:00'])->assertSessionHasNoErrors();
+    $fresh = $translation->fresh();
+    expect($fresh?->published_at?->toDateTimeString())->toBe('2026-09-01 08:00:00')
+        ->and($fresh?->isLive())->toBeTrue()->and($fresh?->title)->toBe('Hello')->and($fresh?->hasUnpublishedChanges())->toBeTrue();
+    // A date to come: scheduled.
+    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => '2026-11-01 08:00'])->assertSessionHasNoErrors();
+    expect($translation->fresh()?->status())->toBe('scheduled');
+
+    post("/admin/cms/entries/{$draft->entry_id}/date", ['published_at' => '2026-09-01 08:00'])->assertSessionHasErrors('published_at');
+    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => 'soon'])->assertSessionHasErrors('published_at');
+    post("/admin/cms/entries/{$translation->entry_id}/date", [])->assertSessionHasErrors('published_at');
+});
+
+it('shows who published each revision, what changed, and compares one with the draft', function () {
+    config(['inertia.testing.ensure_pages_exist' => false]);
+    $ayu = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'cms.entries.publish');
+    $ayu->forceFill(['name' => 'Ayu'])->save();
+    actingAs($ayu);
+    $translation = app(PublishEntry::class)->handle(draft('Hello', ['intro' => 'Hi']));
+    $translation = app(SaveDraft::class)->handle($translation->fresh(), ['title' => 'Hello there', 'data' => ['intro' => 'Hi', 'featured' => true]]);
+    app(PublishEntry::class)->handle($translation);
+    app(SaveDraft::class)->handle($translation->fresh(), ['data' => ['intro' => 'Hello everyone', 'featured' => true]]);
+
+    get("/admin/cms/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->loadDeferredProps(fn (Assert $reload) => $reload
+            ->where('revisions.0.title', 'Hello there')->where('revisions.0.author', 'Ayu')->where('revisions.0.changed', ['Title', 'Featured'])
+            ->where('revisions.1.author', 'Ayu')->where('revisions.1.changed', null)));
+
+    $revision = $translation->revisions()->first();
+    get("/admin/cms/revisions/{$revision?->id}/compare")->assertOk()->assertExactJson(['fields' => [
+        ['label' => 'Intro', 'revision' => 'Hi', 'draft' => 'Hello everyone'],
+    ]]);
+
+    // Only for those who may see the entry.
+    actingAs(adminUser(Panel::ACCESS));
+    get("/admin/cms/revisions/{$revision?->id}/compare")->assertForbidden();
 });

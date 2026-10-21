@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, readableOn } from '@/lib/branding';
-import { RelationSelect, type RelationOption } from './relation-select';
+import { RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
 
 export type FieldValue = string | number | boolean | string[] | number[] | (string | number)[] | null;
@@ -57,6 +57,10 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
             return <Switch id={id} disabled={disabled} aria-invalid={invalid} checked={value === true} onCheckedChange={(checked) => onChange(checked)} />;
         case 'select': {
             const options = (field.options as { value: string; label: string }[] | undefined) ?? [];
+            if (field.searchable === true) {
+                return <SearchableSelect id={id} options={options} required={field.required === true} disabled={disabled} invalid={invalid}
+                    placeholder={field.placeholder ?? undefined} value={value === null || value === '' ? null : String(value)} onChange={onChange} />;
+            }
             return (
                 <Select value={value === null || value === '' ? (field.required ? undefined : NONE) : String(value)}
                     disabled={disabled} onValueChange={(selected) => onChange(selected === NONE ? null : selected)}>
