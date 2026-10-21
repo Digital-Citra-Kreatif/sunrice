@@ -87,6 +87,16 @@ it('never sends visitors to another host through the rest of the address', funct
     expect(Redirect::query()->first()?->targetFor('/old/\\evil.example'))->toBe('/evil.example');
 });
 
+it('keeps the rest of the address after a /, so it never becomes the scheme or the host', function () {
+    // Refused in the form; rows from before that rule, or written directly, are still safe.
+    $bare = wildcard('/go/*', '*');
+    get('/go/https:evil.example')->assertRedirect('/https:evil.example');
+    expect($bare->targetFor('/go//evil.example'))->toBe('/evil.example');
+
+    $host = wildcard('/shop/*', 'https://shop.example*');
+    expect($host->targetFor('/shop/.evil.example/x'))->toBe('https://shop.example/.evil.example/x');
+});
+
 it('checks wildcards in the form, and shows them in the list', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.redirects.view', 'cms.redirects.create'));
     $add = fn (string $from, string $to) => post('/admin/cms/redirects', ['from_path' => $from, 'to_url' => $to, 'status' => '301']);
@@ -97,6 +107,8 @@ it('checks wildcards in the form, and shows them in the list', function () {
     $add('/a*', '/x')->assertSessionHasErrors('from_path');
     $add('/a/**', '/x')->assertSessionHasErrors('from_path');
     $add('/c/*', '/x/*/*')->assertSessionHasErrors(['to_url' => 'Use * at most once.']);
+    $add('/g/*', '*')->assertSessionHasErrors(['to_url' => 'Put the * after a / (like /journal/*).']);
+    $add('/h/*', 'https://shop.example*')->assertSessionHasErrors(['to_url' => 'Put the * after a / (like /journal/*).']);
     $add('/plain', '/x/*')->assertSessionHasErrors(['to_url' => 'A * here needs a From ending in /*, whose rest it stands for.']);
     $add('/d/*', '/d/archive/*')->assertSessionHasErrors(['to_url' => 'This would send visitors round in a loop: From takes this address too.']);
     $add('/e', '/e')->assertSessionHasErrors('to_url');
