@@ -87,6 +87,7 @@ it('refuses an image with PHP code after its JPEG signature, and a text file nam
     $send = fn (UploadedFile $file) => from('/apply')->post('/forms/apply', ['name' => 'Ana', 'photo' => $file]);
 
     $send($real('house.jpg', $jpeg.'<?php system($_GET["c"]); ?>'))->assertSessionHasErrors(['photo' => 'This isn\'t a valid image.'], null, 'apply');
+    $send($real('house.jpg', $jpeg.'<?= `id` ?>'))->assertSessionHasErrors(['photo' => 'This isn\'t a valid image.'], null, 'apply'); // NEW-security-3
     $send($real('house.jpg', 'just text'))->assertSessionHasErrors(['photo'], null, 'apply');
     expect(Submission::query()->count())->toBe(0);
     $send($real('house.jpg', $jpeg))->assertSessionHasNoErrors();

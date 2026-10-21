@@ -33,9 +33,14 @@ final class FileContent
     }
 
     /**
-     * Whether the file has PHP code in it (`<?php`), like an image with a
-     * script appended: harmless while stored and served as it should be,
-     * dangerous on a server misconfigured to run it. Read in chunks.
+     * Whether the file has PHP code in it, like an image with a script
+     * appended: harmless while stored and served as it should be,
+     * dangerous on a server misconfigured to run it. Finds `<?php`, the
+     * short echo tag `<?=` (always on) and, where `short_open_tag` is on,
+     * `<?` followed by a space or a line break; for those two, followed by
+     * code (plain text up to `?>` or the end of the file), so that the
+     * bytes `<?=` turning up in a photo's compressed data don't count.
+     * Read in chunks.
      */
     public static function containsPhp(UploadedFile $file): bool
     {
@@ -43,17 +48,37 @@ final class FileContent
         if ($handle === false) {
             return false;
         }
+        $open = filter_var(ini_get('short_open_tag'), FILTER_VALIDATE_BOOL) ? '(?:=|\s)' : '=';
         try {
-            $tail = '';
+            $carried = '';
             while (! feof($handle)) {
                 $chunk = fread($handle, 1048576);
                 if ($chunk === false) {
                     break;
                 }
-                if (stripos($tail.$chunk, '<?php') !== false) {
+                $buffer = $carried.$chunk;
+                $end = feof($handle);
+                if (stripos($buffer, '<?php') !== false) {
                     return true;
                 }
-                $tail = substr($chunk, -4);
+                $carried = substr($buffer, -4);
+                preg_match_all('/<\?'.$open.'/', $buffer, $tags, PREG_OFFSET_CAPTURE);
+                foreach ($tags[0] as [, $offset]) {
+                    // Code: plain text after the tag, up to the closing tag or the end.
+                    preg_match('/\G<\?'.$open.'[\t\n\r\x20-\x7E]*/', $buffer, $code, 0, $offset);
+                    $text = $code[0] ?? '';
+                    if (str_contains(substr($text, 2), '?>')) {
+                        return true;
+                    }
+                    if ($offset + strlen($text) === strlen($buffer)) {
+                        if ($end) {
+                            return true;
+                        }
+                        // It runs into the next chunk: look again with it.
+                        $carried = substr($buffer, $offset);
+                        break;
+                    }
+                }
             }
 
             return false;
