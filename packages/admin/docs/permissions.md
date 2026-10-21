@@ -53,7 +53,7 @@ Every admin route needs `sunrice.access` ("Open the admin panel"); give it to th
 | Role | Permissions |
 | --- | --- |
 | `administrator` | Every permission, without the super admin's bypass of your app's own checks. |
-| `editor` (the CMS) | The panel, media, and all content: entries, terms, globals, menus, comments, reading and exporting form submissions. Not structure, settings, users or roles. |
+| `editor` (the CMS) | The panel, media, and all content: entries, terms, globals, menus' links (`cms.menus.view`, `update`: not creating or deleting menus, which templates rely on), comments, reading and exporting form submissions. Not structure, settings, users or roles. |
 | `author` (the CMS) | The panel, viewing and uploading media, viewing and creating entries, editing and trashing their own, and seeing drafts on the site (`cms.entries.view-drafts`). Publishes nothing. |
 | `translator` (the CMS) | The panel, viewing media and entries, and editing entries' other languages. |
 

@@ -162,6 +162,8 @@ it('gives the default roles their content permissions', function () {
 
     expect(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.entries.publish', 'cms.entries.blog.publish', 'cms.terms.manage')
         ->not->toContain('cms.collections.create')
+        // Edits menus' links, but doesn't create or delete the menus templates rely on.
+        ->and(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.menus.view', 'cms.menus.update')->not->toContain('cms.menus.create', 'cms.menus.delete')
         ->and(Role::findByName('author', 'web')->permissions->pluck('name')->sort()->values()->all())
         ->toBe(['cms.entries.create', 'cms.entries.delete-own', 'cms.entries.update-own', 'cms.entries.view', 'cms.entries.view-drafts', 'sunrice.access', 'sunrice.guide.view', 'sunrice.media.upload', 'sunrice.media.view'])
         ->and(Role::findByName('translator', 'web')->permissions->pluck('name'))->toContain('cms.entries.translate');
