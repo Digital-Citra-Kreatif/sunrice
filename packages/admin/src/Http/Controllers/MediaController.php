@@ -25,6 +25,7 @@ use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\MediaFolder;
 use Sunrice\Admin\Media\MediaUsages;
+use Sunrice\Admin\Panel;
 use Sunrice\Admin\Support\Like;
 
 /**
@@ -88,6 +89,8 @@ final class MediaController
                 'delete' => $user->can('sunrice.media.delete'),
             ],
             // The public disk's link (php artisan storage:link) is missing: files can't be shown.
+            // The content's other languages, for alt text and captions in each (Panel::contentLocales()).
+            'locales' => self::otherLocales(),
             'storageLinkMissing' => $user->can('sunrice.media.upload') && MediaConfig::storageLinkMissing(),
             'upload' => [
                 'maxKb' => MediaConfig::maxKilobytes(),
@@ -185,11 +188,16 @@ final class MediaController
     public function update(Request $request, int $media, UpdateMedia $update): RedirectResponse
     {
         $this->authorize($request, 'update');
-        /** @var array{title?: string|null, alt?: string|null, caption?: string|null} $details */
+        /** @var array{title?: string|null, alt?: string|null, caption?: string|null, translations?: array<string, array{alt?: string|null, caption?: string|null}>} $details */
         $details = $request->validate([
             'title' => ['nullable', 'string', 'max:250'],
             'alt' => ['nullable', 'string', 'max:250'],
             'caption' => ['nullable', 'string', 'max:2000'],
+            // In the content's other languages (Panel::contentLocales()).
+            'translations' => ['sometimes', 'array'],
+            'translations.*' => ['array:alt,caption'],
+            'translations.*.alt' => ['nullable', 'string', 'max:250'],
+            'translations.*.caption' => ['nullable', 'string', 'max:2000'],
         ]);
         $update->handle(Media::query()->findOrFail($media), $details);
 
@@ -269,6 +277,14 @@ final class MediaController
             .($kept > 0 ? " {$kept} in use ".($kept === 1 ? 'was' : 'were').' kept: open '.($kept === 1 ? 'it' : 'each').' to see where, and delete it from there.' : ''));
     }
 
+    /** @return list<array{code: string, name: string}> the content's languages besides the first */
+    private static function otherLocales(): array
+    {
+        $others = array_slice(app(Panel::class)->getContentLocales(), 1, null, true);
+
+        return array_map(fn (string $code, string $name): array => ['code' => $code, 'name' => $name], array_keys($others), array_values($others));
+    }
+
     /** @return array<string, mixed> */
     public static function describe(Media $media): array
     {
@@ -278,6 +294,7 @@ final class MediaController
             'filename' => $media->filename,
             'alt' => $media->alt,
             'caption' => $media->caption,
+            'translations' => (object) ($media->translations ?? []),
             'mimeType' => $media->mime_type,
             'size' => $media->size,
             'width' => $media->width,

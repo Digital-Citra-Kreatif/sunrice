@@ -143,3 +143,18 @@ it('describes a real estate listing as its page', function () {
 
     expect(nodes(get('/homes/villa-damai')->assertOk())['RealEstateListing'])->toMatchArray(['name' => 'Villa Damai'])->not->toHaveKey('mainEntity');
 });
+
+it('names listings, collections and the way home in the page\'s language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $this->blog->translate('title', 'id', 'Jurnal')->save();
+    schemaPost($this->blog, 'Hello world');
+
+    $nodes = nodes(get('/id/blog/hello-world')->assertOk());
+    expect(array_column($nodes['BreadcrumbList']['itemListElement'], 'name'))->toBe(['Beranda', 'Jurnal', 'Hello world'])
+        ->and(array_column($nodes['BreadcrumbList']['itemListElement'], 'item'))->toBe([url('/id'), url('/id/blog'), url('/id/blog/hello-world')]);
+
+    $listing = get('/id/blog')->assertOk()->assertSee('<title>Jurnal | Acme</title>', false)->assertSee('<h1>Jurnal</h1>', false);
+    expect(nodes($listing)['CollectionPage']['name'])->toBe('Jurnal');
+    get('/blog')->assertOk()->assertSee('<h1>Blog</h1>', false);
+    expect($this->blog->titleIn('en'))->toBe('Blog')->and($this->blog->fresh()?->titleIn('id'))->toBe('Jurnal');
+});

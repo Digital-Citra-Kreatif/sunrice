@@ -109,3 +109,15 @@ test('finds fields shared with the main language at any depth', () => {
     assert.equal(hasSharedFields([{ fields: [{ fields: [{ shared: true }] }] }]), true);
     assert.equal(hasSharedFields([{ blocks: [{ fields: [{ shared: true }] }] }]), true);
 });
+
+test('names languages as the site does, else in the reader\'s language', async () => {
+    const { localeName, setLocaleNames } = await import('../../packages/cms/resources/js/lib/entries.ts');
+
+    setLocaleNames({ id: 'Bahasa Indonesia' });
+    assert.equal(localeName('id'), 'Bahasa Indonesia');
+    // Asked in a language, or a code the site doesn't name: as Intl says it.
+    assert.equal(localeName('id', 'en'), 'Indonesian');
+    assert.equal(localeName('xx'), new Intl.DisplayNames(undefined, { type: 'language' }).of('xx') ?? 'xx');
+    setLocaleNames(null);
+    assert.equal(localeName('id'), new Intl.DisplayNames(undefined, { type: 'language' }).of('id'));
+});

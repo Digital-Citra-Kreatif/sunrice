@@ -27,6 +27,7 @@ use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Settings\CodeSettings;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Site;
+use Sunrice\Cms\Support\Seo;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -234,4 +235,17 @@ it('previews titles with the saved separator and site name', function () {
     $help = collect(SiteSettings::form(new Form)->fields('edit'))->firstWhere('name', 'appendName')->toArray()['help'];
 
     expect($help)->toBe('"About · Lumina Estates" in search results and browser tabs.');
+});
+
+it('describes the site in each language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $site = app(SiteSettings::class);
+    $site->fill(['description' => 'Premium homes.', 'descriptions' => "id: Rumah premium.\nfr: Maisons."])->save();
+
+    expect($site->descriptionIn('id'))->toBe('Rumah premium.')
+        ->and($site->descriptionIn('en'))->toBe('Premium homes.')
+        ->and($site->descriptionIn('de'))->toBe('Premium homes.')
+        ->and(Seo::forPage(null)['description'])->toBe('Premium homes.');
+    app()->setLocale('id');
+    expect(Seo::forPage(null)['description'])->toBe('Rumah premium.');
 });

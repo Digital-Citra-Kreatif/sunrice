@@ -129,6 +129,9 @@ final class Panel
     /** @var list<string> permission names or patterns ("sunrice.users.*") that give power worth alerting about */
     private array $privilegedPermissions = [];
 
+    /** @var (Closure(): array<string, string>)|null the content's languages (contentLocales()) */
+    private ?Closure $contentLocales = null;
+
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
 
@@ -359,6 +362,37 @@ final class Panel
         $this->permissionResolvers[] = ['owner' => $this->registering?->id(), 'resolve' => $resolve];
 
         return $this;
+    }
+
+    /**
+     * The languages content is written in, the main one first (code =>
+     * name), when a plugin has several (a CMS): media files then take
+     * their alternative text and caption in each of the others
+     * (Media::altIn(), captionIn()). Resolved when needed.
+     *
+     *     $panel->contentLocales(fn (): array => ['en' => 'English', 'id' => 'Indonesian']);
+     *
+     * @param  Closure(): array<string, string>  $resolve
+     */
+    public function contentLocales(Closure $resolve): self
+    {
+        $this->assertRegistering();
+        if ($this->contentLocales !== null) {
+            throw new PanelMisconfigured("The content's languages are given twice{$this->owner()}.");
+        }
+        $this->contentLocales = $resolve;
+
+        return $this;
+    }
+
+    /** @return array<string, string> the content's languages, the main one first (none: no plugin gives them) */
+    public function getContentLocales(): array
+    {
+        if ($this->contentLocales === null) {
+            return [];
+        }
+
+        return array_filter(($this->contentLocales)(), fn (string $code): bool => $code !== '', ARRAY_FILTER_USE_KEY);
     }
 
     /** Forget the permissions permissionsUsing() resolved, after their data changed. */

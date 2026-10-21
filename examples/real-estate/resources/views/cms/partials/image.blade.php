@@ -8,7 +8,7 @@
 @endphp
 @if ($media instanceof \Sunrice\Admin\Media\Media && $media->isImage())
     <img src="{{ $media->url($size ?? 'large') }}" srcset="{{ $media->srcset() }}" sizes="{{ $sizes ?? '100vw' }}"
-        alt="{{ ($decorative ?? false) ? '' : ($media->alt ?? '') }}"
+        alt="{{ ($decorative ?? false) ? '' : ($media->altIn() ?? '') }}"
         @if ($media->width && $media->height) width="{{ $media->width }}" height="{{ $media->height }}" @endif
         @if ($eager ?? false) fetchpriority="high" @else loading="lazy" decoding="async" @endif
         class="{{ $class ?? '' }}">

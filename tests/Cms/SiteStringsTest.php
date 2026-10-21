@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Validator;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -49,4 +50,34 @@ it('brings Indonesian for Laravel\'s own lines the app has none of', function ()
     app()->setLocale('en');
     expect(__('pagination.next'))->toBe('Next &raquo;')
         ->and(__('sunrice-cms::site.comments.reply'))->toBe('Reply');
+});
+
+it('reads its Laravel lines only when a page asks for them, below the app\'s own, key by key', function () {
+    $translator = app('translator');
+    $loaded = fn (): array => (fn (): array => $this->loaded)->call($translator);
+    // Resolving the translator reads nothing yet.
+    expect($loaded()['*']['validation']['id'] ?? null)->toBeNull();
+
+    $file = lang_path('id/validation.php');
+    @mkdir(dirname($file), 0777, true);
+    file_put_contents($file, "<?php return ['required' => 'Isi :attribute dulu.'];");
+    try {
+        app()->setLocale('id');
+        expect(__('validation.required', ['attribute' => 'nama']))->toBe('Isi nama dulu.')
+            // What the app's file leaves out is still Indonesian.
+            ->and(__('validation.email', ['attribute' => 'email']))->toBe('email harus berupa alamat email yang valid.');
+    } finally {
+        @unlink($file);
+    }
+});
+
+it('gives the entry filter and the draft banner Indonesian too', function () {
+    app()->setLocale('id');
+    $filter = Blade::render('<x-sunrice-cms::entry-filter collection="blog" :filters="[\'q\' => \'search\']" :sorts="[\'new\' => \'latest\', \'old\' => \'oldest\']" />');
+    $banner = view('sunrice-cms::draft-banner', ['entry' => null, 'draft' => true, 'liveUrl' => '/x', 'draftUrl' => null, 'editUrl' => '/admin'])->render();
+    $unsubscribed = view('sunrice-cms::comment-unsubscribe', ['url' => null, 'locale' => 'id', 'title' => 'Kopi', 'done' => true, 'action' => '/x'])->render();
+
+    expect($filter)->toContain('aria-label="Saring"')->toContain('Urutkan menurut')->toContain('Tampilkan hasil')->toContain('2 hasil')
+        ->and($banner)->toContain('Draf')->toContain('Lihat halaman yang tayang')->toContain('Sunting')
+        ->and($unsubscribed)->toContain(__('sunrice-cms::site.comments.unsubscribed_title', [], 'id'))->not->toContain('Unsubscribed');
 });

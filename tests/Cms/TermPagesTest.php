@@ -106,3 +106,34 @@ it('locks a term\'s page for those who manage its taxonomy', function () {
     postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-b', 'locale' => 'en'])->assertJson(['status' => 'locked']);
     postJson("/admin/locks/cms.term/{$this->news->id}", ['editor' => 'tab-b', 'locale' => 'id'])->assertJson(['status' => 'ok']);
 });
+
+it('names a term in a language on its own page, adding the language there', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    get("/admin/cms/terms/{$this->news->id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page
+        ->where('translated', false)->where('term.ownTitle', null)->where('term.mainTitle', 'News'));
+
+    // Not translated: the title is needed, and saving it adds the language with its page content.
+    put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Semua berita']])->assertSessionHasErrors('title');
+    put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'title' => 'Berita', 'slug' => '', 'data' => ['about' => 'Semua berita'], 'seo' => ['description' => 'Berita harian']])
+        ->assertSessionHasNoErrors();
+    $berita = $this->news->translations()->where('locale', 'id')->firstOrFail();
+    expect($berita->only(['title', 'slug']))->toBe(['title' => 'Berita', 'slug' => 'berita'])
+        ->and($berita->data['about'] ?? null)->toBe('Semua berita');
+    get('/id/topics/berita')->assertOk()->assertSee('Semua berita')->assertSee('Berita harian', false);
+
+    // Renamed with its content, in one save that checks the version once.
+    put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'title' => 'Kabar', 'slug' => 'kabar', 'data' => ['about' => 'Semua kabar'], 'version' => $berita->version])->assertSessionHasNoErrors();
+    expect($berita->fresh()?->only(['title', 'slug', 'version']))->toBe(['title' => 'Kabar', 'slug' => 'kabar', 'version' => $berita->version + 2]);
+    put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'title' => 'Stale', 'version' => $berita->version])->assertSessionHasErrors('version');
+    expect($berita->fresh()?->title)->toBe('Kabar');
+});
+
+it('gives terms of a taxonomy without a blueprint a description', function () {
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/tags/{slug}']);
+    $coffee = app(SaveTerm::class)->handle($tags, ['title' => 'Coffee']);
+    app(SaveTermContent::class)->handle($coffee, ['data' => ['description' => 'All about coffee.']]);
+
+    expect(array_map(fn ($field) => $field->handle, $tags->schema()->fields()))->toBe(['description'])
+        ->and(array_map(fn ($field) => $field->handle, $this->topics->schema()->fields()))->toBe(['about']);
+    get('/tags/coffee')->assertOk()->assertSee('<p>All about coffee.</p>', false);
+});

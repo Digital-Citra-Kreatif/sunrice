@@ -19,24 +19,31 @@ interface Props {
     item: MediaItem | null;
     can: { update: boolean; delete: boolean };
     accept: string;
+    /** The content's other languages: alt text and caption in each. */
+    locales?: { code: string; name: string }[];
     onClose: () => void;
 }
 
 /** A file's preview, details and actions, in a side sheet. */
-export function MediaDetails({ item, can, accept, onClose }: Props) {
+export function MediaDetails({ item, can, accept, locales = [], onClose }: Props) {
     return (
         <Sheet open={item !== null} onOpenChange={(open) => !open && onClose()}>
             <SheetContent className="w-full overflow-y-auto sm:max-w-md">
-                {item && <Details key={item.id} item={item} can={can} accept={accept} onClose={onClose} />}
+                {item && <Details key={item.id} item={item} can={can} accept={accept} locales={locales} onClose={onClose} />}
             </SheetContent>
         </Sheet>
     );
 }
 
-function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
+function Details({ item, can, accept, locales = [], onClose }: Props & { item: MediaItem }) {
     const [confirm, confirmDialog] = useConfirm();
     const replaceInput = React.useRef<HTMLInputElement>(null);
-    const form = useForm({ title: item.title ?? '', alt: item.alt ?? '', caption: item.caption ?? '' });
+    const form = useForm({
+        title: item.title ?? '', alt: item.alt ?? '', caption: item.caption ?? '',
+        translations: Object.fromEntries(locales.map(({ code }) => [code, { alt: item.translations?.[code]?.alt ?? '', caption: item.translations?.[code]?.caption ?? '' }])),
+    });
+    const setTranslation = (code: string, key: 'alt' | 'caption', value: string) =>
+        form.setData('translations', { ...form.data.translations, [code]: { alt: '', caption: '', ...form.data.translations[code], [key]: value } });
     const url = adminUrl(`media/${item.id}`);
     const kind = mediaKind(item.mimeType);
     const editable = can.update && !item.trashed;
@@ -135,6 +142,24 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
                             <Textarea id="media-caption" rows={3} value={form.data.caption} maxLength={2000} onChange={(e) => form.setData('caption', e.target.value)} />
                             <InputError message={form.errors.caption} />
                         </div>
+                        {locales.map(({ code, name }) => (
+                            <fieldset key={code} className="grid gap-3 rounded-md border p-3">
+                                <legend className="px-1 text-sm font-medium">In {name}</legend>
+                                {kind === 'image' && (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor={`media-alt-${code}`}>Alternative text ({name})</Label>
+                                        <Input id={`media-alt-${code}`} value={form.data.translations[code]?.alt ?? ''} maxLength={250} placeholder={form.data.alt}
+                                            onChange={(e) => setTranslation(code, 'alt', e.target.value)} />
+                                    </div>
+                                )}
+                                <div className="grid gap-2">
+                                    <Label htmlFor={`media-caption-${code}`}>Caption ({name})</Label>
+                                    <Textarea id={`media-caption-${code}`} rows={2} value={form.data.translations[code]?.caption ?? ''} maxLength={2000} placeholder={form.data.caption}
+                                        onChange={(e) => setTranslation(code, 'caption', e.target.value)} />
+                                </div>
+                                <p className="text-sm text-muted-foreground">Empty: as above.</p>
+                            </fieldset>
+                        ))}
                         <div className="flex justify-between gap-2">
                             {can.delete ? (
                                 <Button type="button" variant="outline" className="text-destructive" onClick={trash}>
