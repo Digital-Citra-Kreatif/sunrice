@@ -14,6 +14,7 @@ use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Fields\Reference;
 use Sunrice\Cms\Fields\Schema;
+use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 
@@ -92,7 +93,7 @@ it('lets the picker link to live entries of the collections a user\'s own collec
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     $agents = Collection::query()->create(['handle' => 'agents', 'title' => 'Agents']);
     $notes = Collection::query()->create(['handle' => 'notes', 'title' => 'Notes']);
-    \Sunrice\Cms\Models\Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
         ['handle' => 'body', 'type' => 'group', 'fields' => [['handle' => 'author', 'type' => 'entries', 'config' => ['collections' => ['agents']]]]],
     ]]);
     Collection::query()->create(['handle' => 'journal', 'title' => 'Journal', 'blueprint' => 'post']);
