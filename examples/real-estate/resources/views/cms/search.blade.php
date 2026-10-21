@@ -12,7 +12,6 @@
     <section class="container-site max-w-4xl pb-24">
         @if ($query !== '')
             <p role="status" class="text-sm text-sand-700">{{ trans_choice('site.search.results', $results->total(), ['count' => $results->total(), 'query' => $query]) }}</p>
-            @php(\App\Support\Hydrate::together($results->items()))
             @if ($results->isNotEmpty())
                 <ol class="mt-6 divide-y divide-sand-200 border-y border-sand-200">
                     @foreach ($results as $item)

@@ -157,7 +157,8 @@ Every deploy:
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force                          # also syncs the permissions new features need
 php artisan sunrice:import-structure database/structure.json   # when the structure changed (--dry-run first)
-php artisan sunrice:assets                           # the panel's assets (and laravel-assets)
+php artisan sunrice:assets                           # the panel's assets
+php artisan vendor:publish --tag=laravel-assets --force   # the CMS's admin assets (composer install doesn't run post-update-cmd)
 npm ci && npm run build
 php artisan config:cache && php artisan route:cache
 php artisan view:clear

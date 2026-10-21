@@ -2,18 +2,22 @@
     The properties listing page (/properties, listing blueprint "properties-listing": intro, hero). Filters,
     sort and pages live in the address (<x-sunrice-cms::entry-filter>), so results can be shared and the menu's
     "For sale" / "For rent" links are plain URLs (/properties?listing_type=for-sale). The query parameters it reads are
-    listed in config/sunrice-cms.php → cache.query, so the page cache keeps one page per filter.
+    listed in config/sunrice-cms.php → cache.query, so the page cache keeps one page per filter value it offers
+    (a term, a sort, a bedrooms or price step); any other value is shown but not kept.
 --}}
 @extends('cms.layout')
 
 @php
+    $bedroomSteps = [1, 2, 3, 4, 5];
+    $priceSteps = [1_000_000_000, 2_500_000_000, 5_000_000_000, 10_000_000_000, 20_000_000_000, 50_000_000_000];
     $filters = [
         'q' => ['type' => 'search', 'label' => __('site.filter.search')],
         'listing_type' => ['type' => 'terms', 'taxonomy' => 'listing_types', 'multiple' => false, 'label' => __('site.filter.listing')],
         'property_type' => ['type' => 'terms', 'taxonomy' => 'property_types', 'multiple' => false, 'hide_empty' => true, 'label' => __('site.filter.type')],
         'location' => ['type' => 'terms', 'taxonomy' => 'locations', 'field' => 'location', 'multiple' => false, 'label' => __('site.filter.location')],
-        'bedrooms' => ['type' => 'range', 'label' => __('site.filter.bedrooms')],
-        'price' => ['type' => 'range', 'label' => __('site.filter.price')],
+        // The steps the selects below offer: only they are kept by the page cache (any other number still filters).
+        'bedrooms' => ['type' => 'range', 'label' => __('site.filter.bedrooms'), 'options' => $bedroomSteps],
+        'price' => ['type' => 'range', 'label' => __('site.filter.price'), 'options' => $priceSteps],
     ];
     $sorts = [
         'newest' => ['label' => __('site.sort.newest'), 'order' => 'latest'],
@@ -23,7 +27,6 @@
     ];
     // Locations: no hide_empty and no counts. Both only count a term's own properties, so "Bali" (whose
     // properties are all in Canggu, Seminyak…) would be hidden or read "(0)", although choosing it finds them.
-    $priceSteps = [1_000_000_000, 2_500_000_000, 5_000_000_000, 10_000_000_000, 20_000_000_000, 50_000_000_000];
 @endphp
 
 @section('content')
@@ -69,7 +72,7 @@
                         <label for="{{ $beds->id('min') }}">{{ __('site.filter.bedrooms_min') }}</label>
                         <select id="{{ $beds->id('min') }}" name="{{ $beds->inputs['min'] }}" class="!pr-8 !pl-3">
                             <option value="">{{ __('site.filter.any') }}</option>
-                            @foreach ([1, 2, 3, 4, 5] as $n)
+                            @foreach ($bedroomSteps as $n)
                                 <option value="{{ $n }}" @selected(($beds->value['min'] ?? null) == $n)>{{ $n }}+</option>
                             @endforeach
                         </select>

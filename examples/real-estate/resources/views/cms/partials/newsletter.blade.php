@@ -8,6 +8,8 @@
         <p class="mt-4 font-serif text-2xl leading-snug text-white">{{ $heading }}</p>
     @endif
     <x-sunrice-cms::form handle="newsletter" replace class="mt-5">
+        {{-- Visitors land on the notice after a failed send; the email's own error shows under it. --}}
+        @include('cms.partials.form-errors', ['form' => $component, 'class' => 'mb-3'])
         <div class="flex flex-col gap-2 sm:flex-row">
             <label for="newsletter-email" class="visually-hidden">{{ __('site.newsletter.email') }}</label>
             <input id="newsletter-email" type="email" name="data[email]" required autocomplete="email"

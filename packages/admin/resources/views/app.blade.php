@@ -42,6 +42,13 @@
             The admin panel's assets aren't published yet. Run <code>php artisan sunrice:assets</code>.
         </p>
     @endif
+    @if (($sunriceUser = auth(app(\Sunrice\Admin\Panel::class)->getGuard())->user()) instanceof \Illuminate\Database\Eloquent\Model
+        && app(\Sunrice\Admin\Users\PermissionRank::class)->isSuperAdmin($sunriceUser) && ($sunriceStale = \Sunrice\Admin\Assets\AdminAssets::stale()) !== [])
+        {{-- Only on full page loads, for super admins: the assets published are older than the packages installed. --}}
+        <p role="alert" style="font: 14px/1.4 system-ui; margin: 0; padding: .6rem 1rem; background: #fef3c7; color: #78350f; border-bottom: 1px solid #f59e0b">
+            {{ __('The admin assets published for :list are older than the installed packages, so the panel may run old code. On the server, run php artisan sunrice:assets and php artisan vendor:publish --tag=laravel-assets --force.', ['list' => implode(', ', $sunriceStale)]) }}
+        </p>
+    @endif
     @inertia
 </body>
 </html>

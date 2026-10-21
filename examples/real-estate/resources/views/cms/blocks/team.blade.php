@@ -1,6 +1,6 @@
 {{-- Block "team": heading, agents (chosen; none: every agent in manual order). --}}
 @php
-    $agents = \App\Support\Hydrate::together($block->agents ?? []);
+    $agents = collect($block->agents ?? []);
     if ($agents->isEmpty()) {
         $agents = \Sunrice\Cms\Content::entries('agents')->ordered()->limit(8)->get();
     }

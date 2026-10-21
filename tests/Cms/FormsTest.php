@@ -55,7 +55,7 @@ it('keeps what visitors send and emails the form\'s addresses', function () {
     $this->form->update(['notify' => ['team@example.com', 'boss@example.com']]);
 
     from('/contact-page')->post('/forms/contact', contactInput(['photo' => 5, 'extra' => 'ignored']))
-        ->assertRedirect('/contact-page#form-contact')->assertSessionHas('sunrice-cms.form.contact', 'Thanks!');
+        ->assertRedirect('/contact-page#form-contact-status')->assertSessionHas('sunrice-cms.form.contact', 'Thanks!');
 
     $submission = Submission::query()->sole();
     expect($submission->data)->toEqual(['name' => 'Ana', 'email' => 'ana@example.com', 'topic' => 'help', 'message' => "Hello\nthere", 'newsletter' => true])
@@ -89,7 +89,7 @@ it('says in the notification where and in which language the form was sent, link
 
 it('sends the visitor back with errors under the form\'s bag', function () {
     from('/contact-page')->post('/forms/contact', contactInput(['email' => 'nope', 'message' => '']))
-        ->assertRedirect('/contact-page#form-contact')->assertSessionHasErrors(['email', 'message'], errorBag: 'contact');
+        ->assertRedirect('/contact-page#form-contact-errors')->assertSessionHasErrors(['email', 'message'], errorBag: 'contact');
 
     postJson('/forms/contact', contactInput(['name' => '']))->assertUnprocessable()->assertJsonValidationErrors(['name' => 'Your name']);
     postJson('/forms/contact', contactInput())->assertCreated()->assertJson(['message' => 'Thanks!']);
@@ -114,7 +114,7 @@ it('turns away spam bots with the honeypot', function () {
     post('/forms/contact', contactInput([$honeypot->nameFieldName() => '', $honeypot->validFromFieldName() => app(Honeypot::class)->encryptedValidFrom()]))->assertContent('');
     expect(Submission::query()->count())->toBe(0);
 
-    from('/contact-page')->post('/forms/contact', contactInput($fields()))->assertRedirect('/contact-page#form-contact');
+    from('/contact-page')->post('/forms/contact', contactInput($fields()))->assertRedirect('/contact-page#form-contact-status');
     expect(Submission::query()->count())->toBe(1);
 });
 
@@ -134,11 +134,11 @@ it('counts only what was kept against the limit, and sends the visitor back to t
     foreach (range(1, 5) as $try) {
         from('/contact-page')->post('/forms/contact', contactInput(['email' => 'nope']))->assertSessionHasErrors(['email'], errorBag: 'contact');
     }
-    from('/contact-page')->post('/forms/contact', contactInput())->assertRedirect('/contact-page#form-contact');
-    from('/contact-page')->post('/forms/contact', contactInput())->assertRedirect('/contact-page#form-contact');
+    from('/contact-page')->post('/forms/contact', contactInput())->assertRedirect('/contact-page#form-contact-status');
+    from('/contact-page')->post('/forms/contact', contactInput())->assertRedirect('/contact-page#form-contact-status');
     // Over it: back to the form with a message, what was typed kept.
     from('/contact-page')->post('/forms/contact', contactInput(['message' => 'Kept text']))
-        ->assertRedirect('/contact-page#form-contact')
+        ->assertRedirect('/contact-page#form-contact-errors')
         ->assertSessionHasErrors(['_limit'], errorBag: 'contact')
         ->assertSessionHasInput('message', 'Kept text');
     expect(Submission::query()->count())->toBe(2)
@@ -160,7 +160,7 @@ it('lands the visitor on the form, with the message or an error summary to read 
         ->toContain('<a href="#form-contact-message">');
 
     $html = (string) from('/contact-page')->followingRedirects()->post('/forms/contact', contactInput())->getContent();
-    expect($html)->toContain('<p role="status" tabindex="-1" autofocus>Thanks!</p>')->not->toContain('form-contact-errors');
+    expect($html)->toContain('<p id="form-contact-status" role="status" tabindex="-1" autofocus>Thanks!</p>')->not->toContain('form-contact-errors');
 });
 
 it('says how large a file may be, on the form and when one is too large for PHP', function () {
@@ -179,6 +179,68 @@ it('says how large a file may be, on the form and when one is too large for PHP'
     expect(FileField::size(2048))->toBe('2 MB')
         ->and(FileField::size(1536))->toBe('1.5 MB')
         ->and(FileField::size(500))->toBe('500 KB');
+});
+
+it('names a field of several files over PHP\'s limit and says the size, in the summary and under the field', function () {
+    Blueprint::query()->where('handle', 'contact')->firstOrFail()->update(['fields' => [
+        ['handle' => 'name', 'type' => 'text'],
+        ['handle' => 'photos', 'type' => 'file', 'label' => 'Photos', 'config' => ['types' => 'jpg', 'max_kb' => 5120, 'multiple' => true]],
+    ]]);
+    $size = FileField::size(FileField::maxKb(new Field('photos', 'file', config: ['max_kb' => 5120])));
+    Route::get('/contact-page', fn () => Blade::render('<x-sunrice-cms::form handle="contact" />'))->middleware('web');
+    $ok = UploadedFile::fake()->image('ok.jpg');
+    $big = new UploadedFile(__FILE__, 'villa.jpg', 'image/jpeg', UPLOAD_ERR_INI_SIZE, true);
+    $message = 'One of the Photos files is larger than '.$size.', the most this site accepts for each file.';
+
+    from('/contact-page')->post('/forms/contact', ['_form' => 'contact', 'data' => ['name' => 'Ana', 'photos' => [$ok, $big]]])
+        ->assertRedirect('/contact-page#form-contact-errors')
+        ->assertSessionHasErrors(['photos' => $message], errorBag: 'contact');
+    $html = (string) get('/contact-page')->getContent();
+    expect($html)->toContain('<a href="#form-contact-photos">'.$message.'</a>')
+        ->toContain('<p id="form-contact-photos-error" role="alert">'.$message.'</p>')
+        ->not->toContain('The * ');
+
+    // Other errors for one of several files name the field too.
+    $text = UploadedFile::fake()->create('notes.txt', 1, 'text/plain');
+    from('/contact-page')->post('/forms/contact', ['data' => ['name' => 'Ana', 'photos' => [$text]]]);
+    expect(session('errors')->getBag('contact')->first('photos'))->toContain('The Photos field')->not->toContain('*');
+    expect(Submission::query()->count())->toBe(0);
+});
+
+it('lands the visitor on the error summary of a slot\'s markup, or on the slot\'s own', function () {
+    $slot = '<x-sunrice-cms::form handle="contact"><input id="form-contact-email" name="data[email]"><button>Go</button></x-sunrice-cms::form>';
+    Route::get('/contact-page', fn () => Blade::render($slot))->middleware('web');
+
+    from('/contact-page')->post('/forms/contact', ['_form' => 'contact', 'data' => contactInput(['email' => 'nope', 'message' => ''])])
+        ->assertRedirect('/contact-page#form-contact-errors');
+    $html = (string) get('/contact-page')->getContent();
+    // Linked only where the slot has the input.
+    expect($html)->toContain('<div id="form-contact-errors" role="alert" tabindex="-1" autofocus>')
+        ->toContain('<a href="#form-contact-email">')
+        ->not->toContain('href="#form-contact-message"')
+        ->toContain('<li>The Message field is required.</li>');
+
+    // The slot's own summary: the component prints none.
+    $own = '<x-sunrice-cms::form handle="contact">@if ($component->failed())<p id="form-contact-errors" tabindex="-1">Check the fields.</p>@endif<button>Go</button></x-sunrice-cms::form>';
+    Route::get('/own-page', fn () => Blade::render($own))->middleware('web');
+    from('/own-page')->post('/forms/contact', ['_form' => 'contact', 'data' => contactInput(['email' => 'nope'])])->assertRedirect('/own-page#form-contact-errors');
+    expect(substr_count((string) get('/own-page')->getContent(), 'id="form-contact-errors"'))->toBe(1);
+});
+
+it('heads the summary of the send limit as a form not sent, not one to correct', function () {
+    config(['sunrice-cms.forms.per_minute' => 1]);
+    Route::get('/contact-page', fn () => Blade::render('<x-sunrice-cms::form handle="contact" />'))->middleware('web');
+    from('/contact-page')->post('/forms/contact', contactInput());
+
+    from('/contact-page')->post('/forms/contact', contactInput(['_form' => 'contact']))->assertRedirect('/contact-page#form-contact-errors');
+    $html = (string) get('/contact-page')->getContent();
+    expect($html)->toContain('<p>This form wasn&#039;t sent:</p>')->not->toContain('Please correct')
+        ->toContain('Please wait');
+
+    // With errors to correct as well, it asks for them.
+    travel(2)->minutes();
+    from('/contact-page')->post('/forms/contact', contactInput(['email' => 'nope', '_form' => 'contact']));
+    expect((string) get('/contact-page')->getContent())->toContain('Please correct the following');
 });
 
 it('renders the form for templates', function () {
@@ -263,7 +325,7 @@ it('takes markup of the template\'s own in a slot, with this form\'s errors and 
     // Sent: the thank-you message above the form, or in its place with `replace`.
     $html = (string) from('/two-forms')->followingRedirects()->post('/forms/newsletter', ['_form' => 'newsletter', 'data' => ['email' => 'ana@example.com']])->assertOk()->getContent();
     [$contact, $newsletter] = explode('<div id="b">', $html);
-    expect($newsletter)->toContain('<p id="form-newsletter" role="status" tabindex="-1" autofocus>Welcome!</p>')->not->toContain('<form')
+    expect($newsletter)->toContain('<p id="form-newsletter-status" role="status" tabindex="-1" autofocus>Welcome!</p>')->not->toContain('<form')
         ->and($contact)->toContain('<form')->not->toContain('Welcome!');
     expect(Submission::query()->sole()->data)->toBe(['email' => 'ana@example.com']);
 });

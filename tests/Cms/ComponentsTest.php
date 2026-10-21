@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
@@ -82,6 +83,27 @@ it('takes terms under a parent, in an order, up to a limit, and tells the term s
 
     (new Page(Page::TERM, 'en', 'cms.term', term: $zebra->translations()->firstOrFail()))->share();
     expect($render('parent="news"'))->toBe('Zebra* Apple');
+});
+
+it('links the terms it lists without a query per term', function () {
+    $queries = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $html = Blade::render('<x-sunrice-cms::terms taxonomy="topics">@foreach ($component->terms as $t)<a href="{{ $t->url() }}">{{ $t->title() }}</a>@endforeach</x-sunrice-cms::terms>');
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+        expect($html)->toContain('<a href="'.url('/topics/news').'">News</a>');
+
+        return $count;
+    };
+    $news = app(SaveTerm::class)->handle($this->topics, ['title' => 'News']);
+    app(SaveTerm::class)->handle($this->topics, ['title' => 'Tips', 'parent_id' => $news->id]);
+    $two = $queries();
+    foreach (['Food', 'Travel', 'Money', 'Homes'] as $title) {
+        app(SaveTerm::class)->handle($this->topics, ['title' => $title]);
+    }
+
+    expect($queries())->toBe($two);
 });
 
 it('lets the template set the SEO title, description and noindex, or describe a listing page', function () {

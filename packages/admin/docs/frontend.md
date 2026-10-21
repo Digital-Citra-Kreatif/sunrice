@@ -75,9 +75,12 @@ $panel->bundle(
     PluginBundle::make('shop')
         ->module(asset('vendor/shop/admin.js'))
         ->style(asset('vendor/shop/admin.css'))
-        ->pages('Shop/'),
+        ->pages('Shop/')
+        ->publishedFrom(__DIR__.'/../dist', public_path('vendor/shop')),
 );
 ```
+
+`publishedFrom()` (optional) says where the package's built files are and where they're published: when a published file is missing or differs from the build (an update that didn't publish them, as when a package symlinked from a path changes without `composer update`), super admins see a warning at the top of the panel naming the bundle. Publish under the `laravel-assets` tag too (`$this->publishes([...], ['shop-assets', 'laravel-assets'])`), which Laravel apps publish after every `composer update`.
 
 ### Styles
 
@@ -188,4 +191,4 @@ The panel ships its built JavaScript and CSS in `vendor/sunrice/admin/dist`. Pub
 php artisan sunrice:assets
 ```
 
-Until they are published, admin pages show a notice saying so.
+Until they are published, admin pages show a notice saying so. When the published copy differs from the package's build (an update that didn't publish them), super admins see a warning at the top of every page they load naming what's stale (`Sunrice`, and the plugins whose bundles say where they're published from), until `sunrice:assets` and `vendor:publish --tag=laravel-assets --force` have run.

@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Fields\Types\FileField;
+use Sunrice\Cms\Mail\SubmissionReceived;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\Submission;
@@ -163,6 +165,12 @@ it('takes several files when the field allows, up to its limit', function () {
     $files = $submission->data['photos'];
     expect(array_column($files, 'name'))->toBe(['front.jpg', 'garden.jpg']);
     Storage::disk('local')->assertExists(array_column($files, 'path'));
+    // The email lists each file with its size and its link in the admin.
+    $html = (new SubmissionReceived($submission))->render();
+    $size = FileField::size(max(1, intdiv($files[1]['size'], 1024)));
+    expect($html)->toContain('<a href="'.route('sunrice.admin.cms.submissions.file', [$submission->id, 'photos', 'index' => 1]).'">garden.jpg</a> ('.$size.')')
+        ->toContain('>front.jpg</a> (')
+        ->not->toContain('front.jpg, garden.jpg');
 
     actingAs(adminUser(Panel::ACCESS, 'cms.submissions.view', 'cms.submissions.delete'));
     get('/admin/cms/forms/apply/submissions')->assertInertia(fn ($page) => $page

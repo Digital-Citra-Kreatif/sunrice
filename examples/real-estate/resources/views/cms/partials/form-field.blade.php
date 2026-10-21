@@ -11,7 +11,9 @@
     $type ??= 'text';
     $labelKey = 'site.forms.fields.'.$handle;
     $label = $label ?? (__($labelKey) !== $labelKey ? __($labelKey) : \Illuminate\Support\Str::headline($handle));
-    $field = $type === 'select' ? collect($form->form->schema()->fields())->firstWhere('handle', $handle) : null;
+    $field = in_array($type, ['select', 'date'], true) ? collect($form->form->schema()->fields())->firstWhere('handle', $handle) : null;
+    // A date field set to "future only" in the blueprint: the browser offers today onwards.
+    $min = $type === 'date' && ($field?->config['future'] ?? false) === true ? now()->toDateString() : null;
 @endphp
 <div class="field {{ $class ?? '' }}">
     <label for="{{ $inputId }}">{{ $label }}@if ($required ?? false) <span aria-hidden="true" class="text-teal-700">*</span>@endif</label>
@@ -28,6 +30,7 @@
     @else
         <input id="{{ $inputId }}" type="{{ $type }}" name="data[{{ $handle }}]" value="{{ is_scalar($value) ? $value : '' }}" @required($required ?? false)
             @if ($autocomplete ?? null) autocomplete="{{ $autocomplete }}" @endif
+            @if ($min) min="{{ $min }}" @endif
             @if ($error) aria-invalid="true" aria-describedby="{{ $inputId }}-error" @endif>
     @endif
     @if ($error)
