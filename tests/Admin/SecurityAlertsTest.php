@@ -225,6 +225,9 @@ it('sends alerts to the roles and addresses chosen in Settings → Security', fu
     put('/admin/settings/security', ['twoFactor' => false, 'alertRoles' => ['ops'], 'alertEmails' => "night@example.com\nday@example.com"])->assertSessionHasNoErrors();
     put('/admin/settings/security', ['twoFactor' => false, 'alertRoles' => [], 'alertEmails' => 'not an address'])->assertSessionHasErrors('alertEmails');
     expect(app(SecuritySettings::class)->alertRoles)->toBe(['ops']);
+    // Roles as people read them, as on the Users and Roles pages.
+    Role::findOrCreate('site-manager', 'web');
+    expect(get('/admin/settings/security')->getContent())->toContain('Site manager')->not->toContain('"label":"site-manager"');
 
     config(['sunrice-admin.security.alerts.mass_deletes' => 1]);
     app(ActivityLog::class)->record('deleted', 'product', null, 'Mug');
