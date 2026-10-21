@@ -1,5 +1,5 @@
-import { router, usePage } from '@inertiajs/react';
-import { ChevronsUpDown, LogOut, Monitor, Moon, Sun } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { ChevronsUpDown, LogOut, Monitor, Moon, Sun, UserRound } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
@@ -27,7 +27,7 @@ function UserInfo({ user }: { user: User }) {
     );
 }
 
-/** The signed-in user at the foot of the sidebar: appearance (light, dark, system) and logging out. */
+/** The signed-in user at the foot of the sidebar: their account, appearance (light, dark, system) and logging out. */
 export function NavUser() {
     const { auth } = usePage<SharedProps>().props;
     const { isMobile, state } = useSidebar();
@@ -51,6 +51,10 @@ export function NavUser() {
                         <DropdownMenuLabel className="p-0 font-normal">
                             <div className="flex items-center gap-2 px-1 py-1.5"><UserInfo user={user} /></div>
                         </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href={adminUrl('account')}><UserRound /> Your account</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
                             <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Appearance</DropdownMenuLabel>

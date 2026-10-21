@@ -35,7 +35,7 @@ function rinaEvents(User $rina): array
 
 it('locks an account: its session ends, it can\'t log in, until unlocked', function () {
     actingAs($this->admin);
-    get('/admin/users')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->firstWhere('title', 'Rina')['actions'] === ['sign-out', 'revoke-tokens', 'lock', 'delete']
+    get('/admin/users')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->firstWhere('title', 'Rina')['actions'] === ['sign-out', 'invite', 'revoke-tokens', 'lock', 'delete']
         && collect($rows)->firstWhere('title', 'Rina')['cells']['locked'] === false
         && collect($rows)->firstWhere('title', 'Admin')['actions'] === ['sign-out', 'revoke-tokens']));
 

@@ -34,7 +34,11 @@ No email? Look in your spam folder, then click **Send a new code** (you can ask 
 
 Choosing a new password also signs you out on other computers where you ticked *Remember me*.
 
-There is no profile page: to change your name or email address, ask a site manager.
+### Your account
+
+To change your own name, email address or password, click your name at the foot of the sidebar and choose **Your account**. A new email address or password needs your **Current password**, and a new password is typed twice. Your roles are changed by a site manager.
+
+New to {panel}? Your site manager may have sent you an invitation: follow **Choose your password** in the email, type your password twice and log in. The link works for a limited time; after that, use **Forgot password?**.
 
 ## Finding your way around
 

@@ -9,9 +9,11 @@ The **Users** list shows each person's name, email address, roles, whether the a
 ### Adding someone
 
 1. Click **New user**.
-2. Under **Account**, type their **Name**, **Email** and a **Password**, and the password again in **Confirm password** (they can choose a new one later with *Forgot password?* on the login screen).
+2. Under **Account**, type their **Name** and **Email**. Then either type a **Password** and again in **Confirm password**, or leave it empty and turn on **Email an invitation**: they get an email with a link to choose their own password.
 3. Under **Roles**, tick their roles.
-4. Click **Create user**, then tell them the panel's address.
+4. Click **Create user**. Without an invitation, tell them the panel's address and their password.
+
+To send someone a new link to choose their password (an invitation that ran out, say), use **Email a password link** in the row's menu.
 
 The roles you can give are only those below your own (see [Who may manage whom](#who-may-manage-whom)).
 
@@ -19,7 +21,7 @@ The roles you can give are only those below your own (see [Who may manage whom](
 
 Click a user to change their name, email, password or roles. Leave **Password** empty to keep the current one; a new one is typed twice. Beside the form, the **Security** card shows whether the account is locked (when, by whom and why), when it was last signed in and from where, how many AI access tokens it has, what they own (**Owns**: their uploads, entries…), and its latest security events, with **See all in the activity log**.
 
-Everyone may edit their own name, email and password if they can open the Users screen, but nobody can change their own roles or delete their own account.
+Everyone changes their own name, email and password on **Your account** (under their name at the foot of the sidebar; see [Welcome](guide:panel/welcome#your-account)). Nobody can change their own roles or delete their own account.
 
 ## When an account may be in the wrong hands
 

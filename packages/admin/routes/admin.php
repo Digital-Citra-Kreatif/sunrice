@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Help\HelpPages;
+use Sunrice\Admin\Http\Controllers\AccountController;
 use Sunrice\Admin\Http\Controllers\ActivityController;
 use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Http\Controllers\EditLocksController;
@@ -36,6 +37,10 @@ Route::prefix('locks/{type}/{id}')->name('locks.')->controller(EditLocksControll
 });
 Route::get('kept-edits/{kept}', [EditLocksController::class, 'show'])->name('kept-edits.show');
 Route::delete('kept-edits/{kept}', [EditLocksController::class, 'destroy'])->name('kept-edits.destroy');
+
+// The signed-in user's own account: name, email and password; nobody else's.
+Route::get('account', [AccountController::class, 'edit'])->name('account.edit');
+Route::put('account', [AccountController::class, 'update'])->middleware('throttle:10,1')->name('account.update'); // limits guesses at the current password
 
 // The signed-in user's own preferences (useTablePreferences); nobody else's.
 Route::get('preferences/{key}', [PreferencesController::class, 'show'])->name('preferences.show')->where('key', Preferences::KEY_PATTERN);

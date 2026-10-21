@@ -9,9 +9,11 @@ Daftar **Users** menampilkan nama, alamat email, peran, apakah akun **Locked** (
 ### Menambahkan orang
 
 1. Klik **New user**.
-2. Di bagian **Account**, ketik **Name**, **Email**, dan **Password**, lalu kata sandi yang sama di **Confirm password** (mereka bisa memilih kata sandi baru nanti lewat *Forgot password?* di layar masuk).
+2. Di bagian **Account**, ketik **Name** dan **Email**. Lalu ketik **Password** dan sekali lagi di **Confirm password**, atau biarkan kosong dan nyalakan **Email an invitation**: mereka menerima email berisi tautan untuk memilih kata sandi sendiri.
 3. Di bagian **Roles**, centang perannya.
-4. Klik **Create user**, lalu beri tahu mereka alamat panel.
+4. Klik **Create user**. Tanpa undangan, beri tahu mereka alamat panel dan kata sandinya.
+
+Untuk mengirim tautan baru untuk memilih kata sandi (misalnya undangan yang sudah kedaluwarsa), pakai **Email a password link** di menu baris.
 
 Peran yang bisa Anda berikan hanya yang berada di bawah peran Anda sendiri (lihat [Siapa boleh mengelola siapa](#siapa-boleh-mengelola-siapa)).
 
@@ -19,7 +21,7 @@ Peran yang bisa Anda berikan hanya yang berada di bawah peran Anda sendiri (liha
 
 Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Password** kosong untuk mempertahankan kata sandi saat ini; kata sandi baru diketik dua kali. Di samping formulir, kartu **Security** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, apa saja miliknya (**Owns**: unggahan, entri…), dan kejadian keamanan terbarunya, dengan **See all in the activity log**.
 
-Setiap orang boleh mengubah nama, email, dan kata sandinya sendiri jika bisa membuka layar Users, tetapi tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
+Setiap orang mengubah nama, email, dan kata sandinya sendiri di **Your account** (di bawah namanya di bagian bawah bilah samping; lihat [Selamat datang](guide:panel/welcome#akun-anda)). Tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
 
 ## Jika akun mungkin jatuh ke tangan yang salah
 

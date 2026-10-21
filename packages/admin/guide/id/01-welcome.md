@@ -36,7 +36,11 @@ Email tidak datang? Periksa folder spam, lalu klik **Send a new code** (bisa dim
 
 Memilih kata sandi baru juga mengeluarkan Anda dari komputer lain tempat Anda mencentang *Remember me*.
 
-Tidak ada halaman profil: untuk mengubah nama atau alamat email, mintalah kepada pengelola situs.
+### Akun Anda
+
+Untuk mengubah nama, alamat email, atau kata sandi Anda sendiri, klik nama Anda di bagian bawah bilah samping dan pilih **Your account**. Alamat email atau kata sandi baru memerlukan kata sandi Anda saat ini (**Current password**), dan kata sandi baru diketik dua kali. Peran Anda diubah oleh pengelola situs.
+
+Baru di {panel}? Pengelola situs mungkin sudah mengirimi Anda undangan: ikuti **Choose your password** di email tersebut, ketik kata sandi Anda dua kali, lalu masuk. Tautannya berlaku untuk waktu terbatas; setelah itu, pakai **Forgot password?**.
 
 ## Mengenal tampilan panel
 

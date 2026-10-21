@@ -10,11 +10,13 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Traits\HasRoles;
 use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
 use Sunrice\Admin\Actions\Users\DeleteUser;
+use Sunrice\Admin\Actions\Users\InviteUser;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Auth\LoginThrottle;
@@ -27,6 +29,7 @@ use Sunrice\Admin\Resources\Forms\Password;
 use Sunrice\Admin\Resources\Forms\Section;
 use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Resources\Forms\TextInput;
+use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Resources\Tables\Action;
 use Sunrice\Admin\Resources\Tables\ActionFailed;
@@ -106,8 +109,20 @@ class UserResource extends Resource
             Section::make('Account')->columns(2)->schema([
                 TextInput::make('name')->required(),
                 TextInput::make('email')->email()->required()->unique(),
-                Password::make('password')->required()->confirmed()->span(2)
-                    ->help('When editing, leave it empty to keep the current password.'),
+                // Creating: a password, or none and an invitation to choose one.
+                Password::make('password')->onlyOnCreate()->confirmed()->span(2)
+                    ->rules(['required_unless:invite,true,1'])
+                    ->help('Or leave it empty and email them an invitation to choose their own.'),
+                Toggle::make('invite')->label('Email an invitation')->onlyOnCreate()->span(2)
+                    ->help('A link to choose their password, sent to their email address. It works for as long as password reset links do.')
+                    ->saveUsing(function (Model $user, mixed $invite): void {
+                        if (filter_var($invite, FILTER_VALIDATE_BOOL)) {
+                            $actor = auth(app(Panel::class)->getGuard())->user();
+                            app(InviteUser::class)->handle($user, $actor instanceof Model ? $actor : null);
+                        }
+                    }),
+                Password::make('password')->onlyOnEdit()->confirmed()->span(2)
+                    ->help('Leave it empty to keep the current password.'),
             ]),
             Section::make('Roles')->description('What the user may do in the panel. You can give out roles with less access than yours, and together they must leave the user with less than yours.')->schema([
                 static::rolesField(),
@@ -136,6 +151,15 @@ class UserResource extends Resource
                         $deleted = app(AccountGuard::class)->signOutEverywhere($user);
 
                         return 'Signed out everywhere'.($deleted === null ? '.' : " ({$deleted} ".($deleted === 1 ? 'session' : 'sessions').' ended).');
+                    }),
+                Action::make('invite')->label('Email a password link')
+                    ->confirm('Email this user a link to choose a new password? Their current password keeps working until they do.')
+                    ->visible(fn (Model $user) => ! static::isCurrentUser($user) && ! app(AccountGuard::class)->isLocked($user))
+                    ->handle(function (Model $user): string {
+                        $actor = auth(app(Panel::class)->getGuard())->user();
+                        app(InviteUser::class)->handle($user, $actor instanceof Model ? $actor : null);
+
+                        return 'A password link is on its way to '.static::title($user).'.';
                     }),
                 Action::make('revoke-tokens')->label('Revoke AI tokens')
                     ->confirm('Revoke all of this user\'s AI access tokens? AI agents using them stop working at once.')
@@ -305,6 +329,15 @@ class UserResource extends Resource
             $mode === DeleteUser::DELETE => " Their {$what} got deleted".(isset($counts['uploads']) ? ', apart from uploads, which stay without an uploader.' : '.'),
             default => " Their {$what} have no owner now.",
         };
+    }
+
+    /** A new user starts with an unguessable password, so one created with an invitation has one. */
+    public static function newRecord(): Model
+    {
+        $user = parent::newRecord();
+        $user->setAttribute('password', Hash::make(Str::random(40)));
+
+        return $user;
     }
 
     public static function deleteRecord(Model $record): void
