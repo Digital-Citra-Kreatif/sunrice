@@ -164,10 +164,10 @@ it('exports submissions as CSV safe for spreadsheets, with the export permission
 it('manages forms in Structure → Forms', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.forms.view', 'cms.forms.create', 'cms.forms.update'));
 
-    post('/admin/forms', ['title' => 'Quote', 'handle' => 'quote', 'blueprint' => 'contact', 'notify' => "a@example.com\nb@example.com"])->assertSessionHasNoErrors();
+    post('/admin/cms/forms', ['title' => 'Quote', 'handle' => 'quote', 'blueprint' => 'contact', 'notify' => "a@example.com\nb@example.com"])->assertSessionHasNoErrors();
     expect(Form::query()->where('handle', 'quote')->sole()->notify)->toBe(['a@example.com', 'b@example.com']);
 
-    post('/admin/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify' => 'not-an-email'])->assertSessionHasErrors('notify');
+    post('/admin/cms/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify' => 'not-an-email'])->assertSessionHasErrors('notify');
 });
 
 it('takes markup of the template\'s own in a slot, with this form\'s errors and old input only', function () {
@@ -246,7 +246,19 @@ it('emails the members of the form\'s roles too, once each', function () {
     Mail::assertQueued(SubmissionReceived::class, fn (SubmissionReceived $mail) => $mail->hasTo('seller@example.com'));
 
     actingAs(adminUser(Panel::ACCESS, 'cms.forms.view', 'cms.forms.create', 'cms.forms.update'));
-    post('/admin/forms', ['title' => 'Quote', 'handle' => 'quote', 'blueprint' => 'contact', 'notify_roles' => ['sales']])->assertSessionHasNoErrors();
+    post('/admin/cms/forms', ['title' => 'Quote', 'handle' => 'quote', 'blueprint' => 'contact', 'notify_roles' => ['sales']])->assertSessionHasNoErrors();
     expect(Form::query()->where('handle', 'quote')->sole()->notify_roles)->toBe(['sales']);
-    post('/admin/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify_roles' => ['nobody']])->assertSessionHasErrors('notify_roles.0');
+    post('/admin/cms/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify_roles' => ['nobody']])->assertSessionHasErrors('notify_roles.0');
+});
+
+it('offers to create a form when there are none, to those who may', function () {
+    Submission::query()->delete();
+    Form::query()->delete();
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.submissions.view', 'cms.forms.create'));
+    get('/admin/cms/submissions')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('Cms/Submissions/Index', shouldExist: false)->where('form', null)->where('createForm', '/admin/cms/forms/create'));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.submissions.view'));
+    get('/admin/cms/submissions')->assertInertia(fn (Assert $page) => $page->where('createForm', null));
 });

@@ -50,7 +50,7 @@ it('guards every entry route by its permission', function () {
     editor('view');
 
     get('/admin/cms/collections/articles/entries')->assertOk();
-    get("/admin/cms/entries/{$entry->id}/edit")->assertOk();
+    get(entryEditUrl($entry->id))->assertOk();
     get('/admin/cms/collections/articles/entries/create')->assertForbidden();
     post('/admin/cms/collections/articles/entries', ['title' => 'X'])->assertForbidden();
     put("/admin/cms/entries/{$entry->id}", ['title' => 'X'])->assertForbidden();
@@ -91,7 +91,7 @@ it('lists entries, newest first in a dated collection, with search and the trash
     get('/admin/cms/collections/articles/entries?search=old')->assertInertia(fn (Assert $page) => $page->where('entries.total', 1));
     get('/admin/cms/collections/articles/entries?search=OLDER')->assertInertia(fn (Assert $page) => $page->where('entries.total', 1));
     get('/admin/cms/collections/articles/entries?search=%25')->assertInertia(fn (Assert $page) => $page->where('entries.total', 0));
-    get('/admin/cms/collections/articles/entries?trashed=1')->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/collections/articles/entries?status=trashed')->assertInertia(fn (Assert $page) => $page
         ->where('entries.total', 1)->where('entries.data.0.title', 'Gone'));
 });
 
@@ -99,14 +99,14 @@ it('creates an entry from the editor', function () {
     editor('view', 'create');
 
     get('/admin/cms/collections/articles/entries/create')->assertInertia(fn (Assert $page) => $page
-        ->component('Cms/Entries/Editor', shouldExist: false)
+        ->component('Cms/Entries/Edit', shouldExist: false)
         ->where('entry', null)
         ->where('values.data', ['intro' => null, 'featured' => false])
         ->where('fields.0.handle', 'intro'));
 
     post('/admin/cms/collections/articles/entries', ['title' => 'Hello', 'data' => ['intro' => '']])->assertSessionHasErrors('data.intro');
     post('/admin/cms/collections/articles/entries', ['title' => 'Hello', 'data' => ['intro' => 'Hi']])
-        ->assertRedirect('/admin/cms/entries/1/edit');
+        ->assertRedirect('/admin/cms/collections/articles/entries/1/edit');
 
     expect(EntryTranslation::query()->firstOrFail()->only(['draft_title', 'draft_slug', 'status']))
         ->toBe(['draft_title' => 'Hello', 'draft_slug' => 'hello', 'status' => 'draft']);
@@ -118,7 +118,7 @@ it('opens an entry with its draft, status and revisions', function () {
     editor('view');
     config(['inertia.testing.ensure_pages_exist' => false]); // the deferred reload looks for a page file: the CMS's are bundled
 
-    get("/admin/cms/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => $page
         ->where('entry.status', 'published')
         ->where('entry.hasUnpublishedChanges', true)
         ->where('entry.version', 3)
@@ -135,7 +135,7 @@ it('opens an entry whose blocks may hold themselves', function () {
     $translation = draft(data: ['sections' => [['type' => 'section', 'values' => ['parts' => [['type' => 'section', 'values' => []]]]]]]);
     editor('view');
 
-    get("/admin/cms/entries/{$translation->entry_id}/edit")->assertOk()->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($translation->entry_id))->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('fields.0.blocks.0.fields.0.blocks.0.label', 'Section')
         ->where('values.data.sections.0.values.parts.0.type', 'section'));
 });
@@ -170,6 +170,11 @@ it('publishes on a date, and unpublishes', function () {
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-10-25 08:00'])->assertSessionHas('success', fn ($m) => str_starts_with($m, 'Scheduled for'));
     expect($translation->fresh()?->isPublished())->toBeTrue()->and($translation->fresh()?->isLive())->toBeFalse();
 
+    // A live entry's date changes, back in time too, and it stays live.
+    post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-10-19 08:00'])->assertSessionHas('success', 'Published.');
+    post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-01-02 10:30'])->assertSessionHas('success', 'Published.');
+    expect($translation->fresh()?->published_at?->format('Y-m-d H:i'))->toBe('2026-01-02 10:30')->and($translation->fresh()?->isLive())->toBeTrue();
+
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => 'whenever'])->assertSessionHasErrors('published_at');
     post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHasNoErrors();
     expect($translation->fresh()?->status)->toBe('draft');
@@ -181,7 +186,7 @@ it('trashes and restores', function () {
 
     delete("/admin/cms/entries/{$entry->id}")->assertRedirect('/admin/cms/collections/articles/entries');
     expect(Entry::withTrashed()->find($entry->id)?->trashed())->toBeTrue();
-    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page->where('entry.trashed', true));
+    get(entryEditUrl($entry->id))->assertInertia(fn (Assert $page) => $page->where('entry.trashed', true));
 
     post("/admin/cms/entries/{$entry->id}/restore")->assertSessionHasNoErrors();
     expect($entry->fresh()?->trashed())->toBeFalse();
@@ -192,7 +197,7 @@ it('restores a revision into the draft', function () {
     app(SaveDraft::class)->handle($translation, ['title' => 'Changed']);
     editor('view', 'update');
 
-    post('/admin/cms/revisions/'.$translation->revisions()->firstOrFail()->id.'/restore')->assertSessionHasNoErrors();
+    post("/admin/cms/entries/{$translation->entry_id}/revisions/".$translation->revisions()->firstOrFail()->id.'/restore')->assertSessionHasNoErrors();
 
     expect($translation->fresh()?->draft_title)->toBe('Hello');
 });
@@ -203,7 +208,7 @@ it('hides entries of a deleted collection', function () {
     editor('view');
 
     get('/admin/cms/collections/articles/entries')->assertNotFound();
-    get("/admin/cms/entries/{$entry->id}/edit")->assertNotFound();
+    get(entryEditUrl($entry->id))->assertNotFound();
 });
 
 it('shows the entry\'s comments in the editor, to those who may see them', function () {
@@ -217,10 +222,10 @@ it('shows the entry\'s comments in the editor, to those who may see them', funct
     Comment::query()->create(['entry_id' => $other->id, 'author_name' => 'Elsewhere', 'body' => 'Not here', 'status' => 'pending', 'locale' => 'en']);
 
     editor('view');
-    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page->where('comments', null));
+    get(entryEditUrl($entry->id))->assertInertia(fn (Assert $page) => $page->where('comments', null));
 
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.comments.view'));
-    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($entry->id))->assertInertia(fn (Assert $page) => $page
         ->missing('comments')
         ->loadDeferredProps(fn (Assert $reload) => $reload
             ->where('comments.counts', ['pending' => 1, 'approved' => 2, 'spam' => 1])
@@ -230,7 +235,7 @@ it('shows the entry\'s comments in the editor, to those who may see them', funct
 
     // Not when the collection takes no comments.
     $this->articles->update(['comments' => false]);
-    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page->where('comments', null));
+    get(entryEditUrl($entry->id))->assertInertia(fn (Assert $page) => $page->where('comments', null));
     // The comments page, filtered to the entry.
     actingAs(adminUser(Panel::ACCESS, 'cms.comments.view'));
     get("/admin/cms/comments?entry={$entry->id}")->assertInertia(fn (Assert $page) => $page->where('filters.entry', $entry->id)->has('comments.data', 3));
@@ -246,21 +251,21 @@ it('sends terms fields their taxonomy and the chosen terms\' titles, and the pic
     $entry = draft(data: ['topics' => [$local->id]])->entry;
     editor('view');
 
-    get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($entry->id))->assertInertia(fn (Assert $page) => $page
         ->where('fields.0.taxonomy', 'topics')->missing('fields.0.terms')
         ->where('termLabels', [(string) $local->id => 'Local']));
 
-    $this->getJson('/admin/cms/term-picker?taxonomy=topics')->assertOk()->assertExactJson(['items' => [
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics')->assertOk()->assertExactJson(['items' => [
         ['id' => $news->id, 'label' => 'News', 'depth' => 0], ['id' => $local->id, 'label' => 'Local', 'depth' => 1], ['id' => $sport->id, 'label' => 'Sport', 'depth' => 0],
     ], 'more' => false]);
-    $this->getJson('/admin/cms/term-picker?taxonomy=topics&q=spo')->assertJsonPath('items', [['id' => $sport->id, 'label' => 'Sport', 'depth' => 0]]);
-    $this->getJson("/admin/cms/term-picker?taxonomy=other&ids[]={$sport->id}")->assertJsonPath('items', []);
-    $this->getJson("/admin/cms/term-picker?taxonomy=topics&ids[]={$sport->id}")->assertJsonPath('items.0.label', 'Sport');
-    $this->getJson('/admin/cms/term-picker?taxonomy=nope')->assertNotFound();
-    $this->getJson('/admin/cms/term-picker')->assertUnprocessable();
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics&q=spo')->assertJsonPath('items', [['id' => $sport->id, 'label' => 'Sport', 'depth' => 0]]);
+    $this->getJson("/admin/cms/terms/picker?taxonomy=other&ids[]={$sport->id}")->assertJsonPath('items', []);
+    $this->getJson("/admin/cms/terms/picker?taxonomy=topics&ids[]={$sport->id}")->assertJsonPath('items.0.label', 'Sport');
+    $this->getJson('/admin/cms/terms/picker?taxonomy=nope')->assertNotFound();
+    $this->getJson('/admin/cms/terms/picker')->assertUnprocessable();
 
     actingAs(adminUser(Panel::ACCESS));
-    $this->getJson('/admin/cms/term-picker?taxonomy=topics')->assertForbidden();
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics')->assertForbidden();
 });
 
 it('keeps the editor to a query budget', function () {
@@ -276,7 +281,7 @@ it('keeps the editor to a query budget', function () {
         app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($translation->fresh(), ['title' => "Version {$i}"]));
     }
     editor('view', 'update');
-    $url = "/admin/cms/entries/{$translation->entry_id}/edit";
+    $url = entryEditUrl($translation->entry_id);
     get($url)->assertOk(); // warms the caches
 
     DB::flushQueryLog();

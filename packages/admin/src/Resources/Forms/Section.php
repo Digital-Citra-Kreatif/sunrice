@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources\Forms;
 
+use Sunrice\Admin\Support\Say;
+
 /**
  * A titled card of fields, laid out in a grid:
  * Section::make('Pricing')->columns(2)->schema([...]).
@@ -61,6 +63,6 @@ final class Section implements Component
     /** @return array<string, mixed> */
     public function toArray(): array
     {
-        return ['kind' => 'section', 'title' => $this->title, 'description' => $this->description, 'columns' => $this->columns];
+        return ['kind' => 'section', 'title' => Say::it($this->title), 'description' => Say::it($this->description), 'columns' => $this->columns];
     }
 }

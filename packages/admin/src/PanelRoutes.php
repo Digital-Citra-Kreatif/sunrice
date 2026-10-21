@@ -18,6 +18,7 @@ use Sunrice\Admin\Http\Middleware\HandleInertiaRequests;
 use Sunrice\Admin\Http\Middleware\PanelSecurityHeaders;
 use Sunrice\Admin\Http\Middleware\RecordRefusedPages;
 use Sunrice\Admin\Http\Middleware\RedirectIfAuthenticated;
+use Sunrice\Admin\Http\Middleware\SetPanelLocale;
 use Sunrice\Admin\Resources\Http\ResourceController;
 use Sunrice\Admin\Resources\RegisteredResource;
 
@@ -33,7 +34,7 @@ final class PanelRoutes
     /** @return list<string|class-string> */
     public static function middleware(Panel $panel): array
     {
-        return ['web', PanelSecurityHeaders::class, HandleInertiaRequests::class, RecordRefusedPages::class, ...$panel->getMiddleware()];
+        return ['web', SetPanelLocale::class, PanelSecurityHeaders::class, HandleInertiaRequests::class, RecordRefusedPages::class, ...$panel->getMiddleware()];
     }
 
     /** Route names reachable without Panel::ACCESS: the guest pages, logout and the lettermark icon. */
@@ -50,29 +51,37 @@ final class PanelRoutes
         return [Authenticate::class, EnsureAccountActive::class, EnsureCanAccessPanel::class];
     }
 
-    /** The routes of one resource: "/admin/products", named "sunrice.admin.resources.products.*". */
+    /**
+     * The routes of one resource: "/admin/products" (a plugin's
+     * "/admin/shop/products"), named "sunrice.admin.products.*"
+     * ("sunrice.admin.shop.products.*"). Records are addressed by
+     * Resource::recordKey().
+     */
     private static function resource(RegisteredResource $resource): void
     {
         $key = $resource->key();
-        Route::prefix($key)->name("resources.{$key}.")->group(function () use ($key): void {
+        Route::prefix($resource->path())->name($resource->routeArea().'.')->group(function () use ($key, $resource): void {
             $routes = [
                 Route::get('/', [ResourceController::class, 'index'])->name('index'),
                 Route::get('create', [ResourceController::class, 'create'])->name('create'),
                 Route::post('/', [ResourceController::class, 'store'])->name('store'),
                 Route::get('export', [ResourceController::class, 'export'])->name('export'),
-                Route::post('bulk/{action}', [ResourceController::class, 'bulk'])->name('bulk'),
+                // The action ("delete", or a bulk action's key) and "ids" in the body.
+                Route::post('bulk', [ResourceController::class, 'bulk'])->name('bulk'),
+                // What a relation field may choose: "/admin/shop/products/options/category?q=".
+                Route::get('options/{field}', [ResourceController::class, 'options'])->name('options'),
                 Route::get('{record}/edit', [ResourceController::class, 'edit'])->name('edit'),
                 Route::put('{record}', [ResourceController::class, 'update'])->name('update'),
                 Route::delete('{record}', [ResourceController::class, 'destroy'])->name('destroy'),
                 Route::post('{record}/actions/{action}', [ResourceController::class, 'action'])->name('action'),
             ];
+            if ($resource->softDeletes()) {
+                $routes[] = Route::post('{record}/restore', [ResourceController::class, 'restore'])->name('restore');
+            }
             foreach ($routes as $route) {
                 $route->defaults('resource', $key);
             }
         });
-        // What a relation field may choose: "/admin/resources/products/options/category?q=".
-        Route::get("resources/{$key}/options/{field}", [ResourceController::class, 'options'])
-            ->name("resources.{$key}.options")->defaults('resource', $key);
     }
 
     public static function register(Panel $panel): void

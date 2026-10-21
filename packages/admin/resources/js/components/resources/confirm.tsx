@@ -8,6 +8,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { FieldInput, type FieldValue } from './fields';
 import type { FieldInfo } from './types';
+import { t } from '@/lib/i18n';
 
 /** What a dialog with fields runs: resolves to whether it succeeded (the dialog stays open otherwise). */
 export type ConfirmRun = (values: Record<string, FieldValue>) => void | Promise<boolean>;
@@ -35,7 +36,7 @@ export function useConfirm(): [(question: string | null, run: ConfirmRun, destru
             void run({});
         } else {
             setValues(Object.fromEntries(fields.map((field) => [field.name, (field.default as FieldValue | undefined) ?? null])));
-            setPending({ question: question ?? 'Are you sure?', run, destructive, fields });
+            setPending({ question: question ?? t('Are you sure?'), run, destructive, fields });
         }
     }, []);
 
@@ -56,7 +57,7 @@ export function useConfirm(): [(question: string | null, run: ConfirmRun, destru
         <AlertDialog open={pending !== null} onOpenChange={(open) => !open && !busy && setPending(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
                     <AlertDialogDescription>{pending?.question}</AlertDialogDescription>
                 </AlertDialogHeader>
                 {pending && pending.fields.length > 0 && (
@@ -76,15 +77,15 @@ export function useConfirm(): [(question: string | null, run: ConfirmRun, destru
                     </div>
                 )}
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel disabled={busy}>{t('Cancel')}</AlertDialogCancel>
                     {pending && pending.fields.length > 0 ? (
-                        <Button variant={pending.destructive ? 'destructive' : 'default'} disabled={busy} onClick={() => void submit()}>Continue</Button>
+                        <Button variant={pending.destructive ? 'destructive' : 'default'} disabled={busy} onClick={() => void submit()}>{t('Continue')}</Button>
                     ) : (
                         <AlertDialogAction
                             className={pending?.destructive ? buttonVariants({ variant: 'destructive' }) : undefined}
                             onClick={() => void submit()}
                         >
-                            Continue
+                            {t('Continue')}
                         </AlertDialogAction>
                     )}
                 </AlertDialogFooter>

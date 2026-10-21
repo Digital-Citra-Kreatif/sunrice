@@ -88,21 +88,22 @@ it('edits globals in the admin', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.globals.view'));
 
-    get('/admin/cms/globals')->assertInertia(fn (Assert $page) => $page->component('Cms/Globals/Index', shouldExist: false)->where('sets.0.handle', 'contact'));
-    get('/admin/cms/globals/contact?locale=id')->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/globals')->assertInertia(fn (Assert $page) => $page->component('Resources/Index', shouldExist: false)
+        ->where('rows.data.0.key', 'contact')->where('rows.data.0.url', url('/admin/cms/globals/contact/values')));
+    get('/admin/cms/globals/contact/values?locale=id')->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Globals/Edit', shouldExist: false)
         ->where('locale', 'id')->where('shared', ['phone', 'open_weekends'])->where('version', null)->where('can.update', false));
-    put('/admin/cms/globals/contact', ['data' => ['address' => 'x']])->assertForbidden();
+    put('/admin/cms/globals/contact/values', ['data' => ['address' => 'x']])->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.update'));
-    put('/admin/cms/globals/contact', ['data' => ['address' => ''], 'locale' => 'en'])->assertSessionHasErrors('data.address');
-    put('/admin/cms/globals/contact', ['data' => ['address' => '1 Main St'], 'locale' => 'en'])->assertSessionHasNoErrors();
+    put('/admin/cms/globals/contact/values', ['data' => ['address' => ''], 'locale' => 'en'])->assertSessionHasErrors('data.address');
+    put('/admin/cms/globals/contact/values', ['data' => ['address' => '1 Main St'], 'locale' => 'en'])->assertSessionHasNoErrors();
     expect($this->contact->values()->firstOrFail()->data['address'])->toBe('1 Main St');
-    get('/admin/cms/globals/contact')->assertInertia(fn (Assert $page) => $page->where('version', 1));
-    put('/admin/cms/globals/contact', ['data' => ['address' => '2 Main St'], 'locale' => 'en', 'version' => 1])->assertSessionHasNoErrors();
-    put('/admin/cms/globals/contact', ['data' => ['address' => 'Stale'], 'locale' => 'en', 'version' => 1])->assertSessionHasErrors('version');
+    get('/admin/cms/globals/contact/values')->assertInertia(fn (Assert $page) => $page->where('version', 1));
+    put('/admin/cms/globals/contact/values', ['data' => ['address' => '2 Main St'], 'locale' => 'en', 'version' => 1])->assertSessionHasNoErrors();
+    put('/admin/cms/globals/contact/values', ['data' => ['address' => 'Stale'], 'locale' => 'en', 'version' => 1])->assertSessionHasErrors('version');
 
-    actingAs(adminUser(Panel::ACCESS, 'cms.global-sets.view', 'cms.global-sets.create'));
-    post('/admin/global-sets', ['title' => 'Social', 'handle' => 'social'])->assertSessionHasNoErrors();
+    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create'));
+    post('/admin/cms/globals', ['title' => 'Social', 'handle' => 'social'])->assertSessionHasNoErrors();
     expect(GlobalSet::query()->where('handle', 'social')->exists())->toBeTrue();
 });

@@ -12,6 +12,7 @@ use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Support\Branding;
+use Sunrice\Admin\Support\PanelLocale;
 
 /**
  * Inertia for the panel's pages: its root view, its asset version and the
@@ -42,6 +43,9 @@ final class HandleInertiaRequests extends Middleware
                 'branding' => $branding,
                 'path' => '/'.$this->panel->getPath(),
                 'bundles' => array_values(array_map(fn (PluginBundle $bundle) => $bundle->toArray(), $this->panel->getBundles())),
+                // The panel's language and those to pick from (the words themselves are in the page, PanelLocale::dictionary()).
+                'locale' => app()->getLocale(),
+                'locales' => PanelLocale::available(),
             ],
             'auth' => fn (): array => [
                 'user' => $user === null ? null : [
@@ -76,6 +80,9 @@ final class HandleInertiaRequests extends Middleware
             $request->attributes->set('sunrice.flash_id', $id);
         }
 
-        return ['id' => $id, 'success' => $success, 'error' => $error];
+        // A message given as an English sentence is said in the panel's language.
+        $say = fn (mixed $message): mixed => is_string($message) ? __($message) : $message;
+
+        return ['id' => $id, 'success' => $say($success), 'error' => $say($error)];
     }
 }

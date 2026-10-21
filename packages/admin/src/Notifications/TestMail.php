@@ -26,9 +26,9 @@ final class TestMail extends Notification
     public function toMail(mixed $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("Test email from {$this->brand}")
-            ->line("This is a test email from the {$this->brand} admin panel.")
-            ->line('If you can read it, outgoing mail works: login codes, password resets and security alerts can be delivered.')
-            ->salutation("Regards,  \n{$this->brand}");
+            ->subject(__('Test email from :brand', ['brand' => $this->brand]))
+            ->line(__('This is a test email from the :brand admin panel.', ['brand' => $this->brand]))
+            ->line(__('If you can read it, outgoing mail works: login codes, password resets and security alerts can be delivered.'))
+            ->salutation(__('Regards,')."  \n{$this->brand}");
     }
 }

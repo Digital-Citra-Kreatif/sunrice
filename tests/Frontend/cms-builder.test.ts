@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    errorsAt, errorsUnder, fromDefinitions, handleFromLabel, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
+    cleanHandle, errorsAt, errorsUnder, fromDefinitions, handleFromLabel, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -70,4 +70,12 @@ test('gives a value its own error and those under it', () => {
 
     assert.deepEqual(errorsAt(errors, 'config.options'), { '': 'Required.', '0.value': 'Too long.' });
     assert.deepEqual(errorsAt(errors, 'config.max'), {});
+});
+
+test('keeps a typed handle to what a handle may hold', () => {
+    assert.equal(cleanHandle('textareaqwataSSS'), 'textareaqwatasss');
+    assert.equal(cleanHandle('Hero Image'), 'hero_image');
+    assert.equal(cleanHandle('2nd-title'), 'nd_title');
+    assert.equal(cleanHandle('café  menu!'), 'cafe_menu_');
+    assert.equal(cleanHandle('hero_'), 'hero_');
 });

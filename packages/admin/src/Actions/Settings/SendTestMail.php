@@ -29,7 +29,7 @@ final class SendTestMail
     {
         $key = 'sunrice-test-mail|'.$limitKey;
         if (RateLimiter::tooManyAttempts($key, self::PER_MINUTE)) {
-            throw new ActionFailed('Too many test emails. Try again in '.max(1, RateLimiter::availableIn($key)).' seconds.');
+            throw new ActionFailed(__('Too many test emails. Try again in :seconds seconds.', ['seconds' => max(1, RateLimiter::availableIn($key))]));
         }
         RateLimiter::hit($key, 60);
 
@@ -38,11 +38,11 @@ final class SendTestMail
         } catch (Throwable $e) {
             report($e);
 
-            throw new ActionFailed('Sending failed: '.$e->getMessage());
+            throw new ActionFailed(__('Sending failed: :error', ['error' => $e->getMessage()]));
         }
 
         return MailSettings::info()['delivers']
-            ? "Test email sent to {$email}. Check the inbox (and the spam folder)."
-            : "Test email for {$email} written to the log: the current mailer doesn't deliver email.";
+            ? __('Test email sent to :email. Check the inbox (and the spam folder).', ['email' => $email])
+            : __('Test email for :email written to the log: the current mailer doesn\'t deliver email.', ['email' => $email]);
     }
 }

@@ -13,18 +13,24 @@ export function formatBytes(bytes: number): string {
     return `${value >= 10 ? Math.round(value) : Math.round(value * 10) / 10} ${units[unit]}`;
 }
 
+/** Says a message in the user's language: pass `t` from '@/lib/i18n' (this file can't import it, for the node tests). */
+export type Say = (text: string, replace?: Record<string, string>) => string;
+
+/** The English, with Laravel-style :placeholders filled in. */
+const english: Say = (text, replace = {}) => Object.entries(replace).reduce((out, [name, value]) => out.replaceAll(`:${name}`, value), text);
+
 /**
  * Why a file can't be uploaded, checked before sending it (the server
  * checks again): too large, or an extension that isn't accepted.
  */
-export function uploadProblem(file: { name: string; size: number }, maxKb: number, accept: string): string | null {
+export function uploadProblem(file: { name: string; size: number }, maxKb: number, accept: string, say: Say = english): string | null {
     const extension = file.name.includes('.') ? `.${file.name.split('.').pop()!.toLowerCase()}` : '';
     const accepted = accept.split(',').map((ext) => ext.trim().toLowerCase()).filter(Boolean);
     if (accepted.length > 0 && !accepted.includes(extension)) {
-        return extension === '' ? 'Files without an extension can\'t be uploaded.' : `${extension} files can't be uploaded.`;
+        return extension === '' ? say('Files without an extension can\'t be uploaded.') : say(':extension files can\'t be uploaded.', { extension });
     }
     if (file.size > maxKb * 1024) {
-        return `Larger than the ${formatBytes(maxKb * 1024)} limit.`;
+        return say('Larger than the :size limit.', { size: formatBytes(maxKb * 1024) });
     }
     return null;
 }

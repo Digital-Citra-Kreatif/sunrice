@@ -24,13 +24,13 @@ final class SaveMediaFolder
     {
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 100) {
-            throw ValidationException::withMessages(['name' => 'Give the folder a name of up to 100 characters.']);
+            throw ValidationException::withMessages(['name' => __('Give the folder a name of up to 100 characters.')]);
         }
         $parentId = $folder !== null ? $folder->parent_id : $parent?->id;
         $taken = MediaFolder::query()->where('parent_id', $parentId)->where('name', $name)
             ->when($folder !== null, fn (Builder $query) => $query->whereKeyNot($folder?->id))->exists();
         if ($taken) {
-            throw ValidationException::withMessages(['name' => "There is already a folder called \"{$name}\" here."]);
+            throw ValidationException::withMessages(['name' => __('There is already a folder called ":name" here.', ['name' => $name])]);
         }
 
         $folder ??= new MediaFolder(['parent_id' => $parentId]);

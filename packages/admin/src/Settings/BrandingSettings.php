@@ -110,13 +110,13 @@ final class BrandingSettings extends Settings
                 TextInput::make('name')->label('Panel name')->maxLength(60)->placeholder(app(Panel::class)->getBrand()),
                 TextInput::make('tagline')->maxLength(80)->placeholder('Shown under the name'),
                 MediaPicker::make('logo')->images()
-                    ->help('A square SVG or PNG works best. Without one, the sidebar shows the name\'s first letter.'),
+                    ->help('A square SVG or PNG. Empty: the name\'s first letter.'),
                 Select::make('font')->options($fonts)->placeholder('Default')
-                    ->help('The typeface of the admin. Empty: the default font.'),
+                    ->help('Empty: the default.'),
                 TextInput::make('color')->label('Brand colour')->color()->placeholder('#1e66f5')
-                    ->help('Buttons, the active menu item and focus rings. Text on it turns black or white, whichever reads better. Empty: neutral.'),
+                    ->help('Buttons, the active menu item and focus rings. Empty: neutral.'),
                 MediaPicker::make('favicon')->label('Browser icon')->images()
-                    ->help('The icon in browser tabs and bookmarks: a square ICO, PNG or SVG. Empty: a square logo, else the name\'s first letter on the brand colour.'),
+                    ->help('A square ICO, PNG or SVG. Empty: the logo or the name\'s first letter.'),
             ]),
             Section::make('Sign-in page')->description('Texts left empty keep the built-in wording.')->columns(2)->schema([
                 Select::make('loginLayout')->label('Layout')->options(self::LOGIN_LAYOUTS)->required(),

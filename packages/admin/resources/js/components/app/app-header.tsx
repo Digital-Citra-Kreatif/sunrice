@@ -10,6 +10,7 @@ import { setCommandPaletteOpen } from '@/components/app/command-palette';
 import { adminUrl } from '@/lib/admin-url';
 import { navigationCrumbs } from '@/lib/nav-match';
 import type { SharedProps } from '@/types';
+import { t } from '@/lib/i18n';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -40,9 +41,9 @@ export function AppHeader() {
                     ))}
                 </BreadcrumbList>
             </Breadcrumb>
-            <Button variant="outline" size="sm" className="ml-auto gap-2 text-muted-foreground" onClick={() => setCommandPaletteOpen(true)} aria-label="Go to a page or search" aria-keyshortcuts="Meta+K Control+K">
+            <Button variant="outline" size="sm" className="ml-auto gap-2 text-muted-foreground" onClick={() => setCommandPaletteOpen(true)} aria-label={t('Go to a page or search')} aria-keyshortcuts="Meta+K Control+K">
                 <Search />
-                <span className="hidden sm:inline">Go to…</span>
+                <span className="hidden sm:inline">{t('Go to…')}</span>
                 <kbd className="hidden rounded border border-border/70 bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground sm:inline">{isMac ? '⌘' : 'Ctrl'} K</kbd>
             </Button>
         </header>

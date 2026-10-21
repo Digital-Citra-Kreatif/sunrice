@@ -59,7 +59,7 @@ final class Card
     /** A highlighted line: `info`, `warning` or `danger`, with optional smaller text under it. */
     public function notice(string $text, string $tone = self::INFO, ?string $detail = null): self
     {
-        $this->blocks[] = ['type' => 'notice', 'text' => $text, 'tone' => in_array($tone, [self::INFO, self::WARNING, self::DANGER], true) ? $tone : self::INFO, 'detail' => $detail];
+        $this->blocks[] = ['type' => 'notice', 'text' => Say::it($text), 'tone' => in_array($tone, [self::INFO, self::WARNING, self::DANGER], true) ? $tone : self::INFO, 'detail' => Say::it($detail)];
 
         return $this;
     }
@@ -75,7 +75,7 @@ final class Card
         $out = [];
         foreach ($rows as $label => $value) {
             if ($value !== null) {
-                $out[] = ['label' => $label, ...self::value($value)];
+                $out[] = ['label' => Say::it($label), ...self::value($value)];
             }
         }
         if ($out !== []) {
@@ -98,14 +98,14 @@ final class Card
             $at = $item['at'] ?? null;
             $out[] = ['label' => $item['label'], 'meta' => $item['meta'] ?? null, 'at' => $at === null ? null : Carbon::instance($at)->toIso8601String()];
         }
-        $this->blocks[] = ['type' => 'list', 'heading' => $heading, 'items' => $out, 'empty' => $empty];
+        $this->blocks[] = ['type' => 'list', 'heading' => Say::it($heading), 'items' => $out, 'empty' => Say::it($empty)];
 
         return $this;
     }
 
     public function link(string $label, string $url): self
     {
-        $this->links[] = ['label' => $label, 'url' => $url];
+        $this->links[] = ['label' => Say::it($label), 'url' => $url];
 
         return $this;
     }
@@ -113,7 +113,7 @@ final class Card
     /** A button that POSTs to `$url` (after a confirmation when given). */
     public function button(string $label, string $url, ?string $confirm = null): self
     {
-        $this->buttons[] = ['label' => $label, 'url' => $url, 'confirm' => $confirm];
+        $this->buttons[] = ['label' => Say::it($label), 'url' => $url, 'confirm' => Say::it($confirm)];
 
         return $this;
     }
@@ -121,7 +121,7 @@ final class Card
     /** @return array{title: string, description: string|null, blocks: list<array<string, mixed>>, links: list<array{label: string, url: string}>, buttons: list<array{label: string, url: string, confirm: string|null}>} */
     public function toArray(): array
     {
-        return ['title' => $this->title, 'description' => $this->description, 'blocks' => $this->blocks, 'links' => $this->links, 'buttons' => $this->buttons];
+        return ['title' => Say::it($this->title), 'description' => Say::it($this->description), 'blocks' => $this->blocks, 'links' => $this->links, 'buttons' => $this->buttons];
     }
 
     /** @return array{value: string, type: 'text'|'datetime'} */

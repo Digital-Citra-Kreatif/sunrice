@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Dashboard;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use InvalidArgumentException;
+use Sunrice\Admin\Support\Say;
 
 /**
  * A tile on the dashboard. The panel draws it from data alone, so a plugin
@@ -268,11 +269,11 @@ final class Widget
         return [
             'key' => $this->key,
             'type' => $this->type,
-            'title' => $this->title,
-            'description' => $this->description,
+            'title' => Say::it($this->title),
+            'description' => Say::it($this->description),
             'icon' => $this->icon,
-            'link' => $url === null ? null : ['url' => $url, 'label' => $this->linkLabel],
-            'empty' => $this->empty,
+            'link' => $url === null ? null : ['url' => $url, 'label' => Say::it($this->linkLabel)],
+            'empty' => Say::it($this->empty),
             'span' => $this->span,
             'prop' => $this->prop(),
         ];

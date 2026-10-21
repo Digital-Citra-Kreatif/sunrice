@@ -35,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 import { registerPage } from '@/lib/page-registry';
 import { useTablePreferences } from '@/lib/use-table-preferences';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
@@ -65,6 +66,6 @@ const modules: Record<SharedModuleName, Record<string, unknown>> = {
  * Installed before the first page renders.
  */
 export function installRuntime(): void {
-    const runtime: SunriceRuntime = { version: SDK_VERSION, modules, registerPage, adminUrl };
+    const runtime: SunriceRuntime = { version: SDK_VERSION, modules, registerPage, adminUrl, t };
     Object.defineProperty(globalThis, 'Sunrice', { value: Object.freeze(runtime), writable: false, configurable: false });
 }

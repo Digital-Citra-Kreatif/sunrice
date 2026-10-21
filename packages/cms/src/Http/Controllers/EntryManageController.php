@@ -25,6 +25,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Support\Access;
+use Sunrice\Cms\Support\AdminUrls;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -48,8 +49,9 @@ final class EntryManageController
 
         return back()->with($done > 0 ? 'success' : 'error', match (true) {
             $done === 0 => 'Nothing was changed.',
-            $skipped > 0 => "Done for {$done} of ".count($ids)." entries; the others can't be (not allowed, or not ready to publish).",
-            default => "Done for {$done} ".($done === 1 ? 'entry' : 'entries').'.',
+            $skipped > 0 => __('Done for :done of :count entries; the others can\'t be (not allowed, or not ready to publish).', ['done' => $done, 'count' => count($ids)]),
+            $done === 1 => 'Done for 1 entry.',
+            default => __('Done for :count entries.', ['count' => $done]),
         });
     }
 
@@ -79,7 +81,7 @@ final class EntryManageController
         abort_if($entry->collection->trashed(), 404);
         $copy = $duplicate->handle($entry);
 
-        return redirect()->route('sunrice.admin.cms.entries.edit', $copy->id)->with('success', 'Copied as a new draft.');
+        return redirect()->to((string) AdminUrls::entry($copy))->with('success', 'Copied as a new draft.');
     }
 
     /** The parent, the template and the blueprint, in every language. */
@@ -130,12 +132,13 @@ final class EntryManageController
         $collection = $entry->collection->handle;
         $delete->handle($entry, $request->boolean('force'));
 
-        return redirect()->route('sunrice.admin.cms.entries.index', [$collection, 'status' => 'trashed'])->with('success', 'Deleted for good.');
+        return redirect()->route('sunrice.admin.cms.collections.entries.index', [$collection, 'status' => 'trashed'])->with('success', 'Deleted for good.');
     }
 
     /** Puts back the draft a revision restore replaced, in this session. */
-    public function undoRestore(Request $request, EntryTranslation $translation, PutBackDraft $putBack): RedirectResponse
+    public function undoRestore(Request $request, Entry $entry, string $locale, PutBackDraft $putBack): RedirectResponse
     {
+        $translation = EntryController::translationOf($entry, $locale);
         $draft = $request->session()->pull(self::undoKey($translation));
         if (! is_array($draft) || ! is_string($draft['title'] ?? null) || ! is_string($draft['slug'] ?? null) || ! is_array($draft['data'] ?? null)) {
             return back()->with('error', 'There is no restore to undo.');

@@ -67,7 +67,7 @@ final class AiAccessController
         $model = AiToken::query()->where('user_id', self::key($user))->findOrFail($token);
         $revoke->one($model, $user);
 
-        return back()->with('success', "\"{$model->name}\" revoked: agents using it can no longer connect.");
+        return back()->with('success', __('":name" revoked: agents using it can no longer connect.', ['name' => $model->name]));
     }
 
     private function user(Request $request): Model

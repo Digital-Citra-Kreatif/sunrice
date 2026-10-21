@@ -6,7 +6,7 @@ namespace Sunrice\Cms\Settings;
 
 use Closure;
 use Sunrice\Admin\Resources\Forms\Form;
-use Sunrice\Admin\Resources\Forms\Textarea;
+use Sunrice\Admin\Resources\Forms\Pairs;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Cms\Models\CollectionListing;
 use Sunrice\Cms\Models\EntryTranslation;
@@ -32,6 +32,14 @@ final class LocaleSettings extends Settings
     /** A language code as Laravel's app.locale uses them: "en", "id", "pt_BR", "zh-Hant". */
     public const CODE = '/^[a-z]{2,3}([_-][A-Za-z0-9]{2,8})?$/';
 
+    /** Languages offered when adding one: code => name. */
+    public const KNOWN = [
+        'en' => 'English', 'id' => 'Bahasa Indonesia', 'ms' => 'Bahasa Melayu', 'jv' => 'Basa Jawa', 'su' => 'Basa Sunda',
+        'zh' => '中文', 'zh-Hant' => '繁體中文', 'ja' => '日本語', 'ko' => '한국어', 'th' => 'ไทย', 'vi' => 'Tiếng Việt', 'tl' => 'Filipino',
+        'hi' => 'हिन्दी', 'ar' => 'العربية', 'tr' => 'Türkçe', 'nl' => 'Nederlands', 'de' => 'Deutsch', 'fr' => 'Français',
+        'es' => 'Español', 'pt' => 'Português', 'pt_BR' => 'Português (Brasil)', 'it' => 'Italiano', 'ru' => 'Русский', 'pl' => 'Polski',
+    ];
+
     /** One language per line, "code: Name", the main one first; empty: config sunrice-cms.locales. */
     public string $languages = '';
 
@@ -52,13 +60,31 @@ final class LocaleSettings extends Settings
 
     public static function form(Form $form): Form
     {
-        $current = implode("\n", array_map(fn (string $code, string $name): string => "{$code}: {$name}", array_keys(Locales::names()), Locales::names()));
-
         return $form->schema([
-            Textarea::make('languages')->label('Content languages')->rows(5)->maxLength(2000)->required()
-                ->placeholder($current)->rules([fn (string $attribute, mixed $value, Closure $fail) => self::check($value, $fail)])
-                ->help('One per line: its code (as in addresses, /id/…) and its name, "id: Bahasa Indonesia". The first is the main language, at the plain addresses; the others get their own. To change the main language once there is content, run php artisan sunrice:switch-main-language.'),
+            Pairs::make('languages')->label('Content languages')->labels(__('Code'), __('Name'))->maxLength(2000)->required()
+                ->suggest(self::KNOWN + Locales::names())->firstBadge(__('Main'))->addLabel('Add a language')
+                ->rules([fn (string $attribute, mixed $value, Closure $fail) => self::check($value, $fail)])
+                ->extra(__('Address'), '/{key}', '/')
+                ->help('The first is the main language. Address: what its URLs start with (/ for plain ones). Once there is content, change the main one with php artisan sunrice:switch-main-language.'),
         ]);
+    }
+
+    /** Unsaved (config applies): the form shows the languages in use. */
+    public function toArray(): array
+    {
+        $values = parent::toArray();
+        if (trim($this->languages) === '') {
+            $set = config('sunrice-cms.locale_prefixes', []);
+            $prefixes = [];
+            foreach (is_array($set) ? $set : [] as $code => $prefix) {
+                if (is_string($code) && is_string($prefix) && $prefix !== '') {
+                    $prefixes[$code] = $prefix;
+                }
+            }
+            $values['languages'] = self::lines(Locales::names(), $prefixes);
+        }
+
+        return $values;
     }
 
     /**
@@ -83,6 +109,7 @@ final class LocaleSettings extends Settings
         $locales = [];
         foreach (preg_split('/\R/', $lines) ?: [] as $line) {
             [$code, $name] = array_pad(array_map(trim(...), explode(':', $line, 2)), 2, '');
+            $name = trim(explode('|', $name, 2)[0]);
             if (preg_match(self::CODE, $code) === 1 && ! array_key_exists($code, $locales)) {
                 $locales[$code] = $name !== '' ? $name : Locales::displayName($code);
             }
@@ -91,14 +118,45 @@ final class LocaleSettings extends Settings
         return $locales;
     }
 
+    /** An address prefix: lowercase letters, numbers and dashes, one segment ("en", "pt-br"). */
+    public const PREFIX = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
+
+    /**
+     * The address prefixes set here, by code (without slashes); a language
+     * without one has the default (none for the main one, its code for the
+     * others: Locales::segmentsFor()).
+     *
+     * @return array<string, string>
+     */
+    public function prefixes(): array
+    {
+        return self::parsePrefixes($this->languages);
+    }
+
+    /** @return array<string, string> */
+    public static function parsePrefixes(string $lines): array
+    {
+        $prefixes = [];
+        foreach (preg_split('/\R/', $lines) ?: [] as $line) {
+            $code = trim(explode(':', $line, 2)[0]);
+            $prefix = str_contains($line, '|') ? trim(explode('|', $line, 2)[1], " /\t") : '';
+            if (preg_match(self::CODE, $code) === 1 && $prefix !== '' && ! array_key_exists($code, $prefixes)) {
+                $prefixes[$code] = $prefix;
+            }
+        }
+
+        return $prefixes;
+    }
+
     /**
      * Lines for a list of languages, to save: ['en' => 'English'] → "en: English".
      *
      * @param  array<string, string>  $locales
+     * @param  array<string, string>  $prefixes  address prefixes set, by code
      */
-    public static function lines(array $locales): string
+    public static function lines(array $locales, array $prefixes = []): string
     {
-        return implode("\n", array_map(fn (string $code, string $name): string => "{$code}: {$name}", array_keys($locales), $locales));
+        return implode("\n", array_map(fn (string $code, string $name): string => "{$code}: {$name}".(isset($prefixes[$code]) ? " | {$prefixes[$code]}" : ''), array_keys($locales), $locales));
     }
 
     /**
@@ -115,25 +173,40 @@ final class LocaleSettings extends Settings
             }
             $code = trim(explode(':', $line, 2)[0]);
             if (preg_match(self::CODE, $code) !== 1) {
-                $fail('Line '.($number + 1).": \"{$code}\" isn't a language code (two or three lowercase letters, then a region if any: en, id, pt_BR).");
+                $fail(__('Line :line: ":code" isn\'t a language code (two or three lowercase letters, then a region if any: en, id, pt_BR).', ['line' => $number + 1, 'code' => $code]));
 
                 return;
             }
             if (in_array($code, $codes, true)) {
-                $fail("{$code} is listed twice.");
+                $fail(__(':code is listed twice.', ['code' => $code]));
 
                 return;
             }
             $codes[] = $code;
         }
         if ($codes === []) {
-            $fail('List at least one language.');
+            $fail(__('List at least one language.'));
+
+            return;
+        }
+        $set = self::parsePrefixes(is_string($value) ? $value : '');
+        foreach (preg_split('/\R/', is_string($value) ? $value : '') ?: [] as $line) {
+            $prefix = str_contains($line, '|') ? trim(explode('|', $line, 2)[1], " /\t") : '';
+            if ($prefix !== '' && preg_match(self::PREFIX, $prefix) !== 1) {
+                $fail(__('":prefix" can\'t be an address: use lowercase letters, numbers and dashes, like en or pt-br.', ['prefix' => $prefix]));
+
+                return;
+            }
+        }
+        $segments = Locales::segmentsFor($codes, $set);
+        if (count(array_unique($segments)) !== count($segments)) {
+            $fail(__('Two languages have the same address. Give each its own.'));
 
             return;
         }
         $main = Locales::default();
         if ($codes[0] !== $main && self::holdsContent($main)) {
-            $fail(Locales::name($main)." ({$main}) is the main language and content is written in it: keep it first. To change the main language, run php artisan sunrice:switch-main-language {$codes[0]}.");
+            $fail(__(':name (:code) is the main language and content is written in it: keep it first. To change the main language, run php artisan sunrice:switch-main-language :new.', ['name' => Locales::name($main), 'code' => $main, 'new' => $codes[0]]));
         }
     }
 

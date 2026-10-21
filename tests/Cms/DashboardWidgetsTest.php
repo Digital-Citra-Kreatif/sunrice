@@ -86,8 +86,8 @@ it('lists recent edits and what is scheduled', function () {
     $recent = widgetData('cms.recent-edits', $editor)['rows'];
     expect(array_column($recent, 'title'))->toBe(['Newest draft', 'Soon', 'Later', 'Older'])
         ->and(array_column($recent, 'badge'))->toBe(['Draft', 'Scheduled', 'Scheduled', 'Live'])
-        ->and($recent[0]['url'])->toBe("cms/entries/{$newest->entry_id}/edit")
-        ->and($recent[1]['url'])->toBe("cms/entries/{$soon->entry_id}/edit");
+        ->and($recent[0]['url'])->toBe("cms/collections/blog/entries/{$newest->entry_id}/edit")
+        ->and($recent[1]['url'])->toBe("cms/collections/news/entries/{$soon->entry_id}/edit");
 
     expect(array_column(widgetData('cms.scheduled', $editor)['rows'], 'title'))->toBe(['Soon', 'Later']);
 });

@@ -30,6 +30,7 @@ use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Support\Card;
 use Sunrice\Admin\Support\Csv;
+use Sunrice\Admin\Support\Say;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -74,6 +75,10 @@ final class ResourceController
             }
             $rows[] = [
                 'id' => $record->getKey(),
+                // In its addresses: /{path}/{key}/edit.
+                'key' => $resource->recordKeyOf($record),
+                // Where the title links, when not the edit page (Resource::recordUrl()).
+                'url' => $resource->class::recordUrl($record),
                 'title' => $resource->class::title($record),
                 'cells' => $cells,
                 'can' => ['update' => $resource->allows($user, 'update', $record), 'delete' => $resource->allows($user, 'delete', $record)],
@@ -88,10 +93,17 @@ final class ResourceController
             'filters' => array_map(fn (Filter $filter) => $filter->toArray(), $table->getFilters()),
             'rowActions' => array_map(fn (Action $action) => $action->toArray(), $rowActions),
             'bulkActions' => [
-                ...($resource->allows($user, 'delete') ? [['key' => 'delete', 'label' => 'Delete', 'confirm' => 'Delete the selected records? This can\'t be undone.', 'destructive' => true]] : []),
+                ...($resource->allows($user, 'delete') ? [$resource->softDeletes()
+                    ? ['key' => 'delete', 'label' => __('Move to trash'), 'confirm' => __('Move the selected records to the trash? You can restore them.'), 'destructive' => true]
+                    : ['key' => 'delete', 'label' => __('Delete'), 'confirm' => __('Delete the selected records? This can\'t be undone.'), 'destructive' => true]] : []),
                 ...array_map(fn (Action $action) => $action->toArray(), $bulkActions),
             ],
-            'can' => ['create' => $resource->allows($user, 'create'), 'export' => $table->isExportable() && $resource->allows($user, 'export')],
+            'can' => [
+                'create' => $resource->allows($user, 'create'),
+                'export' => $table->isExportable() && $resource->allows($user, 'export'),
+                // A trash to look in and restore from: models with SoftDeletes.
+                'trash' => $resource->softDeletes() && $resource->allows($user, 'delete'),
+            ],
             'query' => $list->state(),
             'rows' => [
                 'data' => $rows,
@@ -126,14 +138,21 @@ final class ResourceController
         app(SaveRecord::class)->handle($resource, $record, $request->all(), 'create');
         $this->activity->record('created', $resource->key(), $record, $resource->class::title($record));
 
-        return redirect()->route("sunrice.admin.resources.{$resource->key()}.edit", $record->getKey())
-            ->with('success', $resource->class::singularLabel().' created.');
+        return redirect()->route($resource->routeName('edit'), $resource->recordKeyOf($record))
+            ->with('success', __(':label created.', ['label' => Say::it($resource->class::singularLabel())]));
     }
 
-    public function edit(Request $request, string $record): Response
+    public function edit(Request $request, string $record): Response|RedirectResponse
     {
         $resource = $this->resource($request);
-        $model = $this->find($resource, $record);
+        $model = $this->findOrById($resource, $record);
+        if ($model === null) {
+            abort(404);
+        }
+        // Reached by id (the activity log's links): on to its own address.
+        if ($resource->recordKeyOf($model) !== $record) {
+            return redirect()->route($resource->routeName('edit'), $resource->recordKeyOf($model));
+        }
         $this->authorize($request, $resource, 'update', $model);
 
         return $this->form($resource, $model);
@@ -148,7 +167,7 @@ final class ResourceController
         $changed = app(SaveRecord::class)->handle($resource, $model, $request->all(), 'edit');
         $this->activity->updated($resource->key(), $model, $resource->class::title($model), $changed);
 
-        return back()->with('success', $resource->class::singularLabel().' saved.');
+        return back()->with('success', __(':label saved.', ['label' => Say::it($resource->class::singularLabel())]));
     }
 
     public function destroy(Request $request, string $record): RedirectResponse
@@ -164,8 +183,8 @@ final class ResourceController
         }
         $this->activity->record('deleted', $resource->key(), $model, $resource->class::title($model));
 
-        return redirect()->route("sunrice.admin.resources.{$resource->key()}.index")
-            ->with('success', $resource->class::title($model).' deleted.');
+        return redirect()->route($resource->routeName('index'))
+            ->with('success', __(':title deleted.', ['title' => $resource->class::title($model)]));
     }
 
     public function action(Request $request, string $record, string $action): RedirectResponse
@@ -185,11 +204,16 @@ final class ResourceController
         });
     }
 
-    public function bulk(Request $request, string $action): RedirectResponse
+    /** Selected records ("ids", primary keys) and the "action": "delete", "restore" (from the trash) or a bulk action's key. */
+    public function bulk(Request $request): RedirectResponse
     {
         $resource = $this->resource($request);
         $user = $this->authorize($request, $resource, 'view');
-        $request->validate(['ids' => ['required', 'array', 'min:1', 'max:1000']]);
+        $request->validate(['ids' => ['required', 'array', 'min:1', 'max:1000'], 'action' => ['required', 'string']]);
+        $action = $request->string('action')->toString();
+        if ($action === 'restore') {
+            return $this->restoreMany($request, $resource, $user);
+        }
         $ids = array_values(array_filter((array) $request->input('ids'), fn (mixed $id) => is_int($id) || is_string($id)));
 
         // Only records the resource can reach, and only if the user may act on each.
@@ -211,7 +235,7 @@ final class ResourceController
             }
             $records->each(fn (Model $record) => $this->activity->record('deleted', $resource->key(), $record, $resource->class::title($record)));
 
-            return back()->with('success', $records->count().' deleted.');
+            return back()->with('success', __(':count deleted.', ['count' => $records->count()]));
         }
 
         return $this->run(function () use ($definition, $records, $resource, $request): ?string {
@@ -219,6 +243,40 @@ final class ResourceController
             $records->each(fn (Model $record) => $this->activity->record($definition->key, $resource->key(), $record, $resource->class::title($record)));
 
             return $message;
+        });
+    }
+
+    /** Back from the trash. */
+    public function restore(Request $request, string $record): RedirectResponse
+    {
+        $resource = $this->resource($request);
+        abort_unless($resource->softDeletes(), 404);
+        $model = $this->find($resource, $record, trashed: true);
+        abort_unless(self::inTrash($model), 404);
+        $this->authorize($request, $resource, 'delete', $model);
+
+        return $this->run(function () use ($resource, $model): string {
+            $resource->class::restoreRecord($model);
+            $this->activity->record('restored', $resource->key(), $model, $resource->class::title($model));
+
+            return __(':title restored.', ['title' => $resource->class::title($model)]);
+        });
+    }
+
+    private function restoreMany(Request $request, RegisteredResource $resource, Authorizable $user): RedirectResponse
+    {
+        abort_unless($resource->softDeletes(), 404);
+        $ids = array_values(array_filter((array) $request->input('ids'), fn (mixed $id) => is_int($id) || is_string($id)));
+        $records = $this->query($resource, true)->whereKey($ids)->get()->filter(fn (Model $record): bool => self::inTrash($record))->values();
+        foreach ($records as $record) {
+            abort_unless($resource->allows($user, 'delete', $record), 403);
+        }
+
+        return $this->run(function () use ($resource, $records): string {
+            DB::transaction(fn () => $records->each(fn (Model $record) => $resource->class::restoreRecord($record)));
+            $records->each(fn (Model $record) => $this->activity->record('restored', $resource->key(), $record, $resource->class::title($record)));
+
+            return __(':count restored.', ['count' => $records->count()]);
         });
     }
 
@@ -283,9 +341,9 @@ final class ResourceController
             $values[$field->name] = $field->formValue($record);
         }
 
-        return Inertia::render('Resources/Form', [
+        return Inertia::render('Resources/Edit', [
             'resource' => $this->describe($resource),
-            'record' => $record === null ? null : ['id' => $record->getKey(), 'title' => $resource->class::title($record)],
+            'record' => $record === null ? null : ['id' => $record->getKey(), 'key' => $resource->recordKeyOf($record), 'title' => $resource->class::title($record)],
             'sections' => $sections,
             'values' => $values,
             'can' => ['delete' => $record !== null && $resource->allows($this->user(), 'delete', $record)],
@@ -316,7 +374,26 @@ final class ResourceController
 
     private function find(RegisteredResource $resource, string $id, bool $trashed = false): Model
     {
-        return $this->query($resource, $trashed)->whereKey($id)->firstOrFail();
+        $query = $this->query($resource, $trashed);
+
+        return $query->where($query->qualifyColumn($resource->recordKey()), $id)->firstOrFail();
+    }
+
+    private static function inTrash(Model $record): bool
+    {
+        return method_exists($record, 'trashed') && $record->trashed() === true;
+    }
+
+    /** By its address key, else (when that isn't the primary key) by a numeric id. */
+    private function findOrById(RegisteredResource $resource, string $id): ?Model
+    {
+        $query = $this->query($resource, false);
+        $model = (clone $query)->where($query->qualifyColumn($resource->recordKey()), $id)->first();
+        if ($model === null && $resource->recordKey() !== $query->getModel()->getKeyName() && ctype_digit($id)) {
+            $model = $query->whereKey($id)->first();
+        }
+
+        return $model;
     }
 
     /**
@@ -360,6 +437,6 @@ final class ResourceController
     /** @return array{key: string, label: string, singularLabel: string} */
     private function describe(RegisteredResource $resource): array
     {
-        return ['key' => $resource->key(), 'label' => $resource->class::label(), 'singularLabel' => $resource->class::singularLabel()];
+        return ['key' => $resource->key(), 'path' => $resource->path(), 'label' => Say::it($resource->class::label()), 'singularLabel' => Say::it($resource->class::singularLabel())];
     }
 }

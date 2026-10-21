@@ -62,6 +62,17 @@ abstract class Resource
         return Str::plural(Str::kebab(class_basename(static::model())));
     }
 
+    /**
+     * Its address, under the panel's path (a plugin's under the plugin's
+     * id: "cms/…"); the key by default. Lowercase letters, numbers and
+     * dashes. Route names follow it ("sunrice.admin.cms.collections.*");
+     * permissions keep using the key.
+     */
+    public static function path(): string
+    {
+        return static::key();
+    }
+
     public static function label(): string
     {
         return Str::headline(Str::plural(class_basename(static::model())));
@@ -107,6 +118,38 @@ abstract class Resource
     public static function query(): Builder
     {
         return static::model()::query();
+    }
+
+    /**
+     * The attribute that names a record in its addresses
+     * ("/admin/cms/collections/blog/edit"): the primary key by default.
+     * Use a unique attribute that doesn't change often, like a handle.
+     */
+    public static function recordKey(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Where the list's title link of `$record` goes, when not its edit
+     * page (a full address): a menu's links, say, with its settings in the
+     * row's Edit. Null: the edit page.
+     */
+    public static function recordUrl(Model $record): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Brings a record back from the trash (models with SoftDeletes): the
+     * list's Restore, once the user may delete it. Throw
+     * `Sunrice\Admin\Resources\Tables\ActionFailed` to refuse with a message.
+     */
+    public static function restoreRecord(Model $record): void
+    {
+        if (method_exists($record, 'restore')) {
+            $record->restore();
+        }
     }
 
     /** The new record the create form fills. */

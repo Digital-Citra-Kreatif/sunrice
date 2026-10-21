@@ -109,9 +109,11 @@ it('edits the site settings behind their permission', function () {
     get('/admin/settings/site')->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
-    put('/admin/settings/site', ['name' => 'Acme', 'twitter' => 'not a handle!'])->assertSessionHasErrors('twitter');
-    put('/admin/settings/site', ['name' => 'Acme', 'twitter' => '@acme', 'separator' => '·', 'appendName' => true])->assertSessionHasNoErrors();
-    expect(app(SiteSettings::class)->title('About'))->toBe('About · Acme');
+    put('/admin/settings/site', ['name' => str_repeat('a', 101)])->assertSessionHasErrors('name');
+    put('/admin/settings/site', ['name' => 'Acme'])->assertSessionHasNoErrors();
+    expect(app(SiteSettings::class)->title('About'))->toBe('About | Acme');
+    // Search engines and sharing are on their own page.
+    get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('cards.0.links.0.url', '/admin/cms/seo'));
 });
 
 it('prints the site code, and alerts when it changes', function () {

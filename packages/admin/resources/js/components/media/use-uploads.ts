@@ -2,6 +2,7 @@ import * as React from 'react';
 import { router } from '@inertiajs/react';
 import { adminUrl } from '@/lib/admin-url';
 import { uploadProblem } from './format';
+import { t } from '@/lib/i18n';
 
 export interface Upload {
     key: number;
@@ -41,8 +42,8 @@ export function useUploads(folderId: number | null, limits: { maxKb: number; acc
             onStart: () => update(key, { status: 'uploading' }),
             onProgress: (event) => update(key, { progress: Math.round(event?.percentage ?? 0) }),
             onSuccess: () => done({ status: 'done', progress: 100 }),
-            onError: (errors) => done({ status: 'failed', error: errors.file ?? Object.values(errors)[0] ?? 'The upload failed.' }),
-            onFinish: () => done({ status: 'failed', error: 'The upload was interrupted.' }),
+            onError: (errors) => done({ status: 'failed', error: errors.file ?? Object.values(errors)[0] ?? t('The upload failed.') }),
+            onFinish: () => done({ status: 'failed', error: t('The upload was interrupted.') }),
         });
     });
 
@@ -60,7 +61,7 @@ export function useUploads(folderId: number | null, limits: { maxKb: number; acc
         const added: Upload[] = [];
         for (const file of Array.from(files)) {
             const key = nextKey++;
-            const problem = uploadProblem(file, limits.maxKb, limits.accept);
+            const problem = uploadProblem(file, limits.maxKb, limits.accept, t);
             added.push({ key, name: file.name, progress: 0, status: problem ? 'failed' : 'waiting', error: problem });
             if (!problem) queue.current.push({ key, file });
         }

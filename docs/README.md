@@ -24,6 +24,7 @@ Developer documentation for `sunrice/admin` (the panel) and `sunrice/cms` (the C
 | [Branding](../packages/admin/docs/branding.md) | Settings → Branding: name, logo, font, colour, sign-in page. |
 | [Admin pages in React](../packages/admin/docs/frontend.md) | Plugin pages with `@sunrice/admin-sdk`, styles, UI components, the design language. |
 | [Preferences](../packages/admin/docs/preferences.md) | Per-user preferences (table columns and page size). |
+| [Panel languages](../packages/admin/docs/languages.md) | Each user's panel language, apart from the site's; translations for the panel and plugins. |
 | [Edit locks](../packages/admin/docs/locks.md) | One editor at a time, kept edits. |
 | [Media](../packages/admin/docs/media.md) | The media library, usage, optimizing images, picking media. |
 | [Mail](../packages/admin/docs/mail.md) | What the panel sends, the mailer, the queue worker, Settings → Mail. |

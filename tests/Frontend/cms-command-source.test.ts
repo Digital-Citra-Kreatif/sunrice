@@ -6,13 +6,13 @@ const href = (path: string) => `/admin/${path}`;
 
 test('lists the entry picker\'s results as commands that open the editor', () => {
     const commands = entryCommands([
-        { id: 7, title: 'Hello', collection: 'Blog', status: 'published' },
-        { id: 9, title: 'Soon', collection: 'Pages', status: 'draft' },
+        { id: 7, title: 'Hello', collection: 'Blog', collectionHandle: 'blog', status: 'published' },
+        { id: 9, title: 'Soon', collection: 'Pages', collectionHandle: 'pages', status: 'draft' },
     ], href);
 
     assert.deepEqual(commands, [
-        { id: '7', label: 'Hello', description: 'Blog', group: 'Entries', icon: 'file-text', url: '/admin/cms/entries/7/edit' },
-        { id: '9', label: 'Soon', description: 'Pages · draft', group: 'Entries', icon: 'file-text', url: '/admin/cms/entries/9/edit' },
+        { id: '7', label: 'Hello', description: 'Blog', group: 'Entries', icon: 'file-text', url: '/admin/cms/collections/blog/entries/7/edit' },
+        { id: '9', label: 'Soon', description: 'Pages · draft', group: 'Entries', icon: 'file-text', url: '/admin/cms/collections/pages/entries/9/edit' },
     ]);
 });
 
@@ -29,7 +29,7 @@ test('searches the entry picker with the query, and gives nothing when refused',
     try {
         const found = await searchEntries(' hello ', new AbortController().signal, href);
         assert.deepEqual(found.map((c) => c.label), ['Found']);
-        assert.deepEqual(calls, ['/admin/cms/entry-picker?search=hello']);
+        assert.deepEqual(calls, ['/admin/cms/entries/picker?search=hello']);
         assert.deepEqual(await searchEntries('forbidden', new AbortController().signal, href), []);
     } finally {
         globalThis.fetch = original;

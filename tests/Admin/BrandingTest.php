@@ -131,7 +131,7 @@ it('picks black or white text for the brand colour by contrast', function () {
 
 it('prints the font and the brand colour for light and dark mode', function () {
     get('/admin/login')->assertOk()
-        ->assertSee('https://fonts.bunny.net/css?family=inter:400,500,600&amp;display=swap', false)
+        ->assertSee('https://fonts.bunny.net/css?family=instrument-sans:400,500,600&amp;display=swap', false)
         ->assertDontSee('--primary:', false);
 
     brand(['font' => 'manrope', 'color' => '#1E66F5']);
@@ -169,7 +169,7 @@ it('never prints stored values that are not a known font or a colour', function 
     get('/admin/login')->assertOk()
         ->assertDontSee('<script>alert(1)</script>', false)
         ->assertDontSee('--primary:', false)
-        ->assertSee('family=inter', false);
+        ->assertSee('family=instrument-sans', false);
 
     brand(['name' => '</title><script>alert(1)</script>']);
     get('/admin/login')->assertOk()

@@ -12,6 +12,7 @@ use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Terms\DeleteTerm;
 use Sunrice\Cms\Actions\Terms\MoveTerm;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
+use Sunrice\Cms\Admin\TemplateHelp;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Fields\HydrationContext;
@@ -148,11 +149,11 @@ it('edits taxonomies and their terms in the admin', function () {
     $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages']);
     actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.create', 'cms.taxonomies.update'));
 
-    post('/admin/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $pages->id]])->assertSessionHasNoErrors();
+    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $pages->id]])->assertSessionHasNoErrors();
     expect(Taxonomy::query()->where('handle', 'topics')->firstOrFail()->collections->pluck('handle')->all())->toBe(['pages']);
     get('/admin/cms/terms')->assertForbidden();
 
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     get('/admin/cms/terms')->assertRedirect('/admin/cms/taxonomies/categories/terms');
     post('/admin/cms/taxonomies/categories/terms', ['title' => 'News'])->assertSessionHasNoErrors();
     $news = Term::query()->firstOrFail();
@@ -163,7 +164,12 @@ it('edits taxonomies and their terms in the admin', function () {
         ->component('Cms/Terms/Index', shouldExist: false)
         ->where('terms.0.title', 'Headlines')
         ->where('terms.1.title', 'Local')
-        ->where('terms.1.depth', 1));
+        ->where('terms.1.depth', 1)
+        ->where('terms.0.entries', 0)
+        ->has('terms.0.createdAt')
+        ->where('taxonomy.collections', [])
+        // Settings only for those who may change the taxonomy.
+        ->where('taxonomy.settings', null));
 
     // To the trash with the term under it, back, and deleted for good (its child moves up).
     delete("/admin/cms/terms/{$news->id}")->assertSessionHasNoErrors();
@@ -175,4 +181,59 @@ it('edits taxonomies and their terms in the admin', function () {
     post('/admin/cms/terms/'.Term::onlyTrashed()->where('id', '!=', $news->id)->value('id').'/restore');
     delete("/admin/cms/terms/{$news->id}/force")->assertSessionHasNoErrors();
     expect(Term::query()->count())->toBe(1)->and(Term::query()->value('parent_id'))->toBeNull();
+});
+
+it('lists each term with its entry count, and the taxonomy\'s collections and settings', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog']);
+    $this->tags->collections()->attach($blog);
+    $laravel = term($this->tags, 'Laravel');
+    term($this->tags, 'PHP');
+    $post = app(CreateEntry::class)->handle($blog, ['title' => 'Hello']);
+    $post->entry->terms()->attach($laravel);
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete', 'cms.taxonomies.update'));
+    get('/admin/cms/taxonomies/tags/terms')->assertInertia(fn (Assert $page) => $page
+        ->where('terms.0.title', 'Laravel')
+        ->where('terms.0.entries', 1)
+        ->where('terms.1.entries', 0)
+        ->where('taxonomy.collections', [['title' => 'Blog', 'url' => url('/admin/cms/collections/blog/entries')]])
+        ->where('taxonomy.settings', url("/admin/cms/taxonomies/{$this->tags->handle}/edit")));
+});
+
+it('explains a template setting with the files tried in order when it is empty', function () {
+    expect(TemplateHelp::text('cms.topic', ['cms.taxonomy-{handle}', 'cms.term']))->toBe(implode("\n", [
+        'A Blade view: cms.topic is resources/views/cms/topic.blade.php.',
+        'Empty: the first that exists of',
+        '1. resources/views/cms/taxonomy-{handle}.blade.php',
+        '2. resources/views/cms/term.blade.php',
+        '3. the built-in template',
+    ]));
+});
+
+it('creates a term on its own page, then goes to its page or back to the list', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
+    $news = term($this->categories, 'News');
+
+    get("/admin/cms/taxonomies/categories/terms/create?parent={$news->id}")->assertInertia(fn (Assert $page) => $page
+        ->component('Cms/Terms/Create', shouldExist: false)
+        ->where('taxonomy.hierarchical', true)
+        ->where('parent', $news->id)
+        ->where('terms.0.title', 'News'));
+
+    // No pages or fields: back to the list.
+    post('/admin/cms/taxonomies/categories/terms', ['title' => 'Local', 'parent_id' => $news->id])
+        ->assertRedirect('/admin/cms/taxonomies/categories/terms?locale=en');
+    expect(Term::query()->where('parent_id', $news->id)->count())->toBe(1);
+
+    // With pages: to the new term's page.
+    $this->tags->forceFill(['route' => '/tags/{slug}'])->save();
+    post('/admin/cms/taxonomies/tags/terms', ['title' => 'Laravel'])->assertRedirectContains('/admin/cms/taxonomies/tags/terms/');
+    $laravel = Term::query()->where('taxonomy_id', $this->tags->id)->firstOrFail();
+    expect(session('success'))->toBe('"Laravel" added.');
+    get("/admin/cms/taxonomies/tags/terms/{$laravel->id}/edit")->assertOk();
+
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin/cms/taxonomies/categories/terms/create')->assertForbidden();
 });

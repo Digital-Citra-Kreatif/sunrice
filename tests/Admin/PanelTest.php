@@ -113,6 +113,30 @@ it('builds the sidebar for a user: groups, order, submenus and permissions', fun
     expect(array_column($panel->navigationFor(userWith())[1]['items'], 'key'))->toBe(['shop.customers']);
 });
 
+it('adds navigation made from data on each call, not at boot', function () {
+    $shops = ['north' => 'North shop'];
+    $calls = 0;
+    $panel = Panel::make()->navigation(NavigationItem::make('shop.orders')->label('Orders')->url('shop/orders')->group('Shop'))
+        ->navigationUsing(function () use (&$shops, &$calls): array {
+            $calls++;
+
+            return array_map(fn (string $key, string $name) => NavigationItem::make("shop-{$key}")->label($name)->url("shops/{$key}")
+                ->group('Shop')->permission("shop.{$key}.view"), array_keys($shops), $shops);
+        });
+    $panel->boot();
+    expect($calls)->toBe(0);
+
+    $shops['south'] = 'South shop';
+    expect(array_column($panel->navigationFor(userWith('shop.north.view', 'shop.south.view'))[0]['items'], 'label'))
+        ->toBe(['North shop', 'Orders', 'South shop'])
+        ->and(array_column($panel->navigationFor(userWith('shop.south.view'))[0]['items'], 'key'))->toBe(['shop.orders', 'shop-south'])
+        ->and($calls)->toBe(2);
+
+    $clash = Panel::make()->navigation(NavigationItem::make('a'))->navigationUsing(fn () => [NavigationItem::make('a')]);
+    $clash->boot();
+    expect(fn () => $clash->navigationFor(userWith()))->toThrow(PanelMisconfigured::class, 'Two navigation items have the key "a"');
+});
+
 it('rejects broken navigation', function () {
     expect(fn () => Panel::make()->navigation(NavigationItem::make('a'), NavigationItem::make('a')))
         ->toThrow(PanelMisconfigured::class, 'Two navigation items have the key "a"');

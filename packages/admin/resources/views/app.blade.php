@@ -31,6 +31,8 @@
         {{-- Known fonts and validated #rrggbb colours only (Branding::css()), so printed as is. --}}
         <style @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>{!! $sunriceBrandCss !!}</style>
     @endif
+    {{-- The panel's words in its language, for t() (none in English: the words are the keys). --}}
+    <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>window.sunriceTranslations = {!! json_encode((object) \Sunrice\Admin\Support\PanelLocale::dictionary(app()->getLocale()), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!};</script>
     {{ \Sunrice\Admin\Assets\AdminAssets::tags() }}
     @inertiaHead
 </head>

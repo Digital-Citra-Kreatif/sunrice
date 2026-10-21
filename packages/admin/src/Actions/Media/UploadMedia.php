@@ -74,8 +74,8 @@ final class UploadMedia
         $limit = MediaConfig::maxKilobytes();
         $readable = $limit >= 1024 ? round($limit / 1024, 1).' MB' : "{$limit} KB";
         Validator::make(['file' => $file], ['file' => ['required', 'file', "max:{$limit}"]], [
-            'file.max' => "The file is larger than the {$readable} limit.",
-            'file.uploaded' => "The file is larger than the server accepts ({$readable}) or didn't finish uploading.",
+            'file.max' => __('The file is larger than the :size limit.', ['size' => $readable]),
+            'file.uploaded' => __('The file is larger than the server accepts (:size) or didn\'t finish uploading.', ['size' => $readable]),
         ])->validate();
 
         $extension = strtolower($file->getClientOriginalExtension());
@@ -84,7 +84,9 @@ final class UploadMedia
             self::blocked($file, ".{$extension} files are never accepted");
         }
         if (! in_array($extension, $allowed, true)) {
-            throw ValidationException::withMessages(['file' => ($extension === '' ? 'Files without an extension' : ".{$extension} files")." can't be uploaded. Allowed: ".implode(', ', $allowed).'.']);
+            throw ValidationException::withMessages(['file' => $extension === ''
+                ? __('Files without an extension can\'t be uploaded. Allowed: :allowed.', ['allowed' => implode(', ', $allowed)])
+                : __('.:extension files can\'t be uploaded. Allowed: :allowed.', ['extension' => $extension, 'allowed' => implode(', ', $allowed)])]);
         }
 
         // What the content really is, whatever its name says.
@@ -92,13 +94,13 @@ final class UploadMedia
         if (in_array($detected, MediaConfig::BLOCKED_MIME_TYPES, true)) {
             self::blocked($file, "the content is {$detected}");
 
-            throw ValidationException::withMessages(['file' => 'This file contains a web page or a script, so it can\'t be uploaded.']);
+            throw ValidationException::withMessages(['file' => __('This file contains a web page or a script, so it can\'t be uploaded.')]);
         }
         if ($extension === 'svg' || str_contains($detected, 'svg')) {
             if ($extension !== 'svg' || ! SafeSvg::isSafe((string) $file->getContent())) {
                 self::blocked($file, 'an SVG with scripts or links that run code');
 
-                throw ValidationException::withMessages(['file' => 'This SVG contains scripts or links that could run code, so it can\'t be uploaded. Export it again without scripts, or upload a PNG.']);
+                throw ValidationException::withMessages(['file' => __('This SVG contains scripts or links that could run code, so it can\'t be uploaded. Export it again without scripts, or upload a PNG.')]);
             }
         }
     }

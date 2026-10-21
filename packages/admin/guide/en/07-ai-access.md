@@ -13,7 +13,7 @@ AI assistants such as Claude, ChatGPT or Cursor can work in {panel} for you: lis
 5. Click **Create token**.
 6. **Copy** the token straight away: it's shown only once. Anyone who has it can work in the panel as you, so keep it as safe as a password.
 
-The page then shows how to connect: a command for **Claude Code**, and the settings for **Claude Desktop, Cursor and other MCP clients**. Paste the token where it says.
+The page then shows how to connect: a command for **Claude Code**, and the settings for **Claude Desktop, Cursor, VS Code … (JSON config)**. Paste the token where it says.
 
 ## What an assistant can do
 

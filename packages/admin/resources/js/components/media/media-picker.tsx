@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { uploadProblem } from './format';
 import { FileIcon } from './media-details';
 import type { FolderInfo, MediaItem } from './types';
+import { t } from '@/lib/i18n';
 
 interface Browse {
     folder: FolderInfo | null;
@@ -65,11 +66,11 @@ export function MediaPickerInput({ id, value, multiple, max, types, disabled, in
                             <div className="flex aspect-square items-center justify-center bg-muted">
                                 {item?.thumbnail ? <img src={item.thumbnail} alt={item.alt ?? ''} className="size-full object-cover" />
                                     : item ? <FileIcon mimeType={item.mimeType} className="size-8 text-muted-foreground" />
-                                        : <span className="px-2 text-center text-xs text-muted-foreground">Missing file</span>}
+                                        : <span className="px-2 text-center text-xs text-muted-foreground">{t('Missing file')}</span>}
                             </div>
                             <p className="truncate px-1.5 py-1 text-xs">{item ? (item.title || item.filename) : `#${mediaId}`}</p>
                             {!disabled && (
-                                <Button type="button" variant="secondary" size="icon" className="absolute top-1 right-1 size-6" aria-label="Remove" onClick={() => remove(mediaId)}>
+                                <Button type="button" variant="secondary" size="icon" className="absolute top-1 right-1 size-6" aria-label={t('Remove')} onClick={() => remove(mediaId)}>
                                     <X className="size-3.5" />
                                 </Button>
                             )}
@@ -80,7 +81,7 @@ export function MediaPickerInput({ id, value, multiple, max, types, disabled, in
             {!disabled && !full && (
                 <div>
                     <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-                        <ImagePlus />{shown.length > 0 && !multiple ? 'Change' : 'Choose'}
+                        <ImagePlus />{shown.length > 0 && !multiple ? t('Change') : t('Choose')}
                     </Button>
                 </div>
             )}
@@ -144,7 +145,7 @@ function PickerDialog({ multiple, remaining, types, exclude, onClose, onPick }: 
         setError(null);
         const added: MediaItem[] = [];
         for (const file of Array.from(files)) {
-            const problem = uploadProblem(file, data.upload.maxKb, data.upload.accept);
+            const problem = uploadProblem(file, data.upload.maxKb, data.upload.accept, t);
             if (problem) {
                 setError(`${file.name}: ${problem}`);
                 continue;
@@ -155,7 +156,7 @@ function PickerDialog({ multiple, remaining, types, exclude, onClose, onPick }: 
             try {
                 added.push(await fetchJson<MediaItem>(adminUrl('media'), { method: 'POST', body }));
             } catch (e) {
-                setError(`${file.name}: ${e instanceof RequestError ? e.message : 'The upload failed.'}`);
+                setError(`${file.name}: ${e instanceof RequestError ? e.message : t('The upload failed.')}`);
             }
         }
         setUploading(false);
@@ -169,26 +170,26 @@ function PickerDialog({ multiple, remaining, types, exclude, onClose, onPick }: 
         <Dialog open onOpenChange={(value) => !value && onClose()}>
             <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{multiple ? 'Choose files' : 'Choose a file'}</DialogTitle>
-                    <DialogDescription>From the media library{data?.canUpload ? ', or upload new ones' : ''}.</DialogDescription>
+                    <DialogTitle>{multiple ? t('Choose files') : t('Choose a file')}</DialogTitle>
+                    <DialogDescription>{data?.canUpload ? t('From the media library, or upload new ones.') : t('From the media library.')}</DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-wrap items-center gap-2">
                     {data?.folder && !query && (
                         <Button type="button" variant="ghost" size="sm" onClick={() => setFolder(data.path.at(-2)?.id ?? null)}>
-                            <ChevronLeft />{data.path.at(-2)?.name ?? 'Media'}
+                            <ChevronLeft />{data.path.at(-2)?.name ?? t('Media')}
                         </Button>
                     )}
                     <form className="relative min-w-48 flex-1" onSubmit={(e) => { e.preventDefault(); setQuery(search.trim()); }}>
                         <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input type="search" aria-label="Search media" placeholder="Search everywhere…" className="pl-8" value={search}
+                        <Input type="search" aria-label={t('Search media')} placeholder={t('Search everywhere…')} className="pl-8" value={search}
                             onChange={(e) => { setSearch(e.target.value); if (e.target.value === '') setQuery(''); }} />
                     </form>
                     {data?.canUpload && (
                         <>
-                            <input ref={fileInput} type="file" multiple={multiple} accept={typeAccept} className="hidden" aria-label="Files to upload"
+                            <input ref={fileInput} type="file" multiple={multiple} accept={typeAccept} className="hidden" aria-label={t('Files to upload')}
                                 onChange={(e) => { void upload(e.target.files); e.target.value = ''; }} />
                             <Button type="button" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()}>
-                                {uploading ? <LoaderCircle className="animate-spin" /> : <UploadIcon />}Upload
+                                {uploading ? <LoaderCircle className="animate-spin" /> : <UploadIcon />}{t('Upload')}
                             </Button>
                         </>
                     )}
@@ -207,7 +208,7 @@ function PickerDialog({ multiple, remaining, types, exclude, onClose, onPick }: 
                         </div>
                     )}
                     {items.length === 0 && !loading ? (
-                        <p className="py-12 text-center text-sm text-muted-foreground">{query ? 'Nothing matches.' : 'No files here.'}</p>
+                        <p className="py-12 text-center text-sm text-muted-foreground">{query ? t('Nothing matches.') : t('No files here.')}</p>
                     ) : (
                         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                             {items.map((item) => {
@@ -215,7 +216,7 @@ function PickerDialog({ multiple, remaining, types, exclude, onClose, onPick }: 
                                 const taken = exclude.includes(item.id);
                                 return (
                                     <button key={item.id} type="button" disabled={taken} onClick={() => toggle(item)} aria-pressed={isSelected}
-                                        aria-label={`${isSelected ? 'Unselect' : 'Select'} ${item.title || item.filename}`}
+                                        aria-label={isSelected ? t('Unselect :name', { name: item.title || item.filename }) : t('Select :name', { name: item.title || item.filename })}
                                         className={cn('overflow-hidden rounded-md border text-left disabled:opacity-40', isSelected && 'ring-2 ring-primary')}>
                                         <div className="flex aspect-square items-center justify-center bg-muted">
                                             {item.thumbnail ? <img src={item.thumbnail} alt="" loading="lazy" className="size-full object-cover" />
@@ -229,16 +230,16 @@ function PickerDialog({ multiple, remaining, types, exclude, onClose, onPick }: 
                     )}
                     {data?.nextPage && (
                         <div className="mt-3 text-center">
-                            <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => void load(data.nextPage!)}>Load more</Button>
+                            <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => void load(data.nextPage!)}>{t('Load more')}</Button>
                         </div>
                     )}
                     {loading && items.length === 0 && <LoaderCircle className="mx-auto mt-8 animate-spin text-muted-foreground" />}
                 </div>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+                    <Button type="button" variant="outline" onClick={onClose}>{t('Cancel')}</Button>
                     <Button type="button" disabled={selected.length === 0} onClick={() => onPick(selected)}>
-                        {multiple && selected.length > 1 ? `Choose ${selected.length}` : 'Choose'}
+                        {multiple && selected.length > 1 ? t('Choose :count', { count: selected.length }) : t('Choose')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

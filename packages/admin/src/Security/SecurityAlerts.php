@@ -87,9 +87,10 @@ final class SecurityAlerts
             if ($count >= $limit) {
                 $who = $line->user_name ?? $line->via ?? 'Someone';
                 $this->alert('mass-deletes', $actor, 'Many things deleted in a short time',
-                    "{$who} deleted, trashed or unpublished {$count} things within 10 minutes (the last: {$line->subject_label}).",
+                    ':who deleted, trashed or unpublished :count things within 10 minutes (the last: :last).',
                     'If this wasn\'t planned clean-up, the account may be in someone else\'s hands: lock it on the Users screen, then restore what you need from the trash or a backup.',
-                    ['Who' => $who.($line->via !== null ? " (AI agent {$line->via})" : '')]);
+                    ['Who' => $who.($line->via !== null ? " (AI agent {$line->via})" : '')],
+                    ['who' => $who, 'count' => (string) $count, 'last' => $line->subject_label ?? '']);
             }
         } catch (Throwable $e) {
             report($e);
@@ -105,14 +106,16 @@ final class SecurityAlerts
         switch ($e->action) {
             case 'account locked':
                 $this->alert('account-locked', $account, 'An account was locked after wrong passwords',
-                    "Someone kept typing wrong passwords for {$account}, from different addresses ({$note}).",
-                    'If the account\'s owner didn\'t do this, someone is guessing the password. Make sure the account has a strong, unique password.', $details);
+                    'Someone kept typing wrong passwords for :account, from different addresses (:note).',
+                    'If the account\'s owner didn\'t do this, someone is guessing the password. Make sure the account has a strong, unique password.', $details,
+                    ['account' => $account, 'note' => $note]);
                 break;
             case 'login blocked':
                 if (($e->properties['scope'] ?? null) === 'ip') {
                     $this->alert('password-spraying', (string) $e->ip, 'One address is trying many accounts',
-                        "The address {$e->ip} tried passwords for many accounts and was blocked. The last one was {$account}.",
-                        'This is how password-guessing tools work. Nothing to do if every account has a strong password; consider blocking the address in your firewall.', $details);
+                        'The address :ip tried passwords for many accounts and was blocked. The last one was :account.',
+                        'This is how password-guessing tools work. Nothing to do if every account has a strong password; consider blocking the address in your firewall.', $details,
+                        ['ip' => (string) $e->ip, 'account' => $account]);
                 }
                 break;
             case 'logged in':
@@ -125,18 +128,21 @@ final class SecurityAlerts
             case 'upload blocked':
                 $key = $e->account?->getKey();
                 $this->alert('upload-blocked', is_scalar($key) ? (string) $key : (string) $e->ip, 'A dangerous upload was blocked',
-                    "Someone tried to upload {$note}.",
-                    'Uploading scripts is a common way to take over a website. If the person who tried doesn\'t know why, their account may be in someone else\'s hands.', $details);
+                    'Someone tried to upload :note.',
+                    'Uploading scripts is a common way to take over a website. If the person who tried doesn\'t know why, their account may be in someone else\'s hands.', $details,
+                    ['note' => $note]);
                 break;
             case 'token created':
                 $this->alert('token-created', (string) $e->label.'|'.$note, 'A new AI access token was created',
-                    "{$e->label} created an AI access token ({$note}). Whoever holds it can work in the panel as them.",
-                    'If they didn\'t mean to, revoke it on the Users screen (Revoke AI tokens) and change their password.', $details);
+                    ':name created an AI access token (:note). Whoever holds it can work in the panel as them.',
+                    'If they didn\'t mean to, revoke it on the Users screen (Revoke AI tokens) and change their password.', $details,
+                    ['name' => (string) $e->label, 'note' => $note]);
                 break;
             case 'token used from new IP':
                 $this->alert('token-new-ip', (string) $e->label.'|'.$note, 'An AI access token was used from a new address',
-                    "{$e->label}'s AI access token was used {$note}.",
-                    'If nobody moved to a new network or computer, the token may have been copied: revoke it on the Users screen.', $details);
+                    ':name\'s AI access token was used :note.',
+                    'If nobody moved to a new network or computer, the token may have been copied: revoke it on the Users screen.', $details,
+                    ['name' => (string) $e->label, 'note' => $note]);
                 break;
             case 'exported':
                 $this->exports($e, $details);
@@ -146,13 +152,15 @@ final class SecurityAlerts
                 break;
             case 'log pruned':
                 $this->alert('log-pruned', (string) $e->label, 'The activity log was pruned',
-                    ($e->label ?? 'Someone').' deleted activity log lines in the panel ('.($note === '' ? 'old lines' : $note).').',
-                    'If nobody meant to clean up the log, someone may be covering their tracks: check what this account did recently and lock it on the Users screen if in doubt.', $details);
+                    ':name deleted activity log lines in the panel (:note).',
+                    'If nobody meant to clean up the log, someone may be covering their tracks: check what this account did recently and lock it on the Users screen if in doubt.', $details,
+                    ['name' => $e->label ?? 'Someone', 'note' => $note === '' ? 'old lines' : $note]);
                 break;
             case 'two-factor turned off':
                 $this->alert('two-factor-off', 'two-factor', 'Two-factor login was turned off',
-                    'Two-factor login was turned off'.($e->label !== null ? " by {$e->label}" : '').': a password alone opens the panel again.',
-                    'If nobody meant to, turn it back on in Settings → Security, and check who changed it in the activity log.', $details);
+                    $e->label !== null ? 'Two-factor login was turned off by :name: a password alone opens the panel again.' : 'Two-factor login was turned off: a password alone opens the panel again.',
+                    'If nobody meant to, turn it back on in Settings → Security, and check who changed it in the activity log.', $details,
+                    ['name' => (string) $e->label]);
                 break;
         }
     }
@@ -179,15 +187,17 @@ final class SecurityAlerts
         $dormantDays = self::number('dormant_days', 90);
         if ($last->created_at !== null && $last->created_at->lt(now()->subDays($dormantDays))) {
             $this->alert('dormant-login', (string) $e->label, 'An account signed in after a long time',
-                "{$e->label} signed in for the first time since {$last->created_at->toFormattedDateString()}.",
-                'Unused accounts are easy to take over unnoticed. If nobody expected this person back, lock the account on the Users screen.', $details);
+                ':name signed in for the first time since :date.',
+                'Unused accounts are easy to take over unnoticed. If nobody expected this person back, lock the account on the Users screen.', $details,
+                ['name' => (string) $e->label, 'date' => $last->created_at->toFormattedDateString()]);
 
             return;
         }
         if ($this->isPrivileged($e->account) && ! $earlier->contains(fn (Activity $line) => $line->ip_address === $e->ip)) {
             $this->alert('new-ip', (string) $e->label.'|'.$e->ip, 'A powerful account signed in from a new address',
-                "{$e->label}, who has privileged permissions, signed in from {$e->ip}, an address not used before.",
-                'If this wasn\'t them (a new network or device), sign the account out everywhere and lock it on the Users screen.', $details);
+                ':name, who has privileged permissions, signed in from :ip, an address not used before.',
+                'If this wasn\'t them (a new network or device), sign the account out everywhere and lock it on the Users screen.', $details,
+                ['name' => (string) $e->label, 'ip' => $e->ip]);
         }
     }
 
@@ -211,8 +221,9 @@ final class SecurityAlerts
         }
         $list = implode(', ', $added);
         $this->alert('gained-power', (string) $e->label.'|'.$list, $e->action === 'roles changed' ? 'Someone was given privileged access' : 'A role was given privileged access',
-            "{$e->label} now has: {$list}.",
-            'Whoever has this can change who may do what, or what the site runs. If nobody on your team meant to do this, undo it on the Users or Roles screen and check who did it in the activity log.', $details);
+            ':name now has: :list.',
+            'Whoever has this can change who may do what, or what the site runs. If nobody on your team meant to do this, undo it on the Users or Roles screen and check who did it in the activity log.', $details,
+            ['name' => (string) $e->label, 'list' => $list]);
     }
 
     /** @param array<string, string> $details */
@@ -226,8 +237,9 @@ final class SecurityAlerts
             ->where('subject_id', (string) $actor)->where('created_at', '>=', now()->subHour())->count();
         if ($count >= self::number('exports', 5)) {
             $this->alert('exports', (string) $actor, 'Many exports in a short time',
-                "{$e->label} downloaded {$count} CSV exports within an hour.",
-                'Exports copy data, often personal data, out of the panel. Check that this was expected; if not, lock the account.', $details);
+                ':name downloaded :count CSV exports within an hour.',
+                'Exports copy data, often personal data, out of the panel. Check that this was expected; if not, lock the account.', $details,
+                ['name' => (string) $e->label, 'count' => (string) $count]);
         }
     }
 
@@ -242,8 +254,9 @@ final class SecurityAlerts
             ->where('subject_id', (string) $actor)->where('created_at', '>=', now()->subMinutes(10))->count();
         if ($count >= self::number('forbidden', 15)) {
             $this->alert('forbidden', (string) $actor, 'Someone keeps opening pages they may not see',
-                "{$e->label} was refused {$count} admin pages within 10 minutes (the last: {$note}).",
-                'People rarely do this by accident. It may be someone exploring what the account can reach. Ask them, and check the security events.', $details);
+                ':name was refused :count admin pages within 10 minutes (the last: :last).',
+                'People rarely do this by accident. It may be someone exploring what the account can reach. Ask them, and check the security events.', $details,
+                ['name' => (string) $e->label, 'count' => (string) $count, 'last' => $note]);
         }
     }
 
@@ -272,8 +285,11 @@ final class SecurityAlerts
         }
     }
 
-    /** @param array<string, string> $details */
-    private function alert(string $rule, string $key, string $headline, string $what, string $advice, array $details): void
+    /**
+     * @param  array<string, string>  $details
+     * @param  array<string, string>  $replace  values for the placeholders in `$what` (":name"), so the mail can say it in its language
+     */
+    private function alert(string $rule, string $key, string $headline, string $what, string $advice, array $details, array $replace = []): void
     {
         $cooldown = self::number('cooldown_minutes', 60);
         if (! Cache::add('sunrice-admin.alert:'.$rule.':'.sha1($key), true, now()->addMinutes(max(1, $cooldown)))) {
@@ -284,8 +300,12 @@ final class SecurityAlerts
             return;
         }
 
-        $mail = new SecurityAlert($headline, $what, $advice, [...$details, 'When' => now()->toDayDateTimeString()],
-            $this->panel->brandName(), route('sunrice.admin.activity.index', ['source' => 'security']));
+        $placeholders = [];
+        foreach ($replace as $name => $value) {
+            $placeholders[':'.$name] = $value;
+        }
+        $mail = new SecurityAlert($headline, strtr($what, $placeholders), $advice, [...$details, 'When' => now()->toDayDateTimeString()],
+            $this->panel->brandName(), route('sunrice.admin.activity.index', ['source' => 'security']), $what, $replace);
         // One mail per person, on the queue: sending mustn't slow the request down.
         foreach ($recipients as $email) {
             try {

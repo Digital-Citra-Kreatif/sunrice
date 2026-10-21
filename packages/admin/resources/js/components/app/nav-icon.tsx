@@ -1,7 +1,7 @@
 import {
     Blocks, BookOpen, Bot, Briefcase, Calendar, ChartColumn, Circle, ClipboardList, CreditCard, Database, ExternalLink, FileText,
     Folder, Globe, History, Home, Image, Inbox, LayoutGrid, LayoutTemplate, Library, LifeBuoy, Link, ListTree, Mail, MapPin, Megaphone,
-    MessageSquare, Newspaper, Package, Receipt, Settings, Shield, ShoppingBag, ShoppingCart, Star, Tags, Truck, Users, Wrench,
+    MessageSquare, Newspaper, Package, Receipt, Search, Settings, Shield, ShoppingBag, ShoppingCart, Star, Tag, Tags, Truck, Users, Wrench,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -15,8 +15,8 @@ const icons: Record<string, LucideIcon> = {
     'file-text': FileText, folder: Folder, globe: Globe, history: History, home: Home, image: Image, inbox: Inbox,
     'layout-grid': LayoutGrid, 'layout-template': LayoutTemplate, library: Library, 'life-buoy': LifeBuoy, link: Link,
     'list-tree': ListTree, mail: Mail, 'map-pin': MapPin, megaphone: Megaphone, 'message-square': MessageSquare,
-    newspaper: Newspaper, package: Package, receipt: Receipt, settings: Settings, shield: Shield, 'shopping-bag': ShoppingBag,
-    'shopping-cart': ShoppingCart, star: Star, tags: Tags, truck: Truck, users: Users, wrench: Wrench,
+    newspaper: Newspaper, package: Package, receipt: Receipt, search: Search, settings: Settings, shield: Shield, 'shopping-bag': ShoppingBag,
+    'shopping-cart': ShoppingCart, star: Star, tag: Tag, tags: Tags, truck: Truck, users: Users, wrench: Wrench,
 };
 
 export function navIcon(name?: string): LucideIcon {

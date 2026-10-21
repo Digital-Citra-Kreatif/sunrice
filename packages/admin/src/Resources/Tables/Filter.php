@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Sunrice\Admin\Support\Say;
 
 /**
  * A filter above a resource's list: a select of options, applied to the
@@ -157,10 +158,10 @@ final class Filter
     {
         $options = [];
         foreach ($this->type === 'date_range' ? [] : $this->resolveOptions() as $value => $label) {
-            $options[] = ['value' => (string) $value, 'label' => $label];
+            $options[] = ['value' => (string) $value, 'label' => Say::it($label)];
         }
 
-        return ['name' => $this->name, 'label' => $this->label, 'type' => $this->type, 'options' => $options];
+        return ['name' => $this->name, 'label' => Say::it($this->label), 'type' => $this->type, 'options' => $options];
     }
 
     /** @return array<string, string> */

@@ -2,6 +2,9 @@
  * fetch() for the panel's JSON endpoints: same-origin cookies, Laravel's
  * CSRF token (from the XSRF-TOKEN cookie) and JSON errors.
  */
+
+import { t } from '@/lib/i18n';
+
 export class RequestError extends Error {
     constructor(message: string, public status: number, public errors: Record<string, string[]> = {}) {
         super(message);
@@ -24,7 +27,7 @@ export async function fetchJson<T>(url: string, init: RequestInit = {}): Promise
     const body = await response.json().catch(() => null) as { message?: string; errors?: Record<string, string[]> } | null;
     if (!response.ok) {
         const errors = body?.errors ?? {};
-        throw new RequestError(Object.values(errors)[0]?.[0] ?? body?.message ?? `The request failed (${response.status}).`, response.status, errors);
+        throw new RequestError(Object.values(errors)[0]?.[0] ?? body?.message ?? t('The request failed (:status).', { status: response.status }), response.status, errors);
     }
     return body as T;
 }
