@@ -53,6 +53,20 @@ it('takes comments on journal posts', function (): void {
     expect(Comment::query()->where('body', 'Very useful, thank you.')->exists())->toBeTrue();
 });
 
+it('asks before stopping reply emails, in the site\'s layout', function (): void {
+    $post = $this->site->entry('journal/market-report-7');
+    $comment = Comment::query()->create(['entry_id' => $post->entry_id, 'author_name' => 'Dian', 'author_email' => 'dian@example.com',
+        'body' => 'Thanks', 'status' => Comment::APPROVED, 'locale' => 'en', 'notify_replies' => true]);
+    $url = \Illuminate\Support\Facades\URL::signedRoute('sunrice.cms.comments.unsubscribe', ['comment' => $comment->id]);
+
+    $this->get($url)->assertOk()
+        ->assertSee('Stop these emails')
+        ->assertSee('class="btn btn-primary"', false)
+        ->assertSee('<meta name="robots" content="noindex">', false)
+        ->assertSee('<footer', false); // the site's own layout, not the CMS's plain card
+    expect($comment->refresh()->notify_replies)->toBeTrue();
+});
+
 it('searches the site', function (): void {
     $this->get('/search?q=Samudra')->assertOk()->assertSee('Villa Samudra')->assertSee('noindex', false);
     $this->get('/id/search?q=Samudra')->assertOk()->assertSee('Vila Samudra');

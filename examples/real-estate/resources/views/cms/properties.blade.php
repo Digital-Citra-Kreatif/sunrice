@@ -214,6 +214,7 @@
                         <p class="mt-1 text-sm text-sand-600">{{ __('site.property.enquire_text') }}</p>
                         <x-sunrice-cms::form handle="inquiry" class="mt-6 grid gap-4" replace>
                             <input type="hidden" name="data[property]" value="{{ $title }}">
+                            @include('cms.partials.form-errors', ['form' => $component])
                             @include('cms.partials.form-field', ['form' => $component, 'handle' => 'name', 'required' => true, 'autocomplete' => 'name'])
                             @include('cms.partials.form-field', ['form' => $component, 'handle' => 'email', 'type' => 'email', 'required' => true, 'autocomplete' => 'email'])
                             @include('cms.partials.form-field', ['form' => $component, 'handle' => 'phone', 'type' => 'tel', 'autocomplete' => 'tel'])

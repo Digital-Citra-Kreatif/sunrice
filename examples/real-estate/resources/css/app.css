@@ -355,6 +355,10 @@
     .form-auto label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-sand-700); }
     .form-auto p[id$='-help'] { font-size: 0.82rem; color: var(--color-sand-600); }
     .form-auto p[role='status'] { padding: 1rem 1.25rem; border-radius: 0.75rem; background: var(--color-teal-50); color: var(--color-teal-900); }
+    /* The error summary visitors land on after a failed send: across the whole grid, not its first cell. */
+    .form-auto > [role='alert'] { grid-column: 1 / -1; padding: 1rem 1.25rem; border-radius: 0.75rem; background: #f8ebe7; color: var(--color-sold); }
+    .form-auto > [role='alert'] ul { margin-top: 0.4rem; padding-left: 1.1rem; list-style: disc; }
+    .form-auto > [role='alert'] a { text-decoration: underline; }
     .form-auto button[type='submit'] {
         justify-self: start;
         min-height: 3rem;

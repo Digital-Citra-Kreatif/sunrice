@@ -51,9 +51,7 @@
             <div class="lg:col-span-7">
                 <h2 class="h3">{{ __('site.contact.form_title') }}</h2>
                 <x-sunrice-cms::form handle="contact" class="mt-6 grid gap-5 sm:grid-cols-2" replace>
-                    @if ($component->failed())
-                        <p role="alert" class="form-status !bg-[#f8ebe7] !text-sold sm:col-span-2">{{ __('site.forms.failed') }}</p>
-                    @endif
+                    @include('cms.partials.form-errors', ['form' => $component, 'class' => 'sm:col-span-2'])
                     @include('cms.partials.form-field', ['form' => $component, 'handle' => 'name', 'required' => true, 'autocomplete' => 'name'])
                     @include('cms.partials.form-field', ['form' => $component, 'handle' => 'email', 'type' => 'email', 'required' => true, 'autocomplete' => 'email'])
                     @include('cms.partials.form-field', ['form' => $component, 'handle' => 'phone', 'type' => 'tel', 'autocomplete' => 'tel'])
