@@ -261,3 +261,25 @@ it('lists the main language\'s entries on listing and term pages in a language t
     config(['sunrice-cms.site.fallback' => false]);
     get('/id/blog')->assertOk()->assertSee('Halo')->assertDontSee('Coffee');
 });
+
+it('gives an entry as a visitor reading a language sees it, for breadcrumbs', function () {
+    $this->pages->update(['hierarchical' => true]);
+    $about = sitePost($this->pages, 'About');
+    $tentang = app(CreateTranslation::class)->handle($about->entry, 'id');
+    app(SaveDraft::class)->handle($tentang, ['title' => 'Tentang', 'slug' => 'tentang']);
+    app(PublishEntry::class)->handle($tentang->refresh());
+    $team = sitePost($this->pages, 'Team');
+    $story = sitePost($this->pages, 'Story');
+    $story->entry->update(['parent_id' => $about->entry_id]);
+    $draft = sitePost($this->pages, 'Draft', publish: false);
+
+    $crumb = $story->entry->fresh()?->ancestors()[0]->shownIn('id');
+    expect([$crumb?->title, $crumb?->url()])->toBe(['Tentang', url('/id/tentang')])
+        ->and($about->entry->shownIn('en')?->url())->toBe(url('/about'))
+        // Not translated: the main language's, at the language's address.
+        ->and($team->entry->shownIn('id')?->url())->toBe(url('/id/team'))
+        ->and($draft->entry->shownIn('en'))->toBeNull();
+
+    config(['sunrice-cms.site.fallback' => false]);
+    expect($team->entry->fresh()?->shownIn('id'))->toBeNull();
+});

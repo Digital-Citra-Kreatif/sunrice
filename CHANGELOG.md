@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- `Entry::shownIn($locale)` (`@api`): what a visitor reading a language sees of an entry (its live translation there, else with the fallback the main language's, linking to the page at that language's address), for breadcrumbs; the docs' breadcrumb example used `mainTranslation()`, which sent Indonesian visitors to English pages, and `Site::urlIn()` / `termUrlIn()` are documented (site.md, URLs).
 - With the main-language fallback on, lists in another language include what isn't translated, as its pages do: listing pages, term pages, site search, `Cms::entries()` (new `EntryQuery::fallback(false)` to opt out) and its components, and `<x-sunrice-cms::terms>` counts take one row per entry, its translation where live, else the main language's (new `EntryTranslation::scopeShownIn()`); those rows, linked entries (`HydrationContext::entries()`, which now also falls back when a translation exists but isn't live) and `Term::url()` link to the page at that language's address (`EntryTranslation::url()` follows its hydration context's language).
 - `og:locale` and `og:locale:alternate` are `language_TERRITORY` as Open Graph expects (`id_ID`, `en_US`, `pt_BR`, `zh_TW` for `zh-Hant`), from `Seo::ogLocale()` (`@api`), instead of the bare language code.
 - Machine translation translates link fields' texts too (`TranslatableStrings::TYPES` has `link`; the string is at `<field>.label`), in entries, terms and globals; where a link goes is kept.
