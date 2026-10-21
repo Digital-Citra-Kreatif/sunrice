@@ -35,6 +35,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- A form's file field names itself when it refuses a file that could run as code, with the types it takes: "Photos: files of this type can't be sent (accepted: JPG, JPEG, PNG, WEBP)." (`sunrice-cms::site.forms.blocked_type`, `blocked_type_accepted`, in English and Indonesian), like the size messages. (NEW2-front-3)
 - Building a menu with a cold site cache costs the same queries however many entry links it has: each link's translation gets its already loaded entry (with its collection), so its address no longer loads both again (2 queries per entry link, 18 on the example's pages). (NEW2-front-2)
 - A listing or term page past its last page is a plain not-found page in its head too: `noindex`, no canonical, `hreflang` or `og:url`, and only the site's WebSite and publisher nodes in its structured data (it kept the listing's canonical, alternates and `CollectionPage` for the missing page). `Seo::forPage()` and `StructuredData::graph()` put an error page first. (NEW2-front-1)
 - The blueprint builder ties a setting's message to it after a refused save: a group of choices (like an Entries field's "From collections") is marked invalid and described by the message under it, and its checkboxes are marked invalid, so the message is announced and found by tools, not only seen. The message itself already showed under the setting (`fields.0.config.collections` maps to the setting), with the toast. (STR-6)
