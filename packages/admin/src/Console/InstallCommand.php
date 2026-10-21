@@ -6,12 +6,14 @@ namespace Sunrice\Admin\Console;
 
 use Illuminate\Console\Command;
 use Spatie\Permission\Traits\HasRoles;
+use Sunrice\Admin\Media\MediaHtaccess;
 use Sunrice\Admin\Panel;
 
 /**
  * `php artisan sunrice:install`: everything a new app needs, safe to run
  * again: the panel's config, the migrations, the admin's assets (and the
- * plugins', tagged laravel-assets), the storage link for media,
+ * plugins', tagged laravel-assets), the storage link for media, an
+ * `.htaccess` with headers for the media directory (MediaHtaccess),
  * permissions, the default roles (--roles) and a super admin.
  *
  * @internal
@@ -32,6 +34,9 @@ final class InstallCommand extends Command
             && $this->callSilently('vendor:publish', ['--tag' => 'laravel-assets', '--force' => true]) === 0);
         if (! is_link(public_path('storage')) && ! is_dir(public_path('storage'))) {
             $this->components->task('Storage link', fn () => $this->callSilently('storage:link') === 0);
+        }
+        if (($htaccess = MediaHtaccess::write()) !== null) {
+            $this->components->twoColumnDetail('Media headers for Apache', $htaccess);
         }
         $this->components->task('Permissions', fn () => $this->callSilently('sunrice:sync-permissions') === 0);
         if ($this->option('roles') === true) {

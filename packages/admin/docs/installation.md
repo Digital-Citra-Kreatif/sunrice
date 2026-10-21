@@ -99,7 +99,7 @@ With `sync`, queued work runs during the request instead. See [Mail](mail.md) fo
 
 ### The storage link
 
-The media library stores files on the `public` disk (`sunrice-admin.media.disk`), served through `public/storage`. `sunrice:install` makes the link; on a new server, run `php artisan storage:link`. Until it exists, the Media page warns uploaders. See [Media](media.md) for headers to set on that folder at the web server.
+The media library stores files on the `public` disk (`sunrice-admin.media.disk`), served through `public/storage`. `sunrice:install` makes the link; on a new server, run `php artisan storage:link`. Until it exists, the Media page warns uploaders. See [Media](media.md#headers-at-the-web-server) for headers to set on that folder at the web server (for Apache, `sunrice:install` writes them as an `.htaccess` there).
 
 ### Assets
 

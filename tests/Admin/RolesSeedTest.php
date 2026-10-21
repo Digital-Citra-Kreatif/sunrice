@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SeedRoles;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Media\MediaHtaccess;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Permissions\Permission;
 
@@ -78,11 +80,33 @@ it('wants lowercase role names', function () {
 });
 
 it('installs: migrations, assets, permissions, roles, and points to make-admin', function () {
+    Storage::fake('public');
     artisan('sunrice:install', ['--roles' => true, '--no-user' => true])
         ->expectsOutputToContain('sunrice:make-admin')
         ->assertSuccessful();
 
     expect(Role::query()->pluck('name')->all())->toContain('administrator', 'cashier', 'super-admin');
+});
+
+it('puts Apache headers for the media directory on a local disk when installing, keeping one that\'s there', function () {
+    Storage::fake('public');
+    artisan('sunrice:install', ['--no-user' => true])->assertSuccessful();
+
+    $htaccess = Storage::disk('public')->get('media/.htaccess');
+    expect($htaccess)->toBe(MediaHtaccess::CONTENTS)
+        ->toContain('Header always set X-Content-Type-Options "nosniff"')
+        ->toContain('<FilesMatch "(?i)\.svg$">')
+        ->toContain('Header always set Content-Security-Policy "default-src \'none\'; style-src \'unsafe-inline\'; img-src data:"')
+        ->toContain('Header always set Content-Disposition "inline"')
+        ->toContain('Header always set Content-Disposition "attachment"');
+
+    Storage::disk('public')->put('media/.htaccess', '# mine');
+    artisan('sunrice:install', ['--no-user' => true])->assertSuccessful();
+    expect(Storage::disk('public')->get('media/.htaccess'))->toBe('# mine');
+
+    // Not on a disk that isn't local (S3 and the like serve their own headers).
+    config(['filesystems.disks.cloud' => ['driver' => 's3', 'bucket' => 'b', 'region' => 'r'], 'sunrice-admin.media.disk' => 'cloud']);
+    expect(MediaHtaccess::write())->toBeNull();
 });
 
 it('resolves permissions that depend on data, when asked and after a flush', function () {

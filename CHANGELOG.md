@@ -35,6 +35,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Media headers: `sunrice:install` writes an `.htaccess` into a local media directory (Apache: `nosniff`, a CSP and `Content-Disposition: inline` for SVGs, `attachment` for documents; never overwritten), and the media docs give the same rules for nginx and Apache and recommend a separate media origin. (F6)
 - Site responses send security headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin` and a `Permissions-Policy`, and a Content-Security-Policy when you set one (`SUNRICE_SITE_CSP`), on every CMS site route (pages, listings, terms, search, sitemap, previews, form and comment posts), configurable in `sunrice-cms.site.headers`; a header the response already has is kept. (F5)
 - The term picker (`GET cms/terms/picker`) serves a taxonomy only to those who may view its terms or whose collections' terms fields use it (403 otherwise); it served any taxonomy to anyone with `cms.entries.view`. (F4)
 - The site never reflects a forged `Host` header: its redirects to its own pages (language prefixes, trailing slashes, `/index.php`, editors' redirects to a path) are host-relative (`Location: /about`), and the sitemap's addresses (and its cache key) are on `APP_URL`. The real-estate example's `robots.txt` names the sitemap on `APP_URL`. The security docs explain `TrustHosts`. (F3)

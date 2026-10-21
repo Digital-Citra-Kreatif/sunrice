@@ -40,7 +40,7 @@ In code: `Sunrice\Admin\Security\AccountGuard` has `signOutEverywhere($user)`, `
 
 ## Security headers
 
-Every panel response (`PanelRoutes::middleware()`, so plugin routes too) carries `X-Frame-Options: DENY` (no other site can frame the panel), `Referrer-Policy: same-origin` and `X-Content-Type-Options: nosniff`. The site's own pages aren't touched.
+Every panel response (`PanelRoutes::middleware()`, so plugin routes too) carries `X-Frame-Options: DENY` (no other site can frame the panel), `Referrer-Policy: same-origin` and `X-Content-Type-Options: nosniff`. The site's own pages aren't touched (the CMS sends its own). Media files are served by your web server, not PHP: give them headers there ([Headers at the web server](media.md#headers-at-the-web-server); `sunrice:install` writes an `.htaccess` for Apache), or serve them from an origin of their own.
 
 A `Content-Security-Policy` is sent only when you set one, because what it must allow depends on how your app serves the panel's assets (Vite, a CDN, inline scripts in your layout). Set `SUNRICE_CSP` or `security.headers.csp` in `config/sunrice-admin.php` to the policy string:
 
