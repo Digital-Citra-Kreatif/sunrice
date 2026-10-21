@@ -13,6 +13,7 @@ use Sunrice\Cms\Actions\Fieldsets\SaveFieldset;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Fields\DefinitionValidator;
 use Sunrice\Cms\Fields\Field;
+use Sunrice\Cms\Fields\Fieldsets;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Fieldset;
@@ -151,4 +152,24 @@ it('renames a blueprint and everything that names it', function () {
 
     Pest\Laravel\put("/admin/cms/blueprints/{$blueprint->id}", ['title' => 'Property', 'handle' => 'page', 'fields' => []])->assertSessionHasErrors('handle');
     expect($blueprint->fresh()->handle)->toBe('property')->and($blueprint->fresh()->fields)->not->toBe([]);
+});
+
+it('says a fieldset\'s fields land at its level, and how to keep them apart', function () {
+    Fieldset::query()->create(['handle' => 'contact_person', 'title' => 'Contact person', 'fields' => [['handle' => 'phone', 'type' => 'text'], ['handle' => 'email', 'type' => 'text']]]);
+    app(Fieldsets::class)->flush();
+    $hint = ' (the fieldset "contact_person" adds its fields at this level: put it in a Group to keep them under a name of their own).';
+    $errors = function (array $fields): array {
+        try {
+            app(SaveBlueprint::class)->handle(['handle' => 'company', 'title' => 'Company', 'fields' => $fields]);
+        } catch (ValidationException $e) {
+            return $e->errors();
+        }
+
+        return [];
+    };
+    $include = ['handle' => 'primary_contact', 'type' => 'fieldset', 'config' => ['fieldset' => 'contact_person']];
+
+    expect($errors([['handle' => 'phone', 'type' => 'text'], $include]))->toBe(['fields.1.config.fieldset' => ['There is already a field "phone" here'.$hint]])
+        ->and($errors([$include, ['handle' => 'email', 'type' => 'text']]))->toBe(['fields.1.handle' => ['There is already a field "email" here'.$hint]])
+        ->and($errors([['handle' => 'phone', 'type' => 'text'], ['handle' => 'primary_contact', 'type' => 'group', 'fields' => [$include]]]))->toBe([]);
 });

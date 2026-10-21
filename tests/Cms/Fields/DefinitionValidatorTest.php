@@ -75,7 +75,7 @@ it('counts included fields as the blueprint\'s own', function () {
     Fieldset::query()->create(['handle' => 'seo', 'title' => 'SEO', 'fields' => [['handle' => 'meta_title', 'type' => 'text']]]);
 
     expect(definitionErrors([['handle' => 'meta_title', 'type' => 'text'], ['handle' => 'seo', 'type' => 'fieldset', 'config' => ['fieldset' => 'seo']]]))
-        ->toHaveKey('fields.1.handle');
+        ->toHaveKey('fields.1.config.fieldset'); // shown under the include's fieldset choice (its handle box is hidden)
 });
 
 it('refuses a fieldset that would include itself', function () {
