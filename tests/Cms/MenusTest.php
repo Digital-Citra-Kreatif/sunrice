@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
@@ -342,11 +343,11 @@ it('builds a menu of entry links with the same queries however many there are (N
         }
         app(SaveMenu::class)->handle($menu, $items);
         app(Menus::class)->flush();
-        \Illuminate\Support\Facades\DB::flushQueryLog();
-        \Illuminate\Support\Facades\DB::enableQueryLog();
+        DB::flushQueryLog();
+        DB::enableQueryLog();
         $menu = app(Menus::class)->get('nav', $locale);
-        $queries = count(\Illuminate\Support\Facades\DB::getQueryLog());
-        \Illuminate\Support\Facades\DB::disableQueryLog();
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
         expect($menu)->toHaveCount($links);
 
         return $queries;
