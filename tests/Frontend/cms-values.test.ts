@@ -52,3 +52,13 @@ test('builds the entry picker\'s query', async () => {
     assert.equal(pickerQuery({ ids: [3, 1], collections: ['pages'] }), 'ids%5B%5D=3&ids%5B%5D=1&collections%5B%5D=pages');
     assert.equal(pickerQuery({ search: 'a&b', collections: [] }), 'search=a%26b');
 });
+
+test('starts scheduling on the date to come, else tomorrow, never an old publish date', async () => {
+    const { scheduleStart, formatDate } = await import('../../packages/cms/resources/js/lib/entries.ts');
+    const now = new Date(2026, 9, 21, 14, 37);
+
+    assert.deepEqual(scheduleStart('2026-09-20T10:00:00Z', now), new Date(2026, 9, 22, 14, 0));
+    assert.deepEqual(scheduleStart(null, now), new Date(2026, 9, 22, 14, 0));
+    assert.deepEqual(scheduleStart(new Date(2026, 10, 1, 9, 30).toISOString(), now), new Date(2026, 10, 1, 9, 30));
+    assert.match(formatDate(new Date(2026, 9, 21, 17, 12).toISOString(), 'en-US'), /17:12/);
+});

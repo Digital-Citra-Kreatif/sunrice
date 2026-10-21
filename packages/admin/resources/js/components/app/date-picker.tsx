@@ -5,7 +5,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { dateLabel, formatDateValue, parseDateValue } from '@/lib/date-value';
+import { dateLabel, formatDateValue, parseDateValue, parseTimeInput } from '@/lib/date-value';
 import { cn } from '@/lib/utils';
 
 export interface DatePickerProps {
@@ -63,15 +63,9 @@ export function DatePicker({ id, value, onChange, withTime = false, disabled = f
                     <div className="flex items-center gap-2 border-t px-3 py-2">
                         {withTime && (
                             <>
-                                <Label htmlFor={id ? `${id}-time` : undefined} className="text-xs text-muted-foreground">Time</Label>
-                                <Input
-                                    id={id ? `${id}-time` : undefined}
-                                    type="time"
-                                    className="h-8 w-28 text-sm"
-                                    value={time}
-                                    disabled={!date}
-                                    onChange={(event) => onChange(formatDateValue(date, event.target.value, true))}
-                                />
+                                <Label htmlFor={id ? `${id}-time` : undefined} className="text-xs text-muted-foreground">Time (24h)</Label>
+                                <TimeInput id={id ? `${id}-time` : undefined} value={time} disabled={!date}
+                                    onChange={(next) => onChange(formatDateValue(date, next, true))} />
                             </>
                         )}
                         {label && !required && (
@@ -84,5 +78,38 @@ export function DatePicker({ id, value, onChange, withTime = false, disabled = f
                 )}
             </PopoverContent>
         </Popover>
+    );
+}
+
+/**
+ * The time on the 24-hour clock, as the button shows it (a native time
+ * input follows the browser's clock, 12-hour in some languages): typed as
+ * "14:30", "0930" or "9", kept when it reads as a time.
+ */
+function TimeInput({ id, value, disabled, onChange }: { id?: string; value: string; disabled: boolean; onChange: (time: string) => void }) {
+    const [text, setText] = React.useState(value);
+    React.useEffect(() => setText(value), [value]);
+    const valid = text.trim() === '' || parseTimeInput(text) !== null;
+
+    return (
+        <Input
+            id={id}
+            inputMode="numeric"
+            placeholder="HH:MM"
+            aria-invalid={!valid}
+            className="h-8 w-20 text-center font-mono text-sm tabular-nums"
+            value={text}
+            disabled={disabled}
+            onChange={(event) => {
+                setText(event.target.value);
+                const time = parseTimeInput(event.target.value);
+                if (time !== null && event.target.value.trim().length >= 4) onChange(time);
+            }}
+            onBlur={() => {
+                const time = parseTimeInput(text);
+                if (time !== null) onChange(time);
+                setText(time ?? value);
+            }}
+        />
     );
 }

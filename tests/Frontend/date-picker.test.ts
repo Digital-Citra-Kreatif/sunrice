@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ComponentType } from 'react';
-import { dateLabel, formatDateValue, parseDateValue } from '../../packages/admin/resources/js/lib/date-value.ts';
+import { dateLabel, formatDateValue, parseDateValue, parseTimeInput } from '../../packages/admin/resources/js/lib/date-value.ts';
 import { enGB } from 'date-fns/locale/en-GB';
 import { enUS } from 'date-fns/locale/en-US';
 import { firstDayOfWeek, monthWeeks, moveFocus, tabbableDay, weekdays } from '../../packages/admin/resources/js/lib/calendar-grid.ts';
@@ -14,6 +14,17 @@ test('reads the strings native date inputs give, as local dates', () => {
     assert.deepEqual(parseDateValue('2026-10-19 09:05'), { date: new Date(2026, 9, 19), time: '09:05' });
     assert.deepEqual(parseDateValue('soon'), { date: null, time: '' });
     assert.deepEqual(parseDateValue(null), { date: null, time: '' });
+});
+
+test('reads times as typed, on the 24-hour clock', () => {
+    assert.equal(parseTimeInput('14:30'), '14:30');
+    assert.equal(parseTimeInput(' 9:05 '), '09:05');
+    assert.equal(parseTimeInput('0930'), '09:30');
+    assert.equal(parseTimeInput('21.15'), '21:15');
+    assert.equal(parseTimeInput('9'), '09:00');
+    assert.equal(parseTimeInput('24:00'), null);
+    assert.equal(parseTimeInput('12:60'), null);
+    assert.equal(parseTimeInput('5:12 PM'), null);
 });
 
 test('writes the same strings back', () => {

@@ -173,6 +173,15 @@ it('publishes on a date, and unpublishes', function () {
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => 'whenever'])->assertSessionHasErrors('published_at');
     post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHasNoErrors();
     expect($translation->fresh()?->status)->toBe('draft');
+
+    // Unscheduled, then published: it goes live now, not on the date it was once scheduled for.
+    post("/admin/cms/entries/{$translation->entry_id}/publish")->assertSessionHas('success', 'Published.');
+    expect($translation->fresh()?->published_at?->toDateTimeString())->toBe('2026-10-19 09:00:00');
+    // Published before, unpublished, published again: it keeps its first date.
+    travelTo('2026-10-20 09:00');
+    post("/admin/cms/entries/{$translation->entry_id}/unpublish");
+    post("/admin/cms/entries/{$translation->entry_id}/publish");
+    expect($translation->fresh()?->published_at?->toDateTimeString())->toBe('2026-10-19 09:00:00');
 });
 
 it('trashes and restores', function () {
