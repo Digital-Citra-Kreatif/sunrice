@@ -45,3 +45,10 @@ test('moves past siblings, children included', () => {
 test('removes an item with its children', () => {
     assert.deepEqual(shape(removeItem([item('a', 0), item('a1', 1), item('b', 0)], 0)), ['b']);
 });
+
+test('a listing link keeps its filters through the tree', () => {
+    const listing = newItem({ collection_id: 3, query: 'listing_type=for-sale' });
+    assert.equal(newItem({ url: '/x' }).query, null);
+    assert.equal(toTree([listing])[0]!.query, 'listing_type=for-sale');
+    assert.equal(flatten(toTree([listing]))[0]!.query, 'listing_type=for-sale');
+});

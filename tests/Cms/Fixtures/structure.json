@@ -34,7 +34,7 @@
             {"entry": "pages/about", "labels": {}, "new_tab": false, "children": [
                 {"entry": "pages/team", "labels": {"en": "Our team"}, "new_tab": false, "children": []}
             ]},
-            {"collection": "posts", "labels": {"en": "Blog"}, "new_tab": false, "children": []},
+            {"collection": "posts", "labels": {"en": "Blog"}, "new_tab": false, "query": "topic=news", "children": []},
             {"term": "topics/news", "labels": {}, "new_tab": false, "children": []},
             {"url": "https://example.com", "labels": {"en": "Elsewhere"}, "new_tab": true, "children": []}
         ]}

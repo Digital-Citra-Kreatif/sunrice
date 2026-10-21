@@ -283,3 +283,16 @@ it('gives an entry as a visitor reading a language sees it, for breadcrumbs', fu
     config(['sunrice-cms.site.fallback' => false]);
     expect($team->entry->fresh()?->shownIn('id'))->toBeNull();
 });
+
+it('keeps a listing\'s or term page\'s filters in the other languages\' addresses', function () {
+    $tags = Taxonomy::query()->firstOrFail();
+    $tags->update(['route' => '/tags/{slug}']);
+    app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    $this->blog->update(['listing_route' => '/blog']);
+    sitePost($this->blog, 'Hello');
+
+    get('/id/blog?tag=news&sort=new')->assertOk();
+    expect(Content::localeUrls())->toBe(['en' => url('/blog').'?sort=new&tag=news', 'id' => url('/id/blog').'?sort=new&tag=news']);
+    get('/tags/news?page=1&q=x')->assertOk();
+    expect(Content::localeUrls())->toBe(['en' => url('/tags/news').'?page=1&q=x', 'id' => url('/id/tags/news').'?page=1&q=x']);
+});

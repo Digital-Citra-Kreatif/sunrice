@@ -137,6 +137,31 @@ it('links to term pages and listing pages, in each language', function () {
     expect(app(Menus::class)->get('main'))->toBe([]);
 });
 
+it('links to a listing page with filters, in each language', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $this->pages->update(['listing_route' => '/pages']);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'For sale', 'id' => 'Dijual'], 'query' => '?listing_type=for-sale&city[]=jakarta'],
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'All']],
+    ]);
+
+    expect(app(Menus::class)->get('main')[0]['url'])->toBe(url('/pages').'?listing_type=for-sale&city%5B0%5D=jakarta')
+        ->and(app(Menus::class)->get('main', 'id')[0])->toMatchArray(['label' => 'Dijual', 'url' => url('/id/pages').'?listing_type=for-sale&city%5B0%5D=jakarta']);
+
+    // Shown: the filtered link only on the filtered page; the plain one on both.
+    $this->app->instance('request', Request::create('/pages', 'GET', ['listing_type' => 'for-sale', 'city' => ['jakarta'], 'page' => '2']));
+    app(Menus::class)->flush();
+    expect(array_column(app(Menus::class)->get('main'), 'active'))->toBe([true, true]);
+    $this->app->instance('request', Request::create('/pages'));
+    expect(array_column(app(Menus::class)->get('main'), 'active'))->toBe([false, true]);
+
+    // The editor gets them back; only listing links take them, as a query string.
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
+    get('/admin/cms/menus/main')->assertInertia(fn (Assert $page) => $page->where('items.0.query', 'listing_type=for-sale&city%5B0%5D=jakarta')->where('items.1.query', null));
+    expect(fn () => app(SaveMenu::class)->handle($this->main, [['url' => '/x', 'labels' => ['en' => 'X'], 'query' => 'a=1']]))->toThrow(ValidationException::class, 'Only a link to a listing page')
+        ->and(fn () => app(SaveMenu::class)->handle($this->main, [['collection_id' => $this->pages->id, 'query' => 'a=1#top']]))->toThrow(ValidationException::class, 'listing_type=for-sale');
+});
+
 it('marks the page shown and the links leading to it', function () {
     $about = page('About');
     $team = page('Team');

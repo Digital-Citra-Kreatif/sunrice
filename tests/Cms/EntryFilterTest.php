@@ -116,3 +116,19 @@ it('refuses unknown collections, filter types and names', function () {
     // Without sorts, the collection's own order; a title ascending one here.
     expect(collect((new EntryFilter('shop'))->entries->items())->pluck('title')->all())->toBe(['Blue lamp', 'Green hose', 'Red kettle']);
 });
+
+it('takes a term by its slug in any language, or its id, in every language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $topics = Taxonomy::query()->where('handle', 'topics')->firstOrFail();
+    app(SaveTerm::class)->handle($topics, ['title' => 'Kebun', 'locale' => 'id'], $this->garden);
+    app()->setLocale('id');
+
+    $page = fn (string $query) => (string) get('/catalogue-slot?'.$query)->assertOk()->getContent();
+    // The page's own slug, the main language's or the id: the same term, shown in the page's language.
+    foreach (['topic[]=kebun', 'topic[]=garden', 'topic[]='.$this->garden->id] as $query) {
+        expect(explode('|', $page($query))[0])->toBe('Green hose;')
+            ->and($page($query))->toContain('Topic=Kebun>');
+    }
+    app()->setLocale('en');
+    expect(explode('|', $page('topic[]=kebun'))[0])->toBe('Green hose;');
+});
