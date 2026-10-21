@@ -1,4 +1,6 @@
 // Lumina Estates: progressive enhancement only. Every page works without this script.
+import { dropEmptyFields, setPageInert, submitOnPointerChange } from './enhance.js';
+
 document.documentElement.classList.add('js');
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -11,10 +13,16 @@ if (header) {
     window.addEventListener('scroll', onScroll, { passive: true });
 
     const toggle = header.querySelector('[data-nav-toggle]');
-    toggle?.addEventListener('click', () => {
-        const open = header.classList.toggle('is-open');
-        toggle.setAttribute('aria-expanded', String(open));
+    const setOpen = (open) => {
+        header.classList.toggle('is-open', open);
+        toggle?.setAttribute('aria-expanded', String(open));
         document.body.style.overflow = open ? 'hidden' : '';
+        setPageInert(header, open);
+    };
+    toggle?.addEventListener('click', () => setOpen(!header.classList.contains('is-open')));
+    // The menu is for small screens: growing past the breakpoint closes it, so the page isn't left inert.
+    window.matchMedia('(min-width: 64rem)').addEventListener('change', (event) => {
+        if (event.matches && header.classList.contains('is-open')) setOpen(false);
     });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && header.classList.contains('is-open')) {
@@ -89,9 +97,10 @@ for (const gallery of document.querySelectorAll('[data-gallery]')) {
     });
 }
 
-// Filters: submit the form when a select changes (the button stays for keyboard and no-JS users).
+// Filters: a select changed with the mouse or touch submits the form; keyboard users submit with the button.
 for (const form of document.querySelectorAll('[data-autosubmit]')) {
-    form.addEventListener('change', (event) => {
-        if (event.target instanceof HTMLSelectElement) form.requestSubmit();
-    });
+    submitOnPointerChange(form);
+}
+for (const form of document.querySelectorAll('form[method="get"]')) {
+    dropEmptyFields(form);
 }
