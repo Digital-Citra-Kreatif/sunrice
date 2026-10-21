@@ -33,6 +33,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Settings → Languages: refusing to move the main language while it holds content now points to the **Main language** card's button beside the form instead of `php artisan sunrice:switch-main-language`.
 - SVGs uploaded before their size was read from the `viewBox` get one on upgrade (migration `2026_01_01_000012_backfill_svg_sizes_in_sunrice_media`, run by `php artisan migrate`), so an existing wide SVG logo is treated as wide and no longer becomes the favicon. See [Upgrading](docs/upgrading.md).
 - **Content → Translations** (`cms.entries.translate`): translators translate what visitors read outside entries, without Structure or Settings rights: the site's description, collections' and taxonomies' titles, forms' thank-you messages and their fields' labels, instructions and option labels, and menus' link labels, in any of the other languages. Only those texts change (`SaveVisitorTranslations`, `@api`; routes `sunrice.admin.cms.translations.edit` and `.update`). The `cms.entries.translate` permission's label says so.
 - Settings → Site edits the description in other languages with a labelled input per language instead of an "id: …" textarea (still stored as `descriptions` lines). The panel's `Pairs` field takes `->fixed(['id' => 'Bahasa Indonesia'])` for that: one labelled input per given key, other keys' lines kept.
