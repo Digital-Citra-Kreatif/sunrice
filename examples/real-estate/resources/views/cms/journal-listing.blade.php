@@ -23,6 +23,7 @@
         @if ($entries->isEmpty())
             <p class="muted">{{ __('site.empty') }}</p>
         @else
+            <h2 class="visually-hidden">{{ __('site.results') }}</h2>
             <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
                 @foreach ($entries as $post)
                     <li @class(['reveal', 'sm:col-span-2 lg:col-span-3' => $loop->first && $entries->currentPage() === 1])>

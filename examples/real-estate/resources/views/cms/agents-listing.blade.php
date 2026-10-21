@@ -19,6 +19,7 @@
         @if ($entries->isEmpty())
             <p class="muted">{{ __('site.empty') }}</p>
         @else
+            <h2 class="visually-hidden">{{ __('site.results') }}</h2>
             <ul class="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4 lg:gap-8">
                 @foreach ($entries as $agent)
                     <li class="reveal">@include('cms.partials.agent-card', ['agent' => $agent])</li>

@@ -13,6 +13,7 @@ return [
     'breadcrumbs' => 'Breadcrumbs',
     'read_more' => 'Read more',
     'empty' => 'Nothing here yet.',
+    'results' => 'Results',   // the (visually hidden) heading above a list of cards, so headings don't jump from h1 to h3
     'fallback' => 'This page isn’t available in English yet, so it’s shown in its original language.',
     'rating' => 'Rated :rating out of 5',
 

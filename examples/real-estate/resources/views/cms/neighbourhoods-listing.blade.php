@@ -19,6 +19,7 @@
         @if ($entries->isEmpty())
             <p class="muted">{{ __('site.empty') }}</p>
         @else
+            <h2 class="visually-hidden">{{ __('site.results') }}</h2>
             <ul class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
                 @foreach ($entries as $neighbourhood)
                     <li class="reveal">@include('cms.partials.neighbourhood-card', ['neighbourhood' => $neighbourhood])</li>

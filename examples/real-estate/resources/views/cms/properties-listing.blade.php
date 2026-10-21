@@ -122,6 +122,7 @@
                     @if ($component->filtered())<a href="{{ $component->clearUrl() }}" class="btn btn-outline mt-6">{{ __('site.filter.clear') }}</a>@endif
                 </div>
             @else
+                <h2 class="visually-hidden">{{ __('site.results') }}</h2>
                 <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
                     @foreach ($component->entries as $property)
                         <li class="reveal">@include('cms.partials.property-card', ['property' => $property])</li>
