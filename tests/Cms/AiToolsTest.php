@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
+use Sunrice\Admin\Actions\Settings\SaveSettings;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Panel;
@@ -293,10 +294,21 @@ it('audits SEO page by page', function () {
     $audit = cmsTool($token, 'cms_seo_audit');
     expect($audit)->toMatchArray(['locale' => 'en', 'checked' => 2, 'page' => 1, 'last_page' => 1, 'duplicate_titles' => [['title' => 'Hello', 'pages' => 2]], 'images_without_alt' => 0]);
     $hello = collect($audit['pages_with_issues'])->firstWhere('id', $this->hello->entry_id);
-    expect(implode(' ', $hello['issues']))->toContain('meta title is short', 'No meta description', 'No share image', 'Thin content', 'Not live in id')
+    expect(implode(' ', $hello['issues']))->toContain('meta title "Hello | Laravel" is short', 'No meta description', 'No share image', 'Thin content', 'Not live in id')
         ->and(implode(' ', collect($audit['pages_with_issues'])->firstWhere('id', $other->entry_id)['issues']))->not->toContain('No meta description');
     expect(cmsTool($token, 'cms_seo_audit', ['collection' => 'nope']))->toContain('No such collection')
         ->and(cmsTool($token, 'cms_seo_audit', ['locale' => 'id'])['checked'])->toBe(0);
+});
+
+it('audits the title the page\'s head shows: with the site name, and the homepage\'s', function () {
+    app(PublishEntry::class)->handle($this->hello);
+    app(SaveSettings::class)->handle(app(SiteSettings::class), ['name' => 'Lumina Estates Jakarta', 'homepage' => $this->hello->entry_id]);
+    $token = cmsAgent(['cms.entries.view']);
+
+    $home = collect(cmsTool($token, 'cms_seo_audit')['pages_with_issues'])->firstWhere('id', $this->hello->entry_id);
+    // "Lumina Estates Jakarta" (22), not the entry's "Hello" (5).
+    expect($home['meta_title'])->toBe('Lumina Estates Jakarta')
+        ->and(implode(' ', $home['issues']))->toContain('"Lumina Estates Jakarta" is short (22 characters)')->toContain('fine for a page that is mostly a form');
 });
 
 it('renders on APP_URL, keeps developer tools out, and answers errors without file paths', function () {
