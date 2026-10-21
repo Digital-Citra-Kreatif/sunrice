@@ -410,3 +410,30 @@ it('reads global sets, fieldsets and forms from the site cache until they change
     app()->forgetScopedInstances();
     get('/blog/hello')->assertSee('+62 9|', false);
 });
+
+it('runs a listing\'s and a term page\'s entries query only when the template uses $entries', function () {
+    $tags = Taxonomy::query()->create(['handle' => 'places', 'title' => 'Places', 'route' => '/places/{slug}', 'hierarchical' => true]);
+    $bali = app(SaveTerm::class)->handle($tags, ['title' => 'Bali']);
+    $canggu = app(SaveTerm::class)->handle($tags, ['title' => 'Canggu', 'parent_id' => $bali->id]);
+    Blueprint::query()->where('handle', 'post')->firstOrFail()->update(['fields' => [['handle' => 'intro', 'type' => 'text'], ['handle' => 'places', 'type' => 'terms', 'config' => ['taxonomy' => 'places']]]]);
+    $tags->collections()->attach($this->blog);
+    foreach (range(1, 3) as $i) {
+        app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => "Post {$i}", 'data' => ['places' => $i === 1 ? $bali->id : $canggu->id]]));
+    }
+    $views = sys_get_temp_dir().'/sunrice-lazy-'.uniqid();
+    mkdir("{$views}/cms", recursive: true);
+    file_put_contents("{$views}/cms/blog-listing.blade.php", 'Own list @if (request("list")) @foreach ($entries as $e){{ $e->title }};@endforeach @endif');
+    file_put_contents("{$views}/cms/taxonomy-places.blade.php", '@foreach ($entries as $e){{ $e->title }};@endforeach');
+    View::addLocation($views);
+    get('/blog')->assertOk();
+    $own = withQueries(fn () => get('/blog')->assertOk()->assertSee('Own list'))[1];
+    $listed = withQueries(fn () => get('/blog?list=1')->assertOk()->assertSee('Post 3;'))[1];
+
+    expect($own)->toBeLessThan($listed);
+    // A term page in a hierarchy lists the entries of the terms under it too.
+    get('/places/bali')->assertOk()->assertSee('Post 1;')->assertSee('Post 2;')->assertSee('Post 3;');
+    get('/places/canggu')->assertOk()->assertDontSee('Post 1;')->assertSee('Post 2;');
+    // Past the last page: still a 404.
+    get('/blog?list=1&page=9')->assertNotFound();
+    get('/places/bali?page=9')->assertNotFound();
+});
