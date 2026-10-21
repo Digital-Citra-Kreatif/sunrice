@@ -288,3 +288,22 @@ it('keeps the editor to a query budget', function () {
     // However many terms, revisions and rows: no queries in loops, and the term options aren't in the page.
     expect($queries)->toBeLessThanOrEqual(10);
 });
+
+it('checks limits on the server, where the editor shows them inline (the form has noValidate)', function () {
+    Blueprint::query()->create(['handle' => 'property', 'title' => 'Property', 'fields' => [
+        ['handle' => 'summary', 'type' => 'textarea', 'config' => ['max' => 300]],
+        ['handle' => 'rating', 'type' => 'number', 'config' => ['min' => 1, 'max' => 5, 'step' => 1]],
+        ['handle' => 'price', 'type' => 'number', 'config' => ['min' => 0]],
+    ]]);
+    $properties = Collection::query()->create(['handle' => 'properties', 'title' => 'Properties', 'blueprint' => 'property']);
+    $translation = app(CreateEntry::class)->handle($properties, ['title' => 'Villa']);
+    editor('view', 'update');
+
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => '', 'slug' => 'villa', 'data' => [
+        'summary' => str_repeat('x', 371), 'rating' => 6, 'price' => -1,
+    ]])->assertSessionHasErrors(['title', 'data.summary', 'data.rating', 'data.price']);
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Villa', 'slug' => 'villa', 'data' => ['rating' => 2.5]])
+        ->assertSessionHasErrors(['data.rating']);
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Villa', 'slug' => 'villa', 'data' => ['summary' => str_repeat('x', 300), 'rating' => 5, 'price' => 0]])
+        ->assertSessionHasNoErrors();
+});
