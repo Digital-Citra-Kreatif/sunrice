@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Reordering a hierarchical collection shows its tree (children indented under their parent, each level dragged on its own) instead of one flat list mixing the levels (`treeOrder()` in the CMS's `lib/tree.ts`).
 - Entry pickers list the most recently edited entries on focus (before anything is typed), and let people who write in a collection link to the live entries of the collections its entries fields name even when their role can't view those (titles only; `GET cms/entry-picker` also returns `unavailable`, the asked-for collections they can't pick from, which the picker names instead of "No entries match.").
 - The entry editor saves its Page settings (parent, template, comments) with the draft and counts them as unsaved changes (there's no separate **Save settings**; the blueprint keeps its own **Change blueprint**), and a new entry of a hierarchical collection can pick its parent: `CreateEntry` takes `parent_id`, the editor's `PUT entries/{entry}` takes `parent_id`, `template` and `comments_closed` with the draft (all or nothing), and `SaveEntrySettings::parent()` is public.
 - Menu editor: **Out a level** moves a link (with its own children) to just after its parent's sub-menu, instead of taking the links that followed it as its children.
