@@ -23,6 +23,7 @@ use Sunrice\Admin\Permissions\Permission as PanelPermission;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Users\PermissionRank;
+use Sunrice\Admin\Users\RoleResource;
 use Sunrice\Admin\Users\UserResource;
 use Sunrice\Tests\Admin\Fixtures\TestPlugin;
 use Workbench\App\Models\User;
@@ -130,7 +131,7 @@ it('lists users with their roles, filtered by role, without a query per row', fu
 
     get('/admin/users?filters[role]=manager')->assertInertia(fn (Assert $page) => $page
         ->where('rows.total', 1)
-        ->where('rows.data.0.cells', fn ($cells) => $cells['roles.name'] === 'manager' && $cells['email'] === 'manager@example.com'));
+        ->where('rows.data.0.cells', fn ($cells) => $cells['roles.name'] === 'Manager' && $cells['email'] === 'manager@example.com'));
     get('/admin/users?filters[role]=nobody')->assertInertia(fn (Assert $page) => $page->where('rows.total', 4));
 
     $count = function (): int {
@@ -202,10 +203,10 @@ it('edits roles and their permissions, within the editor\'s own', function () {
     actingAs($this->manager);
 
     get('/admin/roles')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->mapWithKeys(fn ($row) => [$row['title'] => [$row['can']['update'], $row['cells']['permissions_count']]])->all() === [
-        'boss' => [false, 10],
-        'editor' => [true, 2],
-        'manager' => [false, 9],
-        'super-admin' => [false, 0],
+        'Boss' => [false, 10],
+        'Editor' => [true, 2],
+        'Manager' => [false, 9],
+        'Super admin' => [false, 0],
     ]));
 
     get('/admin/roles/create')->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'permissions')['options'])->pluck('value')->all())->toEqualCanonicalizing(MANAGES_USERS)
@@ -240,7 +241,7 @@ it('keeps permissions the form doesn\'t offer, and never edits the super admin r
     delete("/admin/roles/{$super->id}")->assertForbidden();
 
     // A role still given to someone can't be deleted, one by one or in bulk.
-    delete("/admin/roles/{$this->editorRole->id}")->assertRedirect()->assertSessionHas('error', 'The role "editor" is still given to 1 user. Take it away from them first.');
+    delete("/admin/roles/{$this->editorRole->id}")->assertRedirect()->assertSessionHas('error', 'The role "Editor" is still given to 1 user. Take it away from them first.');
     post('/admin/roles/bulk/delete', ['ids' => [$this->editorRole->id]])->assertSessionHas('error');
     expect($this->editorRole->fresh())->not->toBeNull()
         ->and($this->editor->fresh()->getRoleNames()->all())->toBe(['editor']);
@@ -483,4 +484,13 @@ it('lets everyone change their own name, email and password on Your account', fu
     // Only their own: no other user's id is taken.
     put('/admin/account', ['id' => $this->editor->id, 'name' => 'Hacked', 'email' => 'ayu@example.com']);
     expect($this->editor->fresh()->name)->toBe('Editor');
+});
+
+it('shows role names as people read them', function () {
+    expect(RoleResource::displayName('super-admin'))->toBe('Super admin')
+        ->and(RoleResource::displayName('content_editor'))->toBe('Content editor')
+        ->and(RoleResource::displayName('Listings manager'))->toBe('Listings manager');
+
+    actingAs($this->super);
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'roles')['options'])->firstWhere('value', 'super-admin')['label'])->toBe('Super admin'));
 });

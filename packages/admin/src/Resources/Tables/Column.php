@@ -29,6 +29,9 @@ final class Column
 {
     private string $label;
 
+    /** @var (Closure(string|int|float|bool|null): (string|int|float|bool|null))|null */
+    private ?Closure $format = null;
+
     private bool $sortable = false;
 
     private bool $searchable = false;
@@ -104,6 +107,20 @@ final class Column
      *
      * @param  Closure(Model): (string|int|float|bool|null)  $state
      */
+    /**
+     * Show the value differently, keeping sorting and search on the stored
+     * one: ->format(fn (string $name) => Str::headline($name)). Gets the
+     * value as it would be shown (null, a string, a number …).
+     *
+     * @param  Closure(string|int|float|bool|null): (string|int|float|bool|null)  $format
+     */
+    public function format(Closure $format): self
+    {
+        $this->format = $format;
+
+        return $this;
+    }
+
     public function state(Closure $state): self
     {
         $this->state = $state;
@@ -145,6 +162,13 @@ final class Column
 
     /** The value shown for a record. */
     public function value(Model $record): string|int|float|bool|null
+    {
+        $value = $this->rawValue($record);
+
+        return $this->format === null ? $value : ($this->format)($value);
+    }
+
+    private function rawValue(Model $record): string|int|float|bool|null
     {
         if ($this->state !== null) {
             $state = ($this->state)($record);

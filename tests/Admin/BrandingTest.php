@@ -232,3 +232,12 @@ it('says where the fonts come from, and that System loads nothing', function () 
     expect($font->toArray()['help'])->toContain('fonts.bunny.net')->toContain('System')
         ->and(BrandingSettings::FONTS['system'][1])->toBeNull();
 });
+
+it('says how to write the brand colour when it is wrong', function () {
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.branding'));
+    foreach (['teal', '#0F4C4C00', '0F4C4C'] as $colour) {
+        put('/admin/settings/branding', ['color' => $colour])
+            ->assertSessionHasErrors(['color' => 'The Brand colour must be a colour written as # and six hex digits, like #1e66f5.']);
+    }
+    put('/admin/settings/branding', ['color' => '#0F4C4C', 'loginLayout' => 'split'])->assertSessionHasNoErrors();
+});

@@ -57,7 +57,7 @@ Situs Anda mungkin sudah memiliki peran siap pakai sebagai titik awal:
 | **administrator** | Semuanya, bagi orang yang menjalankan situs. |
 | **editor** | Semua konten: entri, term, global, menu, komentar, media, serta membaca dan mengekspor kiriman formulir. Tidak termasuk struktur, pengaturan, atau pengguna. |
 | **author** | Menulis entri dan mengubah entrinya sendiri, mengunggah media, dan melihat draf di situs. Tidak bisa menerbitkan. |
-| **translator** | Menulis bahasa lain dari entri. |
+| **translator** | Menulis bahasa lain dari entri, di setiap koleksi yang boleh dilihatnya. Untuk membatasi penerjemah ke beberapa koleksi saja, beri peran itu **View** di grup *Entries:* koleksi tersebut, bukan *View entries*. |
 
 Setiap peran yang bisa membuka panel juga bisa membaca panduan ini.
 

@@ -10,6 +10,7 @@ use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
@@ -201,4 +202,11 @@ it('lists terms with their live entries\' counts, as a tree', function () {
         ->and($render('taxonomy="tags" collection="nothing"'))->toBe('News:0 Empty:0')
         ->and($render('taxonomy="categories" tree'))->toBe('Local:0[City]')
         ->and($render('taxonomy="nope"'))->toBe('');
+});
+
+it('previews titles with the saved separator and site name', function () {
+    app(SiteSettings::class)->fill(['name' => 'Lumina Estates', 'separator' => '·'])->save();
+    $help = collect(SiteSettings::form(new Form)->fields('edit'))->firstWhere('name', 'appendName')->toArray()['help'];
+
+    expect($help)->toBe('"About · Lumina Estates" in search results and browser tabs.');
 });

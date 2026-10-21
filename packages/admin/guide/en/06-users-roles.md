@@ -57,7 +57,7 @@ Your site may come with ready-made roles to start from:
 | **administrator** | Everything, for people who run the site. |
 | **editor** | All content: entries, terms, globals, menus, comments, media, and reading and exporting form submissions. Not structure, settings or users. |
 | **author** | Writing entries and editing their own, uploading media and seeing drafts on the site. They can't publish. |
-| **translator** | Writing the other languages of entries. |
+| **translator** | Writing the other languages of entries, in every collection they may view. To keep a translator to some collections, give the role **View** under those collections' *Entries:* groups instead of *View entries*. |
 
 Every role that can open the panel can also read this guide.
 

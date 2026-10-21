@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
@@ -99,10 +100,26 @@ class RoleResource extends Resource
     {
         return $table
             ->columns([
-                Column::make('name')->searchable()->sortable(),
+                Column::make('name')->searchable()->sortable()->format(fn (string|int|float|bool|null $name): string|int|float|bool|null => is_string($name) ? static::displayName($name) : $name),
                 Column::make('permissions_count')->label('Permissions'),
             ])
             ->defaultSort('name');
+    }
+
+    /**
+     * A role's name as people read it: a slug like "super-admin" becomes
+     * "Super admin"; a name with capitals or spaces stays as it is.
+     */
+    public static function displayName(string $name): string
+    {
+        return preg_match('/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/', $name) === 1 ? Str::ucfirst(str_replace(['-', '_'], ' ', $name)) : $name;
+    }
+
+    public static function title(Model $record): string
+    {
+        $name = $record->getAttribute('name');
+
+        return is_string($name) && $name !== '' ? static::displayName($name) : parent::title($record);
     }
 
     public static function can(Authorizable $user, string $ability, ?Model $record = null): bool

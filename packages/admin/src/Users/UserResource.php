@@ -136,12 +136,13 @@ class UserResource extends Resource
             ->columns([
                 Column::make('name')->searchable()->sortable(),
                 Column::make('email')->searchable()->sortable(),
-                Column::make('roles.name')->label('Roles')->badge(),
+                Column::make('roles.name')->label('Roles')->badge()
+                    ->state(fn (Model $user) => implode(', ', array_map(fn (Model $role) => RoleResource::displayName(static::name($role)), [...static::rolesOf($user)]))),
                 Column::make('locked')->state(fn (Model $user) => app(AccountGuard::class)->isLocked($user))->boolean(),
                 Column::make('created_at')->label('Created')->date()->sortable(),
             ])
             ->filters([
-                Filter::make('role')->options(fn () => static::roles()->mapWithKeys(fn (Model $role) => [static::name($role) => static::name($role)])->all())
+                Filter::make('role')->options(fn () => static::roles()->mapWithKeys(fn (Model $role) => [static::name($role) => RoleResource::displayName(static::name($role))])->all())
                     ->query(fn (Builder $query, string $role) => $query->whereRelation('roles', 'name', $role)),
             ])
             ->actions([
@@ -393,7 +394,7 @@ class UserResource extends Resource
 
                 return static::roles()
                     ->filter(fn (Model $role) => $actor instanceof Model && $rank->canManageRole($actor, $role))
-                    ->mapWithKeys(fn (Model $role) => [static::name($role) => static::name($role)])
+                    ->mapWithKeys(fn (Model $role) => [static::name($role) => RoleResource::displayName(static::name($role))])
                     ->all();
             })
             ->loadUsing(fn (Model $user) => array_map(static::name(...), [...static::rolesOf($user)]))

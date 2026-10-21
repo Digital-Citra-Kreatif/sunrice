@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { isHexColor, readableOn } from '@/lib/branding';
+import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
 import { RelationSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
 
@@ -149,7 +149,8 @@ function ColorInput({ common, value, onChange }: {
                     onChange={(e) => onChange(e.target.value)}
                     className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed" />
             </span>
-            <Input {...common} type="text" maxLength={7} spellCheck={false} className="font-mono" value={value} onChange={(e) => onChange(e.target.value.trim())} />
+            {/* Not cut to 7 characters: what's typed stays, and the server says what's wrong. Six hex digits get their #. */}
+            <Input {...common} type="text" maxLength={20} spellCheck={false} className="font-mono" value={value} onChange={(e) => onChange(normalizeHex(e.target.value))} />
             {valid && (
                 <span aria-hidden="true" className="flex h-10 shrink-0 items-center rounded-lg px-3 text-sm font-medium shadow-xs" style={{ background: value, color: readableOn(value) }}>Aa</span>
             )}
