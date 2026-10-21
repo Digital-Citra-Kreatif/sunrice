@@ -58,6 +58,12 @@ bundle is loaded only when one of its pages is opened.
 
 ## Repository and releases
 
-Both packages live in this repository and are released together with the
+The packages live in this repository and are released together with the
 same version number. CI publishes each package folder to its own read-only
 repository for Packagist.
+
+The starter kit (`packages/starter-kit`, `sunrice/starter-kit`) is a
+third package beside the CMS, not a plugin the site needs: it installs
+starter sites (structure, content, media, templates and assets) and makes
+them from a site, using only the panel's and the CMS's `@api` classes
+(`tests/Arch/PublicApiTest.php`). Neither the panel nor the CMS knows it.

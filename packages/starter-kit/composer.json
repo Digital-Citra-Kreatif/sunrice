@@ -1,0 +1,28 @@
+{
+    "name": "sunrice/starter-kit",
+    "description": "Starter sites for sunrice/cms: install a whole site (structure, sample content, media, templates and assets) in one command, and make your own from a site.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["laravel", "cms", "starter", "templates"],
+    "require": {
+        "php": "^8.4",
+        "illuminate/contracts": "^13.0",
+        "illuminate/support": "^13.0",
+        "sunrice/admin": "self.version",
+        "sunrice/cms": "self.version"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sunrice\\StarterKit\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Sunrice\\StarterKit\\StarterKitServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

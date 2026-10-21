@@ -1,12 +1,13 @@
 {
     "name": "sunrice/monorepo",
-    "description": "Development repository for sunrice/admin and sunrice/cms.",
+    "description": "Development repository for sunrice/admin, sunrice/cms and sunrice/starter-kit.",
     "type": "project",
     "license": "MIT",
     "require": {
         "php": "^8.4",
         "sunrice/admin": "@dev",
-        "sunrice/cms": "@dev"
+        "sunrice/cms": "@dev",
+        "sunrice/starter-kit": "@dev"
     },
     "require-dev": {
         "larastan/larastan": "^3.0",

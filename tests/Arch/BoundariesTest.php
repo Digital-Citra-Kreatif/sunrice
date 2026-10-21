@@ -12,8 +12,12 @@ arch('the panel never uses the CMS')
     ->expect('Sunrice\Admin')
     ->not->toUse('Sunrice\Cms');
 
-arch('every file declares strict types')
+arch('neither the panel nor the CMS uses the starter kit')
     ->expect(['Sunrice\Admin', 'Sunrice\Cms'])
+    ->not->toUse('Sunrice\StarterKit');
+
+arch('every file declares strict types')
+    ->expect(['Sunrice\Admin', 'Sunrice\Cms', 'Sunrice\StarterKit'])
     ->toUseStrictTypes();
 
 arch('no debugging leftovers')
