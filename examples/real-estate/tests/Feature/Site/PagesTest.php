@@ -84,11 +84,11 @@ it('marks the main language\'s words on untranslated pages as English, the page\
         ->assertSee('<html lang="id">', false)
         ->assertSee('<h1 class="h1 reveal mt-3 max-w-4xl" lang="en">About</h1>', false)
         ->assertSee('<p class="lead reveal mt-6 max-w-2xl" lang="en">Who we are.</p>', false);
-    $this->get('/id/properties/kemang-garden-house')->assertOk()
+    $this->get('/id/properti/kemang-garden-house')->assertOk()
         ->assertSee('<h1 class="h1 mt-5" lang="en">Kemang Garden House</h1>', false)
         ->assertSee('lang="en">A family house with a mature garden in Kemang.</p>', false);
     // Translated: nothing to mark.
-    $this->get('/id/properties/vila-samudra')->assertOk()->assertSee('<h1 class="h1 mt-5">Vila Samudra</h1>', false);
+    $this->get('/id/properti/vila-samudra')->assertOk()->assertSee('<h1 class="h1 mt-5">Vila Samudra</h1>', false);
     $this->get('/about')->assertOk()->assertSee('<h1 class="h1 reveal mt-3 max-w-4xl">About</h1>', false);
 });
 
@@ -121,7 +121,7 @@ it('redirects the old addresses', function (): void {
 it('lists the site in the sitemap', function (): void {
     $this->get('/sitemap.xml')->assertOk()
         ->assertSee(url('/properties/villa-samudra'), false)
-        ->assertSee(url('/id/properties/vila-samudra'), false)
+        ->assertSee(url('/id/properti/vila-samudra'), false)
         ->assertSee(url('/journal'), false);
 });
 

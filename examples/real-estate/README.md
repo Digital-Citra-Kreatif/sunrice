@@ -2,7 +2,8 @@
 
 The website of Lumina Estates, a premium residential agency in Jakarta and Bali, built on Laravel 13 and
 [Sunrice](../../README.md) (`sunrice/admin` + `sunrice/cms`). English is the main language, Indonesian (`/id/…`)
-the second.
+the second, with Indonesian addresses of its own (`/id/properti/…`, `/id/tim`, `/id/kawasan`, `/id/jurnal`,
+`/id/tipe-properti/…`, `/id/lokasi/…`, `/id/jurnal/topik/…`; the English-worded ones redirect there).
 
 > **In this repository** this app is an example and a field test of Sunrice: it requires the packages from `../../packages/*` (a Composer path repository). The QA campaign that built it (admin, developer, editor, frontend and security testing) is in [`qa/REPORT.md`](qa/REPORT.md), with the per-role findings, scripts and screenshots in `qa/`. Photos aren't included: the environment that built it couldn't reach Unsplash; `qa/unsplash-wanted.md` lists them. `database/content.json` holds the content (`php artisan sunrice:import-structure database/content.json`, after `db:seed`).
 

@@ -1943,6 +1943,12 @@
                 "id": {
                     "title": "Tim"
                 }
+            },
+            "routes": {
+                "id": {
+                    "route": "/tim/{slug}",
+                    "listing_route": "/tim"
+                }
             }
         },
         {
@@ -1988,6 +1994,12 @@
                 "id": {
                     "title": "Jurnal"
                 }
+            },
+            "routes": {
+                "id": {
+                    "route": "/jurnal/{slug}",
+                    "listing_route": "/jurnal"
+                }
             }
         },
         {
@@ -2013,6 +2025,12 @@
             "translations": {
                 "id": {
                     "title": "Kawasan"
+                }
+            },
+            "routes": {
+                "id": {
+                    "route": "/kawasan/{slug}",
+                    "listing_route": "/kawasan"
                 }
             }
         },
@@ -2085,6 +2103,12 @@
             "translations": {
                 "id": {
                     "title": "Properti"
+                }
+            },
+            "routes": {
+                "id": {
+                    "route": "/properti/{slug}",
+                    "listing_route": "/properti"
                 }
             }
         },
@@ -2171,6 +2195,11 @@
                 "id": {
                     "title": "Lokasi"
                 }
+            },
+            "routes": {
+                "id": {
+                    "route": "/lokasi/{slug}"
+                }
             }
         },
         {
@@ -2190,6 +2219,11 @@
                 "id": {
                     "title": "Jenis properti"
                 }
+            },
+            "routes": {
+                "id": {
+                    "route": "/tipe-properti/{slug}"
+                }
             }
         },
         {
@@ -2208,6 +2242,11 @@
             "translations": {
                 "id": {
                     "title": "Topik jurnal"
+                }
+            },
+            "routes": {
+                "id": {
+                    "route": "/jurnal/topik/{slug}"
                 }
             }
         }

@@ -39,7 +39,7 @@ it('stays within its query budget', function (string $url, int $budget): void {
     'contact' => ['/contact', 25],
     'sell' => ['/sell-with-us', 25],
     'property' => ['/properties/villa-samudra', 58],
-    'property (id)' => ['/id/properties/vila-samudra', 48],
+    'property (id)' => ['/id/properti/vila-samudra', 48],
     'properties listing' => ['/properties', 44],
     'properties filtered' => ['/properties?location=bali&sort=price-desc', 50],
     'team' => ['/team', 25],
