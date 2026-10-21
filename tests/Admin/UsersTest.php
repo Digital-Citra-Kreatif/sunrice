@@ -451,7 +451,11 @@ it('creates a user with an invitation to choose their own password, and sends a 
     // The link is the panel's reset page: Dewi chooses a password and can log in.
     $token = Str::between($link, 'reset-password/', '?');
     auth()->logout();
-    post('/admin/reset-password', ['token' => $token, 'email' => 'dewi@example.com', 'password' => 'dewis-own-password', 'password_confirmation' => 'dewis-own-password'])->assertRedirect('/admin/login');
+    // It's her first password: the page and the message say so.
+    expect($link)->toContain('invited=1');
+    get($link)->assertOk()->assertInertia(fn (Assert $page) => $page->component('Auth/ResetPassword', false)->where('invited', true));
+    post('/admin/reset-password', ['token' => $token, 'email' => 'dewi@example.com', 'password' => 'dewis-own-password', 'password_confirmation' => 'dewis-own-password', 'invited' => true])
+        ->assertRedirect('/admin/login')->assertSessionHas('success', 'Your password is set. You can log in now.');
     expect(Hash::check('dewis-own-password', $dewi->fresh()->password))->toBeTrue();
 
     // Later: the row's "Email a password link".

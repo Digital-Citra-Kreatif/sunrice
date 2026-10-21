@@ -160,7 +160,7 @@ it('resets the password', function () {
     $token = Password::broker()->createToken($this->admin);
 
     get("/admin/reset-password/{$token}?email=rina@example.com")->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('Auth/ResetPassword', shouldExist: false)->where('email', 'rina@example.com'));
+        ->assertInertia(fn (Assert $page) => $page->component('Auth/ResetPassword', shouldExist: false)->where('email', 'rina@example.com')->where('invited', false));
 
     post('/admin/reset-password', ['token' => 'wrong', 'email' => 'rina@example.com', 'password' => 'new-password-1', 'password_confirmation' => 'new-password-1'])
         ->assertSessionHasErrors(['email' => __(Password::INVALID_TOKEN)]);
@@ -168,7 +168,7 @@ it('resets the password', function () {
     post('/admin/reset-password', ['token' => $token, 'email' => 'nobody@example.com', 'password' => 'new-password-1', 'password_confirmation' => 'new-password-1'])
         ->assertSessionHasErrors(['email' => __(Password::INVALID_TOKEN)]);
     post('/admin/reset-password', ['token' => $token, 'email' => 'rina@example.com', 'password' => 'new-password-1', 'password_confirmation' => 'new-password-1'])
-        ->assertRedirect('/admin/login');
+        ->assertRedirect('/admin/login')->assertSessionHas('success', 'Your password has been reset. You can log in now.');
 
     login(password: 'new-password-1')->assertRedirect('/admin');
     assertAuthenticated();

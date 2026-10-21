@@ -60,6 +60,8 @@ final class PasswordResetController
         return Inertia::render('Auth/ResetPassword', [
             'token' => $token,
             'email' => $request->string('email')->toString(),
+            // From an invitation: choosing a first password, not a new one (wording only).
+            'invited' => $request->boolean('invited'),
         ]);
     }
 
@@ -88,7 +90,9 @@ final class PasswordResetController
             throw ValidationException::withMessages(['email' => __($status === Password::INVALID_USER ? Password::INVALID_TOKEN : $status)]);
         }
 
-        return redirect()->route('sunrice.admin.login')->with('success', __('Your password has been reset. You can log in now.'));
+        return redirect()->route('sunrice.admin.login')->with('success', $request->boolean('invited')
+            ? __('Your password is set. You can log in now.')
+            : __('Your password has been reset. You can log in now.'));
     }
 
     private static function broker(): PasswordBroker

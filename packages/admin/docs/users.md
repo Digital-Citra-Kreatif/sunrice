@@ -34,7 +34,7 @@ app(PermissionRank::class)->isStrictlyBelow($admin, $permissions); // all theirs
 
 ## Invitations
 
-**New user** may leave the password empty and turn on **Email an invitation**: the new user gets an email with a link to the panel's reset page to choose their own password (until then the account has an unguessable random one). The row's **Email a password link** sends a fresh link to anyone. Both go through `Sunrice\Admin\Actions\Users\InviteUser` (`handle($user, $inviter = null)`), which uses the panel's password broker (`sunrice-admin.auth.passwords`), so the link lasts as long as its reset links (`auth.passwords.*.expire`, 60 minutes by default: raise it if invitations should last longer), and records the security event `invitation sent`.
+**New user** may leave the password empty and turn on **Email an invitation**: the new user gets an email with a link to the panel's reset page to choose their own password (until then the account has an unguessable random one); the link carries `invited=1`, so the page reads **Choose your password** and ends with "Your password is set" instead of a reset's wording. The row's **Email a password link** sends a fresh link to anyone. Both go through `Sunrice\Admin\Actions\Users\InviteUser` (`handle($user, $inviter = null)`), which uses the panel's password broker (`sunrice-admin.auth.passwords`), so the link lasts as long as its reset links (`auth.passwords.*.expire`, 60 minutes by default: raise it if invitations should last longer), and records the security event `invitation sent`.
 
 ## Deleting a user
 
