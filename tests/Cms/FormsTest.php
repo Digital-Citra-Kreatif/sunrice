@@ -250,3 +250,44 @@ it('emails the members of the form\'s roles too, once each', function () {
     expect(Form::query()->where('handle', 'quote')->sole()->notify_roles)->toBe(['sales']);
     post('/admin/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify_roles' => ['nobody']])->assertSessionHasErrors('notify_roles.0');
 });
+
+it('shows and checks a form in the visitor\'s language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $blueprint = Blueprint::query()->where('handle', 'contact')->firstOrFail();
+    $fields = $blueprint->fields;
+    $fields[0]['translations'] = ['id' => ['label' => 'Nama Anda', 'instructions' => 'Nama lengkap']];
+    $fields[1]['label'] = 'Email';
+    $fields[1]['translations'] = ['id' => ['label' => 'Surel']];
+    $fields[2]['translations'] = ['id' => ['options' => ['help' => 'Bantuan']]];
+    $blueprint->update(['fields' => $fields]);
+
+    app()->setLocale('id');
+    $html = Blade::render('<x-sunrice-cms::form handle="contact" />');
+    expect($html)->toContain('<label for="form-contact-name">Nama Anda')
+        ->toContain('<p id="form-contact-name-help">Nama lengkap</p>')
+        ->toContain('<label for="form-contact-email">Surel')
+        ->toContain('>Bantuan</option>')
+        ->toContain('>Sales</option>')
+        ->toContain('<input type="hidden" name="locale" value="id">');
+    app()->setLocale('en');
+    expect(Blade::render('<x-sunrice-cms::form handle="contact" />'))->toContain('<label for="form-contact-name">Your name')->toContain('>Help</option>');
+
+    // Errors in the visitor's language, naming the fields as they read them.
+    from('/id/kontak')->post('/forms/contact', ['locale' => 'id', 'name' => '', 'email' => 'nope', 'message' => 'Hi'])
+        ->assertSessionHasErrorsIn('contact', ['name' => 'Nama Anda wajib diisi.', 'email' => 'Surel harus berupa alamat email yang valid.']);
+    from('/kontak')->post('/forms/contact', ['locale' => 'en', 'name' => '', 'email' => 'ana@example.com', 'message' => 'Hi'])
+        ->assertSessionHasErrorsIn('contact', ['name' => 'The Your name field is required.']);
+});
+
+it('gives a select\'s option labels in a language', function () {
+    $field = Sunrice\Cms\Fields\Field::fromArray(['handle' => 'status', 'type' => 'select', 'config' => ['options' => [['value' => 'under_offer', 'label' => 'Under offer'], ['value' => 'sold']]],
+        'translations' => ['id' => ['label' => 'Status', 'options' => ['under_offer' => 'Dalam penawaran']]]]);
+
+    expect($field->optionLabel('under_offer', 'en'))->toBe('Under offer')
+        ->and($field->optionLabel('under_offer', 'id'))->toBe('Dalam penawaran')
+        ->and($field->optionLabel('sold', 'id'))->toBe('sold')
+        ->and($field->optionLabel('gone', 'id'))->toBeNull()
+        ->and($field->labelIn('id'))->toBe('Status')
+        ->and($field->toArray()['translations'])->toBe(['id' => ['label' => 'Status', 'options' => ['under_offer' => 'Dalam penawaran']]])
+        ->and($field->withConfig([])->translations)->toBe($field->translations);
+});

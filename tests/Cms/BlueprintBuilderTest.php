@@ -139,3 +139,29 @@ it('publishes its assets with the app\'s', function () {
     expect(ServiceProvider::pathsToPublish(CmsServiceProvider::class, 'laravel-assets'))
         ->toHaveKey(dirname(__DIR__, 2).'/packages/cms/dist');
 });
+
+it('keeps what visitors read of a field in other languages', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    builderUser();
+
+    get('/admin/cms/blueprints/create')->assertInertia(fn (Assert $page) => $page->where('locales.0.code', 'en')->where('locales.1.code', 'id'));
+    post('/admin/cms/blueprints', ['handle' => 'lead', 'title' => 'Lead', 'fields' => [
+        ['handle' => 'kind', 'type' => 'select', 'label' => 'Property type', 'config' => ['options' => [['value' => 'house', 'label' => 'House']]],
+            'translations' => ['id' => ['label' => 'Jenis properti', 'instructions' => '', 'options' => ['house' => 'Rumah']]],
+            'condition' => null],
+        ['handle' => 'group', 'type' => 'group', 'fields' => [['handle' => 'name', 'type' => 'text', 'translations' => ['id' => ['label' => 'Nama']]]],
+            'condition' => ['field' => 'kind', 'operator' => 'filled', 'value' => null]],
+    ]])->assertSessionHasNoErrors();
+
+    $blueprint = Blueprint::query()->firstOrFail();
+    $schema = $blueprint->schema();
+    expect($blueprint->fields[0]['translations'])->toBe(['id' => ['label' => 'Jenis properti', 'options' => ['house' => 'Rumah']]])
+        ->and($schema->field('kind')?->labelIn('id'))->toBe('Jenis properti')
+        ->and($schema->field('kind')?->optionLabel('house', 'id'))->toBe('Rumah')
+        // A group's children and condition survive the schema too.
+        ->and($schema->field('group')?->fields[0]->labelIn('id'))->toBe('Nama')
+        ->and($schema->field('group')?->condition['operator'] ?? null)->toBe('filled');
+
+    post('/admin/cms/blueprints', ['handle' => 'bad', 'title' => 'Bad', 'fields' => [['handle' => 'x', 'type' => 'text', 'translations' => ['Not a code!' => ['label' => 'X']]]]])
+        ->assertSessionHasErrors(['fields.0.translations']);
+});
