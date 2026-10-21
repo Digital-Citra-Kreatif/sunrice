@@ -33,6 +33,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Menus: in another language, an item without a label in that language shows its target's title there (a live translation, a translated term, a collection's title in that language) before the main language's custom label, so an English "Team" no longer hides "Tim" on `/id`. The menu editor's filter placeholder is a generic `filter=value` instead of `listing_type=for-sale` on every listing link, and the other-language label placeholder says what shows.
 - Unscheduling an entry that isn't live says "Unscheduled. It's a draft again." instead of "Taken off the site", and the "Scheduled for …" message uses the 24-hour clock, as the editor's header and date picker do.
 - **Used by** names each field by its label in the source's blueprint ("Author", "Blocks › Homes shown"), not its handle in words ("Author Agent"); `References::fieldLabel()` takes the source's schema.
 - The entries CSV reads like the editor: terms and linked entries by title (not ids), groups, repeater rows and flexible blocks as "Label: value" lines without `_id`, `_key` or `_hidden`, and rich text with a line per paragraph, heading and list item instead of running them together.
