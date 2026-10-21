@@ -48,6 +48,9 @@ it('edits the languages behind their permission, and keeps the main one while it
     get('/admin/settings/locales')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('form.0.fields.0.type', 'pairs')->where('form.0.fields.0.firstBadge', 'Main')
         ->where('form.0.fields.0.suggestions.0', ['key' => 'en', 'value' => 'English'])
+        // Short hints over the columns and one line under them.
+        ->where('form.0.fields.0.hints', ['key' => 'en, id, pt_BR…', 'value' => 'As visitors read it', 'extra' => 'Start of its URLs'])
+        ->where('form.0.fields.0.help', 'The first is the main language.')
         ->where('values.languages', "en: English\nid: Bahasa Indonesia"));
     put('/admin/settings/locales', ['languages' => ''])->assertSessionHasErrors('languages');
     put('/admin/settings/locales', ['languages' => "en: English\nEnglish!"])->assertSessionHasErrors('languages');

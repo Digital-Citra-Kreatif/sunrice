@@ -741,5 +741,7 @@
     "\":item\" isn't a web address (https://…).": "\":item\" bukan alamat web (https://…).",
     "\":item\" isn't an email address.": "\":item\" bukan alamat email.",
     "Remove :item :number": "Hapus :item :number",
-    "Add address": "Tambah alamat"
+    "Add address": "Tambah alamat",
+    "Search by code or name…": "Cari menurut kode atau nama…",
+    "Use “:code”": "Pakai “:code”"
 }

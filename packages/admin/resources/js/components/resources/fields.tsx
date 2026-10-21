@@ -1,13 +1,15 @@
 import * as React from 'react';
-import { ArrowDown, ArrowUp, Globe, Mail, Plus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronsUpDown, Globe, Mail, Plus, X } from 'lucide-react';
 import { DatePicker } from '@/components/app/date-picker';
 import { RichTextEditor } from '@/components/app/rich-text';
 import { MediaPickerInput } from '@/components/media/media-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +20,7 @@ import { slugInput } from '@/lib/slug';
 import { type ChoiceOption, groupOptions, RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
 import { t } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 
 export type FieldValue = string | number | boolean | string[] | number[] | (string | number)[] | null;
 
@@ -336,29 +339,44 @@ function PairsInput({ id, field, value, disabled, invalid, onChange }: {
         if (row) next.splice(index + by, 0, row);
         update(next);
     };
-    const listId = `${id}-suggestions`;
     const extra = field.extra as { label: string; placeholder: string | null; firstPlaceholder: string | null } | null | undefined;
-    const columns = extra ? 'grid-cols-[7rem_1fr_9rem_6.5rem]' : 'grid-cols-[8rem_1fr_6.5rem]';
+    const hints = (field.hints as { key: string | null; value: string | null; extra: string | null } | undefined) ?? { key: null, value: null, extra: null };
+    const columns = extra ? 'grid-cols-[9rem_1fr_9rem_6.5rem]' : 'grid-cols-[9rem_1fr_6.5rem]';
+    const keyLabel = String(field.keyLabel ?? t('Key'));
+    /** A new key: its suggested value fills the value when that's empty or still the old key's suggestion. */
+    const setKey = (index: number, row: Pair, key: string) => {
+        const known = suggestions.find((s) => s.key === key.trim());
+        const before = suggestions.find((s) => s.key === row.key.trim());
+        const untouched = row.value === '' || (before !== undefined && row.value === before.value);
+        set(index, { ...row, key, value: known && untouched ? known.value : row.value });
+    };
 
     return (
         <div id={id} role="group" aria-invalid={invalid} className="grid gap-2">
             {rows.length > 0 && (
-                <div className={`grid ${columns} gap-2 text-xs font-medium text-muted-foreground`}>
-                    <span>{String(field.keyLabel ?? t('Key'))}</span><span>{String(field.valueLabel ?? t('Value'))}</span>{extra && <span>{extra.label}</span>}<span className="sr-only">{t('Order')}</span>
+                <div className={`grid ${columns} gap-2 text-xs text-muted-foreground`}>
+                    <ColumnHead label={keyLabel} hint={hints.key} />
+                    <ColumnHead label={String(field.valueLabel ?? t('Value'))} hint={hints.value} />
+                    {extra && <ColumnHead label={extra.label} hint={hints.extra} />}
+                    <span className="sr-only">{t('Order')}</span>
                 </div>
             )}
             {rows.map((row, index) => (
                 <div key={index} className={`grid ${columns} items-center gap-2`}>
-                    <Input aria-label={`${String(field.keyLabel ?? t('Key'))} ${index + 1}`} list={listId} disabled={disabled} className="font-mono" value={row.key}
-                        onChange={(e) => {
-                            const key = e.target.value;
-                            const known = suggestions.find((s) => s.key === key.trim());
-                            set(index, { key, value: row.value === '' && known ? known.value : row.value });
-                        }} />
-                    <div className="flex items-center gap-2">
+                    {suggestions.length > 0 ? (
+                        <KeyCombobox label={`${keyLabel} ${index + 1}`} suggestions={suggestions} disabled={disabled} invalid={invalid}
+                            value={row.key} onChange={(key) => setKey(index, row, key)} />
+                    ) : (
+                        <Input aria-label={`${keyLabel} ${index + 1}`} disabled={disabled} className="font-mono" value={row.key}
+                            onChange={(e) => setKey(index, row, e.target.value)} />
+                    )}
+                    <div className="relative">
                         <Input aria-label={`${String(field.valueLabel ?? t('Value'))} ${index + 1}`} disabled={disabled} value={row.value}
+                            className={index === 0 && typeof field.firstBadge === 'string' ? 'pr-16' : undefined}
                             onChange={(e) => set(index, { ...row, value: e.target.value })} />
-                        {index === 0 && typeof field.firstBadge === 'string' && <Badge variant="secondary">{field.firstBadge}</Badge>}
+                        {index === 0 && typeof field.firstBadge === 'string' && (
+                            <Badge variant="secondary" className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2">{field.firstBadge}</Badge>
+                        )}
                     </div>
                     {extra && (
                         <Input aria-label={`${extra.label} ${index + 1}`} disabled={disabled} className="font-mono" value={row.extra ?? ''}
@@ -372,12 +390,74 @@ function PairsInput({ id, field, value, disabled, invalid, onChange }: {
                     </div>
                 </div>
             ))}
-            <datalist id={listId}>{suggestions.map((s) => <option key={s.key} value={s.key}>{s.value}</option>)}</datalist>
             <div>
                 <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setRows([...rows, { key: '', value: '' }])}>
                     <Plus />{String(field.addLabel ?? t('Add'))}
                 </Button>
             </div>
         </div>
+    );
+}
+
+/** A column's heading in Pairs, with its short hint under it. */
+function ColumnHead({ label, hint }: { label: string; hint: string | null }) {
+    return (
+        <span className="flex min-w-0 flex-col">
+            <span className="font-medium">{label}</span>
+            {hint && <span className="truncate font-normal opacity-80" title={hint}>{hint}</span>}
+        </span>
+    );
+}
+
+/**
+ * A Pairs key with suggestions: the panel's searchable list ("Bahasa Indonesia · id"),
+ * searched by key or value, and still any key one types ("Use “xx”").
+ */
+function KeyCombobox({ label, suggestions, value, disabled, invalid, onChange }: {
+    label: string; suggestions: Pair[]; value: string; disabled: boolean; invalid: boolean; onChange: (key: string) => void;
+}) {
+    const [open, setOpen] = React.useState(false);
+    const [query, setQuery] = React.useState('');
+    const typed = query.trim();
+    const exact = suggestions.some((s) => s.key === typed);
+    const choose = (key: string) => {
+        onChange(key);
+        setOpen(false);
+        setQuery('');
+    };
+
+    return (
+        <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(''); }}>
+            <PopoverTrigger asChild>
+                <Button type="button" variant="outline" role="combobox" aria-expanded={open} aria-label={label} aria-invalid={invalid} disabled={disabled}
+                    className={cn('w-full min-w-0 shrink justify-between font-mono font-normal', value === '' && 'text-muted-foreground')}>
+                    <span className="truncate">{value === '' ? t('Choose…') : value}</span>
+                    <ChevronsUpDown className="opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-0" align="start">
+                <Command>
+                    <CommandInput placeholder={t('Search by code or name…')} value={query} onValueChange={setQuery} />
+                    <CommandList>
+                        <CommandEmpty>{t('Nothing found.')}</CommandEmpty>
+                        {suggestions.map((s) => (
+                            <CommandItem key={s.key} value={`${s.value} ${s.key}`} onSelect={() => choose(s.key)}>
+                                <Check className={cn(s.key === value ? 'opacity-100' : 'opacity-0')} />
+                                <span className="truncate">{s.value}</span>
+                                <span className="ml-auto font-mono text-xs text-muted-foreground">{s.key}</span>
+                            </CommandItem>
+                        ))}
+                        {typed !== '' && !exact && (
+                            <CommandGroup>
+                                {/* Matched only by its keyword, so it ranks after the suggestions. */}
+                                <CommandItem value="+" keywords={[typed]} onSelect={() => choose(typed)}>
+                                    <Plus />{t('Use “:code”', { code: typed })}
+                                </CommandItem>
+                            </CommandGroup>
+                        )}
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 }

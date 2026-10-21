@@ -19,7 +19,8 @@ it('sends a field\'s condition and slug source to the form', function () {
 });
 
 it('describes pairs: their labels, suggestions, first badge and third column', function () {
-    $field = Pairs::make('languages')->labels('Code', 'Name')->suggest(['en' => 'English'])->firstBadge('Main')->extra('Address', '/{key}', '/')->toArray();
+    $field = Pairs::make('languages')->labels('Code', 'Name')->suggest(['en' => 'English'])->firstBadge('Main')->extra('Address', '/{key}', '/')
+        ->hints('en, id…', 'As visitors read it', null)->toArray();
 
     expect($field)->toMatchArray([
         'type' => 'pairs',
@@ -28,6 +29,7 @@ it('describes pairs: their labels, suggestions, first badge and third column', f
         'suggestions' => [['key' => 'en', 'value' => 'English']],
         'firstBadge' => 'Main',
         'extra' => ['label' => 'Address', 'placeholder' => '/{key}', 'firstPlaceholder' => '/'],
+        'hints' => ['key' => 'en, id…', 'value' => 'As visitors read it', 'extra' => null],
     ])->and(Pairs::make('x')->validationRules(null))->toContain('string')
         ->and(Pairs::make('x')->toArray()['fixed'])->toBeNull()
         ->and(Pairs::make('x')->fixed(['id' => 'Bahasa Indonesia'])->toArray()['fixed'])->toBe([['key' => 'id', 'label' => 'Bahasa Indonesia']]);
