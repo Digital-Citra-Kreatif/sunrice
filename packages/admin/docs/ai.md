@@ -5,14 +5,14 @@ AI agents such as Claude, ChatGPT or Cursor can work in the panel through its [M
 ## Connecting an agent
 
 1. Give the user's role **Connect AI agents** (`sunrice.ai.connect`). Super admins have it.
-2. **Administration → AI access**: create a token, name it after the agent or computer that uses it, and copy it (it's shown once). Tick **Read-only** for an agent that should only look, and pick when it expires (90 days unless you choose otherwise; **Never** is a choice, not the default).
+2. **Administration → AI access**: create a token, name it after the agent or computer that uses it, and copy it (it's shown once). Tick **Read-only** for an agent that should only look, and pick when it expires (90 days unless you choose otherwise; **Never** is a choice, not the default). For a full token the dialog lists the privileged permissions (`$panel->privilegedPermissions()`) a full token would have as you, or says you're a super admin. Read-only still reads everything you may view, personal data included (users' emails, form submissions), as the page says.
 3. Add the panel to the agent with the settings shown on the page:
 
    ```bash
    claude mcp add --transport http panel https://example.com/mcp --header "Authorization: Bearer sra_…"
    ```
 
-Or from the console: `php artisan sunrice:ai-token rina@example.com --name="Claude Code" --read-only --expires=30` (`--expires=never`; 90 days by default) prints a new token once; `--list` lists the user's tokens and `--revoke=ID` revokes one. Both are `token created` / `token revoked` security events.
+Or from the console: `php artisan sunrice:ai-token rina@example.com --name="Claude Code" --read-only --expires=30` (`--expires=never`; 90 days by default) prints a new token once (refused when AI access is turned off, `$panel->aiAccess(false)`); `--list` lists the user's tokens and `--revoke=ID` revokes one. Both are `token created` / `token revoked` security events.
 
 Revoke a token on the same page. Administrators revoke all of a user's tokens on **Users** (row menu → Revoke AI tokens), following [who may manage whom](users.md#who-may-manage-whom).
 
@@ -118,4 +118,4 @@ The section's key is the title's slug; a page's title is its first heading. A di
 ],
 ```
 
-`sunrice.ai.error-log` and `sunrice.ai.run-commands` are privileged permissions (an email alert when someone gets them), like `sunrice.ai.connect`. `$panel->aiAccess(false)` removes the page, the permission and the endpoint.
+`sunrice.ai.error-log` and `sunrice.ai.run-commands` are privileged permissions (an email alert when someone gets them), like `sunrice.ai.connect`, and the default `administrator` role doesn't get them: super admins have them, others only when given on purpose. `$panel->aiAccess(false)` removes the page, the permission and the endpoint.

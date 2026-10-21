@@ -4,7 +4,7 @@ The panel has one media library, shared by your app and every plugin: files on a
 
 ## The Media page
 
-**Media** in the sidebar: folders, a grid of files (thumbnails for images), search across every folder, a filter by type, and the trash. Drop files anywhere on the page (or use Upload) to add them to the folder you're in; each file uploads on its own, with its progress and any error. Click a file for its preview and details: title, alternative text, caption, copy its link, or replace its file (the link stays the same). The path above the files (All media › Photos › …) shows where you are. Drag files onto a folder, or onto a step of the path, to move them there (dragging a selected file moves every selected one), or select them and use **Move**; select files to put them in the trash too; in the trash, restore them or delete them for good. Deleting a folder moves what's in it up a level, so nothing is lost.
+**Media** in the sidebar: folders, a grid of files (thumbnails for images), search across every folder, a filter by type, and the trash. Drop files anywhere on the page (or use Upload) to add them to the folder you're in; each file uploads on its own, with its progress and any error. Click a file for its preview and details: title, alternative text, caption (and both in each of the content's other languages, when a plugin gives them: see below), copy its link, or replace its file (the link stays the same). The path above the files (All media › Photos › …) shows where you are. Drag files onto a folder, or onto a step of the path, to move them there (dragging a selected file moves every selected one), or select them and use **Move**; select files to put them in the trash too; in the trash, restore them or delete them for good. Deleting a folder moves what's in it up a level, so nothing is lost.
 
 | Permission | Allows |
 | --- | --- |
@@ -19,14 +19,14 @@ Turn the page off with `$panel->mediaLibrary(false)`; the library still works fr
 
 ## Where files are used
 
-A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets. Moving a file in use to the trash asks first; deleting it for good asks too, and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
+A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets, and the panel reports what a settings section's media pickers hold when it's saved (Branding's logo, browser icon and sign-in image; Settings → Site's share image and logo; your own sections' pickers). Moving a file in use to the trash asks first; deleting it for good asks too, and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
 
 Report your own items' files when they're saved, and forget them when they're deleted (a type starting with your plugin's id, its id, the files, a label and a link):
 
 ```php
 use Sunrice\Admin\Media\MediaUsages;
 
-app(MediaUsages::class)->sync('shop.product', (string) $product->id, [$product->image_id, ...$product->gallery], "Product: {$product->name}", route('sunrice.admin.resources.products.edit', $product));
+app(MediaUsages::class)->sync('shop.product', (string) $product->id, [$product->image_id, ...$product->gallery], "Product: {$product->name}", route('sunrice.admin.shop.products.edit', $product));
 app(MediaUsages::class)->forget('shop.product', (string) $product->id);
 app(MediaUsages::class)->of($media); // [['type' => …, 'label' => …, 'url' => …], …]
 ```
@@ -82,6 +82,7 @@ $media->delete();                                      // to the trash (soft del
 app(DeleteMedia::class)->handle($media);               // gone, with its files
 
 app(UpdateMedia::class)->handle($media, ['alt' => 'The shop front', 'caption' => null]);
+app(UpdateMedia::class)->handle($media, ['translations' => ['id' => ['alt' => 'Bagian depan toko']]]);
 $folder = app(SaveMediaFolder::class)->handle('Products');          // or (name, parent), or rename: (name, folder: $folder)
 app(MoveMedia::class)->handle([$media], $folder);                    // null: the top level
 app(DeleteMediaFolder::class)->handle($folder);                      // its contents move up
@@ -92,8 +93,10 @@ URLs end in `?v=<version>`, so a replaced file is fetched again rather than serv
 `srcset()` gives the value of an `<img srcset>`: each size's URL with its width, worked out from the size's settings and the original's dimensions, and the original's. Without names it uses the sizes that keep the picture's proportions (`fit`, not `crop`); sizes as wide as the original, or as one already listed, are left out, and files that can't have sizes (SVGs, documents) give `''`:
 
 ```blade
-<img src="{{ $media->url('medium') }}" srcset="{{ $media->srcset() }}" sizes="(min-width: 50rem) 50rem, 100vw" alt="{{ $media->alt }}">
+<img src="{{ $media->url('medium') }}" srcset="{{ $media->srcset() }}" sizes="(min-width: 50rem) 50rem, 100vw" alt="{{ $media->altIn() }}">
 ```
+
+**Alternative text and captions per language.** A plugin with content in several languages (the CMS) gives the panel its languages, main first: `$panel->contentLocales(fn (): array => ['en' => 'English', 'id' => 'Indonesian'])` (`@api`; `getContentLocales()` reads them). Each file then takes its alt text and caption in the others (`Media::$translations`, `{"id": {"alt": "…", "caption": "…"}}`, new migration `2026_01_01_000011_add_translations_to_sunrice_media`). `$media->altIn($locale)` and `captionIn($locale)` give them in a language (default: the app's locale, which the CMS sets to the page's), else the file's own: write `alt="{{ $media->altIn() }}"` in templates.
 
 ## Settings
 
@@ -116,7 +119,7 @@ After changing `image_sizes`, run `php artisan sunrice:media-sizes` (or `--id=12
 Media is served from your app's own domain, so a file that runs code there could act as the people signed in to it. Every upload is checked:
 
 - the extension must be allowed, and scripts, executables and web pages (`.php`, `.html`, `.js`, `.svgz`, `.xml` …) are refused whatever the list says;
-- the content is checked too: a web page or script named `notes.txt` is refused;
+- the content is checked too: a web page or script named `notes.txt` is refused; a file named as an image (`.jpg`, `.png`, `.gif`, `.webp`, `.avif`, `.bmp`) must be a readable image ("This isn't a valid image"), and one with PHP code in it (an image followed by `<?php …`) is refused and logged. Other code can check files the same way with `Sunrice\Admin\Media\FileContent` (`@api`): `matchesExtension($file)`, `containsPhp($file)`;
 - SVGs must be free of scripts, event handlers, `javascript:` links, embedded documents and entities. They're refused rather than cleaned, so nothing is changed silently; logos and icons from design tools pass;
 - files over the size limit are refused with a clear message.
 

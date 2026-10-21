@@ -1,0 +1,2224 @@
+{
+    "sunrice": 1,
+    "fieldsets": [
+        {
+            "handle": "contact_person",
+            "title": "Contact person",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Name",
+                    "config": [],
+                    "fields": [],
+                    "handle": "name",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Role",
+                    "config": [],
+                    "fields": [],
+                    "handle": "role",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Phone",
+                    "config": [],
+                    "fields": [],
+                    "handle": "phone",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Email",
+                    "config": [],
+                    "fields": [],
+                    "handle": "email",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "cta",
+            "title": "Call to action",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Heading",
+                    "config": [],
+                    "fields": [],
+                    "handle": "heading",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "textarea",
+                    "label": "Text",
+                    "config": [],
+                    "fields": [],
+                    "handle": "text",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "link",
+                    "label": "Button",
+                    "config": [],
+                    "fields": [],
+                    "handle": "button",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "faq",
+            "title": "FAQ",
+            "fields": [
+                {
+                    "type": "repeater",
+                    "label": "Items",
+                    "config": [],
+                    "fields": [
+                        {
+                            "type": "text",
+                            "label": "Question",
+                            "config": [],
+                            "fields": [],
+                            "handle": "question",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        },
+                        {
+                            "type": "rich_text",
+                            "label": "Answer",
+                            "config": [],
+                            "fields": [],
+                            "handle": "answer",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        }
+                    ],
+                    "handle": "items",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "featured_properties",
+            "title": "Featured properties",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Heading",
+                    "config": [],
+                    "fields": [],
+                    "handle": "heading",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "entries",
+                    "label": "Properties",
+                    "config": {
+                        "max": 6,
+                        "multiple": true,
+                        "collections": [
+                            "properties"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "properties",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "hero",
+            "title": "Hero",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Heading",
+                    "config": [],
+                    "fields": [],
+                    "handle": "heading",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "textarea",
+                    "label": "Subheading",
+                    "config": [],
+                    "fields": [],
+                    "handle": "subheading",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "media",
+                    "label": "Image",
+                    "config": {
+                        "types": [
+                            "image"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "image",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "link",
+                    "label": "Button",
+                    "config": [],
+                    "fields": [],
+                    "handle": "button",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "link",
+                    "label": "Secondary button",
+                    "config": [],
+                    "fields": [],
+                    "handle": "secondary_button",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "image_text",
+            "title": "Image and text",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Heading",
+                    "config": [],
+                    "fields": [],
+                    "handle": "heading",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "rich_text",
+                    "label": "Body",
+                    "config": [],
+                    "fields": [],
+                    "handle": "body",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "media",
+                    "label": "Image",
+                    "config": {
+                        "types": [
+                            "image"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "image",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "select",
+                    "label": "Image side",
+                    "config": {
+                        "default": "left",
+                        "options": [
+                            {
+                                "label": "Left",
+                                "value": "left"
+                            },
+                            {
+                                "label": "Right",
+                                "value": "right"
+                            }
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "image_side",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "rich_text",
+            "title": "Rich text",
+            "fields": [
+                {
+                    "type": "rich_text",
+                    "label": "Body",
+                    "config": [],
+                    "fields": [],
+                    "handle": "body",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "stats",
+            "title": "Stats",
+            "fields": [
+                {
+                    "type": "repeater",
+                    "label": "Items",
+                    "config": [],
+                    "fields": [
+                        {
+                            "type": "text",
+                            "label": "Value",
+                            "config": [],
+                            "fields": [],
+                            "handle": "value",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        },
+                        {
+                            "type": "text",
+                            "label": "Label",
+                            "config": [],
+                            "fields": [],
+                            "handle": "label",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        }
+                    ],
+                    "handle": "items",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "team",
+            "title": "Team",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Heading",
+                    "config": [],
+                    "fields": [],
+                    "handle": "heading",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "entries",
+                    "label": "Agents",
+                    "config": {
+                        "multiple": true,
+                        "collections": [
+                            "agents"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "agents",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "testimonials",
+            "title": "Testimonials",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Heading",
+                    "config": [],
+                    "fields": [],
+                    "handle": "heading",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "entries",
+                    "label": "Testimonials",
+                    "config": {
+                        "multiple": true,
+                        "collections": [
+                            "testimonials"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "testimonials",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        }
+    ],
+    "blueprints": [
+        {
+            "handle": "agent",
+            "title": "Agent",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Role",
+                    "config": [],
+                    "fields": [],
+                    "handle": "role",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "media",
+                    "label": "Photo",
+                    "config": {
+                        "types": [
+                            "image"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "photo",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Phone",
+                    "config": [],
+                    "fields": [],
+                    "handle": "phone",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "text",
+                    "label": "Email",
+                    "config": [],
+                    "fields": [],
+                    "handle": "email",
+                    "required": false,
+                    "validation": [
+                        "email"
+                    ],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "text",
+                    "label": "WhatsApp",
+                    "config": [],
+                    "fields": [],
+                    "handle": "whatsapp",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "select",
+                    "label": "Languages",
+                    "config": {
+                        "options": [
+                            {
+                                "label": "English",
+                                "value": "english"
+                            },
+                            {
+                                "label": "Indonesian",
+                                "value": "indonesian"
+                            },
+                            {
+                                "label": "Mandarin",
+                                "value": "mandarin"
+                            },
+                            {
+                                "label": "Dutch",
+                                "value": "dutch"
+                            }
+                        ],
+                        "multiple": true
+                    },
+                    "fields": [],
+                    "handle": "languages",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "rich_text",
+                    "label": "Bio",
+                    "config": [],
+                    "fields": [],
+                    "handle": "bio",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "repeater",
+                    "label": "Social",
+                    "config": [],
+                    "fields": [
+                        {
+                            "type": "select",
+                            "label": "Network",
+                            "config": {
+                                "options": [
+                                    {
+                                        "label": "Instagram",
+                                        "value": "instagram"
+                                    },
+                                    {
+                                        "label": "LinkedIn",
+                                        "value": "linkedin"
+                                    },
+                                    {
+                                        "label": "Facebook",
+                                        "value": "facebook"
+                                    }
+                                ]
+                            },
+                            "fields": [],
+                            "handle": "network",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        },
+                        {
+                            "type": "link",
+                            "label": "URL",
+                            "config": [],
+                            "fields": [],
+                            "handle": "url",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        }
+                    ],
+                    "handle": "social",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                }
+            ]
+        },
+        {
+            "handle": "company",
+            "title": "Company",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Legal name",
+                    "config": [],
+                    "fields": [],
+                    "handle": "legal_name",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "text",
+                    "label": "Tagline",
+                    "config": [],
+                    "fields": [],
+                    "handle": "tagline",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Phone",
+                    "config": [],
+                    "fields": [],
+                    "handle": "phone",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "text",
+                    "label": "WhatsApp",
+                    "config": [],
+                    "fields": [],
+                    "handle": "whatsapp",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "text",
+                    "label": "Email",
+                    "config": [],
+                    "fields": [],
+                    "handle": "email",
+                    "required": false,
+                    "validation": [
+                        "email"
+                    ],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "textarea",
+                    "label": "Address",
+                    "config": [],
+                    "fields": [],
+                    "handle": "address",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "textarea",
+                    "label": "Office hours",
+                    "config": [],
+                    "fields": [],
+                    "handle": "office_hours",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "link",
+                    "label": "Map",
+                    "config": [],
+                    "fields": [],
+                    "handle": "map",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "group",
+                    "label": "Primary contact",
+                    "config": [],
+                    "fields": [
+                        {
+                            "type": "fieldset",
+                            "label": "Contact person",
+                            "config": {
+                                "fieldset": "contact_person"
+                            },
+                            "fields": [],
+                            "handle": "contact_person",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        }
+                    ],
+                    "handle": "primary_contact",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "contact_form",
+            "title": "Contact form",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Name",
+                    "config": [],
+                    "fields": [],
+                    "handle": "name",
+                    "required": true,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Email",
+                    "config": [],
+                    "fields": [],
+                    "handle": "email",
+                    "required": true,
+                    "validation": [
+                        "email"
+                    ],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Phone",
+                    "config": [],
+                    "fields": [],
+                    "handle": "phone",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "select",
+                    "label": "Topic",
+                    "config": {
+                        "options": [
+                            {
+                                "label": "Buying",
+                                "value": "buying"
+                            },
+                            {
+                                "label": "Selling",
+                                "value": "selling"
+                            },
+                            {
+                                "label": "Renting",
+                                "value": "renting"
+                            },
+                            {
+                                "label": "Other",
+                                "value": "other"
+                            }
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "topic",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "textarea",
+                    "label": "Message",
+                    "config": [],
+                    "fields": [],
+                    "handle": "message",
+                    "required": true,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "footer",
+            "title": "Footer",
+            "fields": [
+                {
+                    "type": "textarea",
+                    "label": "About",
+                    "config": [],
+                    "fields": [],
+                    "handle": "about",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "rich_text",
+                    "label": "Legal",
+                    "config": [],
+                    "fields": [],
+                    "handle": "legal",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Newsletter heading",
+                    "config": [],
+                    "fields": [],
+                    "handle": "newsletter_heading",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "inquiry_form",
+            "title": "Inquiry form",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Name",
+                    "config": [],
+                    "fields": [],
+                    "handle": "name",
+                    "required": true,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Email",
+                    "config": [],
+                    "fields": [],
+                    "handle": "email",
+                    "required": true,
+                    "validation": [
+                        "email"
+                    ],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Phone",
+                    "config": [],
+                    "fields": [],
+                    "handle": "phone",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Property",
+                    "config": [],
+                    "fields": [],
+                    "handle": "property",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "date",
+                    "label": "Preferred date",
+                    "config": {
+                        "future": true
+                    },
+                    "fields": [],
+                    "handle": "preferred_date",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "textarea",
+                    "label": "Message",
+                    "config": [],
+                    "fields": [],
+                    "handle": "message",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "journal_listing",
+            "title": "Journal listing",
+            "fields": [
+                {
+                    "type": "textarea",
+                    "label": "Intro",
+                    "config": [],
+                    "fields": [],
+                    "handle": "intro",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "neighbourhood",
+            "title": "Neighbourhood",
+            "fields": [
+                {
+                    "type": "media",
+                    "label": "Hero",
+                    "config": {
+                        "types": [
+                            "image"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "hero",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "textarea",
+                    "label": "Intro",
+                    "config": [],
+                    "fields": [],
+                    "handle": "intro",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "rich_text",
+                    "label": "Body",
+                    "config": [],
+                    "fields": [],
+                    "handle": "body",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "repeater",
+                    "label": "Highlights",
+                    "config": [],
+                    "fields": [
+                        {
+                            "type": "text",
+                            "label": "Label",
+                            "config": [],
+                            "fields": [],
+                            "handle": "label",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        },
+                        {
+                            "type": "textarea",
+                            "label": "Text",
+                            "config": [],
+                            "fields": [],
+                            "handle": "text",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        }
+                    ],
+                    "handle": "highlights",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "number",
+                    "label": "Average price",
+                    "config": {
+                        "step": 1
+                    },
+                    "fields": [],
+                    "handle": "average_price",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "In IDR",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "newsletter_form",
+            "title": "Newsletter form",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Email",
+                    "config": [],
+                    "fields": [],
+                    "handle": "email",
+                    "required": true,
+                    "validation": [
+                        "email"
+                    ],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "page",
+            "title": "Page",
+            "fields": [
+                {
+                    "type": "textarea",
+                    "label": "Intro",
+                    "config": [],
+                    "fields": [],
+                    "handle": "intro",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "flexible",
+                    "label": "Sections",
+                    "config": {
+                        "blocks": [
+                            "cta",
+                            "faq",
+                            "featured_properties",
+                            "hero",
+                            "image_text",
+                            "rich_text",
+                            "stats",
+                            "team",
+                            "testimonials"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "sections",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "post",
+            "title": "Post",
+            "fields": [
+                {
+                    "type": "media",
+                    "label": "Cover",
+                    "config": {
+                        "types": [
+                            "image"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "cover",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "textarea",
+                    "label": "Excerpt",
+                    "config": {
+                        "max": 240
+                    },
+                    "fields": [],
+                    "handle": "excerpt",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "rich_text",
+                    "label": "Body",
+                    "config": [],
+                    "fields": [],
+                    "handle": "body",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "entries",
+                    "label": "Author",
+                    "config": {
+                        "collections": [
+                            "agents"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "author_agent",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "terms",
+                    "label": "Topics",
+                    "config": {
+                        "multiple": true,
+                        "taxonomy": "topics"
+                    },
+                    "fields": [],
+                    "handle": "topics",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "entries",
+                    "label": "Related properties",
+                    "config": {
+                        "max": 3,
+                        "multiple": true,
+                        "collections": [
+                            "properties"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "related",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                }
+            ]
+        },
+        {
+            "handle": "properties_listing",
+            "title": "Properties listing",
+            "fields": [
+                {
+                    "type": "textarea",
+                    "label": "Intro",
+                    "config": [],
+                    "fields": [],
+                    "handle": "intro",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "media",
+                    "label": "Hero",
+                    "config": {
+                        "types": [
+                            "image"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "hero",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "property",
+            "title": "Property",
+            "fields": [
+                {
+                    "type": "textarea",
+                    "label": "Summary",
+                    "config": {
+                        "max": 300
+                    },
+                    "fields": [],
+                    "handle": "summary",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": true
+                },
+                {
+                    "type": "number",
+                    "label": "Price",
+                    "config": {
+                        "min": 0,
+                        "step": 1
+                    },
+                    "fields": [],
+                    "handle": "price",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "In IDR",
+                    "translatable": false
+                },
+                {
+                    "type": "select",
+                    "label": "Price suffix",
+                    "config": {
+                        "default": "none",
+                        "options": [
+                            {
+                                "label": "None",
+                                "value": "none"
+                            },
+                            {
+                                "label": "per month",
+                                "value": "per_month"
+                            },
+                            {
+                                "label": "per year",
+                                "value": "per_year"
+                            }
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "price_suffix",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "select",
+                    "label": "Status",
+                    "config": {
+                        "default": "available",
+                        "options": [
+                            {
+                                "label": "Available",
+                                "value": "available"
+                            },
+                            {
+                                "label": "Under offer",
+                                "value": "under_offer"
+                            },
+                            {
+                                "label": "Sold",
+                                "value": "sold"
+                            },
+                            {
+                                "label": "Rented",
+                                "value": "rented"
+                            }
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "property_status",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "number",
+                    "label": "Bedrooms",
+                    "config": {
+                        "min": 0,
+                        "step": 1
+                    },
+                    "fields": [],
+                    "handle": "bedrooms",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "number",
+                    "label": "Bathrooms",
+                    "config": {
+                        "min": 0,
+                        "step": 1
+                    },
+                    "fields": [],
+                    "handle": "bathrooms",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "number",
+                    "label": "Building area (m²)",
+                    "config": {
+                        "min": 0
+                    },
+                    "fields": [],
+                    "handle": "building_area",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "number",
+                    "label": "Land area (m²)",
+                    "config": {
+                        "min": 0
+                    },
+                    "fields": [],
+                    "handle": "land_area",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "number",
+                    "label": "Year built",
+                    "config": {
+                        "max": 2100,
+                        "min": 1800,
+                        "step": 1
+                    },
+                    "fields": [],
+                    "handle": "year_built",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "text",
+                    "label": "Address",
+                    "config": [],
+                    "fields": [],
+                    "handle": "address",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": true
+                },
+                {
+                    "type": "link",
+                    "label": "Map",
+                    "config": [],
+                    "fields": [],
+                    "handle": "map",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "media",
+                    "label": "Gallery",
+                    "config": {
+                        "max": 12,
+                        "types": [
+                            "image"
+                        ],
+                        "multiple": true
+                    },
+                    "fields": [],
+                    "handle": "gallery",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "media",
+                    "label": "Floor plan",
+                    "config": {
+                        "types": [
+                            "image",
+                            "document"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "floor_plan",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "rich_text",
+                    "label": "Description",
+                    "config": [],
+                    "fields": [],
+                    "handle": "description",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": true
+                },
+                {
+                    "type": "repeater",
+                    "label": "Features",
+                    "config": [],
+                    "fields": [
+                        {
+                            "type": "text",
+                            "label": "Label",
+                            "config": [],
+                            "fields": [],
+                            "handle": "label",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        }
+                    ],
+                    "handle": "features",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": true
+                },
+                {
+                    "type": "entries",
+                    "label": "Agent",
+                    "config": {
+                        "collections": [
+                            "agents"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "agent",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "entries",
+                    "label": "Neighbourhood",
+                    "config": {
+                        "collections": [
+                            "neighbourhoods"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "neighbourhood",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "link",
+                    "label": "Video",
+                    "config": [],
+                    "fields": [],
+                    "handle": "video",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "toggle",
+                    "label": "Featured",
+                    "config": [],
+                    "fields": [],
+                    "handle": "featured",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "terms",
+                    "label": "Property type",
+                    "config": {
+                        "taxonomy": "property_types"
+                    },
+                    "fields": [],
+                    "handle": "property_type",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "terms",
+                    "label": "Listing type",
+                    "config": {
+                        "taxonomy": "listing_types"
+                    },
+                    "fields": [],
+                    "handle": "listing_type",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "terms",
+                    "label": "Location",
+                    "config": {
+                        "taxonomy": "locations"
+                    },
+                    "fields": [],
+                    "handle": "location",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "terms",
+                    "label": "Amenities",
+                    "config": {
+                        "multiple": true,
+                        "taxonomy": "amenities"
+                    },
+                    "fields": [],
+                    "handle": "amenities",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                }
+            ]
+        },
+        {
+            "handle": "social",
+            "title": "Social",
+            "fields": [
+                {
+                    "type": "repeater",
+                    "label": "Links",
+                    "config": [],
+                    "fields": [
+                        {
+                            "type": "select",
+                            "label": "Network",
+                            "config": {
+                                "options": [
+                                    {
+                                        "label": "Instagram",
+                                        "value": "instagram"
+                                    },
+                                    {
+                                        "label": "Facebook",
+                                        "value": "facebook"
+                                    },
+                                    {
+                                        "label": "LinkedIn",
+                                        "value": "linkedin"
+                                    },
+                                    {
+                                        "label": "YouTube",
+                                        "value": "youtube"
+                                    },
+                                    {
+                                        "label": "TikTok",
+                                        "value": "tiktok"
+                                    },
+                                    {
+                                        "label": "WhatsApp",
+                                        "value": "whatsapp"
+                                    }
+                                ]
+                            },
+                            "fields": [],
+                            "handle": "network",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        },
+                        {
+                            "type": "link",
+                            "label": "URL",
+                            "config": [],
+                            "fields": [],
+                            "handle": "url",
+                            "required": false,
+                            "validation": [],
+                            "instructions": "",
+                            "translatable": null
+                        }
+                    ],
+                    "handle": "links",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                }
+            ]
+        },
+        {
+            "handle": "testimonial",
+            "title": "Testimonial",
+            "fields": [
+                {
+                    "type": "textarea",
+                    "label": "Quote",
+                    "config": [],
+                    "fields": [],
+                    "handle": "quote",
+                    "required": true,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Client",
+                    "config": [],
+                    "fields": [],
+                    "handle": "client",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": false
+                },
+                {
+                    "type": "text",
+                    "label": "Client role",
+                    "config": [],
+                    "fields": [],
+                    "handle": "client_role",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "media",
+                    "label": "Photo",
+                    "config": {
+                        "types": [
+                            "image"
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "photo",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "number",
+                    "label": "Rating",
+                    "config": {
+                        "max": 5,
+                        "min": 1,
+                        "step": 1
+                    },
+                    "fields": [],
+                    "handle": "rating",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        },
+        {
+            "handle": "valuation_form",
+            "title": "Valuation form",
+            "fields": [
+                {
+                    "type": "text",
+                    "label": "Name",
+                    "config": [],
+                    "fields": [],
+                    "handle": "name",
+                    "required": true,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Email",
+                    "config": [],
+                    "fields": [],
+                    "handle": "email",
+                    "required": true,
+                    "validation": [
+                        "email"
+                    ],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Phone",
+                    "config": [],
+                    "fields": [],
+                    "handle": "phone",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "text",
+                    "label": "Address",
+                    "config": [],
+                    "fields": [],
+                    "handle": "address",
+                    "required": true,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "select",
+                    "label": "Property type",
+                    "config": {
+                        "options": [
+                            {
+                                "label": "House",
+                                "value": "house"
+                            },
+                            {
+                                "label": "Villa",
+                                "value": "villa"
+                            },
+                            {
+                                "label": "Apartment",
+                                "value": "apartment"
+                            },
+                            {
+                                "label": "Land",
+                                "value": "land"
+                            },
+                            {
+                                "label": "Commercial",
+                                "value": "commercial"
+                            }
+                        ]
+                    },
+                    "fields": [],
+                    "handle": "property_type",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "number",
+                    "label": "Bedrooms",
+                    "config": {
+                        "min": 0,
+                        "step": 1
+                    },
+                    "fields": [],
+                    "handle": "bedrooms",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "file",
+                    "label": "Photos",
+                    "config": {
+                        "types": "jpg, jpeg, png, webp",
+                        "multiple": true,
+                        "max_files": 10,
+                        "max_kb": 5120
+                    },
+                    "fields": [],
+                    "handle": "photos",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                },
+                {
+                    "type": "textarea",
+                    "label": "Notes",
+                    "config": [],
+                    "fields": [],
+                    "handle": "notes",
+                    "required": false,
+                    "validation": [],
+                    "instructions": "",
+                    "translatable": null
+                }
+            ]
+        }
+    ],
+    "collections": [
+        {
+            "handle": "agents",
+            "title": "Agents",
+            "blueprint": "agent",
+            "blueprints": [],
+            "dated": false,
+            "ordered": true,
+            "hierarchical": false,
+            "route": "/team/{slug}",
+            "listing_route": "/team",
+            "listing_blueprint": null,
+            "per_page": 10,
+            "comments": false,
+            "schema_type": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "listings": {}
+        },
+        {
+            "handle": "journal",
+            "title": "Journal",
+            "blueprint": "post",
+            "blueprints": [],
+            "dated": true,
+            "ordered": false,
+            "hierarchical": false,
+            "route": "/journal/{slug}",
+            "listing_route": "/journal",
+            "listing_blueprint": "journal_listing",
+            "per_page": 6,
+            "comments": true,
+            "schema_type": "BlogPosting",
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": "excerpt",
+            "seo_image_field": "cover",
+            "listings": {
+                "en": {
+                    "seo": {
+                        "image": null,
+                        "title": "Journal: property insights for Jakarta and Bali",
+                        "noindex": false,
+                        "description": "Market reports, buying guides and neighbourhood stories from the advisers at Lumina Estates."
+                    },
+                    "intro": "Market reports, buying guides and stories from life in Jakarta and Bali, written by our advisers."
+                },
+                "id": {
+                    "seo": {
+                        "image": null,
+                        "title": "Jurnal: wawasan properti Jakarta dan Bali",
+                        "noindex": false,
+                        "description": "Laporan pasar, panduan membeli dan cerita kawasan dari para penasihat Lumina Estates."
+                    },
+                    "intro": "Laporan pasar, panduan membeli dan cerita kehidupan di Jakarta dan Bali, ditulis oleh para penasihat kami."
+                }
+            }
+        },
+        {
+            "handle": "neighbourhoods",
+            "title": "Neighbourhoods",
+            "blueprint": "neighbourhood",
+            "blueprints": [],
+            "dated": false,
+            "ordered": false,
+            "hierarchical": false,
+            "route": "/neighbourhoods/{slug}",
+            "listing_route": "/neighbourhoods",
+            "listing_blueprint": null,
+            "per_page": 10,
+            "comments": false,
+            "schema_type": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": "intro",
+            "seo_image_field": "hero",
+            "listings": {}
+        },
+        {
+            "handle": "pages",
+            "title": "Pages",
+            "blueprint": "page",
+            "blueprints": [],
+            "dated": false,
+            "ordered": true,
+            "hierarchical": true,
+            "route": "/{slug}",
+            "listing_route": null,
+            "listing_blueprint": null,
+            "per_page": 10,
+            "comments": false,
+            "schema_type": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": "intro",
+            "seo_image_field": null,
+            "listings": {}
+        },
+        {
+            "handle": "properties",
+            "title": "Properties",
+            "blueprint": "property",
+            "blueprints": [],
+            "dated": false,
+            "ordered": false,
+            "hierarchical": false,
+            "route": "/properties/{slug}",
+            "listing_route": "/properties",
+            "listing_blueprint": "properties_listing",
+            "per_page": 9,
+            "comments": false,
+            "schema_type": "WebPage",
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": "summary",
+            "seo_image_field": "gallery",
+            "listings": {
+                "en": {
+                    "seo": {
+                        "image": null,
+                        "title": "Properties for sale and rent in Jakarta and Bali",
+                        "noindex": false,
+                        "description": "Luxury villas, houses, apartments and land for sale and rent in Kemang, Menteng, Pondok Indah, Canggu and Ubud."
+                    },
+                    "hero": null,
+                    "intro": "Villas, family homes, apartments and land for sale and rent in Jakarta and Bali, each one visited and checked by our team."
+                },
+                "id": {
+                    "seo": {
+                        "image": null,
+                        "title": "Properti dijual dan disewakan di Jakarta dan Bali",
+                        "noindex": false,
+                        "description": "Vila mewah, rumah, apartemen dan tanah untuk dijual dan disewakan di Kemang, Menteng, Pondok Indah, Canggu dan Ubud."
+                    },
+                    "intro": "Vila, rumah keluarga, apartemen dan tanah untuk dijual dan disewakan di Jakarta dan Bali, semuanya telah dikunjungi dan diperiksa oleh tim kami."
+                }
+            }
+        },
+        {
+            "handle": "testimonials",
+            "title": "Testimonials",
+            "blueprint": "testimonial",
+            "blueprints": [],
+            "dated": false,
+            "ordered": true,
+            "hierarchical": false,
+            "route": null,
+            "listing_route": null,
+            "listing_blueprint": null,
+            "per_page": 10,
+            "comments": false,
+            "schema_type": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "listings": {}
+        }
+    ],
+    "taxonomies": [
+        {
+            "handle": "amenities",
+            "title": "Amenities",
+            "hierarchical": false,
+            "route": null,
+            "blueprint": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "collections": [
+                "properties"
+            ]
+        },
+        {
+            "handle": "listing_types",
+            "title": "Listing types",
+            "hierarchical": false,
+            "route": null,
+            "blueprint": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "collections": [
+                "properties"
+            ]
+        },
+        {
+            "handle": "locations",
+            "title": "Locations",
+            "hierarchical": true,
+            "route": "/location/{slug}",
+            "blueprint": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "collections": [
+                "properties"
+            ]
+        },
+        {
+            "handle": "property_types",
+            "title": "Property types",
+            "hierarchical": false,
+            "route": "/property-type/{slug}",
+            "blueprint": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "collections": [
+                "properties"
+            ]
+        },
+        {
+            "handle": "topics",
+            "title": "Journal topics",
+            "hierarchical": false,
+            "route": "/journal/topic/{slug}",
+            "blueprint": null,
+            "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "collections": [
+                "journal"
+            ]
+        }
+    ],
+    "globals": [
+        {
+            "handle": "company",
+            "title": "Company",
+            "blueprint": "company"
+        },
+        {
+            "handle": "footer",
+            "title": "Footer",
+            "blueprint": "footer"
+        },
+        {
+            "handle": "social",
+            "title": "Social",
+            "blueprint": "social"
+        }
+    ],
+    "forms": [
+        {
+            "handle": "contact",
+            "title": "Contact",
+            "blueprint": "contact_form",
+            "notify": [
+                "ayu@lumina-estates.test"
+            ],
+            "notify_roles": null,
+            "message": "Thank you for getting in touch. One of our advisors will reply within one working day.",
+            "redirect_url": null,
+            "per_minute": null,
+            "captcha": false
+        },
+        {
+            "handle": "inquiry",
+            "title": "Property inquiry",
+            "blueprint": "inquiry_form",
+            "notify": [
+                "ayu@lumina-estates.test"
+            ],
+            "notify_roles": null,
+            "message": "Thank you for your interest. The listing agent will contact you shortly to arrange a viewing.",
+            "redirect_url": null,
+            "per_minute": null,
+            "captcha": false
+        },
+        {
+            "handle": "newsletter",
+            "title": "Newsletter",
+            "blueprint": "newsletter_form",
+            "notify": null,
+            "notify_roles": null,
+            "message": "Thank you for subscribing to the Lumina Estates journal.",
+            "redirect_url": null,
+            "per_minute": null,
+            "captcha": false
+        },
+        {
+            "handle": "valuation",
+            "title": "Valuation",
+            "blueprint": "valuation_form",
+            "notify": [
+                "ayu@lumina-estates.test"
+            ],
+            "notify_roles": null,
+            "message": "Thank you. We will be in touch within two working days with a valuation appointment.",
+            "redirect_url": null,
+            "per_minute": 3,
+            "captcha": false
+        }
+    ],
+    "menus": [
+        {
+            "handle": "footer",
+            "title": "Footer",
+            "items": [
+                {
+                    "collection": "properties",
+                    "labels": {},
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "collection": "neighbourhoods",
+                    "labels": {},
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "collection": "agents",
+                    "labels": {
+                        "en": "Our team"
+                    },
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "collection": "journal",
+                    "labels": {},
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "url": "mailto:hello@lumina-estates.test",
+                    "labels": {
+                        "en": "hello@lumina-estates.test"
+                    },
+                    "new_tab": false,
+                    "children": []
+                }
+            ]
+        },
+        {
+            "handle": "legal",
+            "title": "Legal",
+            "items": []
+        },
+        {
+            "handle": "main",
+            "title": "Main",
+            "items": [
+                {
+                    "collection": "properties",
+                    "labels": {},
+                    "new_tab": false,
+                    "children": [
+                        {
+                            "url": "/properties?listing_type=for-sale",
+                            "labels": {
+                                "en": "For sale"
+                            },
+                            "new_tab": false,
+                            "children": []
+                        },
+                        {
+                            "url": "/properties?listing_type=for-rent",
+                            "labels": {
+                                "en": "For rent"
+                            },
+                            "new_tab": false,
+                            "children": []
+                        },
+                        {
+                            "term": "property_types/villa",
+                            "labels": {
+                                "en": "Villas"
+                            },
+                            "new_tab": false,
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "collection": "neighbourhoods",
+                    "labels": {},
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "collection": "agents",
+                    "labels": {
+                        "en": "Team"
+                    },
+                    "new_tab": false,
+                    "children": []
+                },
+                {
+                    "collection": "journal",
+                    "labels": {},
+                    "new_tab": false,
+                    "children": []
+                }
+            ]
+        }
+    ],
+    "redirects": [
+        {
+            "from": "/blog",
+            "to": "/journal",
+            "status": 301
+        },
+        {
+            "from": "/listings",
+            "to": "/properties",
+            "status": 301
+        }
+    ]
+}

@@ -5,6 +5,7 @@ import { adminUrl, t } from '@sunrice/admin-sdk';
 import { Button, KeptEditsNotice, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, useBreadcrumbs, useEditLock, useUnsavedChanges, ViewingNotice } from '@sunrice/admin-sdk/ui';
 import { FieldSections } from '@/components/FieldSections.tsx';
 import { VersionConflict } from '@/components/VersionConflict.tsx';
+import { errorKeysAt } from '@/lib/builder.ts';
 import { localeName } from '@/lib/entries.ts';
 import type { FieldDefinition } from '@/types.ts';
 
@@ -37,6 +38,10 @@ function GlobalsEdit({ set, fields, locale, locales, shared, values, version, ca
     useBreadcrumbs([{ label: t('Globals'), href: adminUrl('cms/globals') }, { label: set.title }]);
     const form = useForm<{ locale: string; data: FieldValues; version: number | null }>({ locale, data: values, version });
     const errors = form.errors as Record<string, string | undefined>;
+    const clearErrorsAt = (path: string) => {
+        const keys = errorKeysAt(errors, path);
+        if (keys.length > 0) form.clearErrors(...(keys as never[]));
+    };
     const mainLocale = locales[0];
     const lock = useEditLock({
         type: 'cms.global', id: set.id, locale, enabled: can.update, noun: t('global set'), leaveTo: adminUrl('cms/globals'),
@@ -56,7 +61,7 @@ function GlobalsEdit({ set, fields, locale, locales, shared, values, version, ca
     useUnsavedChanges(form.isDirty && !lock.takenOver, writable ? save : undefined);
 
     return (
-        <form onSubmit={(e) => { e.preventDefault(); save(); }} className="cms:flex cms:max-w-5xl cms:flex-col cms:gap-6">
+        <form noValidate onSubmit={(e) => { e.preventDefault(); save(); }} className="cms:flex cms:max-w-5xl cms:flex-col cms:gap-6">
             <Head title={set.title} />
             {lock.dialogs}
             <PageHeader
@@ -88,13 +93,20 @@ function GlobalsEdit({ set, fields, locale, locales, shared, values, version, ca
                 <p className="cms:text-muted-foreground">{t('This global set has no fields: choose a blueprint for it in its Settings.')}</p>
             ) : (
                 <div className="cms:flex cms:flex-col cms:gap-4">
-                    <ViewingNotice by={lock.viewingBy} />
+                    <ViewingNotice by={lock.viewingBy} onTakeOver={lock.requestTakeOver} />
+                    {mainLocale && locale !== mainLocale && (
+                        <p className="cms:rounded-lg cms:border cms:bg-muted/40 cms:p-3 cms:text-sm cms:text-muted-foreground" role="note">
+                            {version === null
+                                ? t('Not saved in :language yet: these are the :main values, which the site shows meanwhile. Translate them, then save.', { language: localeName(locale), main: localeName(mainLocale) })
+                                : t('A field left empty shows the :main value on the site.', { main: localeName(mainLocale) })}
+                        </p>
+                    )}
                     <VersionConflict message={errors.version} processing={form.processing} onSaveMine={saveMine} />
                     <KeptEditsNotice kept={lock.kept} disabled={!writable} onLoad={(id: number) => void loadKept(id)} onDiscard={(id: number) => void lock.discardKept(id)} />
                     <FieldSections disabled={!writable} fields={fields} values={form.data.data} errors={errors} storageKey={`cms:global:${set.handle}`}
                         shared={shared} sharedValues={values}
-                        sharedNote={mainLocale ? t('Shared by all languages: edit it in :language.', { language: localeName(mainLocale) }) : t('Shared by all languages: edit it in the main language.')}
-                        onChange={(handle, value) => form.setData('data', { ...form.data.data, [handle]: value })} />
+                        sharedNote={mainLocale ? t('Shared by all languages: the greyed-out fields are edited in :language.', { language: localeName(mainLocale) }) : t('Shared by all languages: the greyed-out fields are edited in the main language.')}
+                        onChange={(handle, value) => { form.setData('data', { ...form.data.data, [handle]: value }); clearErrorsAt(`data.${handle}`); }} />
                 </div>
             )}
         </form>

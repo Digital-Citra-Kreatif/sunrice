@@ -61,6 +61,24 @@ it('queues a mail to super admins and the listed addresses when an account is lo
         ->and($mail->render())->toContain('Rina')->toContain('What to do:')->toContain('/admin/activity?source=security');
 });
 
+it('links to the activity log on APP_URL, not the Host header of the request that raised the alert', function () {
+    config(['app.url' => 'https://cms.example', 'sunrice-admin.auth.throttle' => ['attempts' => 50, 'per_ip' => 50, 'per_account' => 2, 'account_lock_seconds' => 900]]);
+    foreach (range(1, 3) as $i) {
+        post('http://evil.example/admin/login', ['email' => 'rina@example.com', 'password' => 'wrong']);
+    }
+
+    expect(Mail::queued(SecurityAlert::class)->first()->logUrl)->toBe('https://cms.example/admin/activity?source=security');
+});
+
+it('alerts on one address asking for many password resets', function () {
+    config(['sunrice-admin.auth.throttle.password_resets_per_hour' => 2]);
+    foreach (range(1, 3) as $i) {
+        post('/admin/forgot-password', ['email' => "someone{$i}@example.com"]);
+    }
+
+    expect(alertsSent())->toContain('One address keeps asking for password resets');
+});
+
 it('alerts on one address trying many accounts', function () {
     config(['sunrice-admin.auth.throttle' => ['attempts' => 50, 'per_ip' => 3, 'per_account' => 50]]);
     foreach (['a', 'b', 'c'] as $name) {
@@ -143,6 +161,17 @@ it('alerts on dangerous uploads, and bursts of exports, deletes and unpublishes'
     app(ActivityLog::class)->record('unpublished', 'entry', 3, 'Post 3');
 
     expect(alertsSent())->toBe(['A dangerous upload was blocked', 'Many exports in a short time', 'Many things deleted in a short time']);
+});
+
+it('counts purging deleted content (emptying a trash for good) towards mass deletes', function () {
+    config(['sunrice-admin.security.alerts.mass_deletes' => 2]);
+    actingAs($this->admin);
+
+    expect(SecurityAlerts::DESTRUCTIVE_ACTIONS)->toContain('purged');
+    app(ActivityLog::class)->record('purged', 'collection', 1, 'Blog');
+    app(ActivityLog::class)->record('purged', 'taxonomy', 2, 'Tags');
+
+    expect(alertsSent())->toBe(['Many things deleted in a short time']);
 });
 
 it('records pages refused to a signed-in person, and alerts when it keeps happening', function () {

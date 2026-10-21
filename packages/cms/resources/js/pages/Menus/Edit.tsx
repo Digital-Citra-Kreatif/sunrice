@@ -54,7 +54,8 @@ export default function MenuEdit({ menu, items: initial, locales, limits, terms,
 
     /** The items directly under the one at `parent` (-1: the top), dragged into order among themselves, each with its own children. */
     const level = (parent: number): React.ReactNode => (
-        <SortableList items={childIndexes(items, parent)} getId={(index) => items[index]!.key} disabled={!can.update}
+        <SortableList items={childIndexes(items, parent)} getId={(index) => items[index]!.key}
+            getLabel={(index) => items[index]!.labels[main] || items[index]!.target?.title || items[index]!.url || 'link'} disabled={!can.update}
             onReorder={(order) => change(reorderLevel(items, parent, order))} className={parent < 0 ? 'cms:gap-1' : 'cms:mt-1 cms:gap-1 cms:pl-6'}>
             {(index, { handle, isOverlay }) => {
                 const item = items[index]!;
@@ -83,6 +84,11 @@ export default function MenuEdit({ menu, items: initial, locales, limits, terms,
                                     </div>
                                 )}
                             </div>
+                            {item.collection_id !== null && (
+                                <Input aria-label={t('Filters')} className="cms:w-full cms:sm:max-w-md cms:font-mono" disabled={!can.update}
+                                    placeholder={t('Filters (optional): :example', { example: 'listing_type=for-sale' })} value={item.query ?? ''}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => update(index, { query: e.target.value })} />
+                            )}
                             {locales.length > 1 && (
                                 <div className="cms:flex cms:flex-wrap cms:gap-2">
                                     {locales.slice(1).map((code) => (
@@ -139,12 +145,15 @@ function strip({ target: _target, children, ...node }: MenuNode): Omit<MenuNode,
     return { ...node, children: children.map(strip) as MenuNode[] };
 }
 
+/** A menu links to pages that exist: said when the search finds none. */
+const menuEntryHint = (): string => t('A menu links to entries that already exist: create the page first (Content → Entries), then add it here, or add a web address instead.');
+
 const titles = (): Record<Kind, string> => ({ entry: t('Link to an entry'), term: t('Link to a term\'s page'), listing: t('Link to a listing page'), url: t('Link to an address') });
 
 const descriptions = (): Record<Kind, string> => ({
     entry: t('It follows the entry: its title (unless you give a label) and its address in each language. It shows only while the entry is on the site.'),
     term: t('The page listing the term\'s entries, in each language. Its title is the label unless you give one.'),
-    listing: t('The collection\'s listing page, in each language. The collection\'s title is the label unless you give one.'),
+    listing: t('The collection\'s listing page, in each language, optionally with filters. The collection\'s title is the label unless you give one.'),
     url: t('A web address, a path on this site (/contact), mailto: or tel:.'),
 });
 
@@ -160,7 +169,8 @@ function AddDialog({ kind, terms, listings, onClose, onAdd, main }: {
     const [choice, setChoice] = React.useState('');
     const [address, setAddress] = React.useState('');
     const [label, setLabel] = React.useState('');
-    React.useEffect(() => { setEntryId(null); setChoice(''); setAddress(''); setLabel(''); }, [kind]);
+    const [query, setQuery] = React.useState('');
+    React.useEffect(() => { setEntryId(null); setChoice(''); setAddress(''); setLabel(''); setQuery(''); }, [kind]);
     const safe = address.trim() === '' || isSafeUrl(address.trim());
     const labels = label.trim() ? { [main]: label.trim() } : {};
 
@@ -174,7 +184,7 @@ function AddDialog({ kind, terms, listings, onClose, onAdd, main }: {
             onAdd(newItem({ term_id: Number(choice), target: term ? { title: term.title, kind: term.taxonomy, live: true } : null, labels }));
         } else if (kind === 'listing' && choice !== '') {
             const listing = listings.find((l) => String(l.id) === choice);
-            onAdd(newItem({ collection_id: Number(choice), target: listing ? { title: listing.title, kind: t('Listing page'), live: true } : null, labels }));
+            onAdd(newItem({ collection_id: Number(choice), target: listing ? { title: listing.title, kind: t('Listing page'), live: true } : null, labels, query: query.trim().replace(/^\?/, '') || null }));
         } else if (kind === 'url' && address.trim() !== '' && safe && label.trim() !== '') {
             onAdd(newItem({ url: address.trim(), labels }));
         }
@@ -191,7 +201,7 @@ function AddDialog({ kind, terms, listings, onClose, onAdd, main }: {
                 <div className="cms:flex cms:flex-col cms:gap-3">
                     {kind === 'entry' && (
                         <EntriesPicker id="menu-entry" value={entryId} multiple={false} max={null} collections={[]} invalid={false}
-                            onChange={(value) => setEntryId(typeof value === 'number' ? value : null)} />
+                            emptyHint={menuEntryHint()} onChange={(value) => setEntryId(typeof value === 'number' ? value : null)} />
                     )}
                     {(kind === 'term' || kind === 'listing') && (
                         <div className="cms:flex cms:flex-col cms:gap-2">
@@ -204,6 +214,14 @@ function AddDialog({ kind, terms, listings, onClose, onAdd, main }: {
                                         : listings.map((l) => <SelectItem key={l.id} value={String(l.id)}>{l.title}</SelectItem>)}
                                 </SelectContent>
                             </Select>
+                        </div>
+                    )}
+                    {kind === 'listing' && (
+                        <div className="cms:flex cms:flex-col cms:gap-2">
+                            <Label htmlFor="menu-query">{t('Filters (optional)')}</Label>
+                            <Input id="menu-query" className="cms:font-mono" value={query} placeholder="listing_type=for-sale"
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} />
+                            <p className="cms:text-sm cms:text-muted-foreground">{t('What the listing page\'s filters put after the ? in its address. Each language\'s link gets them, and a term may be named by its slug in any language.')}</p>
                         </div>
                     )}
                     {kind === 'url' && (

@@ -45,6 +45,14 @@ final class SeoMapping
                 }
             }
         }
+        // A field chosen before its blueprint changed stays choosable, marked.
+        foreach (array_keys(self::TYPES) as $column) {
+            $current = $owner->getAttribute($column);
+            if (is_string($current) && $current !== '' && ! isset($options[$column][$current])) {
+                $label = __(':field (not in its blueprint)', ['field' => $current]);
+                $options[$column][$current] = is_string($label) ? $label : $current;
+            }
+        }
 
         return $options;
     }

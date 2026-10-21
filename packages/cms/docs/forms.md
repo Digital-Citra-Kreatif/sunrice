@@ -5,7 +5,7 @@
 ## Setting up
 
 1. Make a blueprint with the form's fields (Structure → Blueprints). Visitors get the `text`, `textarea`, `number`, `toggle`, `select`, `date` and `file` fields; fields of other types are left out of the form. Required fields and extra validation rules (like `email`) apply as for entries. A text field with the `email` rule, or with the handle `email`, is an email input, and the notification's replies go to it.
-2. Under **Structure → Forms** (permissions `cms.forms.view`, `.create`, `.update`, `.delete`), add a form: a title, a handle that templates use (it can be changed later, with a warning: templates need the new one, roles keep their permissions), the blueprint, the addresses to email (one per line, at most 10) and roles whose members are emailed too (**Also email roles**), a thank-you message, and optionally a page to go to once it's sent (**After sending, go to**), how often one visitor may send it (**Sends per visitor a minute**), and whether it needs a [captcha](#captcha).
+2. Under **Structure → Forms** (permissions `cms.forms.view`, `.create`, `.update`, `.delete`), add a form: a title, a handle that templates use (it can be changed later, with a warning: templates need the new one, roles keep their permissions), the blueprint, the addresses to email (one per line, at most 10; the email lists what was filled in, says which page it was sent from and in which language, and links to the form's submissions in the admin, where files download) and roles whose members are emailed too (**Also email roles**), a thank-you message (and **Thank-you message in …** for each other language; empty there: the site's own words in that language, `sunrice-cms::site.forms.thanks`, or the message when the CMS has none in it), and optionally a page to go to once it's sent (**After sending, go to**), how often one visitor may send it (**Sends per visitor a minute**), and whether it needs a [captcha](#captcha).
 
 ## On the site
 
@@ -14,7 +14,7 @@
 <x-sunrice-cms::form handle="contact" submit="Send message" class="contact-form" />
 ```
 
-Empty, the component prints the form with its labels, help texts and errors (each tied to its input with `aria-describedby` and `aria-invalid`), the CSRF token and the honeypot, the [captcha](#captcha) when the form asks for one, and the thank-you message once it's sent. Other attributes go on the `<form>`. It has no styles of its own: style it from your stylesheet, or publish the CMS's views to change its markup. Nothing is printed for an unknown handle.
+Empty, the component prints the form with its labels, help texts and select options in the page's language (the fields' `translations`, **In other languages** in the blueprint builder: see [field definitions](fields.md#field-definitions); else as written), and errors (each tied to its input with `aria-describedby` and `aria-invalid`), the CSRF token and the honeypot, the [captcha](#captcha) when the form asks for one, and the thank-you message once it's sent. Other attributes go on the `<form>`. It has no styles of its own: style it from your stylesheet, or publish the CMS's views to change its markup. Nothing is printed for an unknown handle.
 
 | Attribute | |
 | --- | --- |
@@ -51,9 +51,9 @@ With a slot, the markup inside the `<form>` is yours; the component still adds t
 - `$component->captcha()`: the captcha widget and its script when the form asks for one, else null. With your own markup, print it yourself.
 - `$component->submitted()`: whether the page comes right after this form was sent back with errors. `$component->form` is the `Form` model (`->schema()->fields()` lists its fields).
 
-Fields the form's blueprint doesn't have are ignored; a toggle needs a hidden `0` before its checkbox to send "off"; a select with several choices is `data[topics][]`; a file field needs the form to send `multipart/form-data` (the component adds it when the form has one).
+Fields the form's blueprint doesn't have are ignored; a toggle needs a hidden `0` before its checkbox to send "off"; a select with several choices is `data[topics][]`, and so is a file field that takes several files (`data[photos][]` with `multiple`); a file field needs the form to send `multipart/form-data` (the component adds it when the form has one).
 
-Forms post to `POST /forms/{handle}` (route `sunrice.cms.forms.submit`), the fields as `data[handle]` (or by handle, as in older templates). After sending, visitors go back to the page they were on, with the thank-you message in the session (`session('sunrice-cms.form.contact')`); errors are in the form's own error bag (`$errors->contact`), so two forms on a page don't mix them up.
+Forms post to `POST /forms/{handle}` (route `sunrice.cms.forms.submit`), the fields as `data[handle]` (or by handle, as in older templates). After sending, visitors go back to the form on the page they were on (`#form-{handle}`, the `<form>`'s id), with the thank-you message in the session (`session('sunrice-cms.form.contact')`); errors are in the form's own error bag (`$errors->contact`), so two forms on a page don't mix them up. The component's own markup puts the thank-you message, or a summary of the errors with a link to each field, first in the form and focuses it (`autofocus`, no JavaScript), so keyboard and screen reader users start there; with a slot, `$component->errorSummary()` gives the errors as `[handle or null, message]` pairs for your own.
 
 ### Submitting without a page reload
 
@@ -76,15 +76,15 @@ form.addEventListener('submit', async (event) => {
 | --- | --- | --- |
 | `201` | `{"message": "Thanks!", "redirect_url": "/thanks" \| null}` | Kept (and emailed). `redirect_url` is the form's **After sending, go to**. |
 | `422` | `{"message": "…", "errors": {"email": ["…"], "_captcha": ["…"]}}` | Not kept. Errors are keyed by field handle (no `data.`); `_captcha` for the captcha. |
-| `429` | | Too many sends from this address this minute. |
+| `429` | `{"message", "errors": {"_limit": ["… wait 42 seconds …"]}}` | Too many sends from this address this minute. |
 | `419` | | The CSRF token is missing or stale (the page was open too long): reload it. |
 | `200`, empty | | The honeypot caught it (fields missing, the trap filled in, or sent too fast); nothing is kept. |
 
 ### Files
 
-A **File (forms)** field takes one file per field. Its settings: **Accepted file types** (extensions, like `pdf, jpg, docx`; checked against the name and the content) and **Largest file** (KB; empty: `sunrice-cms.forms.upload_max_kb`, 10 MB). Files that could run as code (`.php`, `.html`, `.svg`, `.js`, `.exe` …) are always refused. PHP's own `upload_max_filesize` and `post_max_size` (and your web server's body limit) apply too.
+A **File (forms)** field takes one file, or several with **Several files** (`multiple`; **At most (files)**, `max_files`, 10 unless set, at most 20; the input is `data[photos][]` with `multiple`). Its settings: **Accepted file types** (extensions, like `pdf, jpg, docx`; checked against the name and the content) and **Largest file** (KB, each file; empty: `sunrice-cms.forms.upload_max_kb`, 10 MB). Files that could run as code (`.php`, `.html`, `.svg`, `.js`, `.exe` …) are always refused, and so is a file named as an image that isn't one, or has PHP code in it (a JPEG followed by `<?php`). PHP's own `upload_max_filesize` and `post_max_size` (and your web server's body limit) apply too. The component says under the field which types it takes and how large a file may be (the lower of its own limit and `upload_max_filesize`: "Accepted: JPG, PNG, up to 2 MB."), and a file over PHP's limit is refused with that size ("The Photos file is larger than 2 MB …") rather than "failed to upload" (`FileField::maxKb()`, `hint()`). A request over `post_max_size` arrives empty: keep it above `upload_max_filesize` times the file fields.
 
-Files are kept on the private disk `sunrice-cms.forms.upload_disk` (`local`, `SUNRICE_FORMS_DISK`) under `form-uploads/{handle}` with names of their own, never served to the public: people with `cms.submissions.view` download them from the submission. The submission keeps `{path, name, size, mime}`; the email and CSV show the name. Deleting a submission deletes its files. Entries don't use this field: use a media field.
+Files are kept on the private disk `sunrice-cms.forms.upload_disk` (`local`, `SUNRICE_FORMS_DISK`) under `form-uploads/{handle}` with names of their own, never served to the public: people with `cms.submissions.view` download them from the submission. The submission keeps `{path, name, size, mime}` (a list of them for several files); the email and CSV show the names, and the admin links each file (`?index=n` for one of several). Deleting a submission deletes its files. Entries don't use this field: use a media field.
 
 ### Captcha
 
@@ -102,17 +102,18 @@ Plugins use the same captcha: `app(\Sunrice\Admin\Security\Captcha::class)->widg
 
 ### Spam
 
-- Every form post must carry the honeypot fields ([spatie/laravel-honeypot](https://github.com/spatie/laravel-honeypot), which the component prints). Bots that fill in the hidden field, send too fast or leave the fields out get an empty page and nothing is kept. Configure it with the package's `honeypot` config.
-- One visitor (IP address) may send a form 5 times a minute (`sunrice-cms.forms.per_minute`, or the form's own setting); more get `429`.
+- Every form post must carry the honeypot fields ([spatie/laravel-honeypot](https://github.com/spatie/laravel-honeypot), which the component prints). Bots that fill in the hidden field, send too fast or leave the fields out get an empty page and nothing is kept. Configure it with the package's `honeypot` config. On pages kept by the [page cache](caching.md#whole-pages), each visitor gets their own honeypot fields (`Site\HoneypotReplacer`), so "too fast" counts from when the visitor got the page.
+- One visitor (IP address) may send a form 5 times a minute (`sunrice-cms.forms.per_minute`, or the form's own setting). Only sends that were kept count, so fixing a mistake doesn't use the limit up (with a ceiling of ten times as many tries of any kind). Over it, the visitor goes back to the form with a message saying how long to wait (under `_limit` in the form's error bag) and what they typed; JSON requests get `429`. Visitors behind one address (an office) share the limit.
 - A [captcha](#captcha), for forms that ask for it.
+- Errors come in the language of the page the form was sent from (its `locale` input), naming each field by its label in that language: "Nama Anda wajib diisi." The CMS brings Indonesian for Laravel's validation lines (see [the site's words](site.md#the-sites-words)); add `lang/{locale}/validation.php` for other languages.
 
 ### After sending
 
-Visitors go back to the page they were on, or to the form's **After sending, go to** page, with the thank-you message in the session. JSON requests get `201 {"message": "…", "redirect_url": "/thanks" | null}` ([more](#submitting-without-a-page-reload)).
+Visitors go back to the form on the page they were on, or to the form's **After sending, go to** page, with the thank-you message in the session, in the language the form was sent from (`$form->successMessage($locale)`). JSON requests get `201 {"message": "…", "redirect_url": "/thanks" | null}` ([more](#submitting-without-a-page-reload)).
 
 ## Submissions
 
-Under **Content → Submissions** (`cms.submissions.view`): each form's submissions, newest first; open one to read all of it, with who sent it (IP address, browser and the page it was sent from). **Export CSV** (`cms.submissions.export`, or `cms.submissions.{form}.export`) downloads them all, a column per field, then `IP address`, `User agent` and `Referrer`, with values spreadsheets would run as formulas escaped. Exports are recorded in the security log. `cms.submissions.delete` deletes them for good.
+Under **Content → Submissions** (`cms.submissions.view`): each form's submissions, newest first (the CSV's and the emails' dates in the app's time zone, `APP_TIMEZONE`); open one to read all of it, with who sent it (IP address, browser and the page it was sent from). **Export CSV** (`cms.submissions.export`, or `cms.submissions.{form}.export`) downloads them all, a column per field, then `IP address`, `User agent` and `Referrer`, with values spreadsheets would run as formulas escaped. Exports are recorded in the security log. `cms.submissions.delete` deletes them for good.
 
 The notification email lists the fields with their labels. It goes to the form's addresses and to everyone with one of its roles, one email each (an address that's both gets one). It's queued, so it's sent by your queue worker when the app has a queue, and right away when it doesn't.
 

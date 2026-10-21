@@ -5,7 +5,7 @@
     own view its properties ($form, $id) and methods ($error('email'), $old('email'), $success()) are variables.
 --}}
 @if ($replace && $success())
-<p id="{{ $id }}" role="status">{{ $success() }}</p>
+<p id="{{ $id }}" role="status" tabindex="-1" autofocus>{{ $success() }}</p>
 @else
 <form method="POST" action="{{ route('sunrice.cms.forms.submit', $form->handle) }}" id="{{ $id }}" @if ($form->takesFiles()) enctype="multipart/form-data" @endif {{ $attributes }}>
     @csrf
@@ -13,19 +13,31 @@
     <input type="hidden" name="locale" value="{{ $locale }}">
     <input type="hidden" name="{{ \Sunrice\Cms\View\Components\Form::FORM_INPUT }}" value="{{ $form->handle }}">
     @if ($success())
-        <p role="status">{{ $success() }}</p>
+        <p role="status" tabindex="-1" autofocus>{{ $success() }}</p>
     @endif
     @if ($slot->isNotEmpty())
     {{ $slot }}
     @else
+        @if ($failed())
+            {{-- Sent back with errors: focus lands here, each error links to its field. --}}
+            <div id="{{ $id }}-errors" role="alert" tabindex="-1" autofocus>
+                <p>{{ __('sunrice-cms::site.forms.errors') }}</p>
+                <ul>
+                    @foreach ($errorSummary() as [$errorField, $message])
+                        <li>@if ($errorField !== null)<a href="#form-{{ $form->handle }}-{{ $errorField }}">{{ $message }}</a>@else{{ $message }}@endif</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         @foreach ($form->schema()->fields() as $field)
             @php
                 $inputId = 'form-'.$form->handle.'-'.$field->handle;
-                $label = $field->label ?: \Illuminate\Support\Str::headline($field->handle);
+                $label = $field->labelIn($locale);
+                $help = $field->instructionsIn($locale);
                 $value = $old($field->handle, $form->schema()->type($field)->defaultValue($field));
                 $fieldError = $error($field->handle);
-                $describedBy = trim(($field->instructions !== '' ? $inputId.'-help ' : '').($fieldError ? $inputId.'-error' : ''));
-                $options = is_array($field->config['options'] ?? null) ? $field->config['options'] : [];
+                $describedBy = trim(($help !== '' || $field->type === 'file' ? $inputId.'-help ' : '').($fieldError ? $inputId.'-error' : ''));
+                $options = $field->options($locale);
                 $multiple = ($field->config['multiple'] ?? false) === true;
             @endphp
             <div>
@@ -38,14 +50,12 @@
                     @if ($field->type === 'textarea')
                         <textarea id="{{ $inputId }}" name="data[{{ $field->handle }}]" rows="5" @required($field->required) @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif @if ($fieldError) aria-invalid="true" @endif>{{ is_scalar($value) ? $value : '' }}</textarea>
                     @elseif ($field->type === 'file')
-                        <input type="file" id="{{ $inputId }}" name="data[{{ $field->handle }}]" @if (\Sunrice\Cms\Fields\Types\FileField::types($field) !== []) accept=".{{ implode(',.', \Sunrice\Cms\Fields\Types\FileField::types($field)) }}" @endif @required($field->required) @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif @if ($fieldError) aria-invalid="true" @endif>
+                        <input type="file" id="{{ $inputId }}" name="data[{{ $field->handle }}]{{ \Sunrice\Cms\Fields\Types\FileField::isMultiple($field) ? '[]' : '' }}" @if (\Sunrice\Cms\Fields\Types\FileField::isMultiple($field)) multiple @endif @if (\Sunrice\Cms\Fields\Types\FileField::types($field) !== []) accept=".{{ implode(',.', \Sunrice\Cms\Fields\Types\FileField::types($field)) }}" @endif @required($field->required) @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif @if ($fieldError) aria-invalid="true" @endif>
                     @elseif ($field->type === 'select')
                         <select id="{{ $inputId }}" name="data[{{ $field->handle }}]{{ $multiple ? '[]' : '' }}" @if ($multiple) multiple @endif @required($field->required) @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif @if ($fieldError) aria-invalid="true" @endif>
                             @unless ($multiple)<option value=""></option>@endunless
                             @foreach ($options as $option)
-                                @if (is_array($option) && is_scalar($option['value'] ?? null))
-                                    <option value="{{ $option['value'] }}" @selected(in_array((string) $option['value'], array_map('strval', array_filter((array) $value, 'is_scalar')), true))>{{ is_scalar($option['label'] ?? null) && $option['label'] !== '' ? $option['label'] : $option['value'] }}</option>
-                                @endif
+                                <option value="{{ $option['value'] }}" @selected(in_array($option['value'], array_map('strval', array_filter((array) $value, 'is_scalar')), true))>{{ $option['label'] }}</option>
                             @endforeach
                         </select>
                     @else
@@ -59,11 +69,12 @@
                         <input type="{{ $type }}" id="{{ $inputId }}" name="data[{{ $field->handle }}]" value="{{ is_scalar($value) ? $value : '' }}" @required($field->required)
                             @if ($type === 'number' && is_numeric($field->config['step'] ?? null)) step="{{ $field->config['step'] }}" @elseif ($type === 'number') step="any" @endif
                             @if ($type === 'text' && is_int($field->config['max'] ?? null)) maxlength="{{ $field->config['max'] }}" @endif
+                            @if ($type === 'date' && ($field->config['future'] ?? false) === true) min="{{ now()->toDateString() }}" @elseif ($type === 'datetime-local' && ($field->config['future'] ?? false) === true) min="{{ now()->startOfDay()->format('Y-m-d\TH:i') }}" @endif
                             @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif @if ($fieldError) aria-invalid="true" @endif>
                     @endif
                 @endif
-                @if ($field->instructions !== '')
-                    <p id="{{ $inputId }}-help">{{ $field->instructions }}</p>
+                @if ($help !== '' || $field->type === 'file')
+                    <p id="{{ $inputId }}-help">{{ $help }}@if ($field->type === 'file'){{ $help !== '' ? ' ' : '' }}{{ \Sunrice\Cms\Fields\Types\FileField::hint($field) }}@endif</p>
                 @endif
                 @if ($fieldError)
                     <p id="{{ $inputId }}-error" role="alert">{{ $fieldError }}</p>

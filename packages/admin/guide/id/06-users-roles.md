@@ -9,17 +9,19 @@ Daftar **Pengguna** menampilkan nama, alamat email, peran, apakah akun **Dikunci
 ### Menambahkan orang
 
 1. Klik **Tambah pengguna**.
-2. Di bagian **Akun**, ketik **Nama**, **Email**, dan **Kata sandi** (mereka bisa memilih kata sandi baru nanti lewat *Lupa kata sandi?* di layar masuk).
+2. Di bagian **Akun**, ketik **Nama** dan **Email**. Lalu ketik **Kata sandi** dan sekali lagi di **Konfirmasi kata sandi**, atau biarkan kosong dan nyalakan **Kirim undangan lewat email**: mereka menerima email berisi tautan untuk memilih kata sandi sendiri.
 3. Di bagian **Peran**, centang perannya.
-4. Klik **Buat pengguna**, lalu beri tahu mereka alamat panel.
+4. Klik **Buat pengguna**. Tanpa undangan, beri tahu mereka alamat panel dan kata sandinya.
+
+Untuk mengirim tautan baru untuk memilih kata sandi (misalnya undangan yang sudah kedaluwarsa), pakai **Kirim tautan kata sandi lewat email** di menu baris.
 
 Peran yang bisa Anda berikan hanya yang berada di bawah peran Anda sendiri (lihat [Siapa boleh mengelola siapa](#siapa-boleh-mengelola-siapa)).
 
 ### Mengubah data seseorang
 
-Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Kata sandi** kosong untuk mempertahankan kata sandi saat ini. Di samping formulir, kartu **Keamanan** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, dan kejadian keamanan terbarunya, dengan **Lihat semua di log aktivitas**.
+Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Kata sandi** kosong untuk mempertahankan kata sandi saat ini; kata sandi baru diketik dua kali. Di samping formulir, kartu **Keamanan** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, apa saja miliknya (**Miliknya**: unggahan, entri…), dan kejadian keamanan terbarunya, dengan **Lihat semua di log aktivitas**.
 
-Setiap orang boleh mengubah nama, email, dan kata sandinya sendiri jika bisa membuka layar Pengguna, tetapi tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
+Setiap orang mengubah nama, email, dan kata sandinya sendiri di **Akun Anda** (di bawah namanya di bagian bawah bilah samping; lihat [Selamat datang](guide:panel/welcome#akun-anda)). Tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
 
 ## Jika akun mungkin jatuh ke tangan yang salah
 
@@ -34,7 +36,7 @@ Setiap tindakan ini dicatat sebagai kejadian keamanan di [log aktivitas](guide:p
 
 ## Menghapus pengguna
 
-**Hapus…** di menu baris menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
+**Hapus…** (di menu baris, tombol tempat sampah di halamannya, atau untuk beberapa pengguna yang dicentang sekaligus) menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
 
 - **Berikan ke pengguna lain**: diberikan kepada pengguna lain, dipilih di **Berikan ke**.
 - **Simpan, tanpa pemilik**: tetap ada tanpa pemilik (pilihan bawaan).
@@ -55,7 +57,7 @@ Situs Anda mungkin sudah memiliki peran siap pakai sebagai titik awal:
 | **administrator** | Semuanya, bagi orang yang menjalankan situs. |
 | **editor** | Semua konten: entri, term, global, menu, komentar, media, serta membaca dan mengekspor kiriman formulir. Tidak termasuk struktur, pengaturan, atau pengguna. |
 | **author** | Menulis entri dan mengubah entrinya sendiri, mengunggah media, dan melihat draf di situs. Tidak bisa menerbitkan. |
-| **translator** | Menulis bahasa lain dari entri. |
+| **translator** | Menulis bahasa lain dari entri, di setiap koleksi yang boleh dilihatnya. Untuk membatasi penerjemah ke beberapa koleksi saja, beri peran itu **Lihat** di grup *Entri:* koleksi tersebut, bukan *Lihat entri*. |
 
 Setiap peran yang bisa membuka panel juga bisa membaca panduan ini.
 

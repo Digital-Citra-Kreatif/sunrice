@@ -17,8 +17,11 @@ use Sunrice\Cms\Support\SearchText;
 
 /**
  * Publishes the draft of an entry translation: the site shows it from its
- * date (now, the date it was first published, or the given one, which may
- * be in the future) and a revision is kept. The draft is checked again,
+ * date (the given one, which may be in the future; else the date it was
+ * first published or is scheduled for, but now for a draft that was
+ * scheduled for later and unpublished; else, for another language than
+ * the main one first published, the main translation's when that's
+ * published; else now) and a revision is kept. The draft is checked again,
  * as the blueprint may have changed since it was saved.
  *
  * @api
@@ -62,9 +65,16 @@ final class PublishEntry
                 'slug' => $values['slug'],
                 'data' => $values['data'],
                 'draft_data' => $values['data'],
-                'published_at' => $publishAt !== null ? Carbon::instance($publishAt) : ($translation->published_at ?? now()),
+                // Without a date: the one it has (first published, or scheduled), but now for a draft once scheduled for later;
+                // never published: the entry's date (another language), else now.
+                'published_at' => $publishAt !== null ? Carbon::instance($publishAt)
+                    : ($translation->published_at === null ? (self::entryDate($translation) ?? now())
+                        : (! $translation->isPublished() && $translation->published_at->isFuture() ? now() : $translation->published_at)),
                 // Counted up too, so an editor opened before this publish can't save over it unknowingly.
                 'version' => $translation->version + 1,
+                // Published: no longer waiting for review (RequestReview).
+                'review_requested_at' => null,
+                'review_requested_by' => null,
             ]);
             // Another language is up to date with the main one as it is now (EntryTranslation::isOutdated()).
             $mainVersion = $translation->currentMainVersion();
@@ -106,6 +116,18 @@ final class PublishEntry
         EntryPublished::dispatch($translation);
 
         return $translation;
+    }
+
+    /**
+     * Another language published for the first time takes the entry's date
+     * (its main translation's, when that's published), so a translated
+     * article isn't dated the day it was translated.
+     */
+    private static function entryDate(EntryTranslation $translation): ?Carbon
+    {
+        $main = $translation->entry->mainTranslation();
+
+        return $main !== null && ! $main->is($translation) && $main->isPublished() ? $main->published_at?->copy() : null;
     }
 
     private function prune(EntryTranslation $translation): void

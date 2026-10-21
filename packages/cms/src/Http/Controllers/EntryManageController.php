@@ -47,12 +47,18 @@ final class EntryManageController
         $done = $bulk->handle($collection, $request->string('action')->toString(), $ids, $user instanceof Authorizable ? $user : null);
         $skipped = count($ids) - $done;
 
-        return back()->with($done > 0 ? 'success' : 'error', match (true) {
+        $response = back()->with($done > 0 ? 'success' : 'error', match (true) {
             $done === 0 => 'Nothing was changed.',
+            $request->input('action') === 'trash' && $skipped === 0 => $done === 1 ? '1 entry moved to the trash.' : __(':count entries moved to the trash.', ['count' => $done]),
             $skipped > 0 => __('Done for :done of :count entries; the others can\'t be (not allowed, or not ready to publish).', ['done' => $done, 'count' => count($ids)]),
             $done === 1 => 'Done for 1 entry.',
             default => __('Done for :count entries.', ['count' => $done]),
         });
+
+        // Trashing can be undone from the toast: the same entries, restored.
+        return $done > 0 && $request->input('action') === 'trash'
+            ? $response->with('success_action', ['label' => 'Undo', 'url' => route('sunrice.admin.cms.collections.entries.bulk', $collection), 'data' => ['action' => 'restore', 'ids' => $ids]])
+            : $response;
     }
 
     /**
@@ -88,12 +94,30 @@ final class EntryManageController
     public function settings(Request $request, Entry $entry, SaveEntrySettings $save, ChangeBlueprint $blueprint): RedirectResponse
     {
         abort_if($entry->collection->trashed(), 404);
-        $input = $request->only(['parent_id', 'template', 'comments_closed']);
+        // Every language's settings: for those who may edit the entry itself, not translators
+        // (whose "locale" lets them past the route's check for their languages' text).
+        abort_unless(Access::entries($request->user(), 'update', $entry->collection, $entry), 403);
         if ($request->has('blueprint')) {
-            // Every language's fields: for those who may edit the entry itself, not translators.
-            abort_unless(Access::entries($request->user(), 'update', $entry->collection, $entry), 403);
             $handle = $request->input('blueprint');
             $blueprint->handle($entry, is_string($handle) ? $handle : null);
+        }
+        self::saveSettings($request, $entry, $save);
+
+        return back()->with('success', 'Saved.');
+    }
+
+    /**
+     * The request's parent_id, template and comments_closed, those given,
+     * saved (also with the draft, EntryController::update()).
+     *
+     * @internal
+     */
+    public static function saveSettings(Request $request, Entry $entry, SaveEntrySettings $save): void
+    {
+        $input = $request->only(['parent_id', 'template', 'comments_closed']);
+        // Every language's: translators (who reach the draft save through "locale") may not change them.
+        if ($input !== [] && ! Access::entries($request->user(), 'update', $entry->collection, $entry)) {
+            return;
         }
         // Picking a view is for the collection's editors (cms.entries.update), not authors of their own entries: theirs may only stay as it is.
         if (array_key_exists('template', $input) && ! Access::entries($request->user(), 'update', $entry->collection)) {
@@ -101,13 +125,15 @@ final class EntryManageController
             abort_unless(($template === '' ? null : $template) === $entry->template, 403);
             unset($input['template']);
         }
-        $save->handle($entry, $input);
-
-        return back()->with('success', 'Saved.');
+        if ($input !== []) {
+            $save->handle($entry, $input);
+        }
     }
 
     public function move(Request $request, Entry $entry, MoveEntry $move): RedirectResponse
     {
+        // The order is every language's: not for translators.
+        abort_unless(Access::entries($request->user(), 'update', $entry->collection, $entry), 403);
         $move->handle($entry, $request->string('direction')->toString());
 
         return back();

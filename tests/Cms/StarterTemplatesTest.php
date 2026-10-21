@@ -65,13 +65,14 @@ it('publishes the starter templates, and the site renders with them', function (
     $halo = app(CreateTranslation::class)->handle($hello->entry, 'id');
     app(SaveDraft::class)->handle($halo, ['title' => 'Halo', 'slug' => 'halo']);
     app(PublishEntry::class)->handle($halo->refresh());
+    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($blog, ['title' => 'English only', 'slug' => 'english-only']));
     app(SaveMenu::class)->handle(Menu::query()->create(['handle' => 'main', 'title' => 'Main']), [
         ['collection_id' => $blog->id, 'labels' => ['en' => 'Blog'], 'children' => [['entry_id' => $hello->entry_id]]],
     ]);
     auth()->logout();
 
     artisan('vendor:publish', ['--tag' => 'sunrice-cms-templates'])->assertSuccessful();
-    foreach (['layout', 'entry', 'listing', 'term', 'search', 'partials/card', 'partials/pagination', 'partials/language-switcher', 'partials/menu', 'partials/blocks', 'partials/block', 'partials/fields'] as $view) {
+    foreach (['layout', 'entry', 'listing', 'term', 'search', 'comment-unsubscribe', 'partials/card', 'partials/pagination', 'partials/language-switcher', 'partials/menu', 'partials/blocks', 'partials/block', 'partials/fields'] as $view) {
         expect(resource_path("views/cms/{$view}.blade.php"))->toBeFile();
     }
     expect(resource_path('views/errors/404.blade.php'))->toBeFile()
@@ -99,7 +100,11 @@ it('publishes the starter templates, and the site renders with them', function (
     commitForFullText();
     get('/search?q=hello')->assertOk()->assertViewIs('cms.search')->assertSee('1 result for “hello”')->assertSee(url('/blog/hello'));
     // Not translated: a note, in the main language's content.
-    get('/id/topics/news')->assertOk()->assertSee('This page isn\'t translated yet');
+    $page = get('/id/topics/news')->assertOk()->assertSee('This page isn\'t translated yet');
+    expect($page->getContent())->toMatch('~<div lang="en">\s*<h1>News</h1>~');
+    expect(get('/blog/hello')->getContent())->toContain('<article class="entry">');
+    expect(get('/id/blog/english-only')->assertOk()->getContent())->toContain('<article class="entry" lang="en">')
+        ->toContain('<p class="notice" role="note" lang="id">');
     get('/nowhere')->assertNotFound()->assertSee('Page not found')->assertSee('role="search"', false);
 
     expect(view('errors.500')->render())->toContain('Something went wrong')->toContain(asset('cms/site.css'));

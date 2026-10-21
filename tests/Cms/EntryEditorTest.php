@@ -8,6 +8,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Entries\UnpublishEntry;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
@@ -17,6 +18,7 @@ use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Settings\SiteSettings;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -62,6 +64,35 @@ it('guards every entry route by its permission', function () {
     actingAs(adminUser(Panel::ACCESS));
     get('/admin/cms/entries')->assertForbidden();
     get('/admin/cms/collections/articles/entries')->assertForbidden();
+});
+
+it('tells the editor the slug visitors have known, so a new one gets a note, and where to add a redirect', function () {
+    $this->articles->forceFill(['route' => '/articles/{slug}'])->save();
+    $translation = draft('Hello');
+    $slug = fn (Assert $page) => $page->toArray()['props']['entry']['publishedSlug'];
+    editor('view', 'update');
+
+    // Never published: no note.
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBeNull()->and($page->toArray()['props']['redirectsUrl'])->toBeNull());
+    // Published (publishing again redirects from it), and still once taken off the site (nothing redirects then).
+    app(PublishEntry::class)->handle($translation);
+    app(SaveDraft::class)->handle($translation->fresh(), ['slug' => 'hello-again', 'version' => $translation->fresh()?->version]);
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBe('hello')->and($page->toArray()['props']['values']['slug'])->toBe('hello-again'));
+    app(UnpublishEntry::class)->handle($translation->fresh());
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBe('hello')->and($page->toArray()['props']['entry']['status'])->toBe('draft'));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.redirects.view', 'cms.redirects.create'));
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($page->toArray()['props']['redirectsUrl'])->toBe(route('sunrice.admin.cms.redirects.create')));
+
+    // The homepage stays at /, and a collection without pages has no address: no note.
+    $settings = app(SiteSettings::class);
+    $settings->homepage = $translation->entry_id;
+    $settings->save();
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBeNull());
+    $settings->homepage = null;
+    $settings->save();
+    $this->articles->forceFill(['route' => null])->save();
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBeNull());
 });
 
 it('opens the first collection from the sidebar', function () {
@@ -170,14 +201,23 @@ it('publishes on a date, and unpublishes', function () {
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-10-25 08:00'])->assertSessionHas('success', fn ($m) => str_starts_with($m, 'Scheduled for'));
     expect($translation->fresh()?->isPublished())->toBeTrue()->and($translation->fresh()?->isLive())->toBeFalse();
 
+    post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => 'whenever'])->assertSessionHasErrors('published_at');
+    post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHasNoErrors();
+    expect($translation->fresh()?->status)->toBe('draft');
+
+    // Unscheduled, then published: it goes live now, not on the date it was once scheduled for.
+    post("/admin/cms/entries/{$translation->entry_id}/publish")->assertSessionHas('success', 'Published.');
+    expect($translation->fresh()?->published_at?->toDateTimeString())->toBe('2026-10-19 09:00:00');
+    // Published before, unpublished, published again: it keeps its first date.
+    travelTo('2026-10-20 09:00');
+    post("/admin/cms/entries/{$translation->entry_id}/unpublish");
+    post("/admin/cms/entries/{$translation->entry_id}/publish");
+    expect($translation->fresh()?->published_at?->toDateTimeString())->toBe('2026-10-19 09:00:00');
+
     // A live entry's date changes, back in time too, and it stays live.
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-10-19 08:00'])->assertSessionHas('success', 'Published.');
     post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => '2026-01-02 10:30'])->assertSessionHas('success', 'Published.');
     expect($translation->fresh()?->published_at?->format('Y-m-d H:i'))->toBe('2026-01-02 10:30')->and($translation->fresh()?->isLive())->toBeTrue();
-
-    post("/admin/cms/entries/{$translation->entry_id}/publish", ['published_at' => 'whenever'])->assertSessionHasErrors('published_at');
-    post("/admin/cms/entries/{$translation->entry_id}/unpublish")->assertSessionHasNoErrors();
-    expect($translation->fresh()?->status)->toBe('draft');
 });
 
 it('trashes and restores', function () {
@@ -292,4 +332,76 @@ it('keeps the editor to a query budget', function () {
 
     // However many terms, revisions and rows: no queries in loops, and the term options aren't in the page.
     expect($queries)->toBeLessThanOrEqual(10);
+});
+
+it('changes a published entry\'s date as main does: publishing what\'s in the editor with that date', function () {
+    travelTo('2026-10-19 09:00');
+    $translation = app(PublishEntry::class)->handle(draft('Hello'));
+    editor('view', 'update', 'publish');
+
+    // The Status card's Publish date: the form saved and published with the date chosen (no endpoint of its own).
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Hello again', 'data' => ['intro' => 'Hi'], 'publish' => true, 'published_at' => '2026-09-01 08:00'])->assertSessionHasNoErrors();
+    $fresh = $translation->fresh();
+    expect($fresh?->published_at?->toDateTimeString())->toBe('2026-09-01 08:00:00')
+        ->and($fresh?->isLive())->toBeTrue()->and($fresh?->title)->toBe('Hello again')->and($fresh?->hasUnpublishedChanges())->toBeFalse();
+    // A date to come: scheduled.
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Hello again', 'data' => ['intro' => 'Hi'], 'publish' => true, 'published_at' => '2026-11-01 08:00'])->assertSessionHasNoErrors();
+    expect($translation->fresh()?->status())->toBe('scheduled');
+
+    expect(app('router')->has('sunrice.admin.cms.entries.date'))->toBeFalse();
+    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => '2026-09-01 08:00'])->assertNotFound();
+});
+
+it('shows who published each revision, what changed, and compares one with the draft', function () {
+    config(['inertia.testing.ensure_pages_exist' => false]);
+    $ayu = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'cms.entries.publish');
+    $ayu->forceFill(['name' => 'Ayu'])->save();
+    actingAs($ayu);
+    $translation = app(PublishEntry::class)->handle(draft('Hello', ['intro' => 'Hi']));
+    $translation = app(SaveDraft::class)->handle($translation->fresh(), ['title' => 'Hello there', 'data' => ['intro' => 'Hi', 'featured' => true]]);
+    app(PublishEntry::class)->handle($translation);
+    app(SaveDraft::class)->handle($translation->fresh(), ['data' => ['intro' => 'Hello everyone', 'featured' => true]]);
+
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => $page
+        ->loadDeferredProps(fn (Assert $reload) => $reload
+            ->where('revisions.0.title', 'Hello there')->where('revisions.0.author', 'Ayu')->where('revisions.0.changed', ['Title', 'Featured'])
+            ->where('revisions.1.author', 'Ayu')->where('revisions.1.changed', null)));
+
+    $revision = $translation->revisions()->first();
+    get("/admin/cms/entries/{$translation->entry_id}/revisions/{$revision?->id}/compare")->assertOk()->assertExactJson(['fields' => [
+        ['label' => 'Intro', 'revision' => 'Hi', 'draft' => 'Hello everyone'],
+    ]]);
+
+    // Only for those who may see the entry.
+    actingAs(adminUser(Panel::ACCESS));
+    get("/admin/cms/entries/{$translation->entry_id}/revisions/{$revision?->id}/compare")->assertForbidden();
+});
+
+it('checks limits on the server, where the editor shows them inline (the form has noValidate)', function () {
+    Blueprint::query()->create(['handle' => 'property', 'title' => 'Property', 'fields' => [
+        ['handle' => 'summary', 'type' => 'textarea', 'config' => ['max' => 300]],
+        ['handle' => 'rating', 'type' => 'number', 'config' => ['min' => 1, 'max' => 5, 'step' => 1]],
+        ['handle' => 'price', 'type' => 'number', 'config' => ['min' => 0]],
+    ]]);
+    $properties = Collection::query()->create(['handle' => 'properties', 'title' => 'Properties', 'blueprint' => 'property']);
+    $translation = app(CreateEntry::class)->handle($properties, ['title' => 'Villa']);
+    editor('view', 'update');
+
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => '', 'slug' => 'villa', 'data' => [
+        'summary' => str_repeat('x', 371), 'rating' => 6, 'price' => -1,
+    ]])->assertSessionHasErrors(['title', 'data.summary', 'data.rating', 'data.price']);
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Villa', 'slug' => 'villa', 'data' => ['rating' => 2.5]])
+        ->assertSessionHasErrors(['data.rating']);
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Villa', 'slug' => 'villa', 'data' => ['summary' => str_repeat('x', 300), 'rating' => 5, 'price' => 0]])
+        ->assertSessionHasNoErrors();
+});
+
+it('tells the editor whether the collection has pages, so Preview shows only where there is one', function () {
+    $testimonials = Collection::query()->create(['handle' => 'testimonials', 'title' => 'Testimonials']);
+    $quote = app(CreateEntry::class)->handle($testimonials, ['title' => 'Great agents']);
+    $post = app(CreateEntry::class)->handle(Collection::query()->create(['handle' => 'posts', 'title' => 'Posts', 'route' => '/posts/{slug}']), ['title' => 'Hello']);
+    editor('view', 'update');
+
+    get(entryEditUrl($quote->entry_id))->assertInertia(fn (Assert $page) => $page->where('collection.pages', false));
+    get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('collection.pages', true));
 });

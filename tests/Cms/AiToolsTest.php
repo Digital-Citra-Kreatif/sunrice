@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
+use Sunrice\Admin\Actions\Settings\SaveSettings;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Panel;
@@ -185,7 +187,9 @@ it('orders entries, terms and menu items', function () {
     $editor = cmsAgent(['cms.entries.view', 'cms.entries.update', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete', 'cms.menus.view', 'cms.menus.update']);
 
     expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2]]]))->toContain('permission to order entries')
-        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2], $ids[0]]]))->toBe(['saved' => true, 'order' => [$ids[2], $ids[0], $ids[1]]])
+        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2], $ids[0]]]))->toBe(['saved' => true, 'changed' => true, 'order' => [$ids[2], $ids[0], $ids[1]]])
+        // The order it already has: nothing changes, nothing is logged.
+        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2]]]))->toBe(['saved' => true, 'changed' => false, 'order' => [$ids[2], $ids[0], $ids[1]]])
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[0], $ids[0]]]))->toContain('each entry id once')
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$this->hello->entry_id]]))->toContain('Not entries of this collection')
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'blog', 'ids' => [$this->hello->entry_id]]))->toContain('Manual order')
@@ -194,13 +198,16 @@ it('orders entries, terms and menu items', function () {
     $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     $terms = collect(['News', 'Tips'])->map(fn (string $t) => cmsTool($editor, 'cms_save_term', ['taxonomy' => 'tags', 'title' => $t])['id'])->all();
     expect(cmsTool($editor, 'cms_reorder', ['type' => 'terms', 'in' => 'tags', 'ids' => [$terms[1]]])['order'])->toBe([$terms[1], $terms[0]])
+        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'terms', 'in' => 'tags', 'ids' => [$terms[1], $terms[0]]])['changed'])->toBeFalse()
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'terms', 'in' => 'tags', 'ids' => [$terms[0]], 'parent_id' => $terms[1]]))->toContain('no parents');
 
     $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
     app(SaveMenu::class)->handle($menu, [['url' => '/a', 'labels' => ['en' => 'A']], ['url' => '/b', 'labels' => ['en' => 'B']]]);
     $items = $menu->items()->pluck('id')->all();
     expect(cmsTool($editor, 'cms_reorder', ['type' => 'menu_items', 'in' => 'main', 'ids' => [$items[1], $items[0]]])['order'])->toBe([$items[1], $items[0]])
-        ->and(array_column(app(Menus::class)->get('main', 'en'), 'label'))->toBe(['B', 'A']);
+        ->and(array_column(app(Menus::class)->get('main', 'en'), 'label'))->toBe(['B', 'A'])
+        ->and(cmsTool($editor, 'cms_reorder', ['type' => 'menu_items', 'in' => 'main', 'ids' => [$items[1]]])['changed'])->toBeFalse()
+        ->and(Activity::query()->where('action', 'reordered')->count())->toBe(3);
 });
 
 it('reads and saves listing pages', function () {
@@ -293,10 +300,37 @@ it('audits SEO page by page', function () {
     $audit = cmsTool($token, 'cms_seo_audit');
     expect($audit)->toMatchArray(['locale' => 'en', 'checked' => 2, 'page' => 1, 'last_page' => 1, 'duplicate_titles' => [['title' => 'Hello', 'pages' => 2]], 'images_without_alt' => 0]);
     $hello = collect($audit['pages_with_issues'])->firstWhere('id', $this->hello->entry_id);
-    expect(implode(' ', $hello['issues']))->toContain('meta title is short', 'No meta description', 'No share image', 'Thin content', 'Not live in id')
+    expect(implode(' ', $hello['issues']))->toContain('meta title "Hello | Laravel" is short', 'No meta description', 'No share image', 'Thin content', 'Not live in id')
         ->and(implode(' ', collect($audit['pages_with_issues'])->firstWhere('id', $other->entry_id)['issues']))->not->toContain('No meta description');
     expect(cmsTool($token, 'cms_seo_audit', ['collection' => 'nope']))->toContain('No such collection')
         ->and(cmsTool($token, 'cms_seo_audit', ['locale' => 'id'])['checked'])->toBe(0);
+});
+
+it('audits the title the page\'s head shows: with the site name, and the homepage\'s', function () {
+    app(PublishEntry::class)->handle($this->hello);
+    app(SaveSettings::class)->handle(app(SiteSettings::class), ['name' => 'Lumina Estates Jakarta', 'homepage' => $this->hello->entry_id]);
+    $token = cmsAgent(['cms.entries.view']);
+
+    $home = collect(cmsTool($token, 'cms_seo_audit')['pages_with_issues'])->firstWhere('id', $this->hello->entry_id);
+    // "Lumina Estates Jakarta" (22), not the entry's "Hello" (5).
+    expect($home['meta_title'])->toBe('Lumina Estates Jakarta')
+        ->and(implode(' ', $home['issues']))->toContain('"Lumina Estates Jakarta" is short (22 characters)')->toContain('fine for a page that is mostly a form');
+});
+
+it('renders on APP_URL, keeps developer tools out, and answers errors without file paths', function () {
+    config(['app.url' => 'https://lumina.example:8200']);
+    Route::get('where', fn () => url('/contact'));
+    Route::get('boom', fn () => throw new RuntimeException('The template broke'));
+    Route::get('_inertia/devtools/entries', fn () => 'every recorded request');
+    $token = cmsAgent(['cms.entries.view'], readOnly: true);
+
+    expect(cmsTool($token, 'cms_render_page', ['path' => '/where'])['html'])->toBe('https://lumina.example:8200/contact');
+    $missing = cmsTool($token, 'cms_render_page', ['path' => '/nope']);
+    expect($missing['status'])->toBe(404)->and($missing['error'])->toBeNull();
+    $broken = cmsTool($token, 'cms_render_page', ['path' => '/boom']);
+    expect($broken['status'])->toBe(500)->and($broken['error'])->toBe('The template broke')->not->toContain('vendor/');
+    expect(cmsTool($token, 'cms_render_page', ['path' => '/_inertia/devtools/entries']))->toContain('public pages')
+        ->and(cmsTool($token, 'cms_render_page', ['path' => '/telescope/requests']))->toContain('public pages');
 });
 
 it('renders public pages, not the panel', function () {
@@ -328,15 +362,21 @@ it('writes templates only for super admins when the site allows it, checked and 
     expect($guide['guide'])->toContain('resources/views/cms')
         ->and($guide['current']['collections']['blog']['entry_page']['uses'])->toBe('sunrice-cms::entry')
         ->and($guide['can_write'])->toBeFalse()
-        ->and(cmsTool($builder, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('super admin')
+        ->and($guide['write_note'])->toContain('super admins')
+        // Not offered to those who can't use it.
+        ->and(cmsTool($builder, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('not found')
         ->and(cmsTool($builder, 'cms_read_template', ['path' => 'entry.blade.php', 'source' => 'default'])['content'])->toContain('x-sunrice-cms::seo');
 
     $role = SyncPermissions::superAdminRole();
     Role::findOrCreate($role, 'web');
     $admin = User::query()->create(['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'x'])->assignRole($role);
     [, $super] = AiToken::issue((string) $admin->id, 'Claude');
-    expect(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('sunrice-cms.ai.templates');
+    $listed = fn () => test()->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'], ['Authorization' => "Bearer {$super}"])->json('result.tools.*.name');
+    // Switched off on this site: not listed, even to a super admin.
+    expect($listed())->not->toContain('cms_write_template')
+        ->and(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('not found');
     config(['sunrice-cms.ai.templates' => true]);
+    expect($listed())->toContain('cms_write_template');
 
     expect(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => '@if($x) <p>']))->toContain('syntax error')
         ->and(cmsTool($super, 'cms_write_template', ['path' => '../evil.blade.php', 'content' => 'x']))->toContain('Give a path')

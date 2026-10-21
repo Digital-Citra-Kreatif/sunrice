@@ -90,7 +90,8 @@ it('falls back to the title, and links the other languages', function () {
         ->assertSee('<link rel="alternate" hreflang="en" href="'.url('/blog/hello').'">', false)
         ->assertSee('<link rel="alternate" hreflang="id" href="'.url('/id/blog/halo').'">', false)
         ->assertSee('<link rel="alternate" hreflang="x-default" href="'.url('/blog/hello').'">', false)
-        ->assertSee('<meta property="og:locale" content="id">', false);
+        ->assertSee('<meta property="og:locale" content="id_ID">', false)
+        ->assertSee('<meta property="og:locale:alternate" content="en_US">', false);
 });
 
 it('gives each page of a listing or term its own canonical and alternate URLs', function () {
@@ -131,7 +132,7 @@ it('refuses addresses that lead off the site in disguise', function () {
 it('asks search engines to skip noindex pages', function () {
     seoPost($this->blog, 'Hidden', ['seo' => ['noindex' => true]]);
 
-    get('/blog/hidden')->assertOk()->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    get('/blog/hidden')->assertOk()->assertSee('<meta name="robots" content="noindex">', false);
 });
 
 it('saves SEO from the editor with the draft', function () {
@@ -321,6 +322,20 @@ it('sets the site\'s SEO and each collection\'s and taxonomy\'s SEO fields in Se
         ->and(app(SiteSettings::class)->noindex)->toBeFalse();
 });
 
+it('offers only the fields of the collection\'s or taxonomy\'s own blueprints for SEO', function () {
+    Blueprint::query()->create(['handle' => 'area', 'title' => 'Area', 'fields' => [['handle' => 'summary', 'type' => 'textarea', 'label' => 'Summary']]]);
+    Blueprint::query()->create(['handle' => 'contact_form', 'title' => 'Contact form', 'fields' => [['handle' => 'message', 'type' => 'textarea', 'label' => 'Message']]]);
+    $areas = Taxonomy::query()->create(['handle' => 'areas', 'title' => 'Areas', 'blueprint' => 'area']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.collections.update', 'cms.taxonomies.update'));
+    $props = get('/admin/cms/seo')->assertOk()->viewData('page')['props'];
+    $choices = fn (string $kind, int $id) => array_column(collect($props[$kind])->firstWhere('id', $id)['options']['description'], 'value');
+
+    expect($choices('collections', $this->blog->id))->toBe(['intro'])
+        ->and($choices('taxonomies', $areas->id))->toBe(['summary']);
+    put('/admin/cms/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => ''], 'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'description' => 'message']]])
+        ->assertSessionHasErrors('mappings.0.description');
+});
+
 it('gives listing pages SEO of their own, per language', function () {
     $image = seoImage();
     $this->blog->update(['listing_route' => '/blog']);
@@ -352,8 +367,9 @@ it('adds alternate locales, article times and X card tags', function () {
     $hello->refresh();
 
     get('/blog/hello')->assertOk()
-        ->assertSee('<meta property="og:locale:alternate" content="id">', false)
-        ->assertDontSee('og:locale:alternate" content="en"', false)
+        ->assertSee('<meta property="og:locale" content="en_US">', false)
+        ->assertSee('<meta property="og:locale:alternate" content="id_ID">', false)
+        ->assertDontSee('og:locale:alternate" content="en', false)
         ->assertDontSee('x-default" content', false)
         ->assertSee('<meta property="article:published_time" content="'.$hello->published_at?->toIso8601String().'">', false)
         ->assertSee('<meta property="article:modified_time" content="'.$hello->updated_at?->toIso8601String().'">', false)
@@ -379,3 +395,7 @@ it('points a page shown in the main language at the main page, without hreflang 
     get('/blog/hello')->assertOk()->assertDontSee('hreflang="id"', false);
     get('/sitemap.xml')->assertOk()->assertDontSee(url('/id/blog/hello'));
 });
+
+it('names languages for share cards as language_TERRITORY', function (string $locale, string $og) {
+    expect(Seo::ogLocale($locale))->toBe($og);
+})->with([['en', 'en_US'], ['id', 'id_ID'], ['fr', 'fr_FR'], ['ja', 'ja_JP'], ['pt-BR', 'pt_BR'], ['zh_Hant', 'zh_TW'], ['en-gb', 'en_GB']]);

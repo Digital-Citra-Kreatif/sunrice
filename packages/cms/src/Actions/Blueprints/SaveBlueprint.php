@@ -12,10 +12,11 @@ use Sunrice\Cms\Admin\HandleField;
 use Sunrice\Cms\Fields\DefinitionValidator;
 use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Models\Blueprint;
+use Sunrice\Cms\Support\HandleRule;
 
 /**
  * Creates a blueprint or changes one. Input: handle (only when creating:
- * it can't change later), title and fields, as from the blueprint builder.
+ * RenameBlueprint changes it later), title and fields, as from the blueprint builder.
  * Content keeps its data when a field is removed or changed.
  *
  * @api
@@ -37,7 +38,7 @@ final class SaveBlueprint
         $blueprint ??= new Blueprint;
         /** @var array{handle?: string, title: string} $validated */
         $validated = Validator::make($input, [
-            'handle' => $blueprint->exists ? ['prohibited'] : ['required', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/', Rule::notIn(HandleField::RESERVED), Rule::unique($blueprint->getTable(), 'handle')],
+            'handle' => $blueprint->exists ? ['prohibited'] : ['required', 'string', 'max:64', new HandleRule, Rule::notIn(HandleField::RESERVED), Rule::unique($blueprint->getTable(), 'handle')],
             'title' => ['required', 'string', 'max:255'],
         ])->validate();
         $fields = $this->definitions->validate($input['fields'] ?? null, reserved: Blueprint::RESERVED);

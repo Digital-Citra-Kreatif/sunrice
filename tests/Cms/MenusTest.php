@@ -19,6 +19,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\actingAs;
@@ -138,6 +139,32 @@ it('links to term pages and listing pages, in each language', function () {
     expect(app(Menus::class)->get('main'))->toBe([]);
 });
 
+it('links to a listing page with filters, in each language', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $this->pages->update(['listing_route' => '/pages']);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'For sale', 'id' => 'Dijual'], 'query' => '?listing_type=for-sale&city[]=jakarta'],
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'All']],
+    ]);
+
+    expect(app(Menus::class)->get('main')[0]['url'])->toBe(url('/pages').'?listing_type=for-sale&city%5B0%5D=jakarta')
+        ->and(app(Menus::class)->get('main', 'id')[0])->toMatchArray(['label' => 'Dijual', 'url' => url('/id/pages').'?listing_type=for-sale&city%5B0%5D=jakarta']);
+
+    // Shown: the filtered link on the filtered page, the plain one on its trail; the plain one alone on the page without filters.
+    $this->app->instance('request', Request::create('/pages', 'GET', ['listing_type' => 'for-sale', 'city' => ['jakarta'], 'page' => '2']));
+    app(Menus::class)->flush();
+    expect(array_column(app(Menus::class)->get('main'), 'active'))->toBe([true, false])
+        ->and(array_column(app(Menus::class)->get('main'), 'active_trail'))->toBe([true, true]);
+    $this->app->instance('request', Request::create('/pages'));
+    expect(array_column(app(Menus::class)->get('main'), 'active'))->toBe([false, true]);
+
+    // The editor gets them back; only listing links take them, as a query string.
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
+    get('/admin/cms/menus/main/links')->assertInertia(fn (Assert $page) => $page->where('items.0.query', 'listing_type=for-sale&city%5B0%5D=jakarta')->where('items.1.query', null));
+    expect(fn () => app(SaveMenu::class)->handle($this->main, [['url' => '/x', 'labels' => ['en' => 'X'], 'query' => 'a=1']]))->toThrow(ValidationException::class, 'Only a link to a listing page')
+        ->and(fn () => app(SaveMenu::class)->handle($this->main, [['collection_id' => $this->pages->id, 'query' => 'a=1#top']]))->toThrow(ValidationException::class, 'listing_type=for-sale');
+});
+
 it('marks the page shown and the links leading to it', function () {
     $about = page('About');
     $team = page('Team');
@@ -152,6 +179,43 @@ it('marks the page shown and the links leading to it', function () {
 
     $this->app->instance('request', Request::create('/contact'));
     expect(app(Menus::class)->get('main')[1]['active'])->toBeTrue();
+});
+
+it('marks a link with a query string only when the address has its values, ahead of the one without', function () {
+    $this->pages->update(['listing_route' => '/pages']);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'Pages'], 'children' => [
+            ['url' => '/pages?type=sale', 'labels' => ['en' => 'For sale']],
+            ['url' => '/pages?type=rent', 'labels' => ['en' => 'For rent']],
+        ]],
+    ]);
+    $marks = function (string $address): array {
+        app()->instance('request', Request::create($address));
+        $menu = app(Menus::class)->get('main');
+
+        return [$menu[0]['active'], $menu[0]['active_trail'], $menu[0]['children'][0]['active'], $menu[0]['children'][1]['active']];
+    };
+
+    expect($marks('/pages'))->toBe([true, true, false, false])
+        ->and($marks('/pages?type=sale&page=2'))->toBe([false, true, true, false])
+        ->and($marks('/pages?type=other'))->toBe([true, true, false, false]);
+});
+
+it('puts the listing page and the parent entries of the entry shown on the trail', function () {
+    $this->pages->update(['listing_route' => '/pages', 'hierarchical' => true]);
+    $services = page('Services');
+    $design = page('Design');
+    $design->entry->update(['parent_id' => $services->entry_id]);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'Pages']],
+        ['entry_id' => $services->entry_id],
+        ['url' => '/contact', 'labels' => ['en' => 'Contact']],
+    ]);
+
+    $this->app->instance('request', Request::create('/design'));
+    (new Page(Page::ENTRY, 'en', 'cms.entry', entry: $design->fresh()))->share();
+    $menu = app(Menus::class)->get('main');
+    expect(array_map(fn (array $item) => [$item['active'], $item['active_trail']], $menu))->toBe([[false, true], [false, true], [false, false]]);
 });
 
 it('links untranslated pages at the language\'s address, or the main page with the fallback off', function () {
@@ -185,18 +249,40 @@ it('lists the menus once, under Content, each opening its links', function () {
     expect(app(Panel::class)->getPermissions()['cms.menus.view']->label)->toBe('View Menus');
 });
 
-it('fills a new menu\'s handle from its title, and shows it read-only after, with the way to its links', function () {
+it('replaces a nested menu\'s links when saved again, without duplicating them', function () {
+    $tree = [
+        ['url' => '/properties', 'labels' => ['en' => 'Properties'], 'children' => [
+            ['url' => '/for-sale', 'labels' => ['en' => 'For sale']],
+            ['url' => '/for-rent', 'labels' => ['en' => 'For rent'], 'children' => [
+                ['url' => '/villas', 'labels' => ['en' => 'Villas']],
+            ]],
+        ]],
+        ['url' => '/team', 'labels' => ['en' => 'Team']],
+        ['url' => '/about', 'labels' => ['en' => 'About'], 'children' => [
+            ['url' => '/story', 'labels' => ['en' => 'Our story']],
+        ]],
+        ['url' => '/contact', 'labels' => ['en' => 'Contact']],
+    ];
+    app(SaveMenu::class)->handle($this->main, $tree);
+    app(SaveMenu::class)->handle($this->main->fresh(), $tree);
+    app(SaveMenu::class)->handle($this->main->fresh(), $tree);
+
+    expect($this->main->items()->count())->toBe(8)
+        ->and(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Properties', 'Team', 'About', 'Contact']);
+});
+
+it('fills a new menu\'s handle from its title, and keeps it on the edit form, with the way to its links', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
 
     get('/admin/cms/menus/create')->assertInertia(fn (Assert $page) => $page
         ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.slugFrom', 'title'));
     post('/admin/cms/menus', ['title' => 'Footer', 'handle' => 'Footer Links'])
-        ->assertSessionHasErrors(['handle' => 'Use lowercase letters, numbers and underscores, starting with a letter (like main_menu).']);
+        ->assertSessionHasErrors(['handle' => 'Use lowercase letters, digits and underscores, starting with a letter: try "footer_links".']);
 
     get('/admin/cms/menus/main/edit')->assertInertia(fn (Assert $page) => $page
-        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.disabled', true)->where('values.handle', 'main')
+        ->where('sections.0.fields.1.name', 'handle')->where('values.handle', 'main')
         ->where('aside.0.title', 'Links')->where('aside.0.links.0.url', '/admin/cms/menus/main/links'));
-    put('/admin/cms/menus/main', ['title' => 'Main menu', 'handle' => 'other'])->assertSessionHasNoErrors();
+    put('/admin/cms/menus/main', ['title' => 'Main menu', 'handle' => 'main'])->assertSessionHasNoErrors();
     expect($this->main->fresh()?->only(['title', 'handle']))->toBe(['title' => 'Main menu', 'handle' => 'main']);
 });

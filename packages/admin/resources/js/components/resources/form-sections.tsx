@@ -1,11 +1,14 @@
 import { InputError } from '@/components/app/input-error';
 import { CollapsibleCard } from '@/components/app/collapsible-card';
 import { Card, CardContent } from '@/components/ui/card';
+import { TriangleAlert } from 'lucide-react';
+import { changeWarning } from '@/lib/change-warning';
 import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
+import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { FieldInput, type FieldValue } from './fields';
-import type { SectionInfo } from './types';
+import type { FieldInfo, SectionInfo } from './types';
 
 const gridColumns: Record<number, string> = { 1: '', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' };
 const spans: Record<number, string> = { 1: '', 2: 'sm:col-span-2', 3: 'sm:col-span-3', 4: 'sm:col-span-4' };
@@ -15,12 +18,14 @@ interface Props {
     /** Remembers which titled sections are folded, under this key plus the title. */
     storageKey?: string;
     data: Record<string, FieldValue>;
+    /** The record's saved values, on an edit form: fields with warnWhenChanged() warn once theirs differ. */
+    saved?: Record<string, FieldValue>;
     errors: Partial<Record<string, string>>;
     onChange: (name: string, value: FieldValue) => void;
 }
 
 /** A form's sections as cards of fields (resources and settings). */
-export function FormSections({ sections, data, errors, storageKey, onChange }: Props) {
+export function FormSections({ sections, data, saved, errors, storageKey, onChange }: Props) {
     return sections.map((section, index) => {
         // Fields whose condition isn't met are hidden (showWhen), a section of only those too.
         const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data));
@@ -31,6 +36,7 @@ export function FormSections({ sections, data, errors, storageKey, onChange }: P
                     const error = errors[field.name];
                     // A section's only field named like the section: the card's title says it already.
                     const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
+                    const warning = changeWarning(field.warnWhenChanged, data[field.name], saved, field.name);
                     const input = <FieldInput field={field} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
 
                     return (
@@ -52,7 +58,20 @@ export function FormSections({ sections, data, errors, storageKey, onChange }: P
                                 </>
                             )}
                             {field.help && <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">{field.help}</p>}
+                            <div aria-live="polite">
+                                {warning && (
+                                    <p id={`field-${field.name}-warning`} className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm whitespace-pre-line text-amber-900 dark:text-amber-200">
+                                        <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                                        <span>{warning}</span>
+                                    </p>
+                                )}
+                            </div>
                             <InputError message={error} />
+                            {field.type === 'password' && field.confirmed === true && (
+                                // Password::confirmed(): the same again, as "{name}_confirmation".
+                                <PasswordConfirmation field={field} value={data[`${field.name}_confirmation`] ?? null}
+                                    onChange={(value) => onChange(`${field.name}_confirmation`, value)} />
+                            )}
                         </div>
                     );
                 })}
@@ -69,4 +88,18 @@ export function FormSections({ sections, data, errors, storageKey, onChange }: P
             <Card key={index}><CardContent>{content}</CardContent></Card>
         );
     });
+}
+
+function PasswordConfirmation({ field, value, onChange }: { field: FieldInfo; value: FieldValue; onChange: (value: FieldValue) => void }) {
+    const name = `${field.name}_confirmation`;
+
+    return (
+        <div className="mt-3 grid min-w-0 grid-cols-1 content-start gap-2">
+            <Label id={`field-${name}-label`} htmlFor={`field-${name}`}>
+                {t('Confirm :field', { field: field.label.toLowerCase() })}
+                {field.required && <span className="text-destructive" aria-hidden>*</span>}
+            </Label>
+            <FieldInput field={{ ...field, name, confirmed: false, placeholder: null }} value={value} invalid={false} onChange={onChange} />
+        </div>
+    );
 }

@@ -12,12 +12,16 @@ use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Security\Captcha;
 use Sunrice\Cms\Actions\Forms\SubmitForm;
 use Sunrice\Cms\Models\Form;
+use Sunrice\Cms\Support\Locales;
 use Sunrice\Cms\Support\SafeUrl;
 
 /**
  * POST /forms/{handle}: a visitor sends a form, its fields as data[handle]
- * (or by handle). Behind the honeypot, a per-address limit and, when the
- * form asks, the captcha; answers JSON to requests that ask for it.
+ * (or by handle), in the language its `locale` says (errors and the
+ * thank-you message are in it). Behind the honeypot, a per-address limit
+ * on what's kept (SendLimit) and, when the form asks, the captcha; back to
+ * the form (#form-{handle}) with its errors or thank-you message, or JSON
+ * to requests that ask for it.
  *
  * @internal
  */
@@ -35,8 +39,14 @@ final class FormController
     public function __invoke(Request $request, Form $form, SubmitForm $submit, Captcha $captcha): RedirectResponse|JsonResponse
     {
         $locale = $request->input('locale');
-        $locale = is_string($locale) ? $locale : app()->getLocale();
+        $locale = is_string($locale) && Locales::has($locale) ? $locale : app()->getLocale();
+        // Errors in the visitor's language (the form's page sent it).
+        app()->setLocale($locale);
+        // Back to the form itself, not the top of the page.
+        $back = url()->previous().'#form-'.$form->handle;
+        $limit = new SendLimit('sunrice-forms|'.$form->handle.'|'.$request->ip(), $form->perMinute());
         try {
+            $limit->check($locale, $form->handle);
             // The captcha first: nothing else is looked at until it's passed.
             if ($form->captcha && ! $captcha->passes($request)) {
                 throw ValidationException::withMessages([self::CAPTCHA => Lang::get('sunrice-cms::site.captcha', [], $locale)]);
@@ -47,14 +57,15 @@ final class FormController
                 $request->ip(), $request->userAgent(), $request->headers->get('referer'));
         } catch (ValidationException $e) {
             // Errors under the form's own bag, so two forms on a page don't mix them up.
-            throw $e->errorBag($form->handle);
+            throw $e->errorBag($form->handle)->redirectTo($back);
         }
+        $limit->sent();
         $redirect = $form->redirect_url !== null && SafeUrl::isSafe($form->redirect_url) ? $form->redirect_url : null;
 
         if ($request->expectsJson()) {
-            return response()->json(['message' => $form->successMessage(), 'redirect_url' => $redirect], 201);
+            return response()->json(['message' => $form->successMessage($locale), 'redirect_url' => $redirect], 201);
         }
 
-        return ($redirect !== null ? redirect()->to($redirect) : redirect()->back())->with(self::flashKey($form), $form->successMessage());
+        return redirect()->to($redirect ?? $back)->with(self::flashKey($form), $form->successMessage($locale));
     }
 }

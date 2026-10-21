@@ -21,7 +21,7 @@ use Sunrice\Admin\Security\SecurityLog;
 
 /**
  * Signs a user in to the panel: throttled, and only accounts that may
- * open the panel. Throws a ValidationException (on "email") otherwise.
+ * open the panel (others get the wrong-password answer). Throws a ValidationException (on "email") otherwise.
  * With two-factor login on, the right password emails a code instead
  * (TwoFactorLogin) and nobody is signed in yet.
  *
@@ -75,17 +75,20 @@ final class AttemptLogin
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
 
-        $this->throttle->succeeded($email, $ip);
-
         // The right password, but some accounts (an app's customers) may not open the panel.
+        // They get the same answer as a wrong password, and count as one: saying more
+        // would confirm that the email has an account and that the password is right.
         $user = $twoFactor ? $guard->getLastAttempted() : $guard->user();
         $account = $user instanceof Model ? $user : null;
         if (! $user instanceof Authorizable || ! $user->can(Panel::ACCESS)) {
             $twoFactor || $guard->logout();
             $this->security->record('login refused', $account, $account === null ? $email : null, ['note' => 'no access to the panel']);
+            $this->throttle->failed($email, $ip);
 
-            throw ValidationException::withMessages(['email' => __('This account can\'t use the admin panel.')]);
+            throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
+
+        $this->throttle->succeeded($email, $ip);
 
         // Locked by an administrator: the right password isn't enough.
         if ($account !== null && app(AccountGuard::class)->isLocked($account)) {

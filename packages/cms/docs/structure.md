@@ -40,7 +40,7 @@ Media files are tracked by the panel's `MediaUsages` instead ([media](../../admi
 
 ## Renaming a field
 
-A field's handle is the key its values are stored under, so renaming it in the builder would leave the stored values behind. Rename it with the command instead:
+A field's handle is the key its values are stored under, so renaming it in the builder would leave the stored values behind (and templates reading the old handle get nothing). The builder warns under a saved field's handle once it's changed, until the blueprint is saved. Rename it with the command instead:
 
 ```bash
 php artisan sunrice:rename-field page subtitle tagline           # a blueprint's field
@@ -98,6 +98,8 @@ The file is JSON with a section per kind, each item by handle, and records point
         "translations": {"en": {"title": "Team", "slug": "team", "data": {...}, "published": true}}}]
 }
 ```
+
+Every setting of a collection, taxonomy, global set and form is in the file, "SEO from fields" (`seo_title_field`, `seo_description_field`, `seo_image_field`) and a form's `notify_roles` included (`StructureImporter::COLLECTION`, `TAXONOMY`, `GLOBAL_SET` and `FORM` list them).
 
 `terms`, `entries` and the globals' `values` come with `--entries` (entries as their drafts, and whether each language is published). Ids inside field values (media, entries, terms) are written as they are, so they mean the same only on the same site or one filled in the same order.
 

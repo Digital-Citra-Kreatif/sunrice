@@ -100,7 +100,10 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
         const listed = selected === undefined || options.some((o) => o.id === selected);
         return (
             <Select value={selected === undefined ? NONE : String(selected)} onValueChange={(next: string) => onChange(next === NONE ? null : Number(next))}>
-                <SelectTrigger id={id} className="cms:w-full cms:max-w-sm" aria-invalid={invalid}><SelectValue /></SelectTrigger>
+                {/* The chosen term by its title alone; the list's dashes only show its place in the tree. */}
+                <SelectTrigger id={id} className="cms:w-full cms:max-w-sm" aria-invalid={invalid}>
+                    <SelectValue>{selected === undefined ? t('None') : (label(selected) ?? t('Term #:id', { id: selected }))}</SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                     {!required && <SelectItem value={NONE}>{t('None')}</SelectItem>}
                     {!listed && selected !== undefined && <SelectItem value={String(selected)}>{label(selected) ?? t('Term #:id', { id: selected })}</SelectItem>}

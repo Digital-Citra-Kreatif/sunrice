@@ -17,16 +17,16 @@ Filter tersimpan di alamat halaman, jadi Anda bisa menyimpan tampilan sebagai ma
 
 ### Beberapa sekaligus
 
-Centang beberapa entri (atau kotak di atas untuk seluruh halaman) lalu pilih **Terbitkan**, **Batalkan terbit**, atau **Pindahkan ke tempat sampah** untuk semuanya sekaligus. Di tempat sampah: **Pulihkan** atau **Hapus permanen**. Entri yang tidak boleh Anda ubah, atau yang belum bisa diterbitkan (misalnya ada field wajib yang kosong), dilewati, dan panel menyebutkan jumlahnya.
+Centang beberapa entri (atau kotak di atas untuk seluruh halaman) lalu pilih **Terbitkan**, **Batalkan terbit**, atau **Pindahkan ke tempat sampah** untuk semuanya sekaligus. Tepat setelah membuang, pesannya punya tombol **Urungkan**. Di tempat sampah, baris bertanda **Dibuang** dan masing-masing punya tombol **Pulihkan**; yang dicentang bisa **Pulihkan** atau **Hapus permanen** sekaligus. Entri yang tidak boleh Anda ubah, atau yang belum bisa diterbitkan (misalnya ada field wajib yang kosong), dilewati, dan panel menyebutkan jumlahnya.
 
 ### Mengurutkan entri
 
-Di koleksi dengan *urutan manual*, klik **Urutkan** di atas daftar, seret setiap entri ke posisinya lewat pegangannya (atau dengan papan ketik: fokus ke pegangan, tekan Spasi, pindahkan dengan tombol panah, tekan Spasi lagi), lalu klik **Selesai**. Di koleksi yang entrinya bertingkat, entri berpindah di antara entri sejajarnya. Panah di kolom **Urutan** juga memindahkan satu entri satu posisi ke atas atau ke bawah, saat daftar dalam urutannya sendiri, tanpa filter atau pencarian. Koleksi lain menampilkan entri terbaru lebih dulu (jika bertanggal) atau menurut judul.
+Di koleksi dengan *urutan manual*, klik **Urutkan** di atas daftar, seret setiap entri ke posisinya lewat pegangannya (atau dengan papan ketik: fokus ke pegangan, tekan Spasi, pindahkan dengan tombol panah, tekan Spasi lagi), lalu klik **Selesai**. Di koleksi yang entrinya bertingkat, daftar menampilkan susunan pohonnya (entri menjorok di bawah induknya) dan entri berpindah di antara entri sejajarnya, beserta isinya; untuk menaruh entri di bawah entri lain, pilih **Induk**-nya di Pengaturan halaman. Panah di kolom **Urutan** juga memindahkan satu entri satu posisi ke atas atau ke bawah, saat daftar dalam urutannya sendiri, tanpa filter atau pencarian. Koleksi lain menampilkan entri terbaru lebih dulu (jika bertanggal) atau menurut judul.
 
 ## Menulis entri
 
 1. Klik **Entri baru**.
-2. Ketik **Judul**. **Slug**, bagian alamat web entri (`/blog/tulisan-pertama-saya`), dibuat dari judul jika dibiarkan kosong; hanya huruf kecil, angka, dan tanda hubung.
+2. Ketik **Judul**. **Slug**, bagian alamat web entri (`/blog/tulisan-pertama-saya`), dibuat dari judul jika dibiarkan kosong; hanya huruf kecil, angka, dan tanda hubung. Mengubah slug entri yang pernah diterbitkan memindahkan alamatnya: catatan di bawah isian memberi tahu bahwa alamat lama akan dialihkan ke alamat baru setelah Anda menerbitkan (atau, untuk entri yang sudah ditarik dari situs, bahwa alamat lama tidak akan berfungsi lagi kecuali pengalihan ditambahkan).
 3. Isi field-field-nya. Field wajib ditandai; field yang keliru disebutkan namanya saat Anda menyimpan.
 4. Klik **Buat draf**.
 
@@ -38,7 +38,7 @@ Selanjutnya, **Simpan draf** menyimpan pekerjaan Anda (atau tekan **Ctrl S** / *
 - Field **Media** memilih gambar atau berkas dari [pustaka media](guide:panel/media), atau mengunggah yang baru.
 - Field **Entri** dan **Term** menautkan ke entri lain atau ke kategori dan tag; cari berdasarkan judul.
 - Field **Tautan** menerima alamat web, atau entri lain (pilih **Entri** agar mengikuti alamat entri itu meskipun berubah).
-- Field **Grup**, **Repeater**, dan **Konten fleksibel** menampung beberapa field sekaligus; repeater dan konten fleksibel menambahkan baris atau blok, yang Anda seret ke urutannya lewat pegangannya.
+- Field **Grup**, **Repeater**, dan **Konten fleksibel** menampung beberapa field sekaligus; repeater dan konten fleksibel menambahkan baris atau blok, yang Anda seret ke urutannya lewat pegangannya. Setiap baris atau blok diberi nama dari teks pertamanya; klik namanya untuk melipatnya (**Lipat semua** melipat seluruh daftar), dan matikan **Tampil di situs** untuk menyimpannya di sini tanpa menampilkannya di halaman.
 
 Kartu-kartu di penyunting (grup, **SEO**, dan kartu di kanan) bisa dilipat dengan mengeklik judulnya. Panel mengingat kartu mana yang Anda lipat, dan membuka sendiri kartu yang field di dalamnya bermasalah.
 
@@ -47,26 +47,27 @@ Kartu-kartu di penyunting (grup, **SEO**, dan kartu di kanan) bisa dilipat denga
 Setiap entri memiliki **draf**, yang Anda sunting, dan versi **tayang**, yang dilihat pengunjung. Versi tayang hanya berubah saat Anda menerbitkan.
 
 - **Terbitkan** menayangkan draf di situs web. Untuk entri yang sudah tayang, tombolnya bertuliskan **Terbitkan perubahan**; bertuliskan **Terbit** jika tidak ada yang baru.
-- Kartu **Status** di samping isian berisi **Tanggal terbit**: pilih tanggal dan jam (menurut zona waktu Anda) lalu tekan **Jadwalkan**; entri akan tayang saat itu, dan sampai waktunya statusnya **Terjadwal**. Tanggal yang sudah lewat langsung menerbitkan, dengan tanggal tersebut. Pada entri yang sudah tayang, ubah tanggalnya lalu tekan **Ubah tanggal** (tanggal yang ditampilkan situs), atau **Batalkan terbit**. Panah di sebelah **Terbitkan** juga berisi **Terbitkan pada tanggal tertentu…**.
+- Kartu **Status** di samping isian berisi **Tanggal terbit**: pilih tanggal dan jam (menurut zona waktu Anda, format 24 jam: ketik `14:30`) lalu tekan **Jadwalkan**; entri akan tayang saat itu, dan sampai waktunya statusnya **Terjadwal**. Tanggal yang sudah lewat langsung menerbitkan, dengan tanggal tersebut (untuk memundurkan tanggal tulisan). Pada entri yang sudah tayang atau terjadwal, ubah tanggalnya lalu tekan **Ubah tanggal** (atau **Jadwalkan ulang**): entri diterbitkan lagi dengan tanggal itu, beserta isi penyunting; tanggal yang akan datang menarik entri dari situs sampai waktunya. **Batalkan terbit** juga ada di sana.
+- Panah di sebelah **Terbitkan** juga berisi **Terbitkan pada tanggal tertentu…** (pemilih tanggal dimulai dari besok; tanggal yang sudah lewat meminta konfirmasi dulu). Selama entri terjadwal, tombolnya bertuliskan **Terjadwal …**: tekan untuk mengganti tanggal; panahnya juga berisi **Terbitkan sekarang** dan **Batalkan jadwal (kembali ke draf)**.
 - **Batalkan terbit** (di menu yang sama) menarik entri dari situs web; entri kembali menjadi draf. Jika diterbitkan lagi, tanggal aslinya tetap dipakai.
 
 Kartu **Status** di kanan menunjukkan apakah entri masih draf, terjadwal, atau terbit (dan sejak kapan), dan memberi peringatan *Draf memiliki perubahan yang belum ditampilkan di situs.* jika draf berisi perubahan yang belum tampil di situs.
 
 > [!NOTE]
-> Jika peran Anda bisa menulis tetapi tidak bisa menerbitkan (misalnya peran *author*), Anda menyimpan draf dan orang lain yang menerbitkannya.
+> Jika peran Anda bisa menulis tetapi tidak bisa menerbitkan (misalnya peran *author*), Anda menyimpan draf dan orang lain yang menerbitkannya. Saat draf siap, klik **Ajukan untuk ditinjau**: draf disimpan, semua orang yang bisa menerbitkannya menerima email, dan draf muncul di **Menunggu tinjauan** pada dasbor mereka. Entri menampilkan lencana **Menunggu tinjauan** sampai ada yang menerbitkannya.
 
 ## Melihat hasil kerja Anda di situs
 
-- **Pratinjau** membuka draf yang tersimpan seperti tampilannya nanti di situs, di tab baru. Simpan dulu: pratinjau menampilkan yang tersimpan, bukan yang ada di layar Anda. Tautan pratinjau berlaku 30 menit, dan siapa pun yang Anda kirimi bisa membukanya selama itu.
+- **Pratinjau** membuka draf yang tersimpan seperti tampilannya nanti di situs, di tab baru. Simpan dulu: pratinjau menampilkan yang tersimpan, bukan yang ada di layar Anda. Tautan pratinjau berlaku 30 menit, dan siapa pun yang Anda kirimi bisa membukanya selama itu; pita gelap di bagian atas menandai bahwa itu pratinjau. Koleksi yang entrinya tidak punya halaman sendiri (misalnya testimoni) tidak punya Pratinjau.
 - **Lihat halaman** membuka halaman yang tayang.
 - Jika peran Anda boleh melihat draf di situs, halaman tayang yang punya perubahan belum terbit menampilkan spanduk kecil selama Anda masuk, dengan **View the draft**. Pengunjung tidak pernah melihatnya.
 
 ## Pengaturan halaman
 
-Kartu **Pengaturan halaman** di kanan disimpan tersendiri, untuk semua bahasa, dengan **Simpan pengaturan**:
+Kartu **Pengaturan halaman** di kanan berlaku untuk semua bahasa. Isinya disimpan bersama draf (**Simpan draf**, **Terbitkan**, Ctrl+S), kecuali blueprint, yang punya tombolnya sendiri:
 
-- **Induk**: di koleksi yang entrinya bertingkat (seperti halaman di bawah halaman), entri tempat entri ini berada. Dipakai untuk jejak halaman dan sub-menu; alamat webnya tidak berubah.
-- **Blueprint**: jika koleksi menawarkan lebih dari satu susunan field (misalnya halaman biasa atau halaman promosi), susunan yang dipakai entri ini. Menggantinya tetap menyimpan semua nilai: field yang ada di keduanya mempertahankan isinya, dan sisanya disimpan tersembunyi dan muncul lagi jika Anda kembali. Penyunting dimuat ulang dengan field yang baru.
+- **Induk**: di koleksi yang entrinya bertingkat (seperti halaman di bawah halaman), entri tempat entri ini berada; bisa juga dipilih saat membuat entri. Dipakai untuk jejak halaman dan sub-menu; alamat webnya tidak berubah.
+- **Blueprint**: jika koleksi menawarkan lebih dari satu susunan field (misalnya halaman biasa atau halaman promosi), susunan yang dipakai entri ini. Menggantinya tetap menyimpan semua nilai: field yang ada di keduanya mempertahankan isinya, dan sisanya disimpan tersembunyi dan muncul lagi jika Anda kembali. Simpan draf dulu, lalu tekan **Ganti blueprint**: penyunting dimuat ulang dengan field yang baru.
 - **Template**: desain lain khusus untuk entri ini, jika developer membuatnya. Kosongkan untuk desain koleksi.
 - **Terima komentar baru**: di koleksi yang memiliki komentar, matikan untuk menutup komentar entri ini (komentar yang sudah disetujui tetap tampil). **Komentar** membuka komentar entri ini.
 
@@ -80,12 +81,12 @@ Kartu **Dipakai oleh** menampilkan konten lain yang menautkan ke entri ini (entr
 
 ## Revisi
 
-Setiap penerbitan menyimpan sebuah **revisi**: salinan dari yang diterbitkan, beserta tanggalnya. Kartu **Revisi** menampilkannya; **Pulihkan** memuat revisi ke dalam draf, sehingga Anda bisa memeriksanya dan menerbitkan saat siap. Berubah pikiran? **Batalkan pemulihan** mengembalikan draf Anda sebelumnya (sampai Anda keluar). Disimpan 50 revisi terakhir untuk setiap bahasa.
+Setiap penerbitan menyimpan sebuah **revisi**: salinan dari yang diterbitkan, beserta tanggal dan siapa yang menerbitkannya. Kartu **Revisi** menampilkannya beserta field yang diubah tiap revisi; **Bandingkan** menampilkan revisi di samping draf yang tersimpan, field demi field; **Pulihkan** memuat revisi ke dalam draf, sehingga Anda bisa memeriksanya dan menerbitkan saat siap. Berubah pikiran? **Batalkan pemulihan** mengembalikan draf Anda sebelumnya (sampai Anda keluar). Disimpan 50 revisi terakhir untuk setiap bahasa.
 
 ## Tindakan lain
 
 - Tombol **⋯** di samping **Simpan draf** berisi aksi lainnya.
-- **Duplikat** menyalin entri, dalam semua bahasa, sebagai draf baru berjudul "… (copy)".
+- **Duplikat** menyalin entri, dalam semua bahasa, sebagai draf baru berjudul "… (copy)". Selama belum pernah diterbitkan, mengganti judulnya ikut mengganti slug-nya (kecuali Anda mengetik slug sendiri).
 - **Pindahkan ke tempat sampah** membuang entri: entri hilang dari situs web dan dari daftar, dalam semua bahasa, dan bisa dipulihkan. Jika dipakai konten lain, panel menyebutkan di mana terlebih dahulu.
 - Di tempat sampah, entri memiliki **Pulihkan** dan **Hapus permanen** (menghapus semuanya, dalam semua bahasa, beserta revisinya; tidak bisa dibatalkan).
 

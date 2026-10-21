@@ -12,7 +12,7 @@ Open the panel's address in your browser. It's your site's address followed by *
 2. Tick **Remember me** on your own computer to stay signed in.
 3. Click **Log in**.
 
-If the panel says *This account can't use the admin panel*, your account exists but hasn't been given access yet. Ask a site manager.
+If the panel says your email or password doesn't match although you're sure of them, your account may not have been given access to the panel yet (the panel doesn't say which, so nobody can use it to test passwords). Ask a site manager.
 
 After several wrong passwords the panel makes you wait before you can try again. This protects your account from people guessing passwords.
 
@@ -34,7 +34,11 @@ No email? Look in your spam folder, then click **Send a new code** (you can ask 
 
 Choosing a new password also signs you out on other computers where you ticked *Remember me*.
 
-There is no profile page: to change your name or email address, ask a site manager.
+### Your account
+
+To change your own name, email address or password, click your name at the foot of the sidebar and choose **Your account**. A new email address or password needs your **Current password**, and a new password is typed twice. Your roles are changed by a site manager.
+
+New to {panel}? Your site manager may have sent you an invitation: follow **Choose your password** in the email, type your password twice and log in. The link works for a limited time; after that, use **Forgot password?**.
 
 ## Finding your way around
 

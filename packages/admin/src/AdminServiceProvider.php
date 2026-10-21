@@ -12,7 +12,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Database\Events\NoPendingMigrations;
 use Illuminate\Foundation\Exceptions\Handler;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -84,6 +86,12 @@ final class AdminServiceProvider extends ServiceProvider
         $this->app->register(PermissionServiceProvider::class);
         $this->app->register(McpServiceProvider::class);
         $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');
+        // Inertia's DevTools record every page's props (users and their emails, settings) and, in
+        // `local`, serve them at /_inertia/devtools to anyone, signed in or not. Off unless the app
+        // turns them on itself (INERTIA_DEVTOOLS_ENABLED=true).
+        if (config('inertia.devtools.enabled') === null) {
+            config(['inertia.devtools.enabled' => false]);
+        }
         // Settings are read once per request (or job).
         $this->app->scoped(SettingsStore::class);
         // Per request: its source and the lines it may merge.
@@ -94,10 +102,23 @@ final class AdminServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        RateLimiter::for('sunrice-password', function (Request $request): Limit {
+        // Forgot / reset password, per IP: a few a minute, and a cap an hour so one address can't
+        // send reset mail to address after address. Hitting a limit is a security event (and an alert).
+        RateLimiter::for('sunrice-password', function (Request $request): array {
             $perMinute = config('sunrice-admin.auth.throttle.password_resets_per_minute', 5);
+            $perHour = config('sunrice-admin.auth.throttle.password_resets_per_hour', 20);
+            $blocked = function (Request $request, array $headers): never {
+                if (Cache::add('sunrice-password-blocked-logged|'.$request->ip(), true, 60)) {
+                    app(SecurityLog::class)->record('password reset blocked', null, null, ['note' => 'too many password reset requests from this IP']);
+                }
 
-            return Limit::perMinute(is_numeric($perMinute) ? (int) $perMinute : 5)->by((string) $request->ip());
+                throw new ThrottleRequestsException('Too Many Attempts.', null, $headers);
+            };
+
+            return [
+                Limit::perMinute(is_numeric($perMinute) ? (int) $perMinute : 5)->by((string) $request->ip())->response($blocked),
+                Limit::perHour(is_numeric($perHour) ? (int) $perHour : 20)->by('hour|'.$request->ip())->response($blocked),
+            ];
         });
 
         // Typing and resending login codes, per IP; each code also allows only a few guesses.

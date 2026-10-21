@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -12,10 +14,13 @@ use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Forms\SubmitForm;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Fields\Field;
+use Sunrice\Cms\Fields\Types\FileField;
 use Sunrice\Cms\Mail\SubmissionReceived;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\Submission;
+use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -49,7 +54,7 @@ it('keeps what visitors send and emails the form\'s addresses', function () {
     $this->form->update(['notify' => ['team@example.com', 'boss@example.com']]);
 
     from('/contact-page')->post('/forms/contact', contactInput(['photo' => 5, 'extra' => 'ignored']))
-        ->assertRedirect('/contact-page')->assertSessionHas('sunrice-cms.form.contact', 'Thanks!');
+        ->assertRedirect('/contact-page#form-contact')->assertSessionHas('sunrice-cms.form.contact', 'Thanks!');
 
     $submission = Submission::query()->sole();
     expect($submission->data)->toEqual(['name' => 'Ana', 'email' => 'ana@example.com', 'topic' => 'help', 'message' => "Hello\nthere", 'newsletter' => true])
@@ -69,9 +74,21 @@ it('renders the notification escaped, with labels', function () {
         ->not->toContain('<b>Ana</b>');
 });
 
+it('says in the notification where and in which language the form was sent, links to the submissions and leaves out what was left empty', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $submission = app(SubmitForm::class)->handle($this->form, contactInput(['topic' => '', 'newsletter' => '0']), 'id', '10.0.0.1', 'Firefox', 'https://example.com/kontak');
+
+    $html = (new SubmissionReceived($submission))->render();
+
+    expect($html)->toContain('form in '.Locales::name('id').',')->toContain('from <a href="https://example.com/kontak">')
+        ->toContain('href="'.route('sunrice.admin.cms.forms.submissions.index', 'contact').'"')
+        ->not->toContain('>Topic<')
+        ->not->toContain('Photo');
+});
+
 it('sends the visitor back with errors under the form\'s bag', function () {
     from('/contact-page')->post('/forms/contact', contactInput(['email' => 'nope', 'message' => '']))
-        ->assertRedirect('/contact-page')->assertSessionHasErrors(['email', 'message'], errorBag: 'contact');
+        ->assertRedirect('/contact-page#form-contact')->assertSessionHasErrors(['email', 'message'], errorBag: 'contact');
 
     postJson('/forms/contact', contactInput(['name' => '']))->assertUnprocessable()->assertJsonValidationErrors(['name' => 'Your name']);
     postJson('/forms/contact', contactInput())->assertCreated()->assertJson(['message' => 'Thanks!']);
@@ -96,7 +113,7 @@ it('turns away spam bots with the honeypot', function () {
     post('/forms/contact', contactInput([$honeypot->nameFieldName() => '', $honeypot->validFromFieldName() => app(Honeypot::class)->encryptedValidFrom()]))->assertContent('');
     expect(Submission::query()->count())->toBe(0);
 
-    from('/contact-page')->post('/forms/contact', contactInput($fields()))->assertRedirect('/contact-page');
+    from('/contact-page')->post('/forms/contact', contactInput($fields()))->assertRedirect('/contact-page#form-contact');
     expect(Submission::query()->count())->toBe(1);
 });
 
@@ -106,7 +123,61 @@ it('limits how often one visitor sends', function () {
 
     postJson('/forms/contact', contactInput())->assertCreated();
     postJson('/forms/contact', contactInput())->assertCreated();
-    postJson('/forms/contact', contactInput())->assertTooManyRequests();
+    postJson('/forms/contact', contactInput())->assertTooManyRequests()->assertJsonValidationErrors(['_limit']);
+});
+
+it('counts only what was kept against the limit, and sends the visitor back to the form when over it', function () {
+    config(['sunrice-cms.forms.per_minute' => 2]);
+
+    // Tries that fail validation don't count.
+    foreach (range(1, 5) as $try) {
+        from('/contact-page')->post('/forms/contact', contactInput(['email' => 'nope']))->assertSessionHasErrors(['email'], errorBag: 'contact');
+    }
+    from('/contact-page')->post('/forms/contact', contactInput())->assertRedirect('/contact-page#form-contact');
+    from('/contact-page')->post('/forms/contact', contactInput())->assertRedirect('/contact-page#form-contact');
+    // Over it: back to the form with a message, what was typed kept.
+    from('/contact-page')->post('/forms/contact', contactInput(['message' => 'Kept text']))
+        ->assertRedirect('/contact-page#form-contact')
+        ->assertSessionHasErrors(['_limit'], errorBag: 'contact')
+        ->assertSessionHasInput('message', 'Kept text');
+    expect(Submission::query()->count())->toBe(2)
+        ->and(session('errors')->getBag('contact')->first('_limit'))->toContain('Please wait');
+    // A flood of failing tries hits a ceiling too.
+    travel(2)->minutes();
+    foreach (range(1, 20) as $try) {
+        post('/forms/contact', contactInput(['email' => 'nope']));
+    }
+    post('/forms/contact', contactInput())->assertSessionHasErrors(['_limit'], errorBag: 'contact');
+});
+
+it('lands the visitor on the form, with the message or an error summary to read first', function () {
+    Route::get('/contact-page', fn () => Blade::render('<main style="height:4000px"></main><x-sunrice-cms::form handle="contact" />'))->middleware('web');
+
+    $html = (string) from('/contact-page')->followingRedirects()->post('/forms/contact', contactInput(['email' => 'nope', 'message' => '', '_form' => 'contact']))->getContent();
+    expect($html)->toContain('<div id="form-contact-errors" role="alert" tabindex="-1" autofocus>')
+        ->toContain('<a href="#form-contact-email">')
+        ->toContain('<a href="#form-contact-message">');
+
+    $html = (string) from('/contact-page')->followingRedirects()->post('/forms/contact', contactInput())->getContent();
+    expect($html)->toContain('<p role="status" tabindex="-1" autofocus>Thanks!</p>')->not->toContain('form-contact-errors');
+});
+
+it('says how large a file may be, on the form and when one is too large for PHP', function () {
+    Blueprint::query()->where('handle', 'contact')->firstOrFail()->update(['fields' => [
+        ['handle' => 'name', 'type' => 'text'],
+        ['handle' => 'photos', 'type' => 'file', 'label' => 'Photos', 'config' => ['types' => 'jpg, png', 'max_kb' => 5120]],
+    ]]);
+    $php = FileField::maxKb(new Field('photos', 'file', config: ['max_kb' => 5120]));
+    $size = FileField::size($php);
+
+    expect(Blade::render('<x-sunrice-cms::form handle="contact" />'))->toContain('Accepted: JPG, PNG, up to '.$size.'.')
+        ->toContain('aria-describedby="form-contact-photos-help"');
+    $big = new UploadedFile(__FILE__, 'villa.jpg', 'image/jpeg', UPLOAD_ERR_INI_SIZE, true);
+    from('/contact-page')->post('/forms/contact', ['data' => ['name' => 'Ana', 'photos' => $big]])
+        ->assertSessionHasErrors(['photos' => 'The Photos file is larger than '.$size.', the most this site accepts.'], errorBag: 'contact');
+    expect(FileField::size(2048))->toBe('2 MB')
+        ->and(FileField::size(1536))->toBe('1.5 MB')
+        ->and(FileField::size(500))->toBe('500 KB');
 });
 
 it('renders the form for templates', function () {
@@ -136,7 +207,7 @@ it('lists, shows and deletes submissions for those allowed', function () {
     get('/admin/cms/forms/contact/submissions')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Submissions/Index', shouldExist: false)
         ->where('forms.0.count', 1)
-        ->where('submissions.data.0.rows.0', ['handle' => 'name', 'label' => 'Your name', 'value' => 'Ana', 'file' => null])
+        ->where('submissions.data.0.rows.0', ['handle' => 'name', 'label' => 'Your name', 'value' => 'Ana', 'file' => null, 'files' => []])
         ->where('submissions.data.0.rows.2.value', 'Help')
         ->where('can.delete', false));
     delete("/admin/cms/submissions/{$submission->id}")->assertForbidden();
@@ -191,7 +262,7 @@ it('takes markup of the template\'s own in a slot, with this form\'s errors and 
     // Sent: the thank-you message above the form, or in its place with `replace`.
     $html = (string) from('/two-forms')->followingRedirects()->post('/forms/newsletter', ['_form' => 'newsletter', 'data' => ['email' => 'ana@example.com']])->assertOk()->getContent();
     [$contact, $newsletter] = explode('<div id="b">', $html);
-    expect($newsletter)->toContain('<p id="form-newsletter" role="status">Welcome!</p>')->not->toContain('<form')
+    expect($newsletter)->toContain('<p id="form-newsletter" role="status" tabindex="-1" autofocus>Welcome!</p>')->not->toContain('<form')
         ->and($contact)->toContain('<form')->not->toContain('Welcome!');
     expect(Submission::query()->sole()->data)->toBe(['email' => 'ana@example.com']);
 });
@@ -261,4 +332,70 @@ it('offers to create a form when there are none, to those who may', function () 
 
     actingAs(adminUser(Panel::ACCESS, 'cms.submissions.view'));
     get('/admin/cms/submissions')->assertInertia(fn (Assert $page) => $page->where('createForm', null));
+});
+
+it('refuses days before today in a date field set to "today or later"', function () {
+    Date::setTestNow('2026-10-21 09:00:00');
+    Blueprint::query()->where('handle', 'contact')->firstOrFail()->update(['fields' => [
+        ['handle' => 'name', 'type' => 'text'],
+        ['handle' => 'preferred_date', 'type' => 'date', 'config' => ['future' => true]],
+    ]]);
+
+    expect(Blade::render('<x-sunrice-cms::form handle="contact" />'))->toContain('type="date" id="form-contact-preferred_date"')->toContain('min="2026-10-21"');
+    postJson('/forms/contact', ['name' => 'Ana', 'preferred_date' => '2020-01-01'])->assertUnprocessable()->assertJsonValidationErrors(['preferred_date']);
+    postJson('/forms/contact', ['name' => 'Ana', 'preferred_date' => '2026-10-21'])->assertCreated();
+});
+
+it('shows and checks a form in the visitor\'s language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $blueprint = Blueprint::query()->where('handle', 'contact')->firstOrFail();
+    $fields = $blueprint->fields;
+    $fields[0]['translations'] = ['id' => ['label' => 'Nama Anda', 'instructions' => 'Nama lengkap']];
+    $fields[1]['label'] = 'Email';
+    $fields[1]['translations'] = ['id' => ['label' => 'Surel']];
+    $fields[2]['translations'] = ['id' => ['options' => ['help' => 'Bantuan']]];
+    $blueprint->update(['fields' => $fields]);
+
+    app()->setLocale('id');
+    $html = Blade::render('<x-sunrice-cms::form handle="contact" />');
+    expect($html)->toContain('<label for="form-contact-name">Nama Anda')
+        ->toContain('<p id="form-contact-name-help">Nama lengkap</p>')
+        ->toContain('<label for="form-contact-email">Surel')
+        ->toContain('>Bantuan</option>')
+        ->toContain('>Sales</option>')
+        ->toContain('<input type="hidden" name="locale" value="id">');
+    app()->setLocale('en');
+    expect(Blade::render('<x-sunrice-cms::form handle="contact" />'))->toContain('<label for="form-contact-name">Your name')->toContain('>Help</option>');
+
+    // Errors in the visitor's language, naming the fields as they read them.
+    from('/id/kontak')->post('/forms/contact', ['locale' => 'id', 'name' => '', 'email' => 'nope', 'message' => 'Hi'])
+        ->assertSessionHasErrorsIn('contact', ['name' => 'Nama Anda wajib diisi.', 'email' => 'Surel harus berupa alamat email yang valid.']);
+    from('/kontak')->post('/forms/contact', ['locale' => 'en', 'name' => '', 'email' => 'ana@example.com', 'message' => 'Hi'])
+        ->assertSessionHasErrorsIn('contact', ['name' => 'The Your name field is required.']);
+});
+
+it('gives a select\'s option labels in a language', function () {
+    $field = Field::fromArray(['handle' => 'status', 'type' => 'select', 'config' => ['options' => [['value' => 'under_offer', 'label' => 'Under offer'], ['value' => 'sold']]],
+        'translations' => ['id' => ['label' => 'Status', 'options' => ['under_offer' => 'Dalam penawaran']]]]);
+
+    expect($field->optionLabel('under_offer', 'en'))->toBe('Under offer')
+        ->and($field->optionLabel('under_offer', 'id'))->toBe('Dalam penawaran')
+        ->and($field->optionLabel('sold', 'id'))->toBe('sold')
+        ->and($field->optionLabel('gone', 'id'))->toBeNull()
+        ->and($field->labelIn('id'))->toBe('Status')
+        ->and($field->toArray()['translations'])->toBe(['id' => ['label' => 'Status', 'options' => ['under_offer' => 'Dalam penawaran']]])
+        ->and($field->withConfig([])->translations)->toBe($field->translations);
+});
+
+it('thanks visitors in their language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id', 'fr']]);
+
+    postJson('/forms/contact', [...contactInput(), 'locale' => 'id'])->assertCreated()->assertJson(['message' => 'Terima kasih, pesan Anda sudah kami terima.']);
+    // A language the site's words have no line in: the form's own message.
+    postJson('/forms/contact', [...contactInput(), 'locale' => 'fr'])->assertCreated()->assertJson(['message' => 'Thanks!']);
+    $this->form->translate('message', 'id', 'Terima kasih!')->save();
+    from('/id/kontak')->post('/forms/contact', [...contactInput(), 'locale' => 'id'])->assertSessionHas('sunrice-cms.form.contact', 'Terima kasih!');
+    postJson('/forms/contact', [...contactInput(), 'locale' => 'en'])->assertJson(['message' => 'Thanks!']);
+    $this->form->update(['message' => null]);
+    postJson('/forms/contact', [...contactInput(), 'locale' => 'en'])->assertJson(['message' => 'Thank you, we got your message.']);
 });

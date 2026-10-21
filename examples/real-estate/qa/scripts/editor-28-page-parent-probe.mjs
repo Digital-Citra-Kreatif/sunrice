@@ -1,0 +1,12 @@
+import { launch, session, shot, BASE, dumpForm, toasts } from './editor-lib.mjs';
+import { createEntry } from './editor-content.mjs';
+const b = await launch(); const { c, p } = await session(b, 'budi');
+const R = '<p></p>';
+await createEntry(p, BASE, 'pages', 'About', { intro: 'Lumina Estates is an independent agency for exceptional homes in Jakarta and Bali, founded on discretion, local knowledge and long relationships.' }, {});
+await shot(p, '53-page-about', true);
+console.log((await p.locator('main main').innerText()).split('Status')[1]?.slice(0, 600));
+console.log((await dumpForm(p)).filter(x => !x.includes('data-') && !x.includes('seo-')).join('\n'));
+await p.goto(BASE + '/admin/cms/collections/pages/entries', { waitUntil: 'networkidle' });
+await shot(p, '54-pages-list');
+console.log((await p.locator('main main').innerText()).slice(0, 600));
+await b.close();

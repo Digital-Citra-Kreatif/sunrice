@@ -111,6 +111,42 @@ it('lets translators edit the other languages only', function () {
     get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.update', false));
 });
 
+it('keeps translators out of what every language shares: parent, comments, template, blueprint and order', function () {
+    $parent = scopedDraft($this->blog);
+    $post = scopedDraft($this->blog);
+    app(CreateTranslation::class)->handle($post->entry, 'id');
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate'));
+
+    put("/admin/cms/entries/{$post->entry_id}/settings", ['locale' => 'id', 'comments_closed' => true])->assertForbidden();
+    put("/admin/cms/entries/{$post->entry_id}/settings", ['locale' => 'xx', 'parent_id' => $parent->entry_id])->assertForbidden();
+    post("/admin/cms/entries/{$post->entry_id}/move", ['locale' => 'id', 'direction' => 'up'])->assertForbidden();
+    post('/admin/cms/entries/reorder', ['locale' => 'id', 'collection' => 'blog', 'ids' => [$post->entry_id, $parent->entry_id]])->assertForbidden();
+    expect($post->entry->fresh())->comments_closed->toBeFalsy()->parent_id->toBeNull();
+    // Saving their draft carries no settings: any sent are left as they are.
+    put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'id', 'title' => 'Judul', 'data' => [], 'comments_closed' => true])->assertSessionHasNoErrors()->assertRedirect();
+    expect($post->entry->fresh())->comments_closed->toBeFalsy()->parent_id->toBeNull();
+    // Page settings aren't offered to them.
+    get(entryEditUrl($post->entry_id, 'id'))->assertInertia(fn (Assert $page) => $page->where('settings', null)->where('can.update', true));
+
+    // Authors of their own entries still may.
+    $author = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own');
+    $mine = scopedDraft($this->blog, $author);
+    put("/admin/cms/entries/{$mine->entry_id}/settings", ['comments_closed' => true])->assertSessionHasNoErrors()->assertRedirect();
+    expect($mine->entry->fresh()->comments_closed)->toBeTruthy();
+});
+
+it('makes an author for one collection: its view and create, and their own entries in it', function () {
+    $author = adminUser(Panel::ACCESS, 'cms.entries.blog.view', 'cms.entries.blog.create', 'cms.entries.update-own', 'cms.entries.delete-own');
+    $mine = scopedDraft($this->blog, $author);
+    // An entry of theirs in another collection (made before their role changed).
+    $elsewhere = app(CreateEntry::class)->handle($this->news, ['title' => 'Old news']);
+
+    expect(Access::entries($author, 'update', $this->blog, $mine->entry))->toBeTrue()
+        ->and(Access::entries($author, 'delete', $this->blog, $mine->entry))->toBeTrue()
+        ->and(Access::entries($author, 'update', $this->news, $elsewhere->entry))->toBeFalse()
+        ->and(Access::entries($author, 'create', $this->news))->toBeFalse();
+});
+
 it('scopes terms and submissions too', function () {
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     Taxonomy::query()->create(['handle' => 'categories', 'title' => 'Categories']);
@@ -131,6 +167,8 @@ it('gives the default roles their content permissions', function () {
 
     expect(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.entries.publish', 'cms.entries.blog.publish', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete')
         ->not->toContain('cms.collections.create')
+        // Edits menus' links, but doesn't create or delete the menus templates rely on.
+        ->and(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.menus.view', 'cms.menus.update')->not->toContain('cms.menus.create', 'cms.menus.delete')
         ->and(Role::findByName('author', 'web')->permissions->pluck('name')->sort()->values()->all())
         ->toBe(['cms.entries.create', 'cms.entries.delete-own', 'cms.entries.update-own', 'cms.entries.view', 'cms.entries.view-drafts', 'sunrice.access', 'sunrice.guide.view', 'sunrice.media.upload', 'sunrice.media.view'])
         ->and(Role::findByName('translator', 'web')->permissions->pluck('name'))->toContain('cms.entries.translate');
@@ -145,7 +183,7 @@ it('renames a collection\'s, taxonomy\'s and form\'s permissions with its handle
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.taxonomies.view', 'cms.taxonomies.update', 'cms.forms.view', 'cms.forms.update'));
 
     get("/admin/cms/collections/{$this->blog->handle}/edit")->assertInertia(fn (Assert $page) => $page
-        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.help', HandleField::WARNING));
+        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.warnWhenChanged', HandleField::warning('collection')));
     put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Blog', 'handle' => 'news', 'per_page' => 10])->assertSessionHasErrors('handle'); // taken
     put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Blog', 'handle' => 'Bad Handle', 'per_page' => 10])->assertSessionHasErrors('handle');
     put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Journal', 'handle' => 'journal', 'blueprint' => 'post', 'per_page' => 10])->assertSessionHasNoErrors();

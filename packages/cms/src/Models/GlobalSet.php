@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Fields\Schema;
 use Sunrice\Cms\Support\Locales;
+use Sunrice\Cms\Support\SiteRecords;
 
 /**
  * Site-wide values (contact details, social links, footer text), filled in
@@ -43,7 +44,7 @@ class GlobalSet extends Model
 
     public function schema(): Schema
     {
-        return $this->schema ??= ($this->blueprint === null ? null : Blueprint::query()->where('handle', $this->blueprint)->first()?->schema()) ?? Schema::make([]);
+        return $this->schema ??= SiteRecords::blueprint($this->blueprint)?->schema() ?? Schema::make([]);
     }
 
     /** The fields editable in a language: all in the main one, the translated ones in the others. */
@@ -56,7 +57,10 @@ class GlobalSet extends Model
 
     /**
      * The stored values in a language, with the shared fields from the main
-     * language and defaults for what was never saved.
+     * language and defaults for what was never saved. In another language,
+     * a translated field it has no value for (never saved, or left empty)
+     * shows the main language's, as untranslated pages do; so the editor
+     * starts from them too.
      *
      * @return array<string, mixed>
      */
@@ -66,7 +70,13 @@ class GlobalSet extends Model
         $stored = fn (string $code): array => $this->values->firstWhere('locale', $code)->data ?? [];
         $data = array_replace($schema->defaults(), $stored($locale));
         if ($locale !== Locales::default()) {
-            $data = array_replace($data, array_intersect_key(array_replace($schema->defaults(), $stored(Locales::default())), array_flip($schema->shared())));
+            $main = array_replace($schema->defaults(), $stored(Locales::default()));
+            $data = array_replace($data, array_intersect_key($main, array_flip($schema->shared())));
+            foreach ($data as $handle => $value) {
+                if (($value === null || $value === '' || $value === []) && isset($main[$handle])) {
+                    $data[$handle] = $main[$handle];
+                }
+            }
         }
 
         return $data;

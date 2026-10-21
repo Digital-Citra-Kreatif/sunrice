@@ -14,7 +14,7 @@ Buka alamat panel di peramban. Alamatnya adalah alamat situs Anda ditambah **/ad
 2. Centang **Ingat saya** di komputer Anda sendiri agar tetap masuk.
 3. Klik **Masuk**.
 
-Jika panel menampilkan *Akun ini tidak bisa memakai panel admin*, akun Anda ada tetapi belum diberi akses. Tanyakan kepada pengelola situs.
+Jika panel mengatakan email atau kata sandi Anda tidak cocok padahal Anda yakin keduanya benar, akun Anda mungkin belum diberi akses ke panel (panel tidak menyebutkan yang mana, agar tidak ada yang bisa memakainya untuk menguji kata sandi). Tanyakan kepada pengelola situs.
 
 Setelah beberapa kali salah kata sandi, panel meminta Anda menunggu sebelum mencoba lagi. Ini melindungi akun Anda dari orang yang menebak-nebak kata sandi.
 
@@ -36,7 +36,11 @@ Email tidak datang? Periksa folder spam, lalu klik **Kirim kode baru** (bisa dim
 
 Memilih kata sandi baru juga mengeluarkan Anda dari komputer lain tempat Anda mencentang *Ingat saya*.
 
-Tidak ada halaman profil: untuk mengubah nama atau alamat email, mintalah kepada pengelola situs.
+### Akun Anda
+
+Untuk mengubah nama, alamat email, atau kata sandi Anda sendiri, klik nama Anda di bagian bawah bilah samping dan pilih **Akun Anda**. Alamat email atau kata sandi baru memerlukan kata sandi Anda saat ini (**Kata sandi saat ini**), dan kata sandi baru diketik dua kali. Peran Anda diubah oleh pengelola situs.
+
+Baru di {panel}? Pengelola situs mungkin sudah mengirimi Anda undangan: ikuti **Pilih kata sandi Anda** di email tersebut, ketik kata sandi Anda dua kali, lalu masuk. Tautannya berlaku untuk waktu terbatas; setelah itu, pakai **Lupa kata sandi?**.
 
 ## Mengenal tampilan panel
 

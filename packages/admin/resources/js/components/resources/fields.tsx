@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { isHexColor, readableOn } from '@/lib/branding';
+import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
 import { formatPairs, parsePairs, type Pair } from '@/lib/pairs';
-import { RelationSelect, type RelationOption } from './relation-select';
+import { slugInput } from '@/lib/slug';
+import { RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
 import { t } from '@/lib/i18n';
 
@@ -63,6 +64,10 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
             return <Switch id={id} disabled={disabled} aria-invalid={invalid} checked={value === true} onCheckedChange={(checked) => onChange(checked)} />;
         case 'select': {
             const options = (field.options as { value: string; label: string }[] | undefined) ?? [];
+            if (field.searchable === true) {
+                return <SearchableSelect id={id} options={options} required={field.required === true} disabled={disabled} invalid={invalid}
+                    placeholder={field.placeholder ?? undefined} value={value === null || value === '' ? null : String(value)} onChange={onChange} />;
+            }
             return (
                 <Select value={value === null || value === '' ? (field.required ? undefined : NONE) : String(value)}
                     disabled={disabled} onValueChange={(selected) => onChange(selected === NONE ? null : selected)}>
@@ -93,6 +98,10 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
         default:
             if (field.inputType === 'color') {
                 return <ColorInput common={common} value={typeof value === 'string' ? value : ''} onChange={onChange} />;
+            }
+            if (typeof field.slugFrom === 'string') {
+                return <Input {...common} type="text" className="font-mono" maxLength={Number(field.maxLength) || undefined} spellCheck={false} autoCapitalize="off"
+                    value={value === null ? '' : String(value)} onChange={(e) => onChange(slugInput(e.target.value, String(field.slugSeparator ?? '-')))} />;
             }
             return <Input {...common} type={String(field.inputType ?? 'text')} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
@@ -157,7 +166,8 @@ function ColorInput({ common, value, onChange }: {
                     onChange={(e) => onChange(e.target.value)}
                     className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed" />
             </span>
-            <Input {...common} type="text" maxLength={7} spellCheck={false} className="font-mono" value={value} onChange={(e) => onChange(e.target.value.trim())} />
+            {/* Not cut to 7 characters: what's typed stays, and the server says what's wrong. Six hex digits get their #. */}
+            <Input {...common} type="text" maxLength={20} spellCheck={false} className="font-mono" value={value} onChange={(e) => onChange(normalizeHex(e.target.value))} />
             {valid && (
                 <span aria-hidden="true" className="flex h-10 shrink-0 items-center rounded-lg px-3 text-sm font-medium shadow-xs" style={{ background: value, color: readableOn(value) }}>Aa</span>
             )}

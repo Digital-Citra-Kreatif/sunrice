@@ -80,3 +80,29 @@ it('names the languages in the editor and the list', function () {
         ->where('locales.1.name', 'Bahasa Indonesia'));
     get('/admin/cms/collections/pages/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.locales.1.name', 'Bahasa Indonesia'));
 });
+
+it('opens with the languages in use, and switches the main language from the page', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.locales'));
+    get('/admin/settings/locales')->assertInertia(fn (Assert $page) => $page
+        ->where('values.languages', 'en: '.Locales::displayName('en')."\nid: Bahasa Indonesia")
+        ->where('cards.0.title', 'Main language')
+        ->where('cards.0.buttons.0.label', 'Make Bahasa Indonesia the main language')
+        ->where('cards.0.buttons.0.url', '/admin/cms/languages/id/main'));
+
+    Blueprint::query()->create(['handle' => 'page', 'title' => 'Page', 'fields' => []]);
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page']);
+    $page = app(CreateEntry::class)->handle($pages, ['title' => 'Hello']);
+
+    // Content without an Indonesian translation: refused with the reason.
+    \Pest\Laravel\post('/admin/cms/languages/id/main')->assertSessionHas('error', fn (string $error) => str_contains($error, 'no Bahasa Indonesia translation'));
+    expect(Locales::default())->toBe('en');
+
+    app(CreateTranslation::class)->handle($page->entry, 'id');
+    \Pest\Laravel\post('/admin/cms/languages/id/main')->assertSessionHas('success', 'Bahasa Indonesia is the main language now.');
+    app()->forgetInstance(LocaleSettings::class);
+    expect(Locales::default())->toBe('id');
+    \Pest\Laravel\post('/admin/cms/languages/fr/main')->assertSessionHas('error');
+
+    actingAs(adminUser(Panel::ACCESS));
+    \Pest\Laravel\post('/admin/cms/languages/en/main')->assertForbidden();
+});

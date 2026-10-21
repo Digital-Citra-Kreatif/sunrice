@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ComponentType } from 'react';
 import {
-    commandScore, matchCommands, navigationCommands, queryCommandSources, registerCommandSource, subscribeCommandSources, type CommandItem,
+    commandScore, commandSearchSource, matchCommands, navigationCommands, queryCommandSources, registerCommandSource, subscribeCommandSources, type CommandItem,
 } from '../../packages/admin/resources/js/lib/command-sources.ts';
 import { loadAdminModule, render } from './support/render.ts';
 
@@ -162,4 +162,22 @@ test('renders the command list as a combobox controlling a listbox of options', 
     assert.match(html, /role="separator"/);
     assert.doesNotMatch(html, /Nothing found/, 'the empty state waits until the items are counted');
     assert.doesNotMatch(html, /hidden=""/);
+});
+
+test('asks a server search with the query, prefixes its ids, and lists nothing when refused', async () => {
+    const calls: string[] = [];
+    const request = (async (url: string, init?: RequestInit) => {
+        calls.push(url);
+        assert.equal(init?.credentials, 'same-origin');
+        const ok = !url.includes('forbidden');
+        return { ok, json: async () => ({ items: [{ id: 7, label: 'Menteng Residence', group: 'Entries', url: '/admin/cms/entries/7/edit' }, { id: 8 }] }) } as Response;
+    }) as typeof fetch;
+    const search = commandSearchSource({ id: 'cms.entries', url: '/admin/cms/entries/search', minLength: 2 }, request);
+
+    const found = await queryCommandSources(' rumah taman ', new AbortController().signal, [search]);
+    assert.deepEqual(found, [{ id: 'cms.entries:7', label: 'Menteng Residence', group: 'Entries', url: '/admin/cms/entries/7/edit' }]);
+    assert.deepEqual(calls, ['/admin/cms/entries/search?q=rumah%20taman']);
+    assert.deepEqual(await queryCommandSources('forbidden', new AbortController().signal, [search]), []);
+    assert.deepEqual(await queryCommandSources('x', new AbortController().signal, [search]), [], 'below minLength');
+    assert.equal(calls.length, 2);
 });

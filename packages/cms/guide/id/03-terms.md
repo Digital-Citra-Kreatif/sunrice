@@ -12,13 +12,14 @@ Pilih taksonomi lewat menu di samping judul, dan bahasanya lewat **Bahasa**. Tab
 - Seret term lewat pegangannya untuk mengubah posisinya di antara term sejajarnya; term di bawahnya ikut pindah. Untuk menempatkan term di bawah term lain, **ganti namanya** dan pilih **Di bawah**.
 - Menu **⋮** di samping **Term baru** menampilkan koleksi yang memakai taksonomi ini, serta membuka **Pengaturan taksonomi** dan **Tempat sampah**.
 
-Term yang belum berjudul dalam bahasa yang tampil ditulis abu-abu sebagai *… · belum diterjemahkan*. Ganti namanya dalam bahasa itu untuk menerjemahkannya.
+Term yang belum berjudul dalam bahasa yang tampil ditulis abu-abu sebagai *… · belum diterjemahkan*. Ganti namanya dalam bahasa itu untuk menerjemahkannya, atau beri judul di halamannya sendiri.
 
 ## Halaman term
 
 Jika taksonomi memiliki halaman term di situs web (misalnya `/topik/berita`), halaman setiap term menampilkan entrinya, dan Anda bisa menambahkan:
 
-- field khususnya, jika taksonomi memilikinya (deskripsi, gambar…);
+- **Judul** dan **Slug**-nya dalam bahasa yang tampil: di bahasa yang belum diterjemahkan, memberi judul di sini akan menambahkannya (tidak perlu mengganti nama di daftar lebih dulu). Slug baru memindahkan halaman term begitu Anda menyimpan: sebuah catatan memberi tahu bahwa alamat lama tidak akan berfungsi lagi kecuali pengalihan ditambahkan (**Tambah pengalihan**, jika Anda boleh mengelola pengalihan);
+- field khususnya: **Deskripsi** untuk memperkenalkan halamannya, atau field yang diberikan developer untuk taksonomi (gambar…);
 - **SEO**: judul SEO, deskripsi, gambar untuk dibagikan, dan *Sembunyikan dari mesin pencari (noindex)* (lihat [SEO](guide:website/seo));
 - **Template**, jika developer membuat desain khusus (kosongkan untuk desain taksonomi).
 

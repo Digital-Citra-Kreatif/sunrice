@@ -36,7 +36,12 @@ final class EntriesField extends FieldType
     public function rules(Field $field): array
     {
         if (! $field->configBool('multiple')) {
-            return ['integer', $this->exists($field)];
+            // One entry's id; null or an empty list clears it.
+            return [function (string $attribute, mixed $value, \Closure $fail): void {
+                if ($value !== [] && filter_var($value, FILTER_VALIDATE_INT) === false) {
+                    $fail(__('The :attribute field must be an entry id (a number), or null to clear it.'));
+                }
+            }, $this->exists($field)];
         }
         $max = $field->configInt('max');
 
@@ -82,6 +87,7 @@ final class EntriesField extends FieldType
             new Field('collections', 'select', 'From collections', required: true, config: [
                 'multiple' => true,
                 'options' => Collection::query()->orderBy('title')->get()->map(fn (Collection $c): array => ['value' => $c->handle, 'label' => $c->title])->all(),
+                'empty' => 'There are no collections yet: create the one to link to first (Structure → Collections), then come back.',
             ]),
             new Field('multiple', 'toggle', 'Several entries'),
             new Field('max', 'number', 'At most', instructions: 'With several entries.', config: ['min' => 1, 'step' => 1]),

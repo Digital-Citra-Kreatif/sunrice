@@ -102,7 +102,11 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
             () => router.delete(`${base}/${row.key}`, { preserveScroll: true }), true);
     const restoreRow = (row: Row) => router.post(`${base}/${row.key}/restore`, {}, { preserveScroll: true });
     const runBulk = (action: ActionInfo) =>
-        confirm(action.confirm, () => router.post(`${base}/bulk`, { action: action.key, ids: selected }, { preserveScroll: true }), action.destructive);
+        confirm(action.confirm, (values) => action.fields.length === 0
+            ? router.post(`${base}/bulk`, { action: action.key, ids: selected }, { preserveScroll: true })
+            : new Promise<boolean>((resolve) => router.post(`${base}/bulk`, { ...values, action: action.key, ids: selected }, {
+                preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
+            })), action.destructive, action.fields);
     // In the trash: only Restore, for the selected rows too.
     const shownBulkActions: ActionInfo[] = trashed
         ? [{ key: 'restore', label: t('Restore'), confirm: null, destructive: false, url: false, newTab: false, fields: [] }]

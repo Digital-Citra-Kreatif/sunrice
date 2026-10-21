@@ -7,12 +7,12 @@
 Setiap baris menampilkan **Kapan**, **Siapa**, **Apa** (tindakan dan itemnya), dan **Detail** (field yang berubah, dan dari alamat mana). Baris terbaru tampil paling atas.
 
 - **Sumber** menunjukkan asal perubahan: **Admin** (seseorang di panel), **Agen AI** (dengan nama tokennya), **Sistem** (server sendiri, misalnya penerbitan terjadwal), atau **Keamanan** (proses masuk dan kejadian keamanan lain).
-- Log menyebutkan field yang berubah, tidak pernah nilai lama atau barunya, sehingga tidak menyimpan kata sandi atau data pribadi.
+- Log menyebutkan field yang berubah, tidak pernah nilai lama atau barunya, sehingga tidak menyimpan kata sandi atau data pribadi. Pengaturan adalah pengecualiannya: log menampilkan nilai lama dan baru sebuah pengaturan (*Close after days: 30 → 365*), kecuali kunci rahasia.
 
 ## Mencari sesuatu
 
 - **Cari…** mencari di nama orang, item, dan tindakan.
-- Saring berdasarkan **Sumber**, jenis item, **Aksi** (*published*, *deleted*, *logged in*…), atau tanggal.
+- Saring berdasarkan **Sumber**, **Siapa** (siapa yang melakukannya), jenis item, **Aksi** (*published*, *deleted*, *logged in*…), atau tanggal.
 - Klik nama seseorang untuk melihat aktivitasnya saja.
 - Klik ikon riwayat di sebuah baris untuk melihat seluruh riwayat item tersebut.
 - **Baris per halaman** menampilkan 25, 50, 100, atau 200 baris.

@@ -28,6 +28,7 @@ use Sunrice\Cms\Http\Controllers\EntryController;
 use Sunrice\Cms\Http\Controllers\EntryManageController;
 use Sunrice\Cms\Http\Controllers\FieldsetController;
 use Sunrice\Cms\Http\Controllers\GlobalsController;
+use Sunrice\Cms\Http\Controllers\LanguageController;
 use Sunrice\Cms\Http\Controllers\ListingController;
 use Sunrice\Cms\Http\Controllers\MenuController;
 use Sunrice\Cms\Http\Controllers\SeoController;
@@ -42,6 +43,7 @@ use Sunrice\Cms\Settings\CommentSettings;
 use Sunrice\Cms\Settings\LocaleSettings;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Support\Access;
+use Sunrice\Cms\Support\Locales;
 
 /**
  * The CMS, added to the panel in the app's panel provider:
@@ -83,8 +85,12 @@ final class CmsPlugin extends BasePlugin
         $panel->settings(SiteSettings::class, LocaleSettings::class, CodeSettings::class, CommentSettings::class);
         // Each permission for one collection, taxonomy or form too (see Support\Access).
         $panel->permissionsUsing(fn (): array => Support\ScopedPermissions::all());
+        // Media files take alt text and captions in each content language.
+        $panel->contentLocales(fn (): array => Locales::names());
+        // Every screen names the languages as Settings → Languages does.
+        $panel->share('cms', fn (): array => ['locales' => Locales::names()]);
         // sunrice:roles: people who write and look after the content, not the structure or the people.
-        $panel->defaultRole('editor', [Panel::ACCESS, 'sunrice.media.*', 'cms.entries.*', 'cms.terms.*', 'cms.globals.view', 'cms.globals.update', 'cms.menus.view', 'cms.menus.update', 'cms.comments.*', 'cms.submissions.view', 'cms.submissions.export']);
+        $panel->defaultRole('editor', [Panel::ACCESS, 'sunrice.media.*', 'cms.entries.*', 'cms.terms.*', 'cms.globals.view', 'cms.globals.update', 'cms.menus.view', 'cms.menus.update', 'cms.comments.*', 'cms.submissions.view', 'cms.submissions.export', 'cms.homepage']);
         // Writes entries, publishes nothing, and edits only their own.
         $panel->defaultRole('author', [Panel::ACCESS, 'sunrice.media.view', 'sunrice.media.upload', 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own', 'cms.entries.delete-own', 'cms.entries.view-drafts']);
         // Writes the other languages of every entry.
@@ -97,8 +103,8 @@ final class CmsPlugin extends BasePlugin
             Permission::make('cms.entries.publish', 'Publish and unpublish entries', 'Content'),
             Permission::make('cms.entries.delete', 'Trash and restore entries', 'Content'),
             Permission::make('cms.entries.export', 'Export entries as CSV', 'Content'),
-            Permission::make('cms.entries.update-own', 'Edit drafts of their own entries', 'Content'),
-            Permission::make('cms.entries.delete-own', 'Trash their own entries', 'Content'),
+            Permission::make('cms.entries.update-own', 'Edit drafts of their own entries (in collections they may view)', 'Content'),
+            Permission::make('cms.entries.delete-own', 'Trash their own entries (in collections they may view)', 'Content'),
             Permission::make('cms.entries.translate', 'Edit entries\' other languages (not the main one)', 'Content'),
             Permission::make('cms.entries.view-drafts', 'See unpublished changes on the site while signed in', 'Content'),
             Permission::make('cms.terms.view', 'View terms', 'Content'),
@@ -111,6 +117,7 @@ final class CmsPlugin extends BasePlugin
             Permission::make('cms.submissions.view', 'View form submissions', 'Content'),
             Permission::make('cms.submissions.export', 'Export form submissions as CSV', 'Content'),
             Permission::make('cms.submissions.delete', 'Delete form submissions', 'Content'),
+            Permission::make('cms.homepage', 'Choose the homepage (from a live page\'s editor)', 'Content'),
             Permission::make('cms.blueprints.view', 'View blueprints', 'Content structure'),
             Permission::make('cms.blueprints.create', 'Create blueprints', 'Content structure'),
             Permission::make('cms.blueprints.update', 'Edit blueprints', 'Content structure'),
@@ -163,6 +170,8 @@ final class CmsPlugin extends BasePlugin
                     Route::get('seo', 'edit')->name('edit');
                     Route::put('seo', 'update')->name('update');
                 });
+                Route::post('languages/{locale}/main', [LanguageController::class, 'main'])->name('languages.main')
+                    ->middleware('can:cms.settings.locales')->where('locale', '[A-Za-z0-9_-]{2,20}');
                 // A menu's links and a global set's values; the menus and sets themselves are resources (MenuResource, GlobalSetResource).
                 Route::name('menus.links.')->controller(MenuController::class)->group(function (): void {
                     Route::get('menus/{menu:handle}/links', 'edit')->name('edit')->middleware('can:cms.menus.view');
@@ -212,6 +221,8 @@ final class CmsPlugin extends BasePlugin
                     // Every collection's: on to the first one's.
                     Route::get('entries', 'home')->name('entries.index')->middleware($guard('entries', 'view'));
                     Route::get('entries/picker', 'picker')->name('entries.picker')->middleware($guard('entries', 'view'));
+                    // The command palette's search ($panel->commandSearch()).
+                    Route::get('entries/search', 'search')->name('entries.search')->middleware($guard('entries', 'view'));
                     Route::get('collections/{collection:handle}/entries', 'index')->name('collections.entries.index')->middleware($guard('entries', 'view'));
                     Route::get('collections/{collection:handle}/entries/create', 'create')->name('collections.entries.create')->middleware($guard('entries', 'create'));
                     Route::post('collections/{collection:handle}/entries', 'store')->name('collections.entries.store')->middleware($guard('entries', 'create'));
@@ -220,6 +231,8 @@ final class CmsPlugin extends BasePlugin
                     Route::get('entries/{entry}/edit', 'open')->name('entries.edit')->middleware($guard('entries', 'view'))->withTrashed();
                     Route::put('entries/{entry}', 'update')->name('entries.update')->middleware($guard('entries', 'update'));
                     Route::post('entries/{entry}/publish', 'publish')->name('entries.publish')->middleware($guard('entries', 'publish'));
+                    Route::post('entries/{entry}/review', 'requestReview')->name('entries.review')->middleware($guard('entries', 'update'));
+                    Route::post('entries/{entry}/homepage', 'homepage')->name('entries.homepage')->middleware(['can:cms.homepage', $guard('entries', 'view')]);
                     Route::post('entries/{entry}/unpublish', 'unpublish')->name('entries.unpublish')->middleware($guard('entries', 'publish'));
                     Route::delete('entries/{entry}', 'destroy')->name('entries.destroy')->middleware($guard('entries', 'delete'));
                     Route::post('entries/{entry}/restore', 'restore')->name('entries.restore')->middleware($guard('entries', 'delete'))->withTrashed();
@@ -227,6 +240,7 @@ final class CmsPlugin extends BasePlugin
                     Route::delete('entries/{entry}/translations/{locale}', 'removeTranslation')->name('entries.translations.destroy')->middleware($guard('entries', 'delete'));
                     Route::post('entries/{entry}/translations/{locale}/translate', 'translate')->name('entries.translations.translate')->middleware($guard('entries', 'update'));
                     Route::post('entries/{entry}/revisions/{revision}/restore', 'restoreRevision')->name('entries.revisions.restore')->middleware($guard('entries', 'update'));
+                    Route::get('entries/{entry}/revisions/{revision}/compare', 'compareRevision')->name('entries.revisions.compare')->middleware($guard('entries', 'view'));
                 });
                 Route::name('collections.listing.')->controller(ListingController::class)->group(function () use ($guard): void {
                     Route::get('collections/{collection:handle}/listing/edit', 'edit')->name('edit')->middleware($guard('entries', 'view'));
@@ -287,6 +301,8 @@ final class CmsPlugin extends BasePlugin
         $panel->widgets(...DashboardWidgets::all());
         // Getting these is worth an alert: site-wide scripts, and the shape of all content.
         $panel->privilegedPermissions('cms.settings.code', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete');
+        // Cmd/Ctrl+K finds entries on every panel page, not only where the CMS's bundle has loaded.
+        $panel->commandSearch('cms.entries', fn (): string => route('sunrice.admin.cms.entries.search'));
         $panel->bundle(PluginBundle::make('cms')->module(self::asset('admin.js'))->style(self::asset('admin.css'))->pages('Cms/'));
         if ($this->fieldTypes !== []) {
             $types = $this->fieldTypes;

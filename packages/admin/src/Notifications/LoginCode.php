@@ -27,7 +27,10 @@ final class LoginCode extends Notification
     public function toMail(mixed $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject(__('Your :brand login code: :code', ['brand' => $this->brand, 'code' => $this->code]))
+            // In the subject only when asked: notifications show subjects on locked screens.
+            ->subject(config('sunrice-admin.auth.two_factor_code_in_subject') === true
+                ? __('Your :brand login code: :code', ['brand' => $this->brand, 'code' => $this->code])
+                : __('Your :brand login code', ['brand' => $this->brand]))
             ->line(__('Type this code to finish logging in to the admin panel:'))
             ->line("**{$this->code}**")
             ->line(__('It works for :minutes minutes.', ['minutes' => TwoFactorLogin::LIFETIME_MINUTES]))

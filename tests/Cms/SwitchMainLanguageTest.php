@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -15,12 +17,14 @@ use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\GlobalSet;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\MenuItem;
 use Sunrice\Cms\Models\Redirect;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\TermTranslation;
+use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
@@ -116,4 +120,40 @@ it('moves the shared values, labels and addresses to the new main language', fun
     get('/en/menu/coffee')->assertOk()->assertSee('Coffee');
     get('/menu/coffee')->assertRedirect('/en/menu/coffee');
     get('/id/menu/kopi')->assertRedirect('/menu/kopi');
+});
+
+it('rethrows what stopped a switch even when putting the languages back fails too', function () {
+    $failed = false;
+    EntryTranslation::saving(function () use (&$failed): void {
+        $failed = true;
+
+        throw new RuntimeException('The switch broke.');
+    });
+    DB::listen(function (QueryExecuted $query) use (&$failed): void {
+        if ($failed && str_contains($query->sql, 'sunrice_settings') && ! str_starts_with(strtolower($query->sql), 'select')) {
+            throw new LogicException('The settings could not be saved.');
+        }
+    });
+
+    expect(fn () => app(SwitchMainLanguage::class)->handle('id'))->toThrow(RuntimeException::class, 'The switch broke.');
+});
+
+it('swaps titles and thank-you messages with the main language', function () {
+    $this->dishes->translate('title', 'id', 'Hidangan')->save();
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text']]]);
+    $form = Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact', 'message' => 'Thanks!']);
+    $form->translate('message', 'id', 'Terima kasih!')->save();
+    app(SiteSettings::class)->fill(['description' => 'Good food.', 'descriptions' => 'id: Makanan enak.'])->save();
+
+    app(SwitchMainLanguage::class)->handle('id');
+    app()->forgetInstance(SiteSettings::class);
+    expect(array_intersect_key(app(SiteSettings::class)->toArray(), ['description' => 1, 'descriptions' => 1]))->toBe(['description' => 'Makanan enak.', 'descriptions' => 'en: Good food.']);
+
+    expect($this->dishes->fresh()?->only(['title', 'translations']))->toBe(['title' => 'Hidangan', 'translations' => ['en' => ['title' => 'Dishes']]])
+        ->and($this->dishes->fresh()?->titleIn('en'))->toBe('Dishes')
+        // Not translated: as it was, in every language.
+        ->and($tags->fresh()?->only(['title', 'translations']))->toBe(['title' => 'Tags', 'translations' => null])
+        ->and($form->fresh()?->successMessage('id'))->toBe('Terima kasih!')
+        ->and($form->fresh()?->successMessage('en'))->toBe('Thanks!');
 });

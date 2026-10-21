@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
+use Inertia\DevTools\DevTools;
 use Sunrice\Admin\Panel;
 
 use function Pest\Laravel\actingAs;
@@ -27,4 +28,13 @@ it('sends a Content-Security-Policy when the app sets one', function () {
     usePanel();
 
     get('/admin/login')->assertOk()->assertHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'none'");
+});
+
+it('turns Inertia DevTools off unless the app turns them on, so local installs don\'t serve every page\'s props to anyone', function () {
+    usePanel();
+    app()->detectEnvironment(fn () => 'local');
+
+    expect(config('inertia.devtools.enabled'))->toBeFalse()
+        ->and(DevTools::enabled())->toBeFalse();
+    get('/_inertia/devtools/entries')->assertNotFound();
 });

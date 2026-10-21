@@ -39,3 +39,17 @@ export function dateLabel(value: string | null | undefined, withTime: boolean): 
 
     return withTime ? `${day}, ${time || '00:00'}` : day;
 }
+
+/**
+ * A time as typed, on the 24-hour clock: "14:30", "9:05", "0930", "21.15"
+ * or "9" (on the hour), as "HH:mm"; null when it isn't one.
+ */
+export function parseTimeInput(text: string): string | null {
+    const match = /^(\d{1,2})(?:[:.h]?(\d{2}))?$/.exec(text.trim());
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const minutes = match[2] === undefined ? 0 : Number(match[2]);
+    if (hours > 23 || minutes > 59) return null;
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}

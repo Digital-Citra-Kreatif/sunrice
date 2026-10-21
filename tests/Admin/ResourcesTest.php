@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\RichText;
+use Sunrice\Admin\Resources\Forms\Select;
+use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Tables\Action;
 use Sunrice\Tests\Admin\Fixtures\CatalogResource;
 use Sunrice\Tests\Admin\Fixtures\Category;
@@ -361,4 +364,28 @@ it('lets a policy with export() decide exports', function () {
     ProductPolicy::$exports = false;
     get('/admin/shop/products/export')->assertForbidden();
     ProductPolicy::$exports = true;
+});
+
+it('offers a search box on a select with many options when asked', function () {
+    $plain = Select::make('kind')->options(['a' => 'A']);
+    $searchable = Select::make('kind')->options(['a' => 'A'])->searchable();
+
+    expect($plain->toArray())->not->toHaveKey('searchable')
+        ->and($searchable->toArray())->toMatchArray(['type' => 'select', 'searchable' => true, 'options' => [['value' => 'a', 'label' => 'A']]]);
+});
+
+it('sends a slug field\'s source and separator to the form', function () {
+    $field = TextInput::make('handle')->slugFrom('title')->toArray();
+
+    expect($field)->toMatchArray(['slugFrom' => 'title', 'slugSeparator' => '_', 'inputType' => 'text'])
+        ->and(TextInput::make('name')->toArray())->not->toHaveKey('slugFrom');
+});
+
+it('gives a select\'s options closure the record being edited', function () {
+    $product = Product::query()->create(['name' => 'Lamp', 'sku' => 'L-1', 'price' => 10]);
+    $select = Select::make('size')->options(fn (?Model $record) => $record === null ? ['any' => 'Any'] : ['for-'.$record->getKey() => 'Its own']);
+
+    expect(array_column($select->toArray()['options'], 'value'))->toBe(['any'])
+        ->and(array_column($select->toArray($product)['options'], 'value'))->toBe(['for-'.$product->getKey()])
+        ->and($select->validationRules($product)[1]->__toString())->toBe('in:"for-'.$product->getKey().'"');
 });

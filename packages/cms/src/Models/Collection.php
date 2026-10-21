@@ -10,7 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Sunrice\Cms\Fields\Schema;
+use Sunrice\Cms\Models\Concerns\TranslatesText;
 use Sunrice\Cms\Support\Locales;
+use Sunrice\Cms\Support\SiteRecords;
 
 /**
  * A kind of content (pages, articles, products), whose entries are filled
@@ -19,7 +21,8 @@ use Sunrice\Cms\Support\Locales;
  *
  * @property int $id
  * @property string $handle
- * @property string $title
+ * @property string $title in the main language (titleIn() for the others)
+ * @property array<string, array<string, string>>|null $translations what visitors read in the other languages: {"id": {"title": "Properti"}}
  * @property string|null $blueprint the blueprint's handle
  * @property list<string>|null $blueprints more blueprints (handles) its entries may use instead (Entry::$blueprint)
  * @property bool $dated entries show a date, and list newest first
@@ -45,6 +48,7 @@ use Sunrice\Cms\Support\Locales;
 class Collection extends Model
 {
     use SoftDeletes;
+    use TranslatesText;
 
     protected $table = 'sunrice_collections';
 
@@ -60,7 +64,7 @@ class Collection extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['dated' => 'boolean', 'translatable' => 'boolean', 'comments' => 'boolean', 'hierarchical' => 'boolean', 'ordered' => 'boolean', 'per_page' => 'integer', 'blueprints' => 'array'];
+        return ['dated' => 'boolean', 'translatable' => 'boolean', 'comments' => 'boolean', 'hierarchical' => 'boolean', 'ordered' => 'boolean', 'per_page' => 'integer', 'blueprints' => 'array', 'translations' => 'array'];
     }
 
     /** @return HasMany<CollectionListing, $this> */
@@ -94,6 +98,12 @@ class Collection extends Model
     }
 
     /** The listing page's URL in a language, or null without one. */
+    /** Its title in a language (null: the page's), as visitors read it: listing pages, breadcrumbs, menus. */
+    public function titleIn(?string $locale = null): string
+    {
+        return $this->translated('title', $locale);
+    }
+
     public function listingUrl(?string $locale = null): ?string
     {
         if ($this->listing_route === null) {
@@ -125,7 +135,7 @@ class Collection extends Model
     /** The fields of its entries (none without a blueprint), loaded once. */
     public function schema(): Schema
     {
-        return $this->schema ??= $this->blueprintModel()?->schema() ?? Schema::make([]);
+        return $this->schema ??= SiteRecords::blueprint($this->blueprint)?->schema() ?? Schema::make([]);
     }
 
     /**
@@ -151,7 +161,7 @@ class Collection extends Model
             return $this->schema();
         }
 
-        return $this->schemas[$blueprint] ??= Blueprint::query()->where('handle', $blueprint)->first()?->schema() ?? Schema::make([]);
+        return $this->schemas[$blueprint] ??= SiteRecords::blueprint($blueprint)?->schema() ?? Schema::make([]);
     }
 
     /**

@@ -13,7 +13,6 @@ use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Admin\Support\Card;
-use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\GlobalSet;
 
 /**
@@ -84,13 +83,9 @@ final class GlobalSetResource extends Resource
     {
         return $form->schema([
             TextInput::make('title')->required(),
-            TextInput::make('handle')->required()->maxLength(64)->unique()->onlyOnCreate()->slugFrom('title')
-                ->rules([HandleField::rule()])
-                ->help('Used in templates, like "contact". It can\'t change later.'),
-            TextInput::make('handle')->onlyOnEdit()->disabled()
-                ->help('Used in templates.'),
+            ...HandleField::make('global', 'Used in templates, like "contact".'),
             Select::make('blueprint')
-                ->verbatim()->options(Blueprint::query()->orderBy('title')->get()->mapWithKeys(fn (Blueprint $blueprint): array => [$blueprint->handle => $blueprint->title])->all())
+                ->verbatim()->options(BlueprintChoices::options(BlueprintChoices::GLOBAL))
                 ->help('Its fields.'),
         ]);
     }

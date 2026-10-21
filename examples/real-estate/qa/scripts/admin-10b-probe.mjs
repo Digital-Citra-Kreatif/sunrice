@@ -1,0 +1,13 @@
+import { launch, ctx, shot, BASE, logErrors, addField } from './admin-lib.mjs';
+const b = await launch(); const c = await ctx(b); const p = await c.newPage(); logErrors(p);
+await p.goto(BASE + '/admin/cms/blueprints/create', { waitUntil: 'networkidle' });
+const s = await addField(p, p.getByRole('button', { name: 'Add field' }).last(), 'Select');
+await p.getByRole('button', { name: 'Add option' }).click(); await p.waitForTimeout(300);
+await p.getByRole('button', { name: 'Add option' }).click(); await p.waitForTimeout(300);
+console.log(await p.$$eval(`[id^="${s}-"], input`, els => els.map(e => `${e.tagName} ${e.id} ph=${e.getAttribute('placeholder')} aria=${e.getAttribute('aria-label')}`)));
+const m = await addField(p, p.getByRole('button', { name: 'Add field' }).last(), 'Media');
+console.log(await p.$$eval('input[type=checkbox], button[role=checkbox]', els => els.map(e => `${e.tagName} ${e.id} name=${e.getAttribute('name')} aria=${e.getAttribute('aria-label')} lab=${e.closest('label')?.innerText||e.parentElement.innerText}`)));
+const r = await addField(p, p.getByRole('button', { name: 'Add field' }).last(), 'Repeater');
+console.log('add field buttons', await p.getByRole('button', { name: 'Add field' }).count());
+await shot(p, '28-select-media-probe', true);
+await b.close();

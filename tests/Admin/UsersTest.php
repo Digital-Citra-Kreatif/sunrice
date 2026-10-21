@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -15,11 +17,13 @@ use Sunrice\Admin\Auth\LoginThrottle;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Locks\KeptEdit;
 use Sunrice\Admin\Media\Media;
+use Sunrice\Admin\Notifications\PanelInvitation;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Permissions\Permission as PanelPermission;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Users\PermissionRank;
+use Sunrice\Admin\Users\RoleResource;
 use Sunrice\Admin\Users\UserResource;
 use Sunrice\Tests\Admin\Fixtures\TestPlugin;
 use Workbench\App\Models\User;
@@ -55,7 +59,7 @@ function person(string $name, string ...$roles): User
 }
 
 /** The value of one field on a form page. */
-function formField(Assert $page, string $name): array
+function formField(Assert $page, string $name): ?array
 {
     $fields = collect($page->toArray()['props']['sections'])->flatMap(fn ($section) => $section['fields']);
 
@@ -95,10 +99,10 @@ it('can leave the screens out or use subclasses', function () {
 it('creates users with a hashed password and roles, and keeps the password unless a new one is given', function () {
     actingAs($this->super);
 
-    get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'password'))->toMatchArray(['type' => 'password', 'required' => true])
+    get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'password'))->toMatchArray(['type' => 'password', 'required' => false])
         ->and(collect(formField($page, 'roles')['options'])->pluck('value')->all())->toBe(['boss', 'editor', 'manager', 'super-admin']));
 
-    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'roles' => ['editor']])->assertRedirect();
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password', 'roles' => ['editor']])->assertRedirect();
     $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
     expect(Hash::check('a-long-password', $dewi->password))->toBeTrue()
         ->and($dewi->getRoleNames()->all())->toBe(['editor']);
@@ -114,7 +118,7 @@ it('creates users with a hashed password and roles, and keeps the password unles
         ->and(Hash::check('a-long-password', $dewi->password))->toBeTrue()
         ->and($dewi->getRoleNames()->sort()->values()->all())->toBe(['editor', 'manager']);
 
-    put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => 'another-password', 'roles' => []]);
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => 'another-password', 'password_confirmation' => 'another-password', 'roles' => []]);
     expect(Hash::check('another-password', $dewi->fresh()->password))->toBeTrue()
         ->and($dewi->fresh()->getRoleNames()->all())->toBe([]);
 
@@ -127,7 +131,7 @@ it('lists users with their roles, filtered by role, without a query per row', fu
 
     get('/admin/users?filters[role]=manager')->assertInertia(fn (Assert $page) => $page
         ->where('rows.total', 1)
-        ->where('rows.data.0.cells', fn ($cells) => $cells['roles.name'] === 'manager' && $cells['email'] === 'manager@example.com'));
+        ->where('rows.data.0.cells', fn ($cells) => $cells['roles.name'] === 'Manager' && $cells['email'] === 'manager@example.com'));
     get('/admin/users?filters[role]=nobody')->assertInertia(fn (Assert $page) => $page->where('rows.total', 4));
 
     $count = function (): int {
@@ -199,10 +203,10 @@ it('edits roles and their permissions, within the editor\'s own', function () {
     actingAs($this->manager);
 
     get('/admin/roles')->assertInertia(fn (Assert $page) => $page->where('rows.data', fn ($rows) => collect($rows)->mapWithKeys(fn ($row) => [$row['title'] => [$row['can']['update'], $row['cells']['permissions_count']]])->all() === [
-        'boss' => [false, 10],
-        'editor' => [true, 2],
-        'manager' => [false, 9],
-        'super-admin' => [false, 0],
+        'Boss' => [false, 10],
+        'Editor' => [true, 2],
+        'Manager' => [false, 9],
+        'Super admin' => [false, 0],
     ]));
 
     get('/admin/roles/create')->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'permissions')['options'])->pluck('value')->all())->toEqualCanonicalizing(MANAGES_USERS)
@@ -211,6 +215,9 @@ it('edits roles and their permissions, within the editor\'s own', function () {
     post('/admin/roles', ['name' => 'helper', 'permissions' => [Panel::ACCESS, 'sunrice.users.view']])->assertRedirect();
     $helper = Role::findByName('helper', 'web');
     expect($helper->permissions->pluck('name')->sort()->values()->all())->toBe([Panel::ACCESS, 'sunrice.users.view']);
+    // Renaming one warns about code that checks it by name; a new one has nothing to warn about.
+    get("/admin/roles/{$helper->id}/edit")->assertInertia(fn (Assert $page) => expect(formField($page, 'name')['warnWhenChanged'])->toContain('hasRole(\':old\')'));
+    get('/admin/roles/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'name')['warnWhenChanged'])->toBeNull());
 
     // Permissions they don't have themselves are refused, the app's own too; so is a role as powerful as they are.
     put("/admin/roles/{$helper->id}", ['name' => 'helper', 'permissions' => ['reports.export']])->assertSessionHasErrors('permissions.0');
@@ -237,7 +244,7 @@ it('keeps permissions the form doesn\'t offer, and never edits the super admin r
     delete("/admin/roles/{$super->id}")->assertForbidden();
 
     // A role still given to someone can't be deleted, one by one or in bulk.
-    delete("/admin/roles/{$this->editorRole->id}")->assertRedirect()->assertSessionHas('error', 'The role "editor" is still given to 1 user. Take it away from them first.');
+    delete("/admin/roles/{$this->editorRole->id}")->assertRedirect()->assertSessionHas('error', 'The role "Editor" is still given to 1 user. Take it away from them first.');
     post('/admin/roles/bulk', ['action' => 'delete', 'ids' => [$this->editorRole->id]])->assertSessionHas('error');
     expect($this->editorRole->fresh())->not->toBeNull()
         ->and($this->editor->fresh()->getRoleNames()->all())->toBe(['editor']);
@@ -362,4 +369,131 @@ it('shows the wrong-password lock on the Security card', function () {
         ->where('aside.0.blocks.0.text', 'Locked after too many wrong passwords')
         ->where('aside.0.blocks.0.tone', 'warning')
         ->where('aside.0.blocks.1.rows.0', ['label' => 'Last login', 'value' => 'No login recorded', 'type' => 'text']));
+});
+
+it('asks what happens to a user\'s content on the edit page and in bulk too', function () {
+    actingAs($this->super);
+    $photo = fn (User $user) => Media::query()->create(['disk' => 'public', 'path' => uniqid().'.jpg', 'filename' => 'x.jpg', 'mime_type' => 'image/jpeg', 'size' => 1, 'sizes' => [], 'version' => 1, 'uploaded_by' => (string) $user->id]);
+    $photo($this->editor);
+    $photo($this->manager);
+    $photo($this->manager);
+
+    // The edit page's Delete is the row's, with its questions.
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('deleteAction.key', 'delete')
+        ->where('deleteAction.fields.0.name', 'content')
+        ->where('deleteAction.fields.1.name', 'heir'));
+    get("/admin/users/{$this->super->id}/edit")->assertInertia(fn (Assert $page) => $page->where('deleteAction', null));
+
+    // Run from the edit page, it goes back to the list: the page is gone.
+    post("/admin/users/{$this->editor->id}/actions/delete", ['content' => 'reassign', 'heir' => $this->boss->id], ['Referer' => url("/admin/users/{$this->editor->id}/edit")])
+        ->assertRedirect('/admin/users')->assertSessionHas('success', 'Editor deleted. Their 1 upload went to Boss.');
+    expect(Media::query()->where('uploaded_by', (string) $this->boss->id)->count())->toBe(1);
+
+    // Bulk: the resource's own Delete replaces the built-in one.
+    get('/admin/users')->assertInertia(fn (Assert $page) => $page
+        ->where('bulkActions', fn ($actions) => collect($actions)->where('key', 'delete')->count() === 1
+            && collect($actions)->firstWhere('key', 'delete')['fields'][0]['name'] === 'content'));
+    $other = person('Other', 'editor');
+    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->manager->id, $other->id], 'content' => 'reassign', 'heir' => $this->boss->id])
+        ->assertSessionHas('success', '2 users deleted. Their 2 uploads went to Boss.');
+    expect(User::query()->whereKey([$this->manager->id, $other->id])->count())->toBe(0)
+        ->and(Media::query()->where('uploaded_by', (string) $this->boss->id)->count())->toBe(3);
+    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->boss->id], 'content' => 'reassign', 'heir' => $this->boss->id])->assertSessionHas('error');
+    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->super->id], 'content' => 'keep'])->assertForbidden();
+    expect($this->boss->fresh())->not->toBeNull();
+});
+
+it('shows on the Security card what the user owns', function () {
+    actingAs($this->super);
+    Media::query()->create(['disk' => 'public', 'path' => 'a.jpg', 'filename' => 'a.jpg', 'mime_type' => 'image/jpeg', 'size' => 1, 'sizes' => [], 'version' => 1, 'uploaded_by' => (string) $this->editor->id]);
+
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('aside.0.blocks', fn ($blocks) => collect(collect($blocks)->firstWhere('type', 'rows')['rows'])->firstWhere('label', 'Owns')['value'] === '1 upload'));
+    get("/admin/users/{$this->manager->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('aside.0.blocks', fn ($blocks) => collect(collect($blocks)->firstWhere('type', 'rows')['rows'])->firstWhere('label', 'Owns')['value'] === 'Nothing'));
+});
+
+it('asks for a new password twice, unless it is left empty when editing', function () {
+    actingAs($this->super);
+    get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'password'))->toMatchArray(['confirmed' => true]));
+
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-passw0rd', 'roles' => []])
+        ->assertSessionHasErrors('password');
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password', 'roles' => []])
+        ->assertSessionHasNoErrors();
+    $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
+
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'roles' => []])->assertSessionHasNoErrors();
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'new-long-password', 'roles' => []])->assertSessionHasErrors('password');
+    expect(Hash::check('a-long-password', $dewi->fresh()->password))->toBeTrue();
+});
+
+it('creates a user with an invitation to choose their own password, and sends a fresh link later', function () {
+    Notification::fake();
+    actingAs($this->super);
+
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => false, 'roles' => []])->assertSessionHasErrors('password');
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => true, 'roles' => []])->assertSessionHasNoErrors();
+    $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
+    expect($dewi->password)->not->toBe('');
+
+    $link = null;
+    Notification::assertSentOnDemand(PanelInvitation::class, function ($notification, $channels, $notifiable) use (&$link) {
+        $mail = $notification->toMail($notifiable);
+        $link = $mail->actionUrl;
+
+        return $notifiable->routes['mail'] === 'dewi@example.com' && $mail->subject === 'You\'re invited to Admin' && str_contains($mail->introLines[0], 'Super made you an account');
+    });
+    expect(Activity::query()->where('action', 'invitation sent')->where('subject_id', (string) $dewi->id)->exists())->toBeTrue();
+
+    // The link is the panel's reset page: Dewi chooses a password and can log in.
+    $token = Str::between($link, 'reset-password/', '?');
+    auth()->logout();
+    post('/admin/reset-password', ['token' => $token, 'email' => 'dewi@example.com', 'password' => 'dewis-own-password', 'password_confirmation' => 'dewis-own-password'])->assertRedirect('/admin/login');
+    expect(Hash::check('dewis-own-password', $dewi->fresh()->password))->toBeTrue();
+
+    // Later: the row's "Email a password link".
+    actingAs($this->super);
+    post("/admin/users/{$this->editor->id}/actions/invite")->assertSessionHas('success', 'A password link is on its way to Editor.');
+    Notification::assertSentOnDemandTimes(PanelInvitation::class, 2);
+    get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'invite'))->toMatchArray(['type' => 'toggle']));
+    get("/admin/users/{$dewi->id}/edit")->assertInertia(fn (Assert $page) => expect(formField($page, 'invite'))->toBeNull());
+});
+
+it('lets everyone change their own name, email and password on Your account', function () {
+    $author = User::query()->create(['name' => 'Author', 'email' => 'author@example.com', 'password' => 'old-long-password']);
+    $author->givePermissionTo(Panel::ACCESS);
+    actingAs($author);
+
+    get('/admin/account')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Account/Edit', false)
+        ->where('values', ['name' => 'Author', 'email' => 'author@example.com']));
+    get('/admin/users')->assertForbidden();
+
+    put('/admin/account', ['name' => 'Ayu', 'email' => 'author@example.com'])->assertSessionHasNoErrors();
+    expect($author->fresh()->name)->toBe('Ayu');
+
+    // The email address or password: only with the current password, and the new one twice.
+    put('/admin/account', ['name' => 'Ayu', 'email' => 'ayu@example.com'])->assertSessionHasErrors('current_password');
+    put('/admin/account', ['name' => 'Ayu', 'email' => 'ayu@example.com', 'current_password' => 'wrong'])->assertSessionHasErrors('current_password');
+    put('/admin/account', ['name' => 'Ayu', 'email' => 'editor@example.com', 'current_password' => 'old-long-password'])->assertSessionHasErrors('email');
+    put('/admin/account', ['name' => 'Ayu', 'email' => 'author@example.com', 'current_password' => 'old-long-password', 'password' => 'new-long-password', 'password_confirmation' => 'other'])->assertSessionHasErrors('password');
+    put('/admin/account', ['name' => 'Ayu', 'email' => 'ayu@example.com', 'current_password' => 'old-long-password', 'password' => 'new-long-password', 'password_confirmation' => 'new-long-password'])
+        ->assertSessionHasNoErrors()->assertSessionHas('success', 'Your account is saved.');
+    expect($author->fresh()->email)->toBe('ayu@example.com')
+        ->and(Hash::check('new-long-password', $author->fresh()->password))->toBeTrue()
+        ->and(Activity::query()->where('source', 'security')->whereIn('action', ['email changed', 'password changed'])->pluck('action')->sort()->values()->all())->toBe(['email changed', 'password changed']);
+
+    // Only their own: no other user's id is taken.
+    put('/admin/account', ['id' => $this->editor->id, 'name' => 'Hacked', 'email' => 'ayu@example.com']);
+    expect($this->editor->fresh()->name)->toBe('Editor');
+});
+
+it('shows role names as people read them', function () {
+    expect(RoleResource::displayName('super-admin'))->toBe('Super admin')
+        ->and(RoleResource::displayName('content_editor'))->toBe('Content editor')
+        ->and(RoleResource::displayName('Listings manager'))->toBe('Listings manager');
+
+    actingAs($this->super);
+    get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'roles')['options'])->firstWhere('value', 'super-admin')['label'])->toBe('Super admin'));
 });

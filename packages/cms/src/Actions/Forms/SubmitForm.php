@@ -39,13 +39,24 @@ final class SubmitForm
         $schema = $form->schema();
         $data = array_intersect_key($input, array_flip(array_map(fn ($field): string => $field->handle, $schema->fields())));
         $rules = $schema->rules($data);
-        $attributes = EntryInput::attributes($schema, array_keys($rules));
+        // Fields named as the visitor reads them (their label in the form's language).
+        $attributes = EntryInput::attributes($schema, array_keys($rules), $locale !== null && Locales::has($locale) ? $locale : Locales::default());
         // Messages name fields without the "data." the rules are keyed under.
         $validator = Validator::make(['data' => $data], $rules, [], $attributes);
         if ($validator->fails()) {
             $errors = [];
             foreach ($validator->errors()->messages() as $key => $messages) {
-                $errors[str_starts_with($key, 'data.') ? substr($key, 5) : $key] = $messages;
+                $key = str_starts_with($key, 'data.') ? substr($key, 5) : $key;
+                // One of several files: the field's own error, so the form shows it there.
+                $key = (string) preg_replace('/^([a-z][a-z0-9_]*)\.\d+$/', '$1', $key);
+                $errors[$key] = [...($errors[$key] ?? []), ...$messages];
+            }
+            // A file over PHP's own limit arrives empty ("failed to upload"): say how large one may be.
+            foreach ($schema->fields() as $field) {
+                $file = $data[$field->handle] ?? null;
+                if ($field->type === FileField::TYPE && $file instanceof UploadedFile && in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+                    $errors[$field->handle] = [__('sunrice-cms::site.forms.too_big', ['attribute' => $attributes['data.'.$field->handle] ?? $field->handle, 'size' => FileField::size(FileField::maxKb($field))], $locale)];
+                }
             }
             throw ValidationException::withMessages($errors);
         }
@@ -94,25 +105,33 @@ final class SubmitForm
     private function storeFiles(Form $form, array $data): array
     {
         foreach ($form->schema()->fields() as $field) {
-            $file = $data[$field->handle] ?? null;
             if ($field->type !== FileField::TYPE) {
                 continue;
             }
-            if (! $file instanceof UploadedFile) {
-                $data[$field->handle] = null;
+            $sent = $data[$field->handle] ?? null;
+            if (FileField::isMultiple($field)) {
+                $files = array_filter(is_array($sent) ? $sent : [$sent], fn (mixed $file): bool => $file instanceof UploadedFile);
+                $data[$field->handle] = array_values(array_filter(array_map(fn (UploadedFile $file): ?array => $this->store($form, $file), $files)));
 
                 continue;
             }
-            $path = $file->store('form-uploads/'.$form->handle, ['disk' => self::disk()]);
-            $name = Str::limit(basename(str_replace('\\', '/', $file->getClientOriginalName())), 200, '');
-            $data[$field->handle] = $path === false ? null : [
-                'path' => $path,
-                'name' => $name !== '' ? $name : basename($path),
-                'size' => (int) $file->getSize(),
-                'mime' => $file->getMimeType() ?? 'application/octet-stream',
-            ];
+            $data[$field->handle] = $sent instanceof UploadedFile ? $this->store($form, $sent) : null;
         }
 
         return $data;
+    }
+
+    /** @return array{path: string, name: string, size: int, mime: string}|null */
+    private function store(Form $form, UploadedFile $file): ?array
+    {
+        $path = $file->store('form-uploads/'.$form->handle, ['disk' => self::disk()]);
+        $name = Str::limit(basename(str_replace('\\', '/', $file->getClientOriginalName())), 200, '');
+
+        return $path === false ? null : [
+            'path' => $path,
+            'name' => $name !== '' ? $name : basename($path),
+            'size' => (int) $file->getSize(),
+            'mime' => $file->getMimeType() ?? 'application/octet-stream',
+        ];
     }
 }

@@ -1,0 +1,12 @@
+import { launch, ctx, shot, BASE, logErrors } from './admin-lib.mjs';
+import { execSync } from 'child_process';
+const db = () => execSync(`mysql -ulumina -plumina lumina -N -e "select json_extract(\\\`values\\\`,'$.closeAfterDays') from sunrice_settings where \\\`key\\\`='comments'" 2>/dev/null`).toString().trim();
+const b = await launch(); const c = await ctx(b); const p = await c.newPage(); logErrors(p);
+await p.goto(BASE + '/admin/settings/comments', { waitUntil: 'networkidle' });
+console.log('fresh ui', JSON.stringify(await p.inputValue('#field-closeAfterDays')), 'db', db());
+await p.click('#field-closeAfterDays'); await p.keyboard.type('365');
+await p.click('button[type=submit]'); await p.waitForTimeout(1500);
+console.log('toast', await p.locator('[data-sonner-toast]').allInnerTexts());
+console.log('ui after save', JSON.stringify(await p.inputValue('#field-closeAfterDays')), 'db', db());
+await shot(p, '21-comments-close-days-after-save');
+await b.close();

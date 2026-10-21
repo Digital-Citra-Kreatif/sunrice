@@ -126,14 +126,14 @@ it('shows the search page, never indexed, and limits searches', function () {
     get('/search')->assertOk()->assertSee('<title>Search | Laravel</title>', false)->assertDontSee('results for');
     get('/search?q=coffee')->assertOk()
         ->assertHeader('X-Robots-Tag', 'noindex, follow')
-        ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
+        ->assertSee('<meta name="robots" content="noindex">', false)
         ->assertSee('1 result for “coffee”', false)
         ->assertSee('<a href="'.url('/blog/coffee-guide').'">Coffee guide</a>', false)
         ->assertSee('value="coffee"', false)
         ->assertSee('class="page-search', false);
     get('/search?q=<script>')->assertOk()->assertDontSee('<script>', false);
     get('/search?q=coffee&page=5')->assertNotFound();
-    get('/search?q=coffee')->assertOk()->assertHeader('X-Cache-Status', 'MISS'); // the second time: not kept
+    get('/search?q=coffee')->assertOk()->assertHeaderMissing('X-Cache-Status'); // ?q=: never served from the cache nor kept
     get('/search?q=x')->assertStatus(429);
 });
 

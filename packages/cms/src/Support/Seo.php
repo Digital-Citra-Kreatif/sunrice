@@ -24,7 +24,7 @@ use Sunrice\Cms\Site\Site;
  * a share image and noindex. Stored with its fields under the reserved
  * "seo" key, so it has drafts and revisions like the rest.
  *
- * @phpstan-type SeoTags array{title: string, page_title: string, own_title: bool, description: string|null, image: string|null, noindex: bool, canonical: string|null, alternates: array<string, string>, type: string, site_name: string, locale: string, twitter: string|null, published_time: string|null, modified_time: string|null}
+ * @phpstan-type SeoTags array{title: string, page_title: string, own_title: bool, description: string|null, image: string|null, noindex: bool, robots: string|null, canonical: string|null, alternates: array<string, string>, type: string, site_name: string, locale: string, twitter: string|null, published_time: string|null, modified_time: string|null}
  *
  * @api
  */
@@ -90,7 +90,7 @@ final class Seo
         $home = app(Site::class)->isHomepage($translation);
         $article = ! $home && $collection->dated;
 
-        $tags = self::tags($seo, $home && ! is_string($seo['title'] ?? null) ? '' : $title, $preview, $preview ? null : $translation->url(),
+        $tags = self::tags($seo, $home && ! is_string($seo['title'] ?? null) ? '' : $title, $preview, $preview ? null : app(Site::class)->url($translation),
             self::alternates($translation), $translation->locale, $article ? 'article' : 'website', is_string($seo['title'] ?? null));
         if ($article && ! $preview) {
             $tags['published_time'] = $translation->published_at?->toIso8601String();
@@ -119,6 +119,21 @@ final class Seo
 
             return array_replace($main->data ?? [], $translation->data ?? []);
         });
+        $url = $translation->url();
+
+        return self::tags($seo, self::pageTitle(is_string($seo['title'] ?? null) ? $seo['title'] : $translation->title, $page), false, $url === null ? null : self::paged($url, $page),
+            self::termAlternates($translation, $page), $translation->locale, 'website', is_string($seo['title'] ?? null));
+    }
+
+    /**
+     * The URLs of a term page's languages by locale (with "x-default"),
+     * for hreflang links; none when it has only one.
+     *
+     * @return array<string, string>
+     */
+    public static function termAlternates(TermTranslation $translation, int $page = 1): array
+    {
+        $term = $translation->term;
         $alternates = [];
         foreach ($term->translations as $other) {
             $other->setRelation('term', $term);
@@ -127,10 +142,25 @@ final class Seo
             }
         }
 
-        $url = $translation->url();
+        return self::withDefault($alternates);
+    }
 
-        return self::tags($seo, is_string($seo['title'] ?? null) ? $seo['title'] : $translation->title, false, $url === null ? null : self::paged($url, $page),
-            self::withDefault($alternates), $translation->locale, 'website', is_string($seo['title'] ?? null));
+    /**
+     * The URLs of a listing page's languages by locale (with "x-default"),
+     * for hreflang links; none with only one language.
+     *
+     * @return array<string, string>
+     */
+    public static function listingAlternates(Collection $collection, int $page = 1): array
+    {
+        $alternates = [];
+        foreach (Locales::all() as $other) {
+            if (($url = $collection->listingUrl($other)) !== null) {
+                $alternates[$other] = self::paged($url, $page);
+            }
+        }
+
+        return self::withDefault($alternates);
     }
 
     /**
@@ -144,19 +174,13 @@ final class Seo
     public static function forListing(Collection $collection, string $locale, ?int $page = null): array
     {
         $page ??= self::shownPage(fn (Page $shown): bool => $shown->collection?->is($collection) === true && $shown->locale === $locale);
-        $alternates = [];
-        foreach (Locales::all() as $other) {
-            if (($url = $collection->listingUrl($other)) !== null) {
-                $alternates[$other] = self::paged($url, $page);
-            }
-        }
         $own = $collection->listings->firstWhere('locale', $locale)?->data[self::KEY] ?? null;
         $seo = is_array($own) ? $own : [];
 
         $url = $collection->listingUrl($locale);
 
-        return self::tags($seo, is_string($seo['title'] ?? null) ? $seo['title'] : $collection->title, false, $url === null ? null : self::paged($url, $page),
-            self::withDefault($alternates), $locale, 'website', is_string($seo['title'] ?? null));
+        return self::tags($seo, self::pageTitle(is_string($seo['title'] ?? null) ? $seo['title'] : $collection->titleIn($locale), $page), false, $url === null ? null : self::paged($url, $page),
+            self::listingAlternates($collection, $page), $locale, 'website', is_string($seo['title'] ?? null));
     }
 
     /**
@@ -206,6 +230,14 @@ final class Seo
         return $shown !== null && $isThis($shown) ? $shown->pageNumber : 1;
     }
 
+    /** A title with the page number past the first page: "Blog (page 2)". */
+    private static function pageTitle(string $title, int $page): string
+    {
+        $numbered = $page > 1 ? __('sunrice-cms::site.page_title', ['title' => $title, 'page' => $page]) : null;
+
+        return is_string($numbered) ? $numbered : $title;
+    }
+
     /** A URL with ?page=n past the first page: each page is its own, not a copy of the first. */
     private static function paged(string $url, int $page): string
     {
@@ -231,8 +263,26 @@ final class Seo
             $page?->collection !== null => self::forListing($page->collection, $page->locale, $page->pageNumber),
             // Search results aren't pages to index.
             $page?->type === Page::SEARCH => self::tags(['noindex' => true], $title ?? 'Search', false, null, [], $page->locale, 'website', $title !== null),
+            // An error page (404 and the like): not a page to index, nor the address's canonical.
+            self::errorPage() => self::tags(['noindex' => true], $title ?? '', false, null, [], app()->getLocale(), 'website', $title !== null),
             default => self::tags([], $title ?? '', false, url()->current(), [], app()->getLocale(), 'website', $title !== null),
         };
+    }
+
+    /**
+     * Marks the request as showing an error page (the app's errors::404
+     * and others, through a view composer), for forPage().
+     *
+     * @internal
+     */
+    public static function markErrorPage(): void
+    {
+        request()->attributes->set('sunrice-cms.error-page', true);
+    }
+
+    private static function errorPage(): bool
+    {
+        return request()->attributes->get('sunrice-cms.error-page') === true;
     }
 
     /**
@@ -244,7 +294,8 @@ final class Seo
     {
         $site = app(SiteSettings::class);
         $imageId = is_int($seo['image'] ?? null) ? $seo['image'] : $site->image;
-        $description = is_string($seo['description'] ?? null) ? $seo['description'] : (trim($site->description) !== '' ? Str::squish($site->description) : null);
+        $siteDescription = $site->descriptionIn($locale);
+        $description = is_string($seo['description'] ?? null) ? $seo['description'] : (trim($siteDescription) !== '' ? Str::squish($siteDescription) : null);
         $own = is_string($seo['canonical'] ?? null) && SafeUrl::isSafe($seo['canonical']) ? $seo['canonical'] : null;
 
         return [
@@ -254,6 +305,12 @@ final class Seo
             'description' => $description,
             'image' => $imageId !== null ? self::imageUrl($imageId, ($seo['image_from_field'] ?? false) === true) : null,
             'noindex' => $preview || ($seo['noindex'] ?? false) === true || $site->hidden(),
+            // A page that asks not to be indexed still has links worth following; a preview or a hidden site doesn't.
+            'robots' => match (true) {
+                $preview || $site->hidden() => 'noindex, nofollow',
+                ($seo['noindex'] ?? false) === true => 'noindex',
+                default => null,
+            },
             'canonical' => $preview ? null : ($own ?? $canonical),
             'alternates' => $alternates,
             'type' => $type,
@@ -287,6 +344,7 @@ final class Seo
             $tags['description'] = Str::limit($description, 300);
         }
         $tags['noindex'] = $tags['noindex'] || $noindex;
+        $tags['robots'] ??= $noindex ? 'noindex' : null;
 
         return $tags;
     }
@@ -348,6 +406,35 @@ final class Seo
         }
 
         return $url === '' ? null : $url;
+    }
+
+    /** Territories for languages whose own code isn't one (en: en_US); the others are doubled (fr: fr_FR). */
+    private const TERRITORIES = [
+        'af' => 'ZA', 'ar' => 'AR', 'bn' => 'IN', 'ca' => 'ES', 'cs' => 'CZ', 'cy' => 'GB', 'da' => 'DK', 'el' => 'GR',
+        'en' => 'US', 'et' => 'EE', 'eu' => 'ES', 'fa' => 'IR', 'fil' => 'PH', 'ga' => 'IE', 'gl' => 'ES', 'he' => 'IL',
+        'hi' => 'IN', 'hy' => 'AM', 'ja' => 'JP', 'jv' => 'ID', 'ka' => 'GE', 'kk' => 'KZ', 'km' => 'KH', 'ko' => 'KR',
+        'ms' => 'MY', 'nb' => 'NO', 'nn' => 'NO', 'no' => 'NO', 'sl' => 'SI', 'sq' => 'AL', 'sr' => 'RS', 'su' => 'ID',
+        'sv' => 'SE', 'sw' => 'KE', 'ta' => 'IN', 'te' => 'IN', 'tl' => 'PH', 'uk' => 'UA', 'ur' => 'PK', 'vi' => 'VN', 'zh' => 'CN',
+    ];
+
+    /**
+     * A language as share cards name it (og:locale), language_TERRITORY:
+     * "id" → "id_ID", "en" → "en_US", "pt-BR" → "pt_BR", "zh-Hant" → "zh_TW".
+     */
+    public static function ogLocale(string $locale): string
+    {
+        $parts = preg_split('/[-_]/', $locale) ?: [$locale];
+        $language = strtolower($parts[0]);
+        $region = $parts[1] ?? null;
+        $region = match (true) {
+            $region === null => null,
+            strtolower($region) === 'hant' => 'TW',
+            strtolower($region) === 'hans' => 'CN',
+            strlen($region) === 2 || ctype_digit($region) => strtoupper($region),
+            default => null,
+        };
+
+        return $language.'_'.($region ?? self::TERRITORIES[$language] ?? strtoupper($language));
     }
 
     /** Whether a translation's live version asks not to be indexed. */

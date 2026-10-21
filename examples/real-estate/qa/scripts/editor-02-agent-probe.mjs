@@ -1,0 +1,12 @@
+import { launch, session, shot, BASE, dumpForm, toasts, errors } from './editor-lib.mjs';
+const b = await launch(); const { c, p } = await session(b, 'budi');
+await p.goto(BASE + '/admin/cms/collections/agents/entries/create', { waitUntil: 'networkidle' });
+await p.fill('#title', 'Anindya Wirawan');
+await p.waitForTimeout(300);
+console.log('slug', await p.inputValue('#slug'), await p.getAttribute('#slug','placeholder'));
+await p.fill('#data-role', 'Principal & Head of Sales, Jakarta');
+await p.getByRole('button', { name: 'Add social' }).click();
+await p.waitForTimeout(300);
+console.log((await dumpForm(p)).join('\n'));
+await shot(p, '03-agent-social-row', true);
+await b.close();

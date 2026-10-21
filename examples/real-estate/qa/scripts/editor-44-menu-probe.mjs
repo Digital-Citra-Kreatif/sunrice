@@ -1,0 +1,11 @@
+import { launch, session, shot, BASE, dumpForm } from './editor-lib.mjs';
+const b = await launch(); const { c, p } = await session(b, 'budi');
+await p.goto(BASE + '/admin/cms/menus', { waitUntil: 'networkidle' });
+console.log((await p.locator('main main').innerText()).slice(0, 400));
+console.log(await p.$$eval('main a', as => as.map(a => a.innerText.trim().replace(/\n/g, ' ') + ' ' + a.getAttribute('href'))));
+await p.goto(BASE + '/admin/cms/menus/main', { waitUntil: 'networkidle' });
+console.log(p.url());
+console.log((await p.locator('main main').innerText()).slice(0, 1500));
+console.log('buttons', (await p.locator('main main button').evaluateAll(bs => bs.map(b => b.getAttribute('aria-label') || b.innerText.trim()))).filter(Boolean).join(' ; '));
+await shot(p, '76-menu-main', true);
+await b.close();

@@ -54,7 +54,7 @@ So: one design for every entry of a collection: `{collection}.blade.php`; one pa
 - Escape with `{{ }}`. Only rich text fields are printed as is (`{!! $values['body'] !!}`): they're cleaned when saved. Never print anything else unescaped.
 - Data only through the CMS (`Cms::…`, components, `$values`): no database queries or models, no `@php` beyond small formatting.
 - Every field can be empty: `@if`, `?->`, `?? ''`.
-- Images: a media field's value has `->url()` (and sizes, `->url('medium')`) and `->alt`: always `alt="{{ $image->alt }}"`.
+- Images: a media field's value has `->url()` (and sizes, `->url('medium')`) and `->altIn()` (its alt text in the page's language): always `alt="{{ $image->altIn() }}"`.
 - Links: `->url()` of entries and terms, menus' `url`; never build them from slugs.
 - After writing, open the page with cms_render_page and fix what it reports.
 MD;
@@ -70,7 +70,9 @@ MD;
             'current' => Templates::map(),
             'templates' => Templates::files(),
             'defaults' => array_map(fn (string $f): string => basename($f), glob(dirname(__DIR__, 2).'/resources/views/{entry,listing,term,search}.blade.php', GLOB_BRACE) ?: []),
-            'can_write' => Templates::writable($this->user()),
+            'can_write' => $writable = Templates::writable($this->user()),
+            // Why not, since cms_write_template isn't listed then.
+            'write_note' => $writable ? null : 'cms_write_template is only for super admins, on sites that allow it (sunrice-cms.ai.templates, SUNRICE_AI_TEMPLATES=true): templates run code on the server. Suggest the change to a developer instead.',
         ]);
     }
 }

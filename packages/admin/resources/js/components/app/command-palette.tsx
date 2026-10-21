@@ -4,7 +4,8 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import { navIcon } from '@/components/app/nav-icon';
 import { adminUrl } from '@/lib/admin-url';
 import {
-    commandSourcesSnapshot, matchCommands, navigationCommands, queryCommandSources, subscribeCommandSources, type CommandItem as Item,
+    commandSearchSource, commandSourcesSnapshot, matchCommands, navigationCommands, queryCommandSources, subscribeCommandSources, type CommandItem as Item,
+    type CommandSearchInfo,
 } from '@/lib/command-sources';
 import type { SharedProps } from '@/types';
 import { t } from '@/lib/i18n';
@@ -41,7 +42,13 @@ const DEBOUNCE_MS = 150;
  */
 export function CommandPalette() {
     const open = useCommandPaletteOpen();
-    const { navigation } = usePage<SharedProps>().props;
+    const { navigation, sunrice } = usePage<SharedProps>().props;
+    // The server's searches ($panel->commandSearch()): on every page, without the plugin's JavaScript.
+    const searchesKey = JSON.stringify(sunrice?.commandSearches ?? []);
+    const searches = React.useMemo(
+        () => (JSON.parse(searchesKey) as CommandSearchInfo[]).map((search) => commandSearchSource(search)),
+        [searchesKey],
+    );
     const [query, setQuery] = React.useState('');
     const [results, setResults] = React.useState<Item[]>([]);
     const [loading, setLoading] = React.useState(false);
@@ -62,7 +69,7 @@ export function CommandPalette() {
     }, [open]);
 
     React.useEffect(() => {
-        if (!open || sources.every((source) => query.trim().length < source.minLength)) {
+        if (!open || [...sources, ...searches].every((source) => query.trim().length < source.minLength)) {
             setResults([]);
             setLoading(false);
             return;
@@ -70,7 +77,7 @@ export function CommandPalette() {
         const controller = new AbortController();
         setLoading(true);
         const timer = setTimeout(() => {
-            void queryCommandSources(query, controller.signal).then((items) => {
+            void queryCommandSources(query, controller.signal, searches).then((items) => {
                 if (controller.signal.aborted) return;
                 setResults(items);
                 setLoading(false);
@@ -81,7 +88,7 @@ export function CommandPalette() {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [open, query, sources]);
+    }, [open, query, sources, searches]);
 
     const choose = (item: Item) => {
         setCommandPaletteOpen(false);

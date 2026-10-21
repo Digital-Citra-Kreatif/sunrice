@@ -134,6 +134,23 @@ it('signs in with the password alone when it\'s off, or forced off by config', f
     passwordStep()->assertRedirect('/admin');
 });
 
+it('refuses to turn on while the mailer only writes to the log, which would lock everyone out', function () {
+    app(SaveSettings::class)->handle(app(SecuritySettings::class), ['twoFactor' => false]);
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.security'));
+
+    config(['mail.default' => 'log']);
+    put('/admin/settings/security', ['twoFactor' => true])->assertSessionHasErrors(['twoFactor' => 'The app can\'t send email yet (the log mailer only writes to the log), so nobody would get their login code. Set up mail first: see Settings → Mail.']);
+    expect(app(SecuritySettings::class)->twoFactor)->toBeFalse();
+    put('/admin/settings/security', ['twoFactor' => false])->assertSessionHasNoErrors();
+
+    config(['mail.default' => 'smtp']);
+    put('/admin/settings/security', ['twoFactor' => true])->assertSessionHasNoErrors();
+    // Already on: saving the page again isn't refused when mail breaks later.
+    config(['mail.default' => 'log']);
+    put('/admin/settings/security', ['twoFactor' => true])->assertSessionHasNoErrors();
+    $this->artisan('sunrice:two-factor', ['state' => 'on'])->expectsOutputToContain('nobody will get a login code')->assertSuccessful();
+});
+
 it('is a setting, guarded, and turning it off is a security alert', function () {
     Mail::fake();
     config(['sunrice-admin.security.alerts.emails' => ['security@example.com']]);

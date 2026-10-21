@@ -15,7 +15,8 @@ Which tiles appear depends on what your site has. With the website (CMS) part of
 | Tile | Shows |
 | --- | --- |
 | **Content** | Each collection, with how many entries are live, still drafts, or scheduled. Click a collection to open its list. |
-| **Recently edited** | The last entries anyone changed, in any language, with their status. Click one to open it. |
+| **Getting the site ready** | For site managers on a new site: what's left before it goes live (the first entries, the homepage, menus without links), each linking to where it's done. It disappears once everything is done. |
+| **Recently edited entries** | The last entries anyone changed, in any language, with their status. Click one to open it. |
 | **Comments waiting** | How many comments wait for approval, and the newest ones. |
 | **Coming up** | Entries scheduled to go live, the soonest first. |
 | **Latest submissions** | The newest messages sent through the website's forms. |
@@ -25,7 +26,7 @@ And from the panel itself:
 | Tile | Shows |
 | --- | --- |
 | **Media** | How many files the media library holds, and how many were added this week. |
-| **Recent activity** | The last things that happened in the panel: who changed what, and when. **Open the log** shows everything. |
+| **Recent activity** | The last changes in the panel: who changed what, and when. Sign-ins and other security events aren't shown here. **Open the log** shows everything. |
 
 Many tiles have a **See all** link to the full list. A tile that can't load its information says so, and the rest of the dashboard keeps working: try again later, or tell your developer if it stays that way.
 

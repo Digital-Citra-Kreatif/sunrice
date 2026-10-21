@@ -32,6 +32,13 @@ test('outdents with the children', () => {
     assert.deepEqual(shape(outdent([item('a', 0)], 0)), ['a']);
 });
 
+test('outdents an item alone, after its parent\'s other children, which stay where they were', () => {
+    const items = [item('p', 0), item('sale', 1), item('rent', 1), item('r1', 2), item('villas', 1), item('team', 0)];
+
+    assert.deepEqual(shape(outdent(items, 2)), ['p', '-sale', '-villas', 'rent', '-r1', 'team']);
+    assert.deepEqual(shape(indent(outdent(items, 2), 3, 3)), ['p', '-sale', '-villas', '-rent', '--r1', 'team']); // and back in, among them
+});
+
 test('moves past siblings, children included', () => {
     const items = [item('a', 0), item('a1', 1), item('b', 0), item('b1', 1), item('c', 0)];
 
@@ -44,4 +51,21 @@ test('moves past siblings, children included', () => {
 
 test('removes an item with its children', () => {
     assert.deepEqual(shape(removeItem([item('a', 0), item('a1', 1), item('b', 0)], 0)), ['b']);
+});
+
+test('the menu editor\'s entry search says to create the page first when nothing matches', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const page = await readFile(new URL('../../packages/cms/resources/js/pages/Menus/Edit.tsx', import.meta.url), 'utf8');
+    const picker = await readFile(new URL('../../packages/cms/resources/js/components/EntriesPicker.tsx', import.meta.url), 'utf8');
+
+    assert.match(page, /emptyHint=\{menuEntryHint\(\)\}/);
+    assert.match(page, /create the page first \(Content → Entries\)/);
+    assert.match(picker, /t\('No entries match\.'\)\}\{emptyHint/);
+});
+
+test('a listing link keeps its filters through the tree', () => {
+    const listing = newItem({ collection_id: 3, query: 'listing_type=for-sale' });
+    assert.equal(newItem({ url: '/x' }).query, null);
+    assert.equal(toTree([listing])[0]!.query, 'listing_type=for-sale');
+    assert.equal(flatten(toTree([listing]))[0]!.query, 'listing_type=for-sale');
 });

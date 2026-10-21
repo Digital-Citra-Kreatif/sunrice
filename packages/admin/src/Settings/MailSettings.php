@@ -43,6 +43,9 @@ final class MailSettings extends Settings
                 ? __(':queue (queued mail is sent during the request)', ['queue' => $info['queue']])
                 : __(':queue (queued mail needs a running queue worker)', ['queue' => $info['queue']]),
         ]);
+        if ($info['from'] !== null && self::isExampleAddress($info['from'])) {
+            $card->notice(__('Mail is sent from :from, an example address: replies go nowhere and spam filters may drop it. Set MAIL_FROM_ADDRESS (and MAIL_FROM_NAME) in the app\'s .env to an address of your own domain.', ['from' => $info['from']]), Card::WARNING);
+        }
         if (! $info['delivers']) {
             $card->notice(__('The :mailer mailer doesn\'t deliver email: messages only go to the log. Nobody receives login codes, password resets or alerts.', ['mailer' => $info['transport']]), Card::WARNING);
         }
@@ -52,6 +55,15 @@ final class MailSettings extends Settings
             : __('Send a test email to your address now?'));
 
         return [$card];
+    }
+
+    /** An address on a domain reserved for examples and tests (RFC 2606), like Laravel's default hello@example.com. */
+    public static function isExampleAddress(string $address): bool
+    {
+        $domain = strtolower(trim((string) strrchr($address, '@'), '@ '));
+
+        return $domain === '' || in_array($domain, ['example.com', 'example.net', 'example.org', 'localhost'], true)
+            || preg_match('/\.(example|test|invalid|localhost|local)$/', $domain) === 1;
     }
 
     /**

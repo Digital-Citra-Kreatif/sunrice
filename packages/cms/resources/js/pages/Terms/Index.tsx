@@ -84,7 +84,7 @@ export default function TermsIndex({ taxonomy, taxonomies, terms, locales, local
             { preserveScroll: true, preserveState: true, onError: () => setRows(terms) });
     };
     const trash = (term: TermRow) => confirm(t('Move ":title" to the trash, with the terms under it? It comes off the site; you can restore it.', { title: term.fallback }) + usedBySentence(term.usedBy),
-        () => router.delete(adminUrl(`cms/terms/${term.id}`), { preserveScroll: true }));
+        () => router.delete(adminUrl(`cms/terms/${term.id}`), { preserveScroll: true }), t('Move to trash'));
     const needle = search.trim().toLowerCase();
     const found = needle === '' ? null : rows.filter((each) => `${each.title ?? each.fallback} ${each.slug ?? ''}`.toLowerCase().includes(needle));
     const collections = taxonomy.collections ?? [];
@@ -144,7 +144,7 @@ export default function TermsIndex({ taxonomy, taxonomies, terms, locales, local
 
     /** The terms directly under the one at `parent` (-1: the top), dragged into order among themselves, each with the terms under it. */
     const level = (parent: number): React.ReactNode => (
-        <SortableList items={childIndexes(rows, parent)} getId={(index) => rows[index]!.id} disabled={trashed} onReorder={(order) => reorder(parent, order)} className="cms:gap-0">
+        <SortableList items={childIndexes(rows, parent)} getId={(index) => rows[index]!.id} getLabel={(index) => rows[index]!.title ?? rows[index]!.fallback} disabled={trashed} onReorder={(order) => reorder(parent, order)} className="cms:gap-0">
             {(index, { handle, isOverlay }) => (
                 <div className={isOverlay ? 'cms:rounded-md cms:bg-card cms:shadow-md' : ''}>
                     {row(rows[index]!, handle, rows[index]!.depth)}

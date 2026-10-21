@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Models\Blueprint;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -63,4 +64,16 @@ it('ships every guide page in English and Indonesian, with links that lead somew
             expect(in_array($anchor, array_column($headings, 'id'), true))->toBeTrue("{$from} links to {$kind}/{$target}#{$anchor}");
         }
     }
+});
+
+it('says in the Structure guide what blocks a first build: the order, the reserved handles, hyphens and fieldsets', function () {
+    $root = dirname(__DIR__, 2);
+    foreach (['en', 'id'] as $language) {
+        $guide = (string) file_get_contents("{$root}/packages/cms/guide/{$language}/09-structure.md");
+        foreach (Blueprint::RESERVED as $handle) {
+            expect($guide)->toContain("`{$handle}`");
+        }
+        expect($guide)->toContain('`contact_person`')->toContain('`contact-person`');
+    }
+    expect((string) file_get_contents("{$root}/packages/cms/guide/en/09-structure.md"))->toContain('## Setting up a new site, in order');
 });

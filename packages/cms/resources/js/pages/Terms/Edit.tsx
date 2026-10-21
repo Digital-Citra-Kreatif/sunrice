@@ -8,10 +8,11 @@ import {
 } from '@sunrice/admin-sdk/ui';
 import { FieldError, Fields } from '@/components/FieldInput.tsx';
 import { FieldSections } from '@/components/FieldSections.tsx';
+import { SlugNote } from '@/components/SlugNote.tsx';
 import { TemplateHelp } from '@/components/TemplateHelp.tsx';
 import { VersionConflict } from '@/components/VersionConflict.tsx';
-import { errorsAt, hasErrors } from '@/lib/builder.ts';
-import { localeName } from '@/lib/entries.ts';
+import { errorKeysAt, errorsAt, hasErrors } from '@/lib/builder.ts';
+import { localeName, slugNote } from '@/lib/entries.ts';
 import { seoFields } from '@/lib/seo.ts';
 import type { FieldDefinition } from '@/types.ts';
 
@@ -21,7 +22,15 @@ type FieldValues = Record<string, any>;
 
 interface Props {
     taxonomy: { handle: string; title: string };
-    term: { id: number; title: string; template: string | null; url: string | null };
+    term: {
+        id: number; title: string; template: string | null; url: string | null;
+        /** This language's own title and slug (null: not translated yet), and the main language's title. */
+        ownTitle: string | null; slug: string | null; mainTitle: string | null;
+        /** Whether it has a page of its own, whose address a new slug moves. */
+        hasPage?: boolean;
+    };
+    /** Where to add a redirect by hand, for those who may. */
+    redirectsUrl?: string | null;
     /** Whether the term has a title in this language. */
     translated: boolean;
     fields: FieldDefinition[];
@@ -34,7 +43,7 @@ interface Props {
     /** The translation's version, to refuse a save over someone else's newer one; null when not translated. */
     version: number | null;
     /** Where other content points at this term. */
-    usedBy?: { label: string; url: string | null; field: string }[];
+    usedBy?: { label: string; url: string | null; field: string; fieldLabel?: string }[];
 }
 
 export default function TermEditPage(props: Props) {
@@ -42,12 +51,18 @@ export default function TermEditPage(props: Props) {
     return <TermEdit key={`${props.locale}:${props.version}:${JSON.stringify([props.values, props.seo, props.term.template])}`} {...props} />;
 }
 
-function TermEdit({ taxonomy, term, translated, fields, locale, locales, shared, sharedValues, values, seo, version, usedBy = [] }: Props) {
+function TermEdit({ taxonomy, term, translated, fields, locale, locales, shared, sharedValues, values, seo, version, usedBy = [], redirectsUrl = null }: Props) {
     const list = adminUrl(`cms/taxonomies/${taxonomy.handle}/terms`);
     const url = adminUrl(`cms/terms/${term.id}/content`);
     useBreadcrumbs([{ label: taxonomy.title, href: `${list}?locale=${locale}` }, { label: term.title }]);
-    const form = useForm<{ locale: string; data: FieldValues; seo: FieldValues; template: string; version: number | null }>({ locale, data: values, seo: seo ?? {}, template: term.template ?? '', version });
+    const form = useForm<{ locale: string; title: string; slug: string; data: FieldValues; seo: FieldValues; template: string; version: number | null }>({
+        locale, title: term.ownTitle ?? '', slug: term.slug ?? '', data: values, seo: seo ?? {}, template: term.template ?? '', version,
+    });
     const errors = form.errors as Record<string, string | undefined>;
+    const clearErrorsAt = (path: string) => {
+        const keys = errorKeysAt(errors, path);
+        if (keys.length > 0) form.clearErrors(...(keys as never[]));
+    };
     const save = () => form.processing || form.put(url, { preserveScroll: true });
     // After "someone else saved": save over their version anyway.
     const saveMine = () => {
@@ -59,7 +74,8 @@ function TermEdit({ taxonomy, term, translated, fields, locale, locales, shared,
         type: 'cms.term', id: term.id, locale, enabled: translated, noun: t('term'), leaveTo: `${list}?locale=${locale}`,
         getUnsaved: () => (form.isDirty ? { data: form.data.data, seo: form.data.seo, template: form.data.template } : null),
     });
-    const writable = translated && !lock.readOnly;
+    // Not translated yet: giving it a title here adds the language.
+    const writable = !lock.readOnly;
     const loadKept = async (id: number) => {
         const kept = await lock.loadKept(id);
         form.setData((data) => ({
@@ -72,7 +88,7 @@ function TermEdit({ taxonomy, term, translated, fields, locale, locales, shared,
     useUnsavedChanges(form.isDirty && !lock.takenOver, writable ? save : undefined);
 
     return (
-        <form onSubmit={(e) => { e.preventDefault(); save(); }} className="cms:flex cms:flex-col cms:gap-6">
+        <form noValidate onSubmit={(e) => { e.preventDefault(); save(); }} className="cms:flex cms:flex-col cms:gap-6">
             <Head title={term.title} />
             {lock.dialogs}
             <PageHeader
@@ -94,46 +110,63 @@ function TermEdit({ taxonomy, term, translated, fields, locale, locales, shared,
                 {form.isDirty && <span className="cms:text-sm cms:text-muted-foreground">{t('Unsaved changes')}</span>}
             </PageHeader>
 
-            {!translated ? (
-                <p className="cms:text-muted-foreground">{t('This term has no title in :language yet: give it one in the list first.', { language: localeName(locale) })}</p>
-            ) : (
-                <div className="cms:grid cms:items-start cms:gap-6 cms:lg:grid-cols-[minmax(0,1fr)_20rem]">
-                    <div className="cms:flex cms:min-w-0 cms:flex-col cms:gap-6">
-                        <ViewingNotice by={lock.viewingBy} />
-                        <KeptEditsNotice kept={lock.kept} disabled={!writable} onLoad={(id: number) => void loadKept(id)} onDiscard={(id: number) => void lock.discardKept(id)} />
-                        <VersionConflict message={errors.version} processing={form.processing} onSaveMine={saveMine} />
-                        <FieldSections disabled={!writable} fields={fields} values={form.data.data} errors={errors} storageKey={`cms:term:${taxonomy.handle}`}
-                            shared={shared} sharedValues={sharedValues} sharedNote={t('Shared by all languages: edit it in :language.', { language: localeName(locales[0] ?? 'en') })}
-                            onChange={(handle, value) => form.setData('data', { ...form.data.data, [handle]: value })} />
-                        <CollapsibleCard title={t('SEO')} description={t('How this term\'s page appears in search results and shared links.')} titleClassName="cms:text-base" storageKey="cms:term:seo" hasErrors={hasErrors(errors, 'seo')}>
-                            <fieldset disabled={!writable} className="cms:min-w-0">
-                                <Fields bare id="seo" fields={seoFields()} value={form.data.seo} errors={errorsAt(errors, 'seo')} onChange={(next) => form.setData('seo', next)} />
-                            </fieldset>
-                        </CollapsibleCard>
-                    </div>
-                    <aside className="cms:flex cms:min-w-0 cms:flex-col cms:gap-6">
-                        <CollapsibleCard title={t('Template')} titleClassName="cms:text-base" storageKey="cms:term:page-settings" hasErrors={errors.template !== undefined}
-                            contentClassName="cms:flex cms:flex-col cms:gap-2">
-                            <fieldset disabled={!writable} className="cms:flex cms:min-w-0 cms:flex-col cms:gap-2">
-                                <Label htmlFor="template" className="cms:sr-only">{t('Template')}</Label>
-                                <Input id="template" className="cms:font-mono" placeholder={`cms.${taxonomy.handle}-special`} value={form.data.template}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => form.setData('template', e.target.value)} aria-invalid={errors.template !== undefined} />
-                                <TemplateHelp example={`cms.${taxonomy.handle}-special`} fallbacks={[t('the taxonomy\'s template, if set'), `cms.taxonomy-${taxonomy.handle}`, 'cms.term']} />
-                                <FieldError message={errors.template} />
-                            </fieldset>
-                        </CollapsibleCard>
-                        <CollapsibleCard title={t('Used by')} titleClassName="cms:text-base" storageKey="cms:term:used-by" contentClassName="cms:flex cms:flex-col cms:gap-1 cms:text-sm">
-                            {usedBy.length === 0 && <p className="cms:text-muted-foreground">{t('No content links here through its fields.')}</p>}
-                            {usedBy.map((use) => (
-                                <div key={`${use.label}:${use.field}`} className="cms:flex cms:items-baseline cms:gap-2">
-                                    {use.url ? <a href={use.url} className="cms:truncate cms:underline-offset-4 cms:hover:underline">{use.label}</a> : <span className="cms:truncate">{use.label}</span>}
-                                    <span className="cms:font-mono cms:text-xs cms:text-muted-foreground">{use.field}</span>
-                                </div>
-                            ))}
-                        </CollapsibleCard>
-                    </aside>
+            <div className="cms:grid cms:items-start cms:gap-6 cms:lg:grid-cols-[minmax(0,1fr)_20rem]">
+                <div className="cms:flex cms:min-w-0 cms:flex-col cms:gap-6">
+                    <ViewingNotice by={lock.viewingBy} onTakeOver={lock.requestTakeOver} />
+                    {!translated && (
+                        <p className="cms:rounded-lg cms:border cms:bg-muted/40 cms:p-3 cms:text-sm cms:text-muted-foreground" role="note">
+                            {t('Not in :language yet: the site shows the :main term meanwhile. Give it a title in :language and save to add it.', { language: localeName(locale), main: localeName(locales[0] ?? 'en') })}
+                        </p>
+                    )}
+                    <fieldset disabled={!writable} className="cms:grid cms:min-w-0 cms:gap-4 cms:sm:grid-cols-2">
+                        <div className="cms:flex cms:flex-col cms:gap-2">
+                            <Label htmlFor="term-title">{t('Title')}</Label>
+                            <Input id="term-title" value={form.data.title} required placeholder={term.mainTitle ?? ''} maxLength={255} aria-invalid={errors.title !== undefined}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { form.setData('title', e.target.value); clearErrorsAt('title'); }} />
+                            <FieldError message={errors.title} />
+                        </div>
+                        <div className="cms:flex cms:flex-col cms:gap-2">
+                            <Label htmlFor="term-slug">{t('Slug')}</Label>
+                            <Input id="term-slug" className="cms:font-mono" value={form.data.slug} placeholder={t('Made from the title')} maxLength={200} aria-invalid={errors.slug !== undefined}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { form.setData('slug', e.target.value); clearErrorsAt('slug'); }} />
+                            {/* A term's page moves as soon as it's saved: nothing redirects from the old address. */}
+                            <SlugNote note={slugNote(term.hasPage ? term.slug : null, form.data.slug, false)} redirectsUrl={redirectsUrl} />
+                            <FieldError message={errors.slug} />
+                        </div>
+                    </fieldset>
+                    <KeptEditsNotice kept={lock.kept} disabled={!writable} onLoad={(id: number) => void loadKept(id)} onDiscard={(id: number) => void lock.discardKept(id)} />
+                    <VersionConflict message={errors.version} processing={form.processing} onSaveMine={saveMine} />
+                    <FieldSections disabled={!writable} fields={fields} values={form.data.data} errors={errors} storageKey={`cms:term:${taxonomy.handle}`}
+                        shared={shared} sharedValues={sharedValues} sharedNote={t('Shared by all languages: the greyed-out fields are edited in :language.', { language: localeName(locales[0] ?? 'en') })}
+                        onChange={(handle, value) => { form.setData('data', { ...form.data.data, [handle]: value }); clearErrorsAt(`data.${handle}`); }} />
+                    <CollapsibleCard title={t('SEO')} description={t('How this term\'s page appears in search results and shared links.')} titleClassName="cms:text-base" storageKey="cms:term:seo" hasErrors={hasErrors(errors, 'seo')}>
+                        <fieldset disabled={!writable} className="cms:min-w-0">
+                            <Fields bare id="seo" fields={seoFields()} value={form.data.seo} errors={errorsAt(errors, 'seo')} onChange={(next) => { form.setData('seo', next); clearErrorsAt('seo'); }} />
+                        </fieldset>
+                    </CollapsibleCard>
                 </div>
-            )}
+                <aside className="cms:flex cms:min-w-0 cms:flex-col cms:gap-6">
+                    <CollapsibleCard title={t('Template')} titleClassName="cms:text-base" storageKey="cms:term:page-settings" hasErrors={errors.template !== undefined}
+                        contentClassName="cms:flex cms:flex-col cms:gap-2">
+                        <fieldset disabled={!writable} className="cms:flex cms:min-w-0 cms:flex-col cms:gap-2">
+                            <Label htmlFor="template" className="cms:sr-only">{t('Template')}</Label>
+                            <Input id="template" className="cms:font-mono" placeholder={`cms.${taxonomy.handle}-special`} value={form.data.template}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => form.setData('template', e.target.value)} aria-invalid={errors.template !== undefined} />
+                            <TemplateHelp example={`cms.${taxonomy.handle}-special`} fallbacks={[t('the taxonomy\'s template, if set'), `cms.taxonomy-${taxonomy.handle}`, 'cms.term']} />
+                            <FieldError message={errors.template} />
+                        </fieldset>
+                    </CollapsibleCard>
+                    <CollapsibleCard title={t('Used by')} titleClassName="cms:text-base" storageKey="cms:term:used-by" contentClassName="cms:flex cms:flex-col cms:gap-1 cms:text-sm">
+                        {usedBy.length === 0 && <p className="cms:text-muted-foreground">{t('No content links here through its fields.')}</p>}
+                        {usedBy.map((use) => (
+                            <div key={`${use.label}:${use.field}`} className="cms:flex cms:items-baseline cms:gap-2">
+                                {use.url ? <a href={use.url} className="cms:truncate cms:underline-offset-4 cms:hover:underline">{use.label}</a> : <span className="cms:truncate">{use.label}</span>}
+                                <span className="cms:text-xs cms:text-muted-foreground" title={use.field}>{use.fieldLabel ?? use.field}</span>
+                            </div>
+                        ))}
+                    </CollapsibleCard>
+                </aside>
+            </div>
         </form>
     );
 }

@@ -15,7 +15,8 @@ Kotak yang muncul bergantung pada isi situs Anda. Dengan bagian situs web (CMS) 
 | Kotak | Isi |
 | --- | --- |
 | **Konten** | Setiap koleksi, dengan jumlah entri yang tayang, masih draf, atau terjadwal. Klik koleksi untuk membuka daftarnya. |
-| **Baru diubah** | Entri yang terakhir diubah siapa pun, dalam bahasa apa pun, beserta statusnya. Klik untuk membukanya. |
+| **Menyiapkan situs** | Untuk pengelola situs pada situs baru: apa yang masih perlu disiapkan sebelum tayang (entri pertama, beranda, menu tanpa tautan), masing-masing menuju tempat mengerjakannya. Hilang setelah semuanya selesai. |
+| **Entri yang baru diubah** | Entri yang terakhir diubah siapa pun, dalam bahasa apa pun, beserta statusnya. Klik untuk membukanya. |
 | **Komentar menunggu** | Jumlah komentar yang menunggu persetujuan, dan yang terbaru. |
 | **Akan datang** | Entri yang dijadwalkan tayang, yang terdekat lebih dulu. |
 | **Kiriman terbaru** | Pesan terbaru yang dikirim lewat formulir situs. |
@@ -25,7 +26,7 @@ Dan dari panel sendiri:
 | Kotak | Isi |
 | --- | --- |
 | **Media** | Jumlah berkas di pustaka media, dan berapa yang ditambahkan minggu ini. |
-| **Aktivitas terbaru** | Kejadian terakhir di panel: siapa mengubah apa, dan kapan. **Buka log** menampilkan semuanya. |
+| **Aktivitas terbaru** | Perubahan terakhir di panel: siapa mengubah apa, dan kapan. Proses masuk dan kejadian keamanan lain tidak ditampilkan di sini. **Buka log** menampilkan semuanya. |
 
 Banyak kotak punya tautan **Lihat semua** ke daftar lengkapnya. Kotak yang gagal memuat informasinya akan memberi tahu, dan bagian dashboard lainnya tetap berfungsi: coba lagi nanti, atau beri tahu developer Anda jika terus begitu.
 

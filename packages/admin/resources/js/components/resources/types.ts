@@ -60,6 +60,8 @@ export interface FieldInfo {
     disabled: boolean;
     help: string | null;
     placeholder: string | null;
+    /** Field::warnWhenChanged(): shown on an edit form once the value differs from the saved one. */
+    warnWhenChanged?: string | null;
     span: number;
     [prop: string]: unknown;
 }

@@ -105,3 +105,56 @@ it('takes nodes from templates, prints them safely, and can be turned off', func
     app(SiteSettings::class)->fill(['structuredData' => false, 'publisher' => 'Person'])->save();
     expect(Blade::render('<x-sunrice-cms::seo title="Events" />'))->not->toContain('application/ld+json');
 });
+
+it('describes the publisher with its own name, type, contact details and profiles', function () {
+    \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    \Pest\Laravel\put('/admin/settings/site', ['structuredData' => true, 'publisher' => 'Organization', 'publisherType' => 'RealEstate Agent', 'sameAs' => 'not a url'])
+        ->assertSessionHasErrors(['publisherType', 'sameAs']);
+    \Pest\Laravel\put('/admin/settings/site', [
+        'structuredData' => true, 'appendName' => true, 'separator' => '|', 'publisher' => 'Organization',
+        'publisherName' => 'Lumina Estates PT', 'publisherType' => 'RealEstateAgent', 'telephone' => '+62 21 555 0100',
+        'address' => "Jl. Senopati 10\nJakarta 12190, Indonesia", 'sameAs' => "https://instagram.com/lumina\n\nhttps://www.linkedin.com/company/lumina",
+    ])->assertSessionHasNoErrors();
+    schemaPost($this->blog, 'Hello world');
+
+    expect(nodes(get('/blog/hello-world')->assertOk())['RealEstateAgent'])->toMatchArray([
+        '@id' => url('/').'#publisher',
+        'name' => 'Lumina Estates PT',
+        'telephone' => '+62 21 555 0100',
+        'address' => 'Jl. Senopati 10, Jakarta 12190, Indonesia',
+        'sameAs' => ['https://instagram.com/lumina', 'https://www.linkedin.com/company/lumina'],
+    ]);
+});
+
+it('describes people, places and products as what a page is about', function (string $type, string $page) {
+    $agents = Collection::query()->create(['handle' => 'agents', 'title' => 'Agents', 'blueprint' => 'post', 'route' => '/team/{slug}', 'schema_type' => $type]);
+    schemaPost($agents, 'Ayu Lestari', ['description' => 'Senior agent in Canggu.']);
+
+    $nodes = nodes(get('/team/ayu-lestari')->assertOk());
+
+    expect($nodes[$page])->toMatchArray(['url' => url('/team/ayu-lestari'), 'name' => 'Ayu Lestari'])
+        ->and($nodes[$page]['mainEntity'])->toBe(['@type' => $type, '@id' => url('/team/ayu-lestari').'#main', 'name' => 'Ayu Lestari', 'url' => url('/team/ayu-lestari'), 'description' => 'Senior agent in Canggu.'])
+        ->and($nodes)->toHaveKey('BreadcrumbList');
+})->with([['Person', 'ProfilePage'], ['Place', 'WebPage'], ['Product', 'ItemPage']]);
+
+it('describes a real estate listing as its page', function () {
+    $homes = Collection::query()->create(['handle' => 'homes', 'title' => 'Homes', 'blueprint' => 'post', 'route' => '/homes/{slug}', 'schema_type' => 'RealEstateListing']);
+    schemaPost($homes, 'Villa Damai');
+
+    expect(nodes(get('/homes/villa-damai')->assertOk())['RealEstateListing'])->toMatchArray(['name' => 'Villa Damai'])->not->toHaveKey('mainEntity');
+});
+
+it('names listings, collections and the way home in the page\'s language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $this->blog->translate('title', 'id', 'Jurnal')->save();
+    schemaPost($this->blog, 'Hello world');
+
+    $nodes = nodes(get('/id/blog/hello-world')->assertOk());
+    expect(array_column($nodes['BreadcrumbList']['itemListElement'], 'name'))->toBe(['Beranda', 'Jurnal', 'Hello world'])
+        ->and(array_column($nodes['BreadcrumbList']['itemListElement'], 'item'))->toBe([url('/id'), url('/id/blog'), url('/id/blog/hello-world')]);
+
+    $listing = get('/id/blog')->assertOk()->assertSee('<title>Jurnal | Acme</title>', false)->assertSee('<h1>Jurnal</h1>', false);
+    expect(nodes($listing)['CollectionPage']['name'])->toBe('Jurnal');
+    get('/blog')->assertOk()->assertSee('<h1>Blog</h1>', false);
+    expect($this->blog->titleIn('en'))->toBe('Blog')->and($this->blog->fresh()?->titleIn('id'))->toBe('Jurnal');
+});

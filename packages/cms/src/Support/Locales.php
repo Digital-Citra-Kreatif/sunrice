@@ -145,7 +145,8 @@ final class Locales
     public static function displayName(string $code): string
     {
         if (! class_exists(\Locale::class)) {
-            return $code;
+            // Without intl: the common languages' own names.
+            return LocaleSettings::KNOWN[$code] ?? $code;
         }
 
         return \Locale::getDisplayName(str_replace('-', '_', $code), 'en') ?: $code;

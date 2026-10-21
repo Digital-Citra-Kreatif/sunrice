@@ -6,10 +6,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\View;
+use Spatie\Permission\Models\Permission;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
@@ -25,6 +27,7 @@ use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Settings\CodeSettings;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Site;
+use Sunrice\Cms\Support\Seo;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -203,4 +206,41 @@ it('lists terms with their live entries\' counts, as a tree', function () {
         ->and($render('taxonomy="tags" collection="nothing"'))->toBe('News:0 Empty:0')
         ->and($render('taxonomy="categories" tree'))->toBe('Local:0[City]')
         ->and($render('taxonomy="nope"'))->toBe('');
+});
+
+it('offers live pages as the homepage, searchable, and lets editors set it from the entry', function () {
+    $home = codePost('Welcome');
+    $draft = app(CreateEntry::class)->handle($this->blog, ['title' => 'Draft page']);
+    $homepageField = fn (): array => collect(SiteSettings::form(new Form)->fields('edit'))->first(fn ($field) => $field->name === 'homepage')->toArray();
+    $homepage = $homepageField();
+    expect($homepage['searchable'])->toBeTrue()
+        ->and(array_column($homepage['options'], 'label'))->toBe(['Blog: Welcome']);
+    // The homepage as set stays offered (marked), so other settings still save.
+    saveSite(['homepage' => $draft->entry_id]);
+    $options = array_column($homepageField()['options'], 'label', 'value');
+    expect($options[(string) $draft->entry_id])->toBe('Blog: Draft page (not live)');
+
+    // Editors (cms.homepage) set it from the entry: a live page only.
+    $budi = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update');
+    actingAs($budi);
+    \Pest\Laravel\post("/admin/cms/entries/{$home->entry_id}/homepage")->assertForbidden();
+    $budi->givePermissionTo(Permission::findOrCreate('cms.homepage', 'web'));
+    \Pest\Laravel\post("/admin/cms/entries/{$draft->entry_id}/homepage")->assertSessionHasErrors('homepage');
+    \Pest\Laravel\post("/admin/cms/entries/{$home->entry_id}/homepage")->assertSessionHasNoErrors();
+    expect((new SiteSettings)->homepage)->toBe($home->entry_id);
+    get('/')->assertOk()->assertSee('Welcome');
+    expect(app(Panel::class)->getDefaultRoles()['editor'] ?? [])->toContain('cms.homepage');
+});
+
+it('describes the site in each language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $site = app(SiteSettings::class);
+    $site->fill(['description' => 'Premium homes.', 'descriptions' => "id: Rumah premium.\nfr: Maisons."])->save();
+
+    expect($site->descriptionIn('id'))->toBe('Rumah premium.')
+        ->and($site->descriptionIn('en'))->toBe('Premium homes.')
+        ->and($site->descriptionIn('de'))->toBe('Premium homes.')
+        ->and(Seo::forPage(null)['description'])->toBe('Premium homes.');
+    app()->setLocale('id');
+    expect(Seo::forPage(null)['description'])->toBe('Rumah premium.');
 });

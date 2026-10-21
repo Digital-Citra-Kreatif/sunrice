@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Validation\ValidationException;
 use Sunrice\Cms\Fields\DefinitionValidator;
 use Sunrice\Cms\Fields\Field;
+use Sunrice\Cms\Fields\FieldTypes;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Fieldset;
 
@@ -40,7 +41,7 @@ it('stores a select\'s options without content row metadata', function () {
 
 it('checks handles and types', function () {
     expect(definitionErrors([['handle' => 'Bad Handle', 'type' => 'text']])['fields.0.handle'] ?? null)
-        ->toBe(['"Bad Handle" can\'t be a handle: use lowercase letters, numbers and underscores, starting with a letter (like hero_image).'])
+        ->toBe(['Use lowercase letters, digits and underscores, starting with a letter: try "bad_handle".'])
         ->and(definitionErrors([['handle' => 'map', 'type' => 'map']]))->toHaveKey('fields.0.type')
         ->and(definitionErrors([['handle' => 'a', 'type' => 'text'], ['handle' => 'a', 'type' => 'number']]))->toHaveKey('fields.1.handle')
         ->and(definitionErrors('nope'))->toHaveKey('fields')
@@ -76,7 +77,7 @@ it('counts included fields as the blueprint\'s own', function () {
     Fieldset::query()->create(['handle' => 'seo', 'title' => 'SEO', 'fields' => [['handle' => 'meta_title', 'type' => 'text']]]);
 
     expect(definitionErrors([['handle' => 'meta_title', 'type' => 'text'], ['handle' => 'seo', 'type' => 'fieldset', 'config' => ['fieldset' => 'seo']]]))
-        ->toHaveKey('fields.1.handle');
+        ->toHaveKey('fields.1.config.fieldset'); // shown under the include's fieldset choice (its handle box is hidden)
 });
 
 it('refuses a fieldset that would include itself', function () {
@@ -92,4 +93,13 @@ it('refuses a fieldset that would include itself', function () {
 it('only offers existing fieldsets', function () {
     expect(definitionErrors([['handle' => 'x', 'type' => 'fieldset', 'config' => ['fieldset' => 'nope']]]))->toHaveKey('fields.0.config.fieldset')
         ->and(definitionErrors([['handle' => 'x', 'type' => 'flexible', 'config' => ['blocks' => ['nope']]]]))->toHaveKey('fields.0.config.blocks.0');
+});
+
+it('names settings by their label in errors, and says what to create when there is nothing to choose', function () {
+    $errors = definitionErrors([['handle' => 'agent', 'type' => 'entries']]);
+
+    expect($errors['fields.0.config.collections'][0])->toBe('The "From collections" field is required.')
+        ->and(definitionErrors([['handle' => '', 'type' => 'text']])['fields.0.handle'][0])->toBe('The handle field is required.');
+    $setting = collect(app(FieldTypes::class)->get('entries')->settings())->firstWhere('handle', 'collections');
+    expect($setting->config['empty'])->toContain('Structure → Collections');
 });

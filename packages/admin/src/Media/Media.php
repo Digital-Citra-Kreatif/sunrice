@@ -38,6 +38,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string|null $title
  * @property string|null $alt
  * @property string|null $caption
+ * @property array<string, array{alt?: string, caption?: string}>|null $translations alt text and caption in the content's other languages (Panel::contentLocales())
  * @property array<string, string> $sizes name => path
  * @property int $version
  * @property string|null $uploaded_by
@@ -66,7 +67,31 @@ class Media extends Model
             'width' => 'integer',
             'height' => 'integer',
             'version' => 'integer',
+            'translations' => 'array',
         ];
+    }
+
+    /**
+     * The alternative text in a language (null: the app's), else its own:
+     * `alt="{{ $image->altIn() }}"` on a page in any of the content's
+     * languages (Panel::contentLocales()).
+     */
+    public function altIn(?string $locale = null): ?string
+    {
+        return $this->translatedText('alt', $locale) ?? $this->alt;
+    }
+
+    /** The caption in a language (null: the app's), else its own. */
+    public function captionIn(?string $locale = null): ?string
+    {
+        return $this->translatedText('caption', $locale) ?? $this->caption;
+    }
+
+    private function translatedText(string $key, ?string $locale): ?string
+    {
+        $text = ($this->translations ?? [])[$locale ?? app()->getLocale()][$key] ?? null;
+
+        return is_string($text) && trim($text) !== '' ? $text : null;
     }
 
     /** @return HasMany<MediaUsage, $this> */

@@ -8,7 +8,7 @@ import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
 import { InfoCards } from '@/components/resources/info-cards';
 import { ResourcePathContext } from '@/components/resources/resource-context';
-import type { InfoCard, ResourceInfo, SectionInfo } from '@/components/resources/types';
+import type { ActionInfo, InfoCard, ResourceInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
 import { t } from '@/lib/i18n';
@@ -21,11 +21,13 @@ interface Props {
     sections: SectionInfo[];
     values: Record<string, FieldValue>;
     can: { delete: boolean };
+    /** The resource's own Delete (a row action keyed "delete", with its questions), if it has one. */
+    deleteAction?: ActionInfo | null;
     /** Read-only cards beside the form (Resource::aside()). */
     aside?: InfoCard[];
 }
 
-export default function ResourceEdit({ resource, record, sections, values, can, aside = [] }: Props) {
+export default function ResourceEdit({ resource, record, sections, values, can, deleteAction = null, aside = [] }: Props) {
     const base = adminUrl(resource.path);
     const title = record ? record.title : t('New :resource', { resource: resource.singularLabel.toLowerCase() });
     useBreadcrumbs([{ label: resource.label, href: base }, { label: title }]);
@@ -58,7 +60,17 @@ export default function ResourceEdit({ resource, record, sections, values, can, 
     };
     useUnsavedChanges(form.isDirty, save);
 
-    const remove = () => record && confirm(t('Delete :title? This can\'t be undone.', { title: record.title }), () => router.delete(`${base}/${record.key}`), true);
+    const remove = () => {
+        if (!record) return;
+        if (!deleteAction) {
+            confirm(t('Delete :title? This can\'t be undone.', { title: record.title }), () => router.delete(`${base}/${record.key}`), true);
+            return;
+        }
+        // The dialog stays open until the action is accepted; then the list opens.
+        confirm(deleteAction.confirm, (answers) => new Promise<boolean>((resolve) => router.post(`${base}/${record.key}/actions/delete`, answers, {
+            onSuccess: () => resolve(true), onError: () => resolve(false),
+        })), true, deleteAction.fields);
+    };
 
     const page = (
         <form onSubmit={submit} className="flex max-w-5xl min-w-0 flex-1 flex-col gap-6">
@@ -70,7 +82,7 @@ export default function ResourceEdit({ resource, record, sections, values, can, 
                 back={{ href: base, label: t('Back to :resource', { resource: resource.label.toLowerCase() }) }}
                 actions={
                     <>
-                        {can.delete && (
+                        {(can.delete || deleteAction) && (
                             <Button type="button" variant="outline" size="icon" className="text-destructive" aria-label={t('Delete :title', { title })} onClick={remove}>
                                 <Trash2 />
                             </Button>
@@ -84,7 +96,7 @@ export default function ResourceEdit({ resource, record, sections, values, can, 
             />
 
             <ResourcePathContext value={resource.path}>
-                <FormSections sections={sections} data={form.data} errors={form.errors} storageKey={`sunrice:resource:${resource.key}`} onChange={change} />
+                <FormSections sections={sections} data={form.data} saved={record ? values : undefined} errors={form.errors} storageKey={`sunrice:resource:${resource.key}`} onChange={change} />
             </ResourcePathContext>
         </form>
     );

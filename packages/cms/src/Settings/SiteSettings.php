@@ -37,6 +37,9 @@ final class SiteSettings extends Settings
     /** For pages without a description of their own. */
     public string $description = '';
 
+    /** The description in the other languages, one per line: "id: Rumah premium di Jakarta dan Bali". */
+    public string $descriptions = '';
+
     /** Between a page's title and the site's name: "About | Acme". */
     public string $separator = '|';
 
@@ -60,6 +63,36 @@ final class SiteSettings extends Settings
     /** The organization's logo (media id), for structured data. */
     public ?int $logo = null;
 
+    /** The publisher's name in structured data; empty: the site name. */
+    public string $publisherName = '';
+
+    /** A more specific schema.org type for an organization: "RealEstateAgent", "Restaurant"; empty: Organization. */
+    public string $publisherType = '';
+
+    public string $telephone = '';
+
+    /** The publisher's postal address, as text (lines become ", "). */
+    public string $address = '';
+
+    /** The publisher's profiles elsewhere (schema.org sameAs), one URL per line. */
+    public string $sameAs = '';
+
+    /** The description for a page in a language: its line in `descriptions`, else `description`. */
+    public function descriptionIn(?string $locale = null): string
+    {
+        $locale ??= Locales::current();
+        if ($locale !== Locales::default()) {
+            foreach (preg_split('/\R/', $this->descriptions) ?: [] as $line) {
+                [$code, $text] = array_pad(array_map(trim(...), explode(':', $line, 2)), 2, '');
+                if ($code === $locale && $text !== '') {
+                    return $text;
+                }
+            }
+        }
+
+        return $this->description;
+    }
+
     public static function key(): string
     {
         return 'site';
@@ -81,18 +114,50 @@ final class SiteSettings extends Settings
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Select::make('homepage')->label('Homepage')->options(self::homepages())
-                ->help('The entry shown at /. Its own address redirects there.'),
+            Select::make('homepage')->label('Homepage')->options(fn (): array => self::homepages())->searchable()
+                ->help('The live page shown at / in each language it\'s published in. Its own address redirects there. Editors with "Choose the homepage" set it from the page\'s editor.'),
             Section::make('The site')->description('Its name and what it\'s about, for search results and shared links of pages that don\'t say their own. Search engines, share image and titles: Settings → SEO.')->columns(2)->schema([
                 TextInput::make('name')->label('Site name')->maxLength(100)->placeholder(self::appName())->span(2),
                 Textarea::make('description')->label('Description')->rows(2)->maxLength(500)->span(2),
+                ...(count(Locales::all()) > 1 ? [Textarea::make('descriptions')->label('Description in other languages')->rows(2)->maxLength(3000)->span(2)
+                    ->placeholder(implode("\n", array_map(fn (string $code): string => "{$code}: …", array_slice(Locales::all(), 1))))
+                    ->help('One per line, with the language\'s code: "id: Rumah premium di Jakarta dan Bali". A language left out uses the description above.')] : []),
             ]),
             Section::make('Structured data')->description('What search engines are told pages are (schema.org), for richer results: articles, breadcrumbs, the site\'s search box.')->columns(2)->schema([
                 Toggle::make('structuredData')->label('Add structured data to pages')->span(2),
                 Select::make('publisher')->label('Published by')->options(['Organization' => 'An organization', 'Person' => 'A person']),
                 MediaPicker::make('logo')->label('Logo')->images()->help('Square or wide, at least 112 pixels.'),
+                TextInput::make('publisherName')->label('Name')->maxLength(150)->placeholder(self::appName())
+                    ->help('Empty: the site name.'),
+                TextInput::make('publisherType')->label('Kind of organization')->maxLength(60)->placeholder('Organization')
+                    ->rules(['regex:/^[A-Z][A-Za-z]{2,59}$/'])
+                    ->help('A schema.org type, written as one word: LocalBusiness, RealEstateAgent, Restaurant, Store… Not for a person.'),
+                TextInput::make('telephone')->label('Phone')->maxLength(40)->placeholder('+62 21 555 0100'),
+                Textarea::make('address')->label('Address')->rows(2)->maxLength(300),
+                Textarea::make('sameAs')->label('Profiles elsewhere')->rows(3)->maxLength(2000)->span(2)
+                    ->rules([fn (string $attribute, mixed $value, \Closure $fail) => self::checkProfiles($value, $fail)])
+                    ->help('One address per line: the publisher\'s pages on Instagram, LinkedIn, Wikipedia…'),
             ]),
         ]);
+    }
+
+    /** @return list<string> the profile addresses (sameAs), one per line */
+    public function profiles(): array
+    {
+        return array_values(array_filter(array_map(trim(...), preg_split('/\R/', $this->sameAs) ?: []), fn (string $line) => $line !== ''));
+    }
+
+    /** @param \Closure(string): mixed $fail */
+    public static function checkProfiles(mixed $value, \Closure $fail): void
+    {
+        foreach (preg_split('/\R/', is_string($value) ? $value : '') ?: [] as $line) {
+            $line = trim($line);
+            if ($line !== '' && (filter_var($line, FILTER_VALIDATE_URL) === false || preg_match('#^https?://#i', $line) !== 1)) {
+                $fail(__('":address" isn\'t a web address (https://…).', ['address' => $line]));
+
+                return;
+            }
+        }
     }
 
     /** The site's name: as set, else the app's. */
@@ -136,16 +201,26 @@ final class SiteSettings extends Settings
         return $handle !== '' ? '@'.$handle : null;
     }
 
-    /** @return array<int|string, string> entries with pages, by id: "Pages: About" */
+    /**
+     * Live pages, by id: "Pages: About", by collection and title; and the
+     * homepage as set, when it isn't one (marked), so the rest still saves.
+     *
+     * @return array<int|string, string>
+     */
     private static function homepages(): array
     {
-        $routed = Collection::query()->whereNotNull('route')->get()->keyBy('id');
+        $routed = Collection::query()->whereNotNull('route')->orderBy('title')->get()->keyBy('id');
+        $current = (new self)->homepage;
 
         $options = [];
         $translations = EntryTranslation::query()->where('locale', Locales::default())->whereIn('collection_id', $routed->keys())
-            ->whereHas('entry', fn ($q) => $q->withoutTrashed())->orderBy('draft_title')->limit(500)->get();
+            ->where(fn ($q) => $q->where(fn ($live) => $live->where('status', EntryTranslation::PUBLISHED)->where('published_at', '<=', now()))
+                ->when($current !== null, fn ($q) => $q->orWhere('entry_id', $current)))
+            ->whereHas('entry', fn ($q) => $q->withoutTrashed())->orderBy('draft_title')->limit(1000)->get()
+            ->sortBy(fn (EntryTranslation $t): string => ($routed->get($t->collection_id)->title ?? '')."\0".mb_strtolower($t->title ?? $t->draft_title));
         foreach ($translations as $t) {
-            $options[(string) $t->entry_id] = ($routed->get($t->collection_id)->title ?? '').': '.$t->draft_title;
+            $live = $t->isLive();
+            $options[(string) $t->entry_id] = ($routed->get($t->collection_id)->title ?? '').': '.($live ? ($t->title ?? $t->draft_title) : $t->draft_title.' (not live)');
         }
 
         return $options;

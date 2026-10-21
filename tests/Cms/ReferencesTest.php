@@ -29,6 +29,7 @@ use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\GlobalSet;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
+use Sunrice\Cms\Support\References;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -103,7 +104,14 @@ it('lists where an entry is used in its editor', function () {
     get(entryEditUrl($this->about->id))->assertOk()->assertInertia(fn (Assert $page) => $page
         ->has('usedBy', 1)
         ->where('usedBy.0.label', 'Pages: Home (EN)')
-        ->where('usedBy.0.field', 'related'));
+        ->where('usedBy.0.field', 'related')
+        ->where('usedBy.0.fieldLabel', 'Related'));
+});
+
+it('names a reference\'s field in words, not as its path', function () {
+    expect(References::fieldLabel('sections.2.values.properties'))->toBe('Sections › Properties')
+        ->and(References::fieldLabel('hero.featured_image'))->toBe('Hero › Featured Image')
+        ->and(References::fieldLabel('related'))->toBe('Related');
 });
 
 it('lists where a term is used on its page and in the list', function () {

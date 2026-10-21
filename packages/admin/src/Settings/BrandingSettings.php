@@ -110,9 +110,9 @@ final class BrandingSettings extends Settings
                 TextInput::make('name')->label('Panel name')->maxLength(60)->placeholder(app(Panel::class)->getBrand()),
                 TextInput::make('tagline')->maxLength(80)->placeholder('Shown under the name'),
                 MediaPicker::make('logo')->images()
-                    ->help('A square SVG or PNG. Empty: the name\'s first letter.'),
+                    ->help('SVG or PNG. A square logo sits beside the name; a wide one (a wordmark) replaces it. Empty: the name\'s first letter.'),
                 Select::make('font')->options($fonts)->placeholder('Default')
-                    ->help('Empty: the default.'),
+                    ->help('Empty: the default. Every font but System is loaded from Bunny Fonts (fonts.bunny.net) by each browser: choose System for an intranet, a server without internet access or to keep browsers from contacting another company.'),
                 TextInput::make('color')->label('Brand colour')->color()->placeholder('#1e66f5')
                     ->help('Buttons, the active menu item and focus rings. Empty: neutral.'),
                 MediaPicker::make('favicon')->label('Browser icon')->images()

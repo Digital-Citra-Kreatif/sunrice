@@ -8,7 +8,9 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\View;
+use Illuminate\View\ViewException;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\SaveEntrySettings;
 use Sunrice\Cms\Fields\Field;
@@ -16,10 +18,12 @@ use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\TermTranslation;
+use Sunrice\Cms\Query\EntryPaginator;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Support\Access;
 use Sunrice\Cms\Support\AdminUrls;
 use Sunrice\Cms\Support\Locales;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * Renders entries on the site: the fallback route (paths no app route
@@ -65,6 +69,10 @@ final class SiteController
         }
         if ($translation === null) {
             $redirect = $site->redirect($request->path());
+            if ($redirect === null && ($own = $site->translatedAddress($request->path())) !== null) {
+                // The main language's slug in a language the page has its own address in.
+                return redirect()->to(self::withQuery($own, $request), 301);
+            }
             abort_if($redirect === null, 404);
 
             return redirect()->to(self::withQuery($redirect->to_url, $request), $redirect->status);
@@ -91,12 +99,13 @@ final class SiteController
     }
 
     /** The draft banner after <body>, whatever the template; and never kept by any cache. */
-    private function withDraftBanner(Response $response, EntryTranslation $translation, bool $draft): Response
+    private function withDraftBanner(Response $response, EntryTranslation $translation, bool $draft, bool $preview = false): Response
     {
-        $live = $translation->url();
+        $live = $translation->isLive() ? $translation->url() : null;
         $banner = view('sunrice-cms::draft-banner', [
             'entry' => $translation,
             'draft' => $draft,
+            'preview' => $preview,
             'liveUrl' => $live,
             'draftUrl' => $live === null ? null : $live.'?draft',
             'editUrl' => AdminUrls::entry($translation->entry, $translation->locale),
@@ -122,8 +131,9 @@ final class SiteController
     {
         abort_if($translation->entry->trashed() || $translation->entry->collection->trashed(), 404);
 
-        // Not for search engines, nor for any cache: it's a draft, behind a link that expires.
-        return $this->render($translation, preview: true)->header('X-Robots-Tag', 'noindex, nofollow')->header('Cache-Control', 'private, no-store');
+        // Not for search engines, nor for any cache: it's a draft, behind a link that expires. A ribbon says so.
+        return $this->withDraftBanner($this->render($translation, preview: true), $translation, draft: true, preview: true)
+            ->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
     /** An address with the request's query string carried over (?utm_source=…). */
@@ -157,6 +167,7 @@ final class SiteController
             'draft' => $draft,
             // The main language's content, in a language it isn't translated into.
             'fallback' => $fallback,
+            'contentLocale' => $translation->locale,
         ]));
     }
 
@@ -167,10 +178,17 @@ final class SiteController
         app()->setLocale($locale);
         $term = $translation->term;
         $taxonomy = $term->taxonomy;
-        $entries = EntryTranslation::query()->live()->with('entry.collection')->where('locale', $locale)
-            ->whereHas('entry.terms', fn ($q) => $q->where('sunrice_terms.id', $term->id))
-            ->orderByDesc('published_at')->orderByDesc('id')->paginate(10)->withQueryString();
-        abort_if($entries->currentPage() > 1 && $entries->isEmpty(), 404);
+        // Run when the template first uses $entries: those of the term and, in a hierarchy, of the terms under it.
+        $entries = new LazyEntries(function () use ($term, $taxonomy, $locale): LengthAwarePaginator {
+            $terms = [$term->id, ...($taxonomy->hierarchical ? $term->descendantIds() : [])];
+            $entries = EntryPaginator::from(EntryTranslation::query()->live()->with(self::listed($locale))->shownIn($locale)
+                ->whereHas('entry.terms', fn ($q) => $q->whereIn('sunrice_terms.id', $terms))
+                ->orderByDesc('published_at')->orderByDesc('id')->paginate(10))->withQueryString();
+            // Hydrated together: the first values() loads what all of them point at.
+            (new HydrationContext($locale))->share($entries->getCollection());
+
+            return $entries;
+        });
         $view = 'sunrice-cms::term';
         foreach (array_filter([self::own($term->template), $taxonomy->template, "cms.taxonomy-{$taxonomy->handle}", 'cms.term']) as $candidate) {
             if (View::exists($candidate)) {
@@ -180,9 +198,9 @@ final class SiteController
             }
         }
         $schema = $taxonomy->schema();
-        $view = (new Page(Page::TERM, $locale, $view, term: $translation, pageNumber: $entries->currentPage(), fallback: $fallback))->share()->view;
+        $view = (new Page(Page::TERM, $locale, $view, term: $translation, pageNumber: self::pageNumber(), fallback: $fallback))->share()->view;
 
-        return $this->hidden(response()->view($view, [
+        return $this->hidden(self::renderView($view, [
             'term' => $translation,
             'taxonomy' => $taxonomy,
             'title' => $translation->title,
@@ -191,6 +209,7 @@ final class SiteController
             'richText' => array_values(array_map(fn (Field $field): string => $field->handle, array_filter($schema->fields(), fn (Field $field): bool => $field->type === 'rich_text'))),
             'locale' => $locale,
             'fallback' => $fallback,
+            'contentLocale' => $translation->locale,
         ]));
     }
 
@@ -198,13 +217,19 @@ final class SiteController
     {
         app()->setLocale($listing->locale);
         $collection = $listing->collection;
-        $entries = EntryTranslation::query()->live()->with('entry.collection')
-            ->where('collection_id', $collection->id)->where('locale', $listing->locale)
-            ->when($collection->ordered,
-                fn ($q) => $q->orderBy(Entry::query()->select('sort_order')->whereColumn('sunrice_entries.id', 'sunrice_entry_translations.entry_id'))->orderBy('id'),
-                fn ($q) => $collection->dated ? $q->orderByDesc('published_at')->orderByDesc('id') : $q->orderBy('title')->orderBy('id'))
-            ->paginate(max(1, min(100, $collection->per_page)))->withQueryString();
-        abort_if($entries->currentPage() > 1 && $entries->isEmpty(), 404);
+        // Run when the template first uses $entries.
+        $entries = new LazyEntries(function () use ($collection, $listing): LengthAwarePaginator {
+            $entries = EntryPaginator::from(EntryTranslation::query()->live()->with(self::listed($listing->locale))
+                ->where('collection_id', $collection->id)->shownIn($listing->locale)
+                ->when($collection->ordered,
+                    fn ($q) => $q->orderBy(Entry::query()->select('sort_order')->whereColumn('sunrice_entries.id', 'sunrice_entry_translations.entry_id'))->orderBy('id'),
+                    fn ($q) => $collection->dated ? $q->orderByDesc('published_at')->orderByDesc('id') : $q->orderBy('title')->orderBy('id'))
+                ->paginate(max(1, min(100, $collection->per_page))))->withQueryString();
+            // Hydrated together: the first values() loads what all of them point at.
+            (new HydrationContext($listing->locale))->share($entries->getCollection());
+
+            return $entries;
+        });
         $schema = $collection->listingSchema();
 
         // cms.{handle}-listing, else cms.listing, else the CMS's plain one.
@@ -217,17 +242,56 @@ final class SiteController
             }
         }
 
-        $view = (new Page(Page::LISTING, $listing->locale, $view, collection: $collection, pageNumber: $entries->currentPage()))->share()->view;
+        $view = (new Page(Page::LISTING, $listing->locale, $view, collection: $collection, pageNumber: self::pageNumber()))->share()->view;
 
-        return $this->hidden(response()->view($view, [
+        return $this->hidden(self::renderView($view, [
             'collection' => $collection,
-            'title' => $collection->title,
+            'title' => $collection->titleIn($listing->locale),
             'entries' => $entries,
             'values' => $schema->hydrate($collection->listingData($listing->locale, $schema), new HydrationContext($listing->locale)),
             'richText' => array_values(array_map(fn (Field $field): string => $field->handle, array_filter($schema->fields(), fn (Field $field): bool => $field->type === 'rich_text'))),
             'locale' => $listing->locale,
             'url' => $collection->listingUrl($listing->locale),
         ]));
+    }
+
+    /**
+     * What a list's entries load with: in another language than the main
+     * one, their other translations too (a main-language one standing in
+     * links to its page at this language's address: Site::urlIn()).
+     *
+     * @return list<string>
+     */
+    public static function listed(string $locale): array
+    {
+        return $locale === Locales::default() ? ['entry.collection'] : ['entry.collection', 'entry.translations'];
+    }
+
+    /**
+     * The page number asked for, read as Laravel's paginators read it, but
+     * without asking them (the page cache keeps ?page= copies only of pages
+     * whose entries were paginated).
+     */
+    private static function pageNumber(): int
+    {
+        $page = filter_var(request()->query('page'), FILTER_VALIDATE_INT);
+
+        return is_int($page) && $page >= 1 ? $page : 1;
+    }
+
+    /**
+     * A page rendered now; a 404 from inside its template ($entries past
+     * the last page) is a 404, not an error.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private static function renderView(string $view, array $data): Response
+    {
+        try {
+            return response()->view($view, $data);
+        } catch (ViewException $e) {
+            throw $e->getPrevious() instanceof HttpExceptionInterface ? $e->getPrevious() : $e;
+        }
     }
 
     /** The whole site hidden from search engines (Settings → Site): say so on every page too. */

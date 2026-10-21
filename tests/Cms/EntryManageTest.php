@@ -213,3 +213,43 @@ it('tells the media library where entries and globals use files', function () {
     app(ForceDeleteEntry::class)->handle($entry->entry);
     expect(app(MediaUsages::class)->of($photo))->toBe([]);
 });
+
+it('saves the page settings with the draft, and the parent when creating', function () {
+    $this->articles->update(['hierarchical' => true]);
+    $about = managed('About');
+    manager('view', 'create', 'update');
+
+    // Created under a parent; a parent from another collection is refused.
+    post('/admin/cms/collections/articles/entries', ['title' => 'Story', 'data' => ['intro' => 'Hi'], 'parent_id' => $about->entry_id])->assertSessionHasNoErrors();
+    $story = EntryTranslation::query()->where('draft_title', 'Story')->sole();
+    expect($story->entry->parent_id)->toBe($about->entry_id);
+    $other = app(CreateEntry::class)->handle(Collection::query()->create(['handle' => 'other', 'title' => 'Other']), ['title' => 'Elsewhere']);
+    post('/admin/cms/collections/articles/entries', ['title' => 'Lost', 'data' => ['intro' => 'Hi'], 'parent_id' => $other->entry_id])->assertSessionHasErrors('parent_id');
+    expect(EntryTranslation::query()->where('draft_title', 'Lost')->exists())->toBeFalse();
+
+    // Saving the draft saves the settings with it, all or nothing.
+    $team = managed('Team');
+    put("/admin/cms/entries/{$team->entry_id}", ['title' => 'Team', 'data' => ['intro' => 'Hi'], 'version' => $team->version, 'parent_id' => $about->entry_id, 'template' => '', 'comments_closed' => true])
+        ->assertSessionHasNoErrors();
+    expect($team->entry->fresh()?->only(['parent_id', 'comments_closed']))->toBe(['parent_id' => $about->entry_id, 'comments_closed' => true]);
+    put("/admin/cms/entries/{$team->entry_id}", ['title' => 'Our team', 'data' => ['intro' => 'Hi'], 'version' => $team->fresh()?->version, 'parent_id' => $team->entry_id])
+        ->assertSessionHasErrors('parent_id');
+    expect($team->fresh()?->draft_title)->toBe('Team');
+    put("/admin/cms/entries/{$team->entry_id}", ['title' => 'Our team', 'data' => ['intro' => 'Hi'], 'version' => 999, 'parent_id' => null])
+        ->assertSessionHasErrors('version');
+    expect($team->entry->fresh()?->parent_id)->toBe($about->entry_id);
+    // Publishing saves them too; without them, they stay as they are.
+    manager('view', 'update', 'publish');
+    put("/admin/cms/entries/{$team->entry_id}", ['title' => 'Team', 'data' => ['intro' => 'Hi'], 'version' => $team->fresh()?->version, 'publish' => true, 'parent_id' => null])
+        ->assertSessionHasNoErrors();
+    expect($team->entry->fresh()?->parent_id)->toBeNull();
+    put("/admin/cms/entries/{$team->entry_id}", ['title' => 'Team', 'data' => ['intro' => 'Hi'], 'version' => $team->fresh()?->version])->assertSessionHasNoErrors();
+    expect($team->entry->fresh()?->comments_closed)->toBeTrue();
+
+    // Authors of their own entries keep the template as it is.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own'));
+    $mine = managed('Mine');
+    put("/admin/cms/entries/{$mine->entry_id}", ['title' => 'Mine', 'data' => ['intro' => 'Hi'], 'version' => $mine->version, 'template' => 'cms.landing'])->assertForbidden();
+    put("/admin/cms/entries/{$mine->entry_id}", ['title' => 'Mine', 'data' => ['intro' => 'Hi'], 'version' => $mine->version, 'template' => '', 'parent_id' => $about->entry_id])->assertSessionHasNoErrors();
+    expect($mine->entry->fresh()?->parent_id)->toBe($about->entry_id);
+});

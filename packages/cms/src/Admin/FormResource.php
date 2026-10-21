@@ -18,8 +18,8 @@ use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Admin\Security\Captcha;
-use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Form as FormModel;
+use Sunrice\Cms\Support\Locales;
 use Sunrice\Cms\Support\RoleMembers;
 use Sunrice\Cms\Support\SafeUrl;
 
@@ -61,9 +61,9 @@ final class FormResource extends Resource
         return $form->schema([
             Section::make('General')->columns(2)->schema([
                 TextInput::make('title')->required(),
-                ...HandleField::make('form', 'Used in templates: <x-sunrice-cms::form handle="contact" />.', HandleField::WARNING),
+                ...HandleField::make('form', 'Used in templates: <x-sunrice-cms::form handle="contact" />.'),
                 Select::make('blueprint')->required()
-                    ->verbatim()->options(Blueprint::query()->orderBy('title')->get()->mapWithKeys(fn (Blueprint $blueprint): array => [$blueprint->handle => $blueprint->title])->all())
+                    ->verbatim()->options(BlueprintChoices::options(BlueprintChoices::FORM))
                     ->help('Its fields. Visitors see the text, textarea, number, toggle, select, date and file ones.'),
             ]),
             Section::make('Notifications')->description('Who hears about each submission. Every one is kept under Content → Submissions too.')->schema([
@@ -92,10 +92,13 @@ final class FormResource extends Resource
             ]),
             Section::make('After sending')->columns(2)->schema([
                 Textarea::make('message')->span(2)->label('Thank-you message')->rows(2)->maxLength(1000)
-                    ->placeholder('Thank you, we got your message.'),
+                    ->placeholder(__('sunrice-cms::site.forms.thanks', [], Locales::default())),
+                ...TranslatedFields::make('message', fn (string $name, string $language) => Textarea::make($name)->span(2)->label(__('Thank-you message in :language', ['language' => $language]))->rows(2)->maxLength(1000)
+                    ->placeholder(__('sunrice-cms::site.forms.thanks', [], array_search($language, Locales::names(), true) ?: Locales::default()))
+                    ->help(__('What visitors who sent it from a page in :language read. Empty: the site\'s own words in that language, or the message above.', ['language' => $language]))),
                 TextInput::make('redirect_url')->label('Then go to')->span(2)->maxLength(2000)->placeholder('/thank-you')
                     ->rules([SafeUrl::rule()])
-                    ->help('Where visitors go after sending. Empty: back to the same page.'),
+                    ->help('Where visitors go after sending (with the thank-you message). Empty: back to the same page.'),
             ]),
             Section::make('Spam protection')->columns(2)->schema([
                 NumberInput::make('per_minute')->label('Sends per visitor a minute')->integer()->min(1)->max(1000)
@@ -105,7 +108,7 @@ final class FormResource extends Resource
                     ->disabled(! app(Captcha::class)->enabled())
                     ->help(app(Captcha::class)->enabled()
                         ? 'Visitors prove they\'re not a robot.'
-                        : 'Needs captcha keys: set SUNRICE_CAPTCHA_SITE_KEY and SUNRICE_CAPTCHA_SECRET_KEY in .env.'),
+                        : 'Needs an account with a captcha service, set up on the server by a developer. For developers: SUNRICE_CAPTCHA_SITE_KEY and SUNRICE_CAPTCHA_SECRET_KEY (Cloudflare Turnstile, or reCAPTCHA or hCaptcha with SUNRICE_CAPTCHA_PROVIDER).'),
             ]),
         ]);
     }

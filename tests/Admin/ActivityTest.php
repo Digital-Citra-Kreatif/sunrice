@@ -12,8 +12,10 @@ use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Dashboard\PanelWidgets;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Tests\Admin\Fixtures\MailSettings;
 use Sunrice\Tests\Admin\Fixtures\Product;
 use Sunrice\Tests\Admin\Fixtures\ProductResource;
@@ -68,7 +70,7 @@ it('records users\' roles and passwords as changed, and settings', function () {
     Role::findOrCreate('editor', 'web');
     actingAs($this->admin);
 
-    put("/admin/users/{$user->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-new-password', 'roles' => ['editor']])->assertSessionHasNoErrors();
+    put("/admin/users/{$user->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-new-password', 'password_confirmation' => 'a-new-password', 'roles' => ['editor']])->assertSessionHasNoErrors();
     put('/admin/settings/outbox', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
 
     expect(activityLines())->toBe([
@@ -208,4 +210,41 @@ it('prunes old lines from the panel, with a permission, a security event and an 
         ->and($event->properties['note'])->toBe('1 line older than 30 days');
     Mail::assertQueued(SecurityAlert::class, fn ($mail) => $mail->headline === 'The activity log was pruned');
     expect(app(Panel::class)->getPermissions())->toHaveKey('sunrice.activity.prune');
+});
+
+it('reads like sentences, with what settings changed from and to, and filters by who', function () {
+    actingAs($this->admin);
+    put('/admin/settings/outbox', ['from' => 'hello@example.com'])->assertSessionHasNoErrors();
+    $dewi = User::query()->create(['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'x']);
+    $security = app(SecurityLog::class);
+    $security->record('logged in', $this->admin);
+    $security->record('page refused', $this->admin);
+    auth()->logout();
+    $security->record('login failed', $dewi);
+    actingAs($this->admin);
+
+    expect(Activity::query()->where('subject_type', 'settings')->sole()->properties['values'])->toEqual(['from' => ['from' => 'shop@example.com', 'to' => 'hello@example.com']]); // MySQL's JSON keeps keys in its own order
+
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data.0.action', 'login failed')
+        ->where('rows.data.0.self', false)
+        ->where('rows.data.1.self', true)
+        ->where('rows.data.3.changed', ['From: shop@example.com → hello@example.com'])
+        ->where('people', [['value' => (string) $this->admin->id, 'label' => 'Rina']]));
+    get("/admin/activity?user={$this->admin->id}")->assertInertia(fn (Assert $page) => $page->where('rows.total', 3));
+
+    // The dashboard says it in a sentence, and leaves security events to the log.
+    expect(PanelWidgets::activity()->resolve($this->admin)['rows'])->toHaveCount(1)
+        ->and(PanelWidgets::activity()->resolve($this->admin)['rows'][0]['title'])->toBe('Rina updated Outbox settings')
+        ->and(Activity::query()->where('source', 'security')->orderByDesc('id')->get()->map(fn (Activity $line) => $line->sentence())->all())
+        ->toBe(['Login failed for Dewi', 'Rina was refused a page', 'Rina logged in']);
+});
+
+it('names each type once in the filter', function () {
+    app(ActivityLog::class)->record('updated', 'products', '1', 'Kettle');
+    app(ActivityLog::class)->record('updated', 'product', '1', 'Legacy');
+    actingAs($this->admin);
+
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page
+        ->where('types', fn ($types) => collect($types)->pluck('label')->duplicates()->isEmpty() && count($types) === 2));
 });

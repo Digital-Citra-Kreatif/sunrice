@@ -10,9 +10,9 @@ Tampilan **Terang**, **Gelap**, atau **Sistem** milik Anda sendiri dipilih di me
 | --- | --- | --- |
 | **Nama panel** | Bilah samping, halaman masuk, tab peramban, dan panduan ini | Nama yang diberikan developer |
 | **Tagline** | Di bawah nama di bilah samping, dan di atas formulir masuk | Tidak ada |
-| **Logo** | Bilah samping dan halaman masuk; pilih gambar dari pustaka media | Huruf pertama nama di atas warna merek |
+| **Logo** | Bilah samping dan halaman masuk; pilih gambar dari pustaka media. Logo persegi tampil di samping nama; logo melebar (wordmark) menggantikan nama | Huruf pertama nama di atas warna merek |
 | **Ikon browser** | Gambar kecil di tab peramban dan penanda; ICO, PNG, atau SVG persegi dari pustaka media | Logo persegi, atau huruf pertama nama di atas warna merek |
-| **Font** | Semua halaman panel; pilih salah satu jenis huruf dalam daftar, atau **Sistem** untuk huruf bawaan komputer | Huruf bawaan panel (Inter) |
+| **Font** | Semua halaman panel; pilih salah satu jenis huruf dalam daftar, atau **Sistem** untuk huruf bawaan komputer. Jenis huruf dalam daftar diambil dari Bunny Fonts di internet: di jaringan pribadi tanpa internet, atau jika Anda tidak ingin peramban menghubungi perusahaan lain, pilih **Sistem** | Huruf bawaan panel (Instrument Sans, juga dari Bunny Fonts) |
 | **Warna brand** | Tombol utama, menu yang sedang aktif, garis fokus | Abu-abu netral |
 
 Untuk warna merek, ketik kode warna seperti `#2563eb` atau gunakan pemilih warna. Panel memberi teks hitam atau putih di atasnya, mana yang lebih mudah dibaca, dan warna yang lebih terang di mode gelap. Contoh di samping field menunjukkan tampilan tombolnya.

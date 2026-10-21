@@ -1,0 +1,10 @@
+import { launch, ctx, shot, BASE, logErrors } from './admin-lib.mjs';
+const b = await launch(); const c = await ctx(b); const p = await c.newPage(); logErrors(p);
+await p.goto(BASE + '/admin/settings/mail', { waitUntil: 'networkidle' });
+await p.getByRole('button', { name: 'Send a test email' }).click(); await p.waitForTimeout(500);
+await p.getByRole('button', { name: 'Continue' }).click(); await p.waitForTimeout(2000);
+console.log('TOAST', await p.locator('[data-sonner-toast]').allInnerTexts());
+await shot(p, '19-mail-test-sent');
+await p.goto(BASE + '/admin/settings/security', { waitUntil: 'networkidle' });
+await shot(p, '20-security', true);
+await b.close();

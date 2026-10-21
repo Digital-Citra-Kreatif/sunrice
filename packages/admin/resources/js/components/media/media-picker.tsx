@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronLeft, Folder, ImagePlus, LoaderCircle, Search, Upload as UploadIcon, X } from 'lucide-react';
+import { Check, ChevronLeft, Folder, ImagePlus, LoaderCircle, Search, Upload as UploadIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -64,7 +64,7 @@ export function MediaPickerInput({ id, value, multiple, max, types, disabled, in
                     {shown.map(({ mediaId, item }) => (
                         <div key={mediaId} className="relative w-28 overflow-hidden rounded-md border bg-card">
                             <div className="flex aspect-square items-center justify-center bg-muted">
-                                {item?.thumbnail ? <img src={item.thumbnail} alt={item.alt ?? ''} className="size-full object-cover" />
+                                {item?.thumbnail ? <img src={item.thumbnail} alt={item.alt ?? ''} className={item.mimeType.includes('svg') ? 'size-full object-contain p-2' : 'size-full object-cover'} />
                                     : item ? <FileIcon mimeType={item.mimeType} className="size-8 text-muted-foreground" />
                                         : <span className="px-2 text-center text-xs text-muted-foreground">{t('Missing file')}</span>}
                             </div>
@@ -212,13 +212,20 @@ function PickerDialog({ multiple, remaining, types, exclude, onClose, onPick }: 
                     ) : (
                         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                             {items.map((item) => {
-                                const isSelected = selected.some((other) => other.id === item.id);
+                                const order = selected.findIndex((other) => other.id === item.id);
+                                const isSelected = order >= 0;
                                 const taken = exclude.includes(item.id);
                                 return (
                                     <button key={item.id} type="button" disabled={taken} onClick={() => toggle(item)} aria-pressed={isSelected}
                                         aria-label={isSelected ? t('Unselect :name', { name: item.title || item.filename }) : t('Select :name', { name: item.title || item.filename })}
-                                        className={cn('overflow-hidden rounded-md border text-left disabled:opacity-40', isSelected && 'ring-2 ring-primary')}>
-                                        <div className="flex aspect-square items-center justify-center bg-muted">
+                                        className={cn('relative overflow-hidden rounded-md border text-left disabled:opacity-40', isSelected && 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background')}>
+                                        {/* A tick, or the place in the order when choosing several. */}
+                                        {isSelected && (
+                                            <span aria-hidden="true" className="absolute top-1.5 right-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground shadow">
+                                                {multiple ? order + 1 : <Check className="size-3.5" />}
+                                            </span>
+                                        )}
+                                        <div className={cn('flex aspect-square items-center justify-center bg-muted', isSelected && 'opacity-90')}>
                                             {item.thumbnail ? <img src={item.thumbnail} alt="" loading="lazy" className="size-full object-cover" />
                                                 : <FileIcon mimeType={item.mimeType} className="size-8 text-muted-foreground" />}
                                         </div>

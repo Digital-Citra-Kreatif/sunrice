@@ -55,7 +55,7 @@ final class Panel
     private const RESERVED_SHARED = ['sunrice', 'auth', 'navigation', 'flash', 'errors'];
 
     /** Page folders of the panel's own React pages; plugin bundles use others. */
-    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/', 'Help/', 'Error'];
+    private const RESERVED_PAGES = ['Auth/', 'Dashboard/', 'Users/', 'Roles/', 'Settings/', 'Media/', 'Activity/', 'Security/', 'Resources/', 'Help/', 'Account/', 'Error'];
 
     private string $path = 'admin';
 
@@ -82,7 +82,7 @@ final class Panel
     private array $widgets = [];
 
     /** @var array<string, list<string>> role name => permission names or patterns */
-    private array $defaultRoles = ['administrator' => ['*']];
+    private array $defaultRoles = ['administrator' => ['*', '!sunrice.ai.run-commands', '!sunrice.ai.error-log']];
 
     /** @var list<array{owner: string|null, resolve: Closure(): iterable<Permission>}> */
     private array $permissionResolvers = [];
@@ -98,6 +98,9 @@ final class Panel
 
     /** @var array<string, PluginBundle> */
     private array $bundles = [];
+
+    /** @var array<string, array{url: Closure(): string, minLength: int}> command palette searches, keyed by id */
+    private array $commandSearches = [];
 
     /** @var array<string, RegisteredResource> keyed by the resource's key */
     private array $resources = [];
@@ -129,6 +132,9 @@ final class Panel
 
     /** @var list<string> permission names or patterns ("sunrice.users.*") that give power worth alerting about */
     private array $privilegedPermissions = [];
+
+    /** @var (Closure(): array<string, string>)|null the content's languages (contentLocales()) */
+    private ?Closure $contentLocales = null;
 
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
@@ -335,6 +341,9 @@ final class Panel
             if (! $widget->hasData()) {
                 throw new PanelMisconfigured("The widget \"{$widget->key}\" has no data: give it ->data(fn (Authorizable \$user) => [...]).");
             }
+            if (! $widget->isGuarded()) {
+                throw new PanelMisconfigured("The widget \"{$widget->key}\" doesn't say who may see it: give it ->permission(), ->visible(), or ->everyone() if it's meant for everyone who opens the panel.");
+            }
             $this->widgets[$widget->key] = $widget->inGroup($owner === null ? 'widgets' : "widgets-{$owner}");
         }
 
@@ -380,6 +389,37 @@ final class Panel
         return $this;
     }
 
+    /**
+     * The languages content is written in, the main one first (code =>
+     * name), when a plugin has several (a CMS): media files then take
+     * their alternative text and caption in each of the others
+     * (Media::altIn(), captionIn()). Resolved when needed.
+     *
+     *     $panel->contentLocales(fn (): array => ['en' => 'English', 'id' => 'Indonesian']);
+     *
+     * @param  Closure(): array<string, string>  $resolve
+     */
+    public function contentLocales(Closure $resolve): self
+    {
+        $this->assertRegistering();
+        if ($this->contentLocales !== null) {
+            throw new PanelMisconfigured("The content's languages are given twice{$this->owner()}.");
+        }
+        $this->contentLocales = $resolve;
+
+        return $this;
+    }
+
+    /** @return array<string, string> the content's languages, the main one first (none: no plugin gives them) */
+    public function getContentLocales(): array
+    {
+        if ($this->contentLocales === null) {
+            return [];
+        }
+
+        return array_filter(($this->contentLocales)(), fn (string $code): bool => $code !== '', ARRAY_FILTER_USE_KEY);
+    }
+
     /** Forget the permissions permissionsUsing() resolved, after their data changed. */
     public function flushPermissions(): void
     {
@@ -389,12 +429,14 @@ final class Panel
     /**
      * A role `sunrice:roles` creates (or adds permissions to) with these
      * permissions: names, or patterns with `*` ("cms.entries.*"; "*" for
-     * every one). Plugins add to the same role by naming it again:
+     * every one), and "!" before one to leave those out. Plugins add to
+     * the same role by naming it again:
      *
-     *     $panel->defaultRole('editor', ['sunrice.access', 'shop.orders.*']);
+     *     $panel->defaultRole('editor', ['sunrice.access', 'shop.orders.*', '!shop.orders.refund']);
      *
      * The panel has "administrator" (every permission, without the super
-     * admin's bypass).
+     * admin's bypass, but not letting AI agents run commands or read the
+     * error log: those stay with super admins unless given on purpose).
      *
      * @param  list<string>  $permissions
      */
@@ -697,6 +739,43 @@ final class Panel
         $this->bundles[$bundle->id] = $bundle;
 
         return $this;
+    }
+
+    /**
+     * A search the command palette (Cmd/Ctrl+K) asks on every panel page,
+     * without loading the plugin's JavaScript: the panel requests
+     * "<url>?q=<what was typed>" once at least $minLength letters are
+     * typed and lists the "items" of the JSON answer (id, label, and
+     * optional description, group, icon, url). The route behind the URL
+     * guards itself; an error answer (403) lists nothing.
+     *
+     *     $panel->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.orders.search'));
+     *
+     * @param  Closure(): string  $url  resolved when a page is rendered, so it can use route()
+     */
+    public function commandSearch(string $id, Closure $url, int $minLength = 2): self
+    {
+        $this->assertRegistering();
+        if (isset($this->commandSearches[$id])) {
+            throw new PanelMisconfigured("Two command searches have the id \"{$id}\"{$this->owner()}.");
+        }
+        $this->commandSearches[$id] = ['url' => $url, 'minLength' => max(1, $minLength)];
+
+        return $this;
+    }
+
+    /**
+     * The command palette's searches, with their URLs.
+     *
+     * @return list<array{id: string, url: string, minLength: int}>
+     */
+    public function getCommandSearches(): array
+    {
+        return array_map(
+            fn (string $id, array $search): array => ['id' => $id, 'url' => ($search['url'])(), 'minLength' => $search['minLength']],
+            array_keys($this->commandSearches),
+            $this->commandSearches,
+        );
     }
 
     // Boot ----------------------------------------------------------------

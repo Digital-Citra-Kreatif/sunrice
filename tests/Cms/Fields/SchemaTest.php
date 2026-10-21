@@ -265,3 +265,10 @@ it('keeps what the rich text editor writes', function () {
         expect($stored)->toContain($kept);
     }
 });
+
+it('never stores rel="nofollow" on rich text links, the site\'s own included', function () {
+    $stored = Schema::make([Field::make('body', 'rich_text')])
+        ->normalize(['body' => '<p><a rel="noopener noreferrer nofollow" href="/sell-with-us">Sell with us</a></p>'])['body'];
+
+    expect($stored)->toContain('href="/sell-with-us"')->not->toContain('nofollow');
+});

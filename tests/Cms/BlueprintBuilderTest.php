@@ -24,7 +24,7 @@ function builderUser(): void
     actingAs(adminUser(Panel::ACCESS, 'cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.view', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete'));
 }
 
-it('is behind cms.blueprints.manage', function () {
+it('is behind the blueprint and fieldset permissions', function () {
     $blueprint = Blueprint::query()->create(['handle' => 'page', 'title' => 'Page']);
     $fieldset = Fieldset::query()->create(['handle' => 'seo', 'title' => 'SEO']);
     actingAs(adminUser(Panel::ACCESS));
@@ -82,16 +82,16 @@ it('creates and saves a blueprint', function () {
         ['handle' => 'intro', 'type' => 'textarea', 'label' => 'Intro', 'required' => true],
     ]])->assertRedirect('/admin/cms/blueprints/article/edit')->assertSessionHas('success');
 
-    put('/admin/cms/blueprints/article', ['title' => 'News article', 'handle' => 'ignored', 'fields' => [
+    put('/admin/cms/blueprints/article', ['title' => 'News article', 'handle' => 'news_article', 'fields' => [
         ['handle' => 'intro', 'type' => 'textarea'],
         ['handle' => 'tags', 'type' => 'select', 'config' => ['multiple' => true, 'options' => [['value' => 'a', 'label' => 'A']]]],
     ]])->assertSessionHasNoErrors();
 
     $blueprint = Blueprint::query()->firstOrFail();
-    expect($blueprint->only(['handle', 'title']))->toBe(['handle' => 'article', 'title' => 'News article'])
+    expect($blueprint->only(['handle', 'title']))->toBe(['handle' => 'news_article', 'title' => 'News article'])
         ->and(array_column($blueprint->fields, 'handle'))->toBe(['intro', 'tags']);
 
-    get('/admin/cms/blueprints/article/edit')->assertInertia(fn (Assert $page) => $page->where('blueprint.fields.1.config.multiple', true));
+    get('/admin/cms/blueprints/news_article/edit')->assertInertia(fn (Assert $page) => $page->where('blueprint.fields.1.config.multiple', true));
 });
 
 it('sends errors back by field path', function () {
@@ -138,4 +138,37 @@ it('builds fieldsets with the same builder, saying where they are used', functio
 it('publishes its assets with the app\'s', function () {
     expect(ServiceProvider::pathsToPublish(CmsServiceProvider::class, 'laravel-assets'))
         ->toHaveKey(dirname(__DIR__, 2).'/packages/cms/dist');
+});
+
+it('gives the builder the handles content keeps for itself, to warn as they are typed', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.blueprints.view', 'cms.blueprints.create'));
+
+    get('/admin/cms/blueprints/create')->assertInertia(fn (Assert $page) => $page->where('reserved', Blueprint::RESERVED));
+    expect(Blueprint::RESERVED)->toContain('status', 'author');
+});
+
+it('keeps what visitors read of a field in other languages', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    builderUser();
+
+    get('/admin/cms/blueprints/create')->assertInertia(fn (Assert $page) => $page->where('locales.0.code', 'en')->where('locales.1.code', 'id'));
+    post('/admin/cms/blueprints', ['handle' => 'lead', 'title' => 'Lead', 'fields' => [
+        ['handle' => 'kind', 'type' => 'select', 'label' => 'Property type', 'config' => ['options' => [['value' => 'house', 'label' => 'House']]],
+            'translations' => ['id' => ['label' => 'Jenis properti', 'instructions' => '', 'options' => ['house' => 'Rumah']]],
+            'condition' => null],
+        ['handle' => 'group', 'type' => 'group', 'fields' => [['handle' => 'name', 'type' => 'text', 'translations' => ['id' => ['label' => 'Nama']]]],
+            'condition' => ['field' => 'kind', 'operator' => 'filled', 'value' => null]],
+    ]])->assertSessionHasNoErrors();
+
+    $blueprint = Blueprint::query()->firstOrFail();
+    $schema = $blueprint->schema();
+    expect($blueprint->fields[0]['translations'])->toBe(['id' => ['label' => 'Jenis properti', 'options' => ['house' => 'Rumah']]])
+        ->and($schema->field('kind')?->labelIn('id'))->toBe('Jenis properti')
+        ->and($schema->field('kind')?->optionLabel('house', 'id'))->toBe('Rumah')
+        // A group's children and condition survive the schema too.
+        ->and($schema->field('group')?->fields[0]->labelIn('id'))->toBe('Nama')
+        ->and($schema->field('group')?->condition['operator'] ?? null)->toBe('filled');
+
+    post('/admin/cms/blueprints', ['handle' => 'bad', 'title' => 'Bad', 'fields' => [['handle' => 'x', 'type' => 'text', 'translations' => ['Not a code!' => ['label' => 'X']]]]])
+        ->assertSessionHasErrors(['fields.0.translations']);
 });

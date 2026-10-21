@@ -1,7 +1,8 @@
 import '../css/admin.css';
-import { adminUrl, definePlugin, t } from '@sunrice/admin-sdk';
-import { registerCommandSource } from '@sunrice/admin-sdk/ui';
-import { searchEntries } from '@/lib/command-source.ts';
+import * as React from 'react';
+import { usePage } from '@inertiajs/react';
+import { definePlugin } from '@sunrice/admin-sdk';
+import { setLocaleNames } from '@/lib/entries.ts';
 import BlueprintEdit from '@/pages/Blueprints/Edit.tsx';
 import BlueprintsIndex from '@/pages/Blueprints/Index.tsx';
 import EntryEdit from '@/pages/Entries/Edit.tsx';
@@ -17,26 +18,34 @@ import TermEdit from '@/pages/Terms/Edit.tsx';
 import TermCreate from '@/pages/Terms/Create.tsx';
 import TermsIndex from '@/pages/Terms/Index.tsx';
 
-definePlugin({
-    pages: {
-        'Cms/Blueprints/Index': BlueprintsIndex,
-        'Cms/Blueprints/Edit': BlueprintEdit,
-        'Cms/Fieldsets/Index': FieldsetsIndex,
-        // A fieldset is edited like a blueprint.
-        'Cms/Fieldsets/Edit': BlueprintEdit,
-        'Cms/Entries/Index': EntriesIndex,
-        'Cms/Entries/Edit': EntryEdit,
-        'Cms/Listing/Edit': ListingEdit,
-        'Cms/Terms/Index': TermsIndex,
-        'Cms/Terms/Create': TermCreate,
-        'Cms/Terms/Edit': TermEdit,
-        'Cms/Globals/Edit': GlobalsEdit,
-        'Cms/Menus/Edit': MenuEdit,
-        'Cms/Comments/Index': CommentsIndex,
-        'Cms/Seo/Edit': SeoEdit,
-        'Cms/Submissions/Index': SubmissionsIndex,
-    },
-});
+/** A page that first takes the content languages' names the panel shares (`cms.locales`), so localeName() says them as the site does. */
+function withLocaleNames<P extends object>(Page: React.ComponentType<P>): React.ComponentType<P> {
+    return function CmsPage(props: P) {
+        const shared = usePage().props.cms as { locales?: Record<string, string> } | undefined;
+        setLocaleNames(shared?.locales);
+        return <Page {...props} />;
+    };
+}
 
-// Cmd/Ctrl+K also searches entries by title, once this bundle has loaded (any CMS page).
-registerCommandSource((query, signal) => searchEntries(query, signal, adminUrl, (text) => t(text)));
+const pages: Record<string, React.ComponentType<never>> = {
+    'Cms/Blueprints/Index': BlueprintsIndex,
+    'Cms/Blueprints/Edit': BlueprintEdit,
+    'Cms/Fieldsets/Index': FieldsetsIndex,
+    // A fieldset is edited like a blueprint.
+    'Cms/Fieldsets/Edit': BlueprintEdit,
+    'Cms/Entries/Index': EntriesIndex,
+    'Cms/Entries/Edit': EntryEdit,
+    'Cms/Listing/Edit': ListingEdit,
+    'Cms/Terms/Index': TermsIndex,
+    'Cms/Terms/Create': TermCreate,
+    'Cms/Terms/Edit': TermEdit,
+    'Cms/Globals/Edit': GlobalsEdit,
+    'Cms/Menus/Edit': MenuEdit,
+    'Cms/Comments/Index': CommentsIndex,
+    'Cms/Seo/Edit': SeoEdit,
+    'Cms/Submissions/Index': SubmissionsIndex,
+};
+
+definePlugin({
+    pages: Object.fromEntries(Object.entries(pages).map(([name, Page]) => [name, withLocaleNames(Page as React.ComponentType<object>)])),
+});

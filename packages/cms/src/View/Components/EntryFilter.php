@@ -16,6 +16,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Query\EntryQuery;
+use Sunrice\Cms\Site\PageCache;
 use Sunrice\Cms\Support\Locales;
 use Sunrice\Cms\View\Components\Filter\ActiveFilter;
 use Sunrice\Cms\View\Components\Filter\FilterControl;
@@ -186,15 +187,23 @@ final class EntryFilter extends Component
                         $type === 'date_range' && is_string($given) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $given) === 1 && strtotime($given) !== false => $given,
                         default => null,
                     };
+                    if ($value[$key] === null && $given !== null && $given !== '') {
+                        self::ignored();
+                    }
                 }
                 $filter->value = $value;
                 break;
             case 'toggle':
                 $filter->value = in_array($raw, ['1', 'true', 'on', 'yes'], true);
+                if (! $filter->value && ! in_array($raw, [null, '', '0'], true)) {
+                    self::ignored();
+                }
                 break;
             case 'terms':
                 $filter->taxonomy = is_string($definition['taxonomy'] ?? null) ? $definition['taxonomy'] : $name;
-                $options = self::termOptions($filter->taxonomy, $collection, (bool) ($definition['hide_empty'] ?? false));
+                [$options, $aliases] = self::termOptions($filter->taxonomy, $collection, (bool) ($definition['hide_empty'] ?? false));
+                // A term's slug in another language, or its id, is the same term (a link from another language, or a menu's).
+                $raw = is_array($raw) ? array_map(fn (mixed $v): mixed => is_scalar($v) ? ($aliases[(string) $v] ?? $v) : $v, $raw) : (is_scalar($raw) ? ($aliases[(string) $raw] ?? $raw) : $raw);
                 $filter->value = self::chosen($raw, array_column($options, 'value'), $multiple);
                 break;
             default:
@@ -282,7 +291,7 @@ final class EntryFilter extends Component
                     foreach ($filter->inputs as $key => $input) {
                         $value = is_array($filter->value) ? ($filter->value[$key] ?? null) : null;
                         if (is_string($value)) {
-                            $active[] = new ActiveFilter($filter->name, $filter->label, __($key).' '.$value, $this->url(Arr::except($query, [$input])));
+                            $active[] = new ActiveFilter($filter->name, $filter->label, mb_strtolower(__('sunrice-cms::site.filter.'.$key)).' '.$value, $this->url(Arr::except($query, [$input])));
                         }
                     }
                     break;
@@ -324,25 +333,36 @@ final class EntryFilter extends Component
      */
     private static function chosen(mixed $raw, array $allowed, bool $multiple, bool $any = false): string|array|null
     {
-        $values = array_values(array_unique(array_filter(
-            array_map(fn (mixed $v): string => is_scalar($v) ? trim(mb_substr((string) $v, 0, 200)) : '', is_array($raw) ? $raw : [$raw]),
-            fn (string $v): bool => $v !== '' && ($any || in_array($v, $allowed, true)),
-        )));
+        $given = array_map(fn (mixed $v): string => is_scalar($v) ? trim(mb_substr((string) $v, 0, 200)) : '', is_array($raw) ? $raw : ($raw === null ? [] : [$raw]));
+        $values = array_values(array_unique(array_filter($given, fn (string $v): bool => $v !== '' && ($any || in_array($v, $allowed, true)))));
+        if (count(array_filter($given, fn (string $v): bool => $v !== '')) > count($values) || (! $multiple && count($values) > 1)) {
+            self::ignored();
+        }
 
         return $multiple ? $values : ($values[0] ?? null);
     }
 
+    /** A value in the address was ignored: the page isn't kept, so made-up values can't fill the page cache. */
+    private static function ignored(): void
+    {
+        app(PageCache::class)->dontKeep();
+    }
+
     /**
      * A terms filter's choices: the taxonomy's terms in the editors' order,
-     * those under others after them, by their slug in the current language.
+     * those under others after them, by their slug in the current language
+     * (else the main one's), each counting the entries under it too (as the
+     * filter finds them); and what else names each: its slugs in the other
+     * languages and its id.
      *
-     * @return list<array{value: string, label: string, count: int, depth: int}>
+     * @return array{0: list<array{value: string, label: string, count: int, depth: int}>, 1: array<int|string, string>}
      */
     private static function termOptions(string $taxonomy, Collection $collection, bool $hideEmpty): array
     {
-        $terms = new Terms($taxonomy, $collection->handle, $hideEmpty, tree: true);
+        $terms = new Terms($taxonomy, $collection->handle, $hideEmpty, tree: true, includeChildren: true);
         $options = [];
-        $walk = function (Items $list, int $depth) use (&$walk, &$options): void {
+        $aliases = [];
+        $walk = function (Items $list, int $depth) use (&$walk, &$options, &$aliases): void {
             foreach ($list as $term) {
                 if (! $term instanceof Term) {
                     continue;
@@ -351,6 +371,12 @@ final class EntryFilter extends Component
                 $count = $term->getAttribute('entries_count');
                 if ($slug !== '') {
                     $options[] = ['value' => $slug, 'label' => $term->title(Locales::current()), 'count' => is_numeric($count) ? (int) $count : 0, 'depth' => $depth];
+                    $aliases += [(string) $term->id => $slug];
+                    foreach ($term->translations as $translation) {
+                        if ($translation->slug !== $slug) {
+                            $aliases += [$translation->slug => $slug];
+                        }
+                    }
                 }
                 $children = $term->relationLoaded('children') ? $term->getRelation('children') : null;
                 if ($children instanceof Items && $depth < 20) {
@@ -359,8 +385,10 @@ final class EntryFilter extends Component
             }
         };
         $walk($terms->terms, 0);
+        // A slug of the page's own language is never another term's alias.
+        $aliases = array_diff_key($aliases, array_flip(array_column($options, 'value')));
 
-        return $options;
+        return [$options, $aliases];
     }
 
     /**
@@ -403,7 +431,11 @@ final class EntryFilter extends Component
         if ($choices === []) {
             return [];
         }
-        $selected = Arr::first($choices, fn (SortChoice $choice): bool => $choice->value === $current) ?? $choices[0];
+        $selected = Arr::first($choices, fn (SortChoice $choice): bool => $choice->value === $current);
+        if ($selected === null && $current !== null && $current !== '') {
+            self::ignored();
+        }
+        $selected ??= $choices[0];
         $selected->selected = true;
 
         return $choices;

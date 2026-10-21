@@ -28,7 +28,30 @@ export interface CommandSourceOptions {
     minLength?: number;
 }
 
-interface Registered { source: CommandSource; minLength: number }
+export interface Registered { source: CommandSource; minLength: number }
+
+/** A search the server declared with $panel->commandSearch() (shared as sunrice.commandSearches). */
+export interface CommandSearchInfo { id: string; url: string; minLength: number }
+
+/**
+ * A source that asks a server search: GET <url>?q=<query>, listing the
+ * answer's "items". An error answer (403, 500) or a malformed one lists nothing.
+ */
+export function commandSearchSource(search: CommandSearchInfo, request: typeof fetch = fetch): Registered {
+    const source: CommandSource = async (query, signal) => {
+        const url = `${search.url}${search.url.includes('?') ? '&' : '?'}q=${encodeURIComponent(query.trim())}`;
+        const response = await request(url, { signal, headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+        if (!response.ok) return [];
+        const body = (await response.json()) as { items?: unknown };
+        if (!Array.isArray(body.items)) return [];
+
+        return (body.items as CommandItem[])
+            .filter((item) => item !== null && typeof item === 'object' && typeof item.label === 'string')
+            .map((item) => ({ ...item, id: `${search.id}:${String(item.id)}` }));
+    };
+
+    return { source, minLength: search.minLength };
+}
 
 const sources = new Set<Registered>();
 const listeners = new Set<() => void>();
@@ -68,9 +91,9 @@ export function commandSourcesSnapshot(): readonly Registered[] {
     return snapshot;
 }
 
-/** Asks every registered source for this query; the ones that fail are left out. */
-export async function queryCommandSources(query: string, signal: AbortSignal): Promise<CommandItem[]> {
-    const asked = commandSourcesSnapshot().filter((entry) => query.trim().length >= entry.minLength);
+/** Asks every registered source (and `extra` ones) for this query; the ones that fail are left out. */
+export async function queryCommandSources(query: string, signal: AbortSignal, extra: readonly Registered[] = []): Promise<CommandItem[]> {
+    const asked = [...commandSourcesSnapshot(), ...extra].filter((entry) => query.trim().length >= entry.minLength);
     const results = await Promise.allSettled(asked.map((entry) => entry.source(query, signal)));
 
     return results.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));

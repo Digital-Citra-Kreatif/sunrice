@@ -119,7 +119,7 @@ it('gives entries terms through a terms field', function () {
     $values = $schema->hydrate($data, new HydrationContext('en'));
     expect($values['tags']->map->title()->all())->toBe(['Laravel', 'PHP'])
         ->and($values['category']->title())->toBe('News')
-        ->and(DB::getQueryLog())->toHaveCount(4); // two per terms field: the terms, then their translations
+        ->and(DB::getQueryLog())->toHaveCount(6); // three per terms field: the terms, their translations and taxonomy (for url())
     // The editor gets the taxonomy only; the terms come from cms/term-picker.
     expect($schema->toAdmin()[0])->toMatchArray(['taxonomy' => 'tags'])->not->toHaveKey('terms')
         ->and(TermsField::options($this->tags)['items'])->toBe([['id' => $php->id, 'label' => 'PHP', 'depth' => 0], ['id' => $laravel->id, 'label' => 'Laravel', 'depth' => 0]])

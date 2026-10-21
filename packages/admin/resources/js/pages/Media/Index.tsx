@@ -34,6 +34,8 @@ interface Props {
     upload: { maxKb: number; accept: string };
     /** The public disk's storage link is missing (php artisan storage:link). */
     storageLinkMissing?: boolean;
+    /** The content's other languages (Panel::contentLocales()): alt text and captions in each. */
+    locales?: { code: string; name: string }[];
 }
 
 const ALL = '__all';
@@ -48,7 +50,7 @@ function withCode(text: string, codes: Record<string, string>): React.ReactNode 
     });
 }
 
-export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false }: Props) {
+export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false, locales = [] }: Props) {
     const base = adminUrl('media');
     useBreadcrumbs(path.length === 0 ? [{ label: t('Media') }] : [{ label: t('Media'), href: base }, ...path.map((f, i) => (i === path.length - 1 ? { label: f.name } : { label: f.name, href: `${base}?folder=${f.id}` }))]);
     const [confirm, confirmDialog] = useConfirm();
@@ -74,6 +76,13 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
             ...(next.trash ? { status: 'trashed' } : {}),
         }, { preserveState: true, preserveScroll: true });
     };
+    // Searches as you type (after a pause), like the entries list; Enter searches at once.
+    React.useEffect(() => {
+        if (search.trim() === (query.search ?? '').trim()) return;
+        const timer = window.setTimeout(() => visit({ search: search.trim() }), 300);
+        return () => window.clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
     const bulk = (action: 'move' | 'trash' | 'restore' | 'delete', extra: Record<string, unknown> = {}, ids: number[] = selected) =>
         router.post(`${base}/bulk`, { action, ids, ...extra }, { preserveScroll: true, onSuccess: () => setSelected([]) });
 
@@ -149,7 +158,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 <form className="relative w-full sm:w-72" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
                     <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input type="search" aria-label={t('Search media')} placeholder={t('Search everywhere…')} className="pl-8" value={search}
-                        onChange={(e) => { setSearch(e.target.value); if (e.target.value === '' && query.search) visit({ search: '' }); }} />
+                        onChange={(e) => setSearch(e.target.value)} />
                 </form>
                 <Select value={query.type ?? ALL} onValueChange={(value) => visit({ type: value === ALL ? null : (value as MediaQuery['type']) })}>
                     <SelectTrigger aria-label={t('Type')} className="w-36"><SelectValue /></SelectTrigger>
@@ -306,7 +315,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 </div>
             )}
 
-            <MediaDetails item={open} can={can} accept={upload.accept} onClose={() => setOpenId(null)} />
+            <MediaDetails item={open} can={can} accept={upload.accept} locales={locales} onClose={() => setOpenId(null)} />
             <FolderDialog state={folderDialog} parentId={folder?.id ?? null} onClose={() => setFolderDialog(null)} />
             <MoveDialog open={moving} tree={tree} onClose={() => setMoving(false)} onMove={(folderId) => { bulk('move', { folder_id: folderId }); setMoving(false); }} />
         </div>

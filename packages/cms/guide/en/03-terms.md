@@ -12,13 +12,14 @@ Pick the taxonomy with the menu next to the title, and the language with **Langu
 - Drag a term by its handle to change its place among its neighbours; the terms under it come along. To put a term under another one, **rename** it and choose **Under**.
 - The **⋮** menu next to **New term** lists the collections that use the taxonomy, opens the **Taxonomy settings** and the **Trash**.
 
-Terms that have no title in the language shown appear in grey as *… · not translated*. Rename them in that language to translate them.
+Terms that have no title in the language shown appear in grey as *… · not translated*. Rename them in that language to translate them, or give them a title on their own page.
 
 ## A term's own page
 
 When the taxonomy has term pages on the website (like `/topics/news`), each term's page lists its entries, and you can give it more:
 
-- its own fields, if the taxonomy has any (a description, an image…);
+- its **Title** and **Slug** in the language shown: in a language the term isn't translated into yet, giving it a title there adds it (no need to rename it in the list first). A new slug moves the term's page as soon as you save: a note says the old address will stop working unless a redirect is added (**Add a redirect**, if you may manage redirects);
+- its own fields: a **Description** to introduce the page, or the fields your developer gave the taxonomy (an image…);
 - **SEO**: a meta title, a meta description, an Open Graph image and *Hide from search engines (noindex)* (see [SEO](guide:website/seo));
 - a **Template**, if your developer made a special design (leave it empty for the taxonomy's own).
 

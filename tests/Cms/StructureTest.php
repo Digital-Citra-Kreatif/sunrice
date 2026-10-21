@@ -18,6 +18,7 @@ use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
+use Sunrice\Cms\Settings\SiteSettings;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -129,6 +130,17 @@ it('serves listing pages with their fields, paginated, in each language', functi
     expect(fn () => app(SaveListing::class)->handle($articles, ['intro' => 'Stale'], 'id', 1))->toThrow(ValidationException::class, 'Someone else saved')
         ->and($articles->listings()->where('locale', 'id')->firstOrFail()->only(['version']))->toBe(['version' => 2]);
     get('/id/articles')->assertSee('Berita');
+});
+
+it('serves a homepage saved in code (a seeder) at once', function () {
+    $home = structurePage('Welcome');
+    get('/')->assertNotFound();
+
+    $settings = app(SiteSettings::class);
+    $settings->homepage = $home->id;
+    $settings->save();
+
+    get('/')->assertOk()->assertSee('Welcome');
 });
 
 it('serves the homepage at /, in each language, and redirects its own address', function () {

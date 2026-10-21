@@ -6,7 +6,7 @@ Pengaturan langsung berlaku begitu Anda mengeklik **Simpan**.
 
 ## Situs
 
-- **Beranda**: entri yang tampil di alamat utama situs web (`/`), dalam setiap bahasa tempat entri itu terbit. Alamat entri itu sendiri dialihkan ke sana.
+- **Beranda**: halaman yang tampil di alamat utama situs web (`/`), dalam setiap bahasa tempat entri itu terbit; ketik untuk mencari halaman yang sudah tayang. Alamat entri itu sendiri dialihkan ke sana. Editor juga bisa menekan **Jadikan beranda** di kartu Status halaman yang sudah tayang.
 
 **Situs**, untuk halaman yang tidak mengatur sendiri:
 
@@ -15,17 +15,17 @@ Pengaturan langsung berlaku begitu Anda mengeklik **Simpan**.
 
 Gambar berbagi, nama situs di judul beserta pemisahnya, akun X (Twitter), dan menyembunyikan seluruh situs dari mesin pencari ada di halaman **SEO** (di bawah Struktur pada sidebar; lihat [SEO](guide:website/seo)).
 
-**Structured data**: **Tambahkan structured data ke halaman** (biarkan menyala kecuali ada alasan), apakah situs diterbitkan oleh organisasi atau perorangan (**Diterbitkan oleh**), dan **Logo** organisasi (persegi atau melebar, minimal 112 piksel).
+**Structured data**: **Tambahkan structured data ke halaman** (biarkan menyala kecuali ada alasan), apakah situs diterbitkan oleh organisasi atau perorangan (**Diterbitkan oleh**), dan **Logo** organisasi (persegi atau melebar, minimal 112 piksel). Mesin pencari juga menyukai detail penerbit: **Nama** (kosong: nama situs), **Jenis organisasi** sebagai jenis schema.org yang ditulis satu kata (*LocalBusiness*, *RealEstateAgent*, *Restaurant*…), **Telepon**, **Alamat**, dan **Profil di tempat lain** (halaman Instagram, LinkedIn… penerbit, satu alamat per baris).
 
 ## Bahasa
 
 **Bahasa konten** berisi bahasa tempat konten ditulis, satu baris untuk tiap bahasa: **kode** yang dipakai di alamat (`id`) dan **nama** yang dilihat editor (`Bahasa Indonesia`). **Tambah bahasa** menambah baris; mengetik kode akan menyarankan bahasa umum dan mengisi namanya. **Alamat** adalah awalan alamat halaman bahasa itu: kosongkan untuk yang biasa (bahasa utama di `/about`, yang lain di `/id/about`), atau isi sendiri, misalnya `en` agar bahasa utama juga di `/en/about`. Tanda panah mengubah urutan, dan × menghapus baris.
 
-Baris pertama adalah **bahasa utama** (bertanda *Utama*), di alamat biasa (`/about`); bahasa lain diawali kodenya (`/id/about`). Panel menolak daftar kosong dan bahasa yang tercantum dua kali.
+Baris pertama adalah **bahasa utama** (bertanda *Utama*), di alamat biasa (`/about`); bahasa lain diawali kodenya (`/id/about`). Sebelum disimpan, daftar ini menampilkan bahasa yang dipakai situs saat disiapkan. Panel menolak daftar kosong, baris yang bukan kode bahasa, dan bahasa yang tercantum dua kali.
 
 - **Menambah bahasa** membuatnya tersedia di bilah bahasa penyunting. Tidak ada yang diterjemahkan otomatis.
 - **Menghapus bahasa** menyembunyikan kontennya (tidak ada yang dihapus); tambahkan kembali untuk memunculkan kontennya lagi.
-- **Mengganti bahasa utama** tidak bisa dilakukan di sini setelah ada konten: developer melakukannya dengan perintah yang memindahkan semuanya dengan aman.
+- **Mengganti bahasa utama** setelah ada konten: pakai **Jadikan … bahasa utama** di kartu **Bahasa utama** di bawah formulir. Semuanya dipindahkan dengan aman, dan alamat berubah (bahasa utama baru kehilangan kodenya, yang lama mendapatkannya; alamat lama dialihkan). Setiap entri dan term perlu terjemahan dalam bahasa utama yang baru terlebih dahulu; panel memberi tahu berapa yang belum.
 
 Lihat [Bahasa](guide:website/languages) untuk bekerja dengan terjemahan.
 

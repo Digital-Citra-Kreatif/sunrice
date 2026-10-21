@@ -10,10 +10,12 @@ use Sunrice\Admin\Actions\Media\OptimizeImage;
 use Sunrice\Admin\Actions\Media\ReplaceMedia;
 use Sunrice\Admin\Actions\Media\RestoreOriginalImage;
 use Sunrice\Admin\Actions\Media\UploadMedia;
+use Sunrice\Admin\Actions\Settings\SaveSettings;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaUsage;
 use Sunrice\Admin\Media\MediaUsages;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Settings\BrandingSettings;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\artisan;
@@ -69,6 +71,23 @@ it('asks before deleting a file in use, and shows where', function () {
 
     delete("/admin/media/{$file->id}/force", ['force' => true])->assertSessionHasNoErrors();
     expect(Media::withTrashed()->find($file->id))->toBeNull()->and(MediaUsage::query()->count())->toBe(0);
+});
+
+it('records the branding logo, browser icon and sign-in image as used, so they aren\'t deleted by mistake', function () {
+    [$logo, $icon, $image] = [usedFile('logo.png'), usedFile('icon.png'), usedFile('login.jpg')];
+
+    app(SaveSettings::class)->handle(app(BrandingSettings::class), ['logo' => $logo->id, 'favicon' => $icon->id, 'loginImage' => $image->id]);
+    $used = ['type' => 'sunrice.settings', 'label' => 'Settings: Branding', 'url' => route('sunrice.admin.settings.edit', 'branding')];
+    expect(app(MediaUsages::class)->of($logo))->toBe([$used])
+        ->and(app(MediaUsages::class)->of($icon))->toBe([$used])
+        ->and(app(MediaUsages::class)->of($image))->toBe([$used]);
+    expect(fn () => app(DeleteMedia::class)->handle($logo))->toThrow(ValidationException::class);
+
+    // Through the Settings page too; a cleared picker frees the file.
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.branding'));
+    $this->put(route('sunrice.admin.settings.update', 'branding'), [...app(BrandingSettings::class)->toArray(), 'name' => 'Acme', 'logo' => null])->assertSessionHasNoErrors();
+    expect(app(MediaUsages::class)->of($logo->refresh()))->toBe([])
+        ->and(app(MediaUsages::class)->of($icon))->toBe([$used]);
 });
 
 it('shrinks big images in place, keeps the original and puts it back', function () {

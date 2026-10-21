@@ -48,7 +48,7 @@ it('has a trash of its own for models with SoftDeletes: ?status=trashed, Restore
     $also->delete();
 
     get('/admin/desk/notes')->assertInertia(fn (Assert $page) => $page->where('can.trash', true)->where('query.status', '')->has('rows.data', 1)
-        ->where('bulkActions.0', ['key' => 'delete', 'label' => 'Move to trash', 'confirm' => 'Move the selected records to the trash? You can restore them.', 'destructive' => true]));
+        ->where('bulkActions.0', ['key' => 'delete', 'label' => 'Move to trash', 'confirm' => 'Move the selected records to the trash? You can restore them.', 'destructive' => true, 'fields' => []]));
     get('/admin/desk/notes?status=trashed')->assertInertia(fn (Assert $page) => $page->where('query.status', 'trashed')->has('rows.data', 2));
 
     post("/admin/desk/notes/{$gone->id}/restore")->assertSessionHas('success', 'Gone restored.');

@@ -66,11 +66,7 @@ final class MenuResource extends Resource
     {
         return $form->schema([
             TextInput::make('title')->required(),
-            TextInput::make('handle')->required()->maxLength(64)->unique()->onlyOnCreate()->slugFrom('title')
-                ->rules([HandleField::rule()])
-                ->help('Used in templates, like "main" or "footer". It can\'t change later.'),
-            TextInput::make('handle')->onlyOnEdit()->disabled()
-                ->help('Used in templates: <x-sunrice-cms::menu handle="…" />.'),
+            ...HandleField::make('menu', 'Used in templates, like "main" or "footer".'),
         ]);
     }
 

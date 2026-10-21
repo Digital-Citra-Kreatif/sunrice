@@ -16,17 +16,19 @@ A translation marked **Outdated** was saved before the latest change to the main
 
 Each translation is saved, published, scheduled and unpublished on its own. Publishing the English version doesn't publish the Indonesian one.
 
+A translation published for the first time takes the date of the main language's (so a translated article keeps its date), unless you pick another.
+
 ## Translated and shared fields
 
 Some fields are **translated**: each language has its own (titles, text, rich text, links). Others are **shared**: one value for every language (a price, a date, a photo, a yes/no switch). The blueprint decides which.
 
-Shared fields are edited in the main language. In the other languages they're shown greyed out with the main language's value, and the note *Shared by all languages: edit it in …*. Change the price once, in the main language, and it's the price everywhere.
+Shared fields are edited in the main language. In the other languages they're shown greyed out with the main language's value, under one note at the top: *Shared by all languages: the greyed-out fields are edited in …*. Change the price once, in the main language, and it's the price everywhere.
 
 Inside groups, repeater rows and flexible blocks, the same goes row by row: the text is per language, and shared values come from the matching row in the main language.
 
 ## Translating with a machine
 
-If your developer has set up machine translation, the editor of a translation has **Translate from …** in its **⋯** menu. It fills in what isn't translated yet, from the main language, into the draft. Save your own changes first (the button waits until you do), then read the result, correct it, and publish when it's right.
+If your developer has set up machine translation, the editor of a translation has **Translate from …** in its **⋯** menu. It fills in what isn't translated yet, from the main language, into the draft. Save your own changes first (the button waits until you do), then read the result, correct it, and publish when it's right. Without it, a greyed-out **Translate from …** button shows instead: ask your developer to set it up.
 
 ## Pages not translated yet
 
@@ -34,7 +36,7 @@ When an entry has no live translation in a language, visitors to that language u
 
 ## The entries list and languages
 
-The list's **Language** menu shows the titles and statuses of one language. Entries without a translation in that language aren't listed there; switch to the main language to find them. With the **Status** column, each entry also shows a small badge per other language; an outdated translation's badge is outlined in amber.
+The list's **Language** menu shows the titles and statuses of one language. Entries without a translation in that language aren't listed there; switch to the main language to find them. With the **Status** column, each entry also shows a small badge per other language: the language code alone when that translation is published and current, else with a word beside it (**draft**, **scheduled**, **outdated** in amber, or **missing** with a dashed border).
 
 ## Keeping translations up to date
 

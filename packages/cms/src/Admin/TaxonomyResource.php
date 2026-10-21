@@ -17,7 +17,6 @@ use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Cms\Actions\Collections\RestoreDeleted;
-use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Site\RoutePattern;
@@ -58,10 +57,12 @@ final class TaxonomyResource extends Resource
         return $form->schema([
             Section::make('General')->columns(2)->schema([
                 TextInput::make('title')->required(),
-                ...HandleField::make('taxonomy', 'Used in templates and code, like "categories".', HandleField::WARNING),
+                ...HandleField::make('taxonomy', 'Used in templates and code, like "categories".'),
+                ...TranslatedFields::make('title', fn (string $name, string $language) => TextInput::make($name)->label(__('Title in :language', ['language' => $language]))->maxLength(255)
+                    ->placeholder('As the title')->help(__('What visitors read in :language on its term pages.', ['language' => $language]))),
                 Toggle::make('hierarchical')->label('Nested terms')->span(2)->help('Terms can sit under other terms, like subcategories.'),
                 CheckboxList::make('collections')->span(2)
-                    ->help('The collections whose entries it groups.')
+                    ->help('The collections whose entries it groups, for their entries list\'s filters. A collection whose blueprint has a Terms field for it is included anyway.')
                     ->verbatim()->options(fn () => Collection::query()->orderBy('title')->get()->mapWithKeys(fn (Collection $c): array => [(string) $c->id => $c->title])->all())
                     ->loadUsing(fn (Model $taxonomy): array => $taxonomy instanceof Taxonomy
                         ? $taxonomy->collections()->get(['sunrice_collections.id'])->map(fn (Collection $c): string => (string) $c->id)->all()
@@ -72,7 +73,7 @@ final class TaxonomyResource extends Resource
                         }
                     }),
                 Select::make('blueprint')->label('Term fields')->span(2)
-                    ->verbatim()->options(Blueprint::query()->orderBy('title')->get()->mapWithKeys(fn (Blueprint $blueprint): array => [$blueprint->handle => $blueprint->title])->all())
+                    ->verbatim()->options(BlueprintChoices::options(BlueprintChoices::CONTENT))
                     ->help('Extra fields for each term, like a description or an image.'),
             ]),
             Section::make('Term pages')->description('Whether each term has a page on the site listing its entries.')->columns(2)->schema([

@@ -12,7 +12,10 @@ use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Content;
 use Sunrice\Cms\Globals;
 use Sunrice\Cms\Models\Blueprint;
+use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\GlobalSet;
+use Sunrice\Cms\Models\Menu;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -106,4 +109,57 @@ it('edits globals in the admin', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create'));
     post('/admin/cms/globals', ['title' => 'Social', 'handle' => 'social'])->assertSessionHasNoErrors();
     expect(GlobalSet::query()->where('handle', 'social')->exists())->toBeTrue();
+});
+
+it('renames a global set or menu from its form, the handle made from the title when creating', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
+    $menu = Menu::query()->create(['handle' => 'mian', 'title' => 'Main']);
+
+    get('/admin/cms/globals/create')->assertInertia(fn (Assert $page) => $page->where('sections.0.fields.1', fn ($field) => $field['name'] === 'handle' && $field['slugFrom'] === 'title' && $field['slugSeparator'] === '_'));
+    put('/admin/cms/globals/contact', ['title' => 'Contact', 'handle' => 'contact-us'])->assertSessionHasErrors(['handle' => 'Use lowercase letters, digits and underscores, starting with a letter: try "contact_us".']);
+    put('/admin/cms/globals/contact', ['title' => 'Contact', 'handle' => 'contact_us'])->assertSessionHasNoErrors();
+    put('/admin/cms/menus/mian', ['title' => 'Main', 'handle' => 'main'])->assertSessionHasNoErrors();
+
+    expect($this->contact->fresh()->handle)->toBe('contact_us')
+        ->and($menu->fresh()->handle)->toBe('main')
+        ->and(app(Globals::class)->get('contact_us'))->toHaveKey('address');
+});
+
+it('offers each blueprint picker the blueprints for its purpose', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.forms.view', 'cms.forms.create', 'cms.collections.view', 'cms.collections.create'));
+    Blueprint::query()->create(['handle' => 'contact_form', 'title' => 'Contact form']);
+    Blueprint::query()->create(['handle' => 'agent', 'title' => 'Agent']);
+    Blueprint::query()->create(['handle' => 'unused', 'title' => 'Unused']);
+    Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact_form']);
+    Collection::query()->create(['handle' => 'agents', 'title' => 'Agents', 'blueprint' => 'agent']);
+    $choices = fn (string $url, string $name = 'blueprint') => array_column(collect(get($url)->assertOk()->viewData('page')['props']['sections'])
+        ->flatMap(fn ($section) => $section['fields'])->firstWhere('name', $name)['options'], 'value');
+
+    expect($choices('/admin/cms/globals/create'))->toBe(['contact', 'unused'])
+        ->and($choices('/admin/cms/globals/contact/edit'))->toBe(['contact', 'unused'])
+        ->and($choices('/admin/cms/forms/create'))->toBe(['contact_form', 'unused'])
+        ->and($choices('/admin/cms/collections/create'))->toBe(['agent', 'unused']);
+    post('/admin/cms/globals', ['title' => 'Agent info', 'handle' => 'agent_info', 'blueprint' => 'agent'])->assertSessionHasErrors('blueprint');
+});
+
+it('shows the main language\'s values where another language has none', function () {
+    Blueprint::query()->where('handle', 'contact')->firstOrFail()->update(['fields' => [
+        ['handle' => 'address', 'type' => 'textarea'],
+        ['handle' => 'hours', 'type' => 'text'],
+        ['handle' => 'phone', 'type' => 'text', 'translatable' => false],
+    ]]);
+    app(SaveGlobals::class)->handle($this->contact->fresh() ?? $this->contact, ['address' => '1 Main St', 'hours' => '9 to 5', 'phone' => '+62 21 555']);
+
+    // Never saved in Indonesian: the site and the editor start from the English values.
+    expect(app(Globals::class)->get('contact', 'id'))->toBe(['address' => '1 Main St', 'hours' => '9 to 5', 'phone' => '+62 21 555']);
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view'));
+    get('/admin/cms/globals/contact/values?locale=id')->assertInertia(fn (Assert $page) => $page->where('values.address', '1 Main St')->where('version', null));
+
+    // Saved with a field left empty: that field still shows the English one.
+    app(SaveGlobals::class)->handle($this->contact->fresh() ?? $this->contact, ['address' => 'Jl. Utama 1', 'hours' => ''], 'id');
+    app(Globals::class)->flush();
+    expect(app(Globals::class)->get('contact', 'id'))->toBe(['address' => 'Jl. Utama 1', 'hours' => '9 to 5', 'phone' => '+62 21 555']);
 });

@@ -216,7 +216,7 @@ final class Branding
      * For the frontend (`sunrice.branding`); runs one query for the logo,
      * sign-in image and browser icon, and only when one is set.
      *
-     * @return array{name: string, tagline: string, logo: string|null, lettermark: string, color: string|null, login: array{layout: string, eyebrow: string, headline: string, text: string, footer: string, image: string|null}}
+     * @return array{name: string, tagline: string, logo: string|null, logoWide: bool, lettermark: string, color: string|null, login: array{layout: string, eyebrow: string, headline: string, text: string, footer: string, image: string|null}}
      */
     public function toArray(): array
     {
@@ -227,6 +227,8 @@ final class Branding
             'name' => $this->name(),
             'tagline' => $this->tagline(),
             'logo' => $url($this->settings->logo),
+            // Wider than square (a wordmark): shown instead of the name, at its own proportions.
+            'logoWide' => $this->isWide($this->image($this->settings->logo)),
             'lettermark' => $this->lettermark(),
             'color' => $this->color(),
             'login' => [
@@ -253,6 +255,12 @@ final class Branding
         $file = $this->media->get($id);
 
         return $file instanceof Media && $file->isImage() ? $file : null;
+    }
+
+    /** Clearly wider than tall: a wordmark rather than an icon. */
+    private function isWide(?Media $media): bool
+    {
+        return $media !== null && $media->width !== null && $media->height !== null && $media->height > 0 && $media->width / $media->height > 1.25;
     }
 
     /** Width and height within a quarter of each other. */

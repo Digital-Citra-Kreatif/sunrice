@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources\Forms;
 
+use Closure;
+
 /**
  * A one-line text input: ->email(), ->url(), ->color(), ->maxLength(100),
  * ->slugFrom('title').
@@ -52,7 +54,9 @@ final class TextInput extends Field
     /**
      * While creating, fill it from another field as that one is typed,
      * made fit for a handle or an address ("Main menu" → "main_menu", or
-     * with '-' "main-menu"), until someone types in this one.
+     * with '-' "main-menu"), until someone types in this one. What's typed
+     * in it is kept to lowercase letters, digits and the separator; add the
+     * rule that checks it on the server too.
      *
      * @param  '_'|'-'  $separator
      */
@@ -73,13 +77,21 @@ final class TextInput extends Field
 
     protected function typeRules(): array
     {
+        if ($this->inputType === 'color') {
+            // One message that shows the format, whatever is wrong with it.
+            return ['string', function (string $attribute, mixed $value, Closure $fail): void {
+                if (! is_string($value) || preg_match('/^#[0-9a-fA-F]{6}$/', $value) !== 1) {
+                    $fail(__('The :attribute must be a colour written as # and six hex digits, like #1e66f5.'));
+                }
+            }];
+        }
+
         return [
             'string',
             "max:{$this->maxLength}",
             ...match ($this->inputType) {
                 'email' => ['email'],
                 'url' => ['url:http,https'],
-                'color' => ['regex:/^#[0-9a-fA-F]{6}$/'],
                 default => [],
             },
         ];

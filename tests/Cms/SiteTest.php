@@ -88,7 +88,8 @@ it('serves other languages under their prefix', function () {
     expect($id->fresh()?->url())->toBe(url('/id/blog/halo'));
     get('/id/blog/halo')->assertOk()->assertSee('<html lang="id">', false)->assertSee('Halo');
     get('/blog/halo')->assertNotFound();
-    get('/id/blog/hello')->assertNotFound();
+    // The main language's slug goes to the translation's own address.
+    get('/id/blog/hello?ref=x')->assertRedirect(url('/id/blog/halo').'?ref=x')->assertStatus(301);
 });
 
 it('leaves the app\'s own routes first', function () {
@@ -116,7 +117,8 @@ it('previews drafts through a signed link only', function () {
     $draft = sitePost($this->blog, 'Not yet', ['intro' => 'Draft intro'], publish: false);
     $url = URL::temporarySignedRoute('sunrice.cms.preview', now()->addMinutes(30), ['translation' => $draft->id]);
 
-    get($url)->assertOk()->assertSee('Draft intro')->assertSee('Preview of the draft')
+    // The ribbon is added whatever the template: an app's own templates get it too.
+    get($url)->assertOk()->assertSee('Draft intro')->assertSee('data-sunrice-draft-banner', false)->assertSee('Preview of the draft')
         ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertHeader('Cache-Control', 'no-store, private');
     get("/cms-preview/{$draft->id}")->assertForbidden();
 });
@@ -199,7 +201,7 @@ it('serves the main language where an entry isn\'t translated, at that language\
 
     app(PublishEntry::class)->handle($draft->refresh());
     get('/id/blog/halo')->assertOk()->assertSee('<h1>Halo</h1>', false);
-    get('/id/blog/hello')->assertNotFound();
+    get('/id/blog/hello')->assertRedirect(url('/id/blog/halo'));
 });
 
 it('gives templates $fallback, and answers 404 with the fallback off', function () {
@@ -214,21 +216,106 @@ it('gives templates $fallback, and answers 404 with the fallback off', function 
     get('/blog/hello')->assertOk()->assertViewHas('fallback', false);
 });
 
+it('marks the main language\'s content on an untranslated page with its language', function () {
+    sitePost($this->blog, 'Hello', ['body' => '<p>In English</p>']);
+
+    $page = get('/id/blog/hello')->assertOk()->assertViewHas('contentLocale', 'en')->assertViewHas('locale', 'id')
+        ->assertSee('<html lang="id">', false);
+    expect($page->getContent())->toContain('<article lang="en"><h1>Hello</h1>')
+        ->and(Content::page()?->contentLocale())->toBe('en')
+        ->and((string) Content::page()?->langAttribute())->toBe(' lang="en"');
+
+    $page = get('/blog/hello')->assertOk()->assertViewHas('contentLocale', 'en');
+    expect($page->getContent())->toContain('<article><h1>Hello</h1>')
+        ->and(Content::page()?->contentLocale())->toBe('en')
+        ->and((string) Content::page()?->langAttribute())->toBe('');
+});
+
 it('serves an untranslated term\'s page in the main language too', function () {
     $tags = Taxonomy::query()->firstOrFail();
     $tags->update(['route' => '/tags/{slug}']);
     $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
 
-    get('/id/tags/news')->assertOk()->assertViewHas('fallback', true)->assertViewHas('locale', 'id');
+    $page = get('/id/tags/news')->assertOk()->assertViewHas('fallback', true)->assertViewHas('locale', 'id')->assertViewHas('contentLocale', 'en');
+    expect($page->getContent())->toContain('<article lang="en"><h1>News</h1>')
+        ->and(Content::page()?->contentLocale())->toBe('en');
     expect(Content::localeUrls())->toBe(['en' => url('/tags/news'), 'id' => url('/id/tags/news')]);
 
     app(SaveTerm::class)->handle($tags, ['title' => 'Berita', 'locale' => 'id'], $news);
-    get('/id/tags/news')->assertNotFound();
+    get('/id/tags/news')->assertRedirect(url('/id/tags/berita'));
     get('/id/tags/berita')->assertOk()->assertViewHas('fallback', false);
 });
 
-it('leaves pages shown in the main language out of the search in another', function () {
+it('finds pages shown in the main language in the search in another, at that language\'s address', function () {
     sitePost($this->blog, 'Coffee beans');
+    commitForFullText();
 
-    get('/id/search?q=coffee')->assertOk()->assertDontSee(url('/id/blog/coffee-beans'))->assertDontSee(url('/blog/coffee-beans'));
+    get('/id/search?q=coffee')->assertOk()->assertSee('<a href="'.url('/id/blog/coffee-beans').'">Coffee beans</a>', false);
+
+    config(['sunrice-cms.site.fallback' => false]);
+    get('/id/search?q=beans')->assertOk()->assertDontSee(url('/id/blog/coffee-beans'))->assertDontSee(url('/blog/coffee-beans'));
+});
+
+it('lists the main language\'s entries on listing and term pages in a language they aren\'t translated into', function () {
+    $tags = Taxonomy::query()->firstOrFail();
+    $tags->update(['route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    $this->blog->update(['listing_route' => '/blog']);
+    $hello = sitePost($this->blog, 'Hello', ['tags' => [$news->id]]);
+    sitePost($this->blog, 'Coffee', ['tags' => [$news->id]]);
+    $halo = app(CreateTranslation::class)->handle($hello->entry, 'id');
+    app(SaveDraft::class)->handle($halo, ['title' => 'Halo', 'slug' => 'halo']);
+    app(PublishEntry::class)->handle($halo->refresh());
+
+    // One row per entry: the translation where it's live, else the main language's, at this language's address.
+    get('/id/blog')->assertOk()
+        ->assertSee('<a href="'.url('/id/blog/halo').'">Halo</a>', false)
+        ->assertSee('<a href="'.url('/id/blog/coffee').'">Coffee</a>', false)
+        ->assertDontSee('>Hello<', false);
+    get('/id/tags/news')->assertOk()
+        ->assertSee('<a href="'.url('/id/blog/halo').'">Halo</a>', false)
+        ->assertSee('<a href="'.url('/id/blog/coffee').'">Coffee</a>', false);
+    get('/blog')->assertOk()->assertSee('>Hello<', false)->assertDontSee('Halo');
+    // Past the last page: 404, in every language.
+    get('/id/blog?page=9')->assertNotFound();
+    get('/blog?page=9')->assertNotFound();
+    get('/id/tags/news?page=9')->assertNotFound();
+
+    config(['sunrice-cms.site.fallback' => false]);
+    get('/id/blog')->assertOk()->assertSee('Halo')->assertDontSee('Coffee');
+});
+
+it('gives an entry as a visitor reading a language sees it, for breadcrumbs', function () {
+    $this->pages->update(['hierarchical' => true]);
+    $about = sitePost($this->pages, 'About');
+    $tentang = app(CreateTranslation::class)->handle($about->entry, 'id');
+    app(SaveDraft::class)->handle($tentang, ['title' => 'Tentang', 'slug' => 'tentang']);
+    app(PublishEntry::class)->handle($tentang->refresh());
+    $team = sitePost($this->pages, 'Team');
+    $story = sitePost($this->pages, 'Story');
+    $story->entry->update(['parent_id' => $about->entry_id]);
+    $draft = sitePost($this->pages, 'Draft', publish: false);
+
+    $crumb = $story->entry->fresh()?->ancestors()[0]->shownIn('id');
+    expect([$crumb?->title, $crumb?->url()])->toBe(['Tentang', url('/id/tentang')])
+        ->and($about->entry->shownIn('en')?->url())->toBe(url('/about'))
+        // Not translated: the main language's, at the language's address.
+        ->and($team->entry->shownIn('id')?->url())->toBe(url('/id/team'))
+        ->and($draft->entry->shownIn('en'))->toBeNull();
+
+    config(['sunrice-cms.site.fallback' => false]);
+    expect($team->entry->fresh()?->shownIn('id'))->toBeNull();
+});
+
+it('keeps a listing\'s or term page\'s filters in the other languages\' addresses', function () {
+    $tags = Taxonomy::query()->firstOrFail();
+    $tags->update(['route' => '/tags/{slug}']);
+    app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    $this->blog->update(['listing_route' => '/blog']);
+    sitePost($this->blog, 'Hello');
+
+    get('/id/blog?tag=news&sort=new')->assertOk();
+    expect(Content::localeUrls())->toBe(['en' => url('/blog').'?sort=new&tag=news', 'id' => url('/id/blog').'?sort=new&tag=news']);
+    get('/tags/news?page=1&q=x')->assertOk();
+    expect(Content::localeUrls())->toBe(['en' => url('/tags/news').'?page=1&q=x', 'id' => url('/id/tags/news').'?page=1&q=x']);
 });
