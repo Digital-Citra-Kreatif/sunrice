@@ -22,6 +22,9 @@ final class PanelLocale
 
     public const COOKIE = 'sunrice_locale';
 
+    /** Where a user's pick is kept for the session. */
+    public const SESSION = 'sunrice.locale';
+
     public function __construct(private Preferences $preferences) {}
 
     /** @return array<string, string> code => name, from sunrice-admin.locales */
@@ -57,7 +60,16 @@ final class PanelLocale
     {
         $user = $request->user();
         if ($user instanceof Authenticatable) {
-            $picked = $this->preferences->get($user, self::PREFERENCE);
+            // Read once per session, not on every page (SetPanelLanguage keeps it in step).
+            $key = self::SESSION.'.'.$user->getAuthIdentifier();
+            $picked = $request->hasSession() ? $request->session()->get($key) : null;
+            if (! is_string($picked)) {
+                $picked = $this->preferences->get($user, self::PREFERENCE);
+                $picked = is_string($picked) ? $picked : '';
+                if ($request->hasSession()) {
+                    $request->session()->put($key, $picked);
+                }
+            }
             if (self::valid($picked)) {
                 return $picked;
             }

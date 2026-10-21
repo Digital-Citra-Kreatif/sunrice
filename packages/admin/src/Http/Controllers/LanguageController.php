@@ -23,6 +23,7 @@ final class LanguageController
         $user = $request->user();
         abort_unless($user instanceof Authenticatable, 403);
         $locale = $set->handle($user, $request->input('locale'));
+        $request->session()->put(PanelLocale::SESSION.'.'.$user->getAuthIdentifier(), $locale);
 
         return back()->withCookie(cookie()->forever(PanelLocale::COOKIE, $locale));
     }
