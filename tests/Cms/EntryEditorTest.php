@@ -334,27 +334,22 @@ it('keeps the editor to a query budget', function () {
     expect($queries)->toBeLessThanOrEqual(10);
 });
 
-it('changes a published entry\'s date without publishing its draft', function () {
+it('changes a published entry\'s date as main does: publishing what\'s in the editor with that date', function () {
     travelTo('2026-10-19 09:00');
     $translation = app(PublishEntry::class)->handle(draft('Hello'));
-    app(SaveDraft::class)->handle($translation->fresh(), ['title' => 'Hello again', 'data' => ['intro' => 'Hi'], 'version' => $translation->fresh()?->version]);
-    $draft = draft('Draft');
-    editor('view', 'update');
-    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => '2026-09-01 08:00'])->assertForbidden();
+    editor('view', 'update', 'publish');
 
-    editor('view', 'publish');
-    // Back-dated: still live, the draft's changes still waiting.
-    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => '2026-09-01 08:00'])->assertSessionHasNoErrors();
+    // The Status card's Publish date: the form saved and published with the date chosen (no endpoint of its own).
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Hello again', 'data' => ['intro' => 'Hi'], 'publish' => true, 'published_at' => '2026-09-01 08:00'])->assertSessionHasNoErrors();
     $fresh = $translation->fresh();
     expect($fresh?->published_at?->toDateTimeString())->toBe('2026-09-01 08:00:00')
-        ->and($fresh?->isLive())->toBeTrue()->and($fresh?->title)->toBe('Hello')->and($fresh?->hasUnpublishedChanges())->toBeTrue();
+        ->and($fresh?->isLive())->toBeTrue()->and($fresh?->title)->toBe('Hello again')->and($fresh?->hasUnpublishedChanges())->toBeFalse();
     // A date to come: scheduled.
-    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => '2026-11-01 08:00'])->assertSessionHasNoErrors();
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Hello again', 'data' => ['intro' => 'Hi'], 'publish' => true, 'published_at' => '2026-11-01 08:00'])->assertSessionHasNoErrors();
     expect($translation->fresh()?->status())->toBe('scheduled');
 
-    post("/admin/cms/entries/{$draft->entry_id}/date", ['published_at' => '2026-09-01 08:00'])->assertSessionHasErrors('published_at');
-    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => 'soon'])->assertSessionHasErrors('published_at');
-    post("/admin/cms/entries/{$translation->entry_id}/date", [])->assertSessionHasErrors('published_at');
+    expect(app('router')->has('sunrice.admin.cms.entries.date'))->toBeFalse();
+    post("/admin/cms/entries/{$translation->entry_id}/date", ['published_at' => '2026-09-01 08:00'])->assertNotFound();
 });
 
 it('shows who published each revision, what changed, and compares one with the draft', function () {
