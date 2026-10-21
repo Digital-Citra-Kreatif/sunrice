@@ -594,6 +594,7 @@
     "The activity log was pruned": "Log aktivitas dipangkas",
     "The address :ip asked for more password reset emails than allowed and was blocked for a while.": "Alamat :ip meminta email atur ulang kata sandi lebih banyak dari yang diizinkan dan diblokir untuk sementara.",
     "The address :ip tried passwords for many accounts and was blocked. The last one was :account.": "Alamat :ip mencoba kata sandi untuk banyak akun dan diblokir. Yang terakhir adalah :account.",
+    "The admin assets published for :list are older than the installed packages, so the panel may run old code. On the server, run php artisan sunrice:assets and php artisan vendor:publish --tag=laravel-assets --force.": "Aset admin yang dipublikasikan untuk :list lebih lama daripada paket yang terpasang, jadi panel mungkin menjalankan kode lama. Di server, jalankan php artisan sunrice:assets dan php artisan vendor:publish --tag=laravel-assets --force.",
     "The app can't send email yet (the :mailer mailer only writes to the log), so nobody would get their login code. Set up mail first: see Settings → Mail.": "Aplikasi belum bisa mengirim email (mailer :mailer hanya menulis ke log), sehingga tidak ada yang akan menerima kode masuknya. Siapkan email dulu: lihat Pengaturan → Email.",
     "The file is larger than the :size limit.": "File lebih besar dari batas :size.",
     "The file is larger than the server accepts (:size) or didn't finish uploading.": "File lebih besar dari yang diterima server (:size) atau unggahannya tidak selesai.",

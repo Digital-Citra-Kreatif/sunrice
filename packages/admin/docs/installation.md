@@ -112,7 +112,7 @@ The panel's built assets are copied to `public/vendor/sunrice-admin` by `php art
 ]
 ```
 
-Until the panel's are published, admin pages show only a notice saying so; after an update without publishing, the panel keeps running the old ones.
+Until the panel's are published, admin pages show only a notice saying so. After an update without publishing, the panel keeps running the old ones, and super admins see a warning at the top of each page saying which are older than the installed packages (the panel's and the CMS's, compared with the packages' builds) and what to run. With packages installed from a path (a symlinked `"type": "path"` repository), a change to them doesn't go through `composer update`, so its scripts don't run: run both commands yourself after changing them, or in your deploy script.
 
 ## Upgrading
 

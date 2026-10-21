@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Assets;
 
 use Illuminate\Foundation\Vite;
 use Illuminate\Support\HtmlString;
+use Sunrice\Admin\Panel;
 
 /**
  * The panel's own built assets. They are built into the package's dist/
@@ -49,6 +50,25 @@ final class AdminAssets
         $built = self::distPath().'/manifest.json';
 
         return is_file($published) && is_file($built) && md5_file($published) !== md5_file($built);
+    }
+
+    /**
+     * What's published older than the installed packages: "Sunrice" for
+     * the panel's own, and the id of each plugin bundle that said where it's
+     * published from (PluginBundle::publishedFrom()). Admins see a warning.
+     *
+     * @return list<string>
+     */
+    public static function stale(): array
+    {
+        $stale = self::outdated() ? ['Sunrice'] : [];
+        foreach (app(Panel::class)->getBundles() as $bundle) {
+            if ($bundle->outdated()) {
+                $stale[] = $bundle->id;
+            }
+        }
+
+        return $stale;
     }
 
     /** @var array<string, string|null> the manifests' hashes, once per process */

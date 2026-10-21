@@ -29,6 +29,10 @@ final class PluginBundle
     /** @var list<string> */
     private array $pages = [];
 
+    private ?string $source = null;
+
+    private ?string $published = null;
+
     private function __construct(public readonly string $id) {}
 
     public static function make(string $id): self
@@ -70,6 +74,40 @@ final class PluginBundle
         }
 
         return $this;
+    }
+
+    /**
+     * Where the package's built files are and where the app publishes
+     * them (`vendor:publish`): the panel warns admins when the published
+     * copy differs from the build, after an update that didn't publish.
+     *
+     *     ->publishedFrom(__DIR__.'/../dist', public_path('vendor/shop'))
+     */
+    public function publishedFrom(string $source, string $published): self
+    {
+        $this->source = rtrim($source, '/');
+        $this->published = rtrim($published, '/');
+
+        return $this;
+    }
+
+    /** Whether the published files differ from the package's build (one missing or changed). */
+    public function outdated(): bool
+    {
+        if ($this->source === null || $this->published === null || ! is_dir($this->source)) {
+            return false;
+        }
+        foreach (glob($this->source.'/*') ?: [] as $built) {
+            if (! is_file($built)) {
+                continue;
+            }
+            $copy = $this->published.'/'.basename($built);
+            if (! is_file($copy) || filesize($copy) !== filesize($built) || md5_file($copy) !== md5_file($built)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getModule(): ?string

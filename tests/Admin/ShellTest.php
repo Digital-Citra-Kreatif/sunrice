@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
+use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Http\Middleware\Authenticate;
@@ -141,6 +143,43 @@ it('tells you when the assets are not published, and publishes them', function (
         ->assertSee('/vendor/sunrice-admin/assets/app-', false);
 
     (new Filesystem)->deleteDirectory($public);
+});
+
+it('warns super admins when the published assets are older than the installed packages', function () {
+    $public = sys_get_temp_dir().'/sunrice-public-'.uniqid();
+    $dist = sys_get_temp_dir().'/sunrice-dist-'.uniqid();
+    mkdir($public);
+    mkdir($dist);
+    file_put_contents($dist.'/admin.js', 'new();');
+    mkdir($public.'/vendor/shop', recursive: true);
+    file_put_contents($public.'/vendor/shop/admin.js', 'new();');
+    app()->usePublicPath($public);
+    usePanel(fn (Panel $panel) => $panel->bundle(PluginBundle::make('shop')->module('/vendor/shop/admin.js')->pages('Shop/')->publishedFrom($dist, $public.'/vendor/shop')));
+    artisan('sunrice:assets')->assertSuccessful();
+    $admin = adminUser(Panel::ACCESS);
+    Role::findOrCreate(SyncPermissions::superAdminRole(), 'web');
+    $admin->assignRole(SyncPermissions::superAdminRole());
+    $warning = 'are older than the installed packages';
+
+    actingAs($admin);
+    get('/admin')->assertOk()->assertDontSee($warning);
+
+    // An update without publishing: the panel's manifest and the plugin's build changed.
+    file_put_contents($public.'/vendor/sunrice-admin/manifest.json', '{"old": true}');
+    file_put_contents($dist.'/admin.js', 'newer();');
+    get('/admin')->assertOk()->assertSee('The admin assets published for Sunrice, shop are older than the installed packages')
+        ->assertSee('php artisan sunrice:assets');
+    // Only to super admins, and only on full page loads.
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin')->assertOk()->assertDontSee($warning);
+
+    actingAs($admin);
+    artisan('sunrice:assets')->assertSuccessful();
+    copy($dist.'/admin.js', $public.'/vendor/shop/admin.js');
+    get('/admin')->assertOk()->assertDontSee($warning);
+
+    (new Filesystem)->deleteDirectory($public);
+    (new Filesystem)->deleteDirectory($dist);
 });
 
 it('loads the panel font, or the one configured instead', function () {
