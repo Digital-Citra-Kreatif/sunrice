@@ -121,7 +121,7 @@ it('keeps translators out of what every language shares: parent, comments, templ
     post('/admin/cms/entries/reorder', ['locale' => 'id', 'collection' => 'blog', 'ids' => [$post->entry_id, $parent->entry_id]])->assertForbidden();
     expect($post->entry->fresh())->comments_closed->toBeFalsy()->parent_id->toBeNull();
     // Saving their draft carries no settings: any sent are left as they are.
-    put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'id', 'title' => 'Judul', 'data' => [], 'parent_id' => $parent->entry_id, 'comments_closed' => true])->assertRedirect();
+    put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'id', 'title' => 'Judul', 'data' => [], 'comments_closed' => true])->assertSessionHasNoErrors()->assertRedirect();
     expect($post->entry->fresh())->comments_closed->toBeFalsy()->parent_id->toBeNull();
     // Page settings aren't offered to them.
     get("/admin/cms/entries/{$post->entry_id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('settings', null)->where('can.update', true));
@@ -129,7 +129,7 @@ it('keeps translators out of what every language shares: parent, comments, templ
     // Authors of their own entries still may.
     $author = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own');
     $mine = scopedDraft($this->blog, $author);
-    put("/admin/cms/entries/{$mine->entry_id}/settings", ['comments_closed' => true])->assertRedirect();
+    put("/admin/cms/entries/{$mine->entry_id}/settings", ['comments_closed' => true])->assertSessionHasNoErrors()->assertRedirect();
     expect($mine->entry->fresh()->comments_closed)->toBeTruthy();
 });
 
