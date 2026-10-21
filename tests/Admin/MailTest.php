@@ -19,7 +19,7 @@ beforeEach(function () {
     config([
         'mail.default' => 'smtp',
         'mail.mailers.smtp' => ['transport' => 'smtp', 'host' => 'mail.example.com', 'port' => 587, 'password' => 'hunter2'],
-        'mail.from' => ['address' => 'admin@example.com', 'name' => 'Acme'],
+        'mail.from' => ['address' => 'admin@acme.co.id', 'name' => 'Acme'],
         'queue.default' => 'database',
     ]);
 });
@@ -37,7 +37,7 @@ it('shows how mail is sent on Settings → Mail, without passwords or a form', f
         ->where('cards.0.blocks.0.rows', [
             ['label' => 'Mailer', 'value' => 'smtp', 'type' => 'text'],
             ['label' => 'Server', 'value' => 'mail.example.com:587', 'type' => 'text'],
-            ['label' => 'From', 'value' => 'Acme <admin@example.com>', 'type' => 'text'],
+            ['label' => 'From', 'value' => 'Acme <admin@acme.co.id>', 'type' => 'text'],
             ['label' => 'Queue connection', 'value' => 'database (queued mail needs a running queue worker)', 'type' => 'text'],
         ])
         ->where('cards.0.buttons.0', fn ($button) => $button['label'] === 'Send a test email' && $button['url'] === '/admin/settings/mail/test'));
@@ -103,3 +103,16 @@ final class OwnMailSettings extends Settings
         return $form;
     }
 }
+
+it('warns while mail is still sent from an example address', function () {
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.mail'));
+    get('/admin/settings/mail')->assertInertia(fn (Assert $page) => $page->where('cards.0.blocks', fn ($blocks) => collect($blocks)->where('type', 'notice')->isEmpty()));
+
+    foreach (['hello@example.com', 'noreply@shop.test', 'me@localhost'] as $address) {
+        config(['mail.from.address' => $address]);
+        get('/admin/settings/mail')->assertInertia(fn (Assert $page) => $page
+            ->where('cards.0.blocks.1.type', 'notice')
+            ->where('cards.0.blocks.1.tone', 'warning')
+            ->where('cards.0.blocks.1.text', fn (string $text) => str_contains($text, $address) && str_contains($text, 'MAIL_FROM_ADDRESS')));
+    }
+});

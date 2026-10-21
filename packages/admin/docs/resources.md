@@ -90,7 +90,7 @@ public static function query(): Builder
 | `Toggle` | boolean | |
 | `Select` | one of the options | `->options([value => label])` (or a closure): other values are refused; `->searchable()` adds a search box over them, for long lists |
 | `DatePicker` | date | `->withTime()` |
-| `Password` | a hash | never sent to the browser; empty keeps the current one when editing, so `->required()` applies when creating; Laravel's `Password::defaults()` rules |
+| `Password` | a hash | never sent to the browser; empty keeps the current one when editing, so `->required()` applies when creating; Laravel's `Password::defaults()` rules; `->confirmed()` asks for it twice (`{name}_confirmation`; the AI tools fill it in) |
 | `Secret` | a string | never sent to the browser; empty keeps the current value; store it encrypted (`encrypted` cast) |
 | `MediaPicker` | a media id, or a list with `->multiple()` | `->images()`, `->types(['image', 'document'])`, `->multiple(max)` (cast the attribute to `array`); see [Media](media.md#picking-media-in-forms) |
 | `CheckboxList` | an array of values | `->options([value => label])`, or groups `[group => [value => label]]`, or a closure returning them |
@@ -169,6 +169,7 @@ Text is escaped, and times (in rows and list items) are shown in the viewer's ow
 - `Filter::make('status')->options([...])` (or a closure returning them), `Filter::make('active')->boolean()`, or any query: `->query(fn (Builder $q, string $value) => ...)`. Only the listed option values are applied.
 - `Filter::dateRange('created_at')->label('Created')`: two dates, either end open, both days included (`whereDate`). Its value is `from,to` (`2026-01-01,2026-01-31`, `2026-01-01,`); anything else is ignored. With `->query()` the closure gets that value, and `Filter::range($value)` reads it as `[$from, $to]`.
 - `Column::make('overdue')->state(fn (Invoice $i) => $i->due_on->isPast())->boolean()` shows a value worked out from the record (not sortable or searchable; keep it free of queries).
+- `Column::make('status')->sortable()->format(fn (?string $status) => Str::headline($status ?? ''))` shows the value differently and keeps sorting and search on the stored one (the Roles list shows `super-admin` as "Super admin" this way, `RoleResource::displayName()`).
 - `->defaultSort('-created_at')`, `->perPage(50)` (each user may pick another page size and hide columns from the list's **Columns** menu; both are kept per user, see [preferences](preferences.md)), `->exportable()` (CSV of the filtered, sorted list, for people with `<prefix>.export`; values that spreadsheets would run as formulas are escaped). For CSV of your own, `Sunrice\Admin\Support\Csv::write($stream, $cells)` escapes the same way (`Csv::cell()` for one value).
 
 Sorting, filtering and searching only ever use what the table declares; anything else in the URL is ignored.
@@ -211,4 +212,4 @@ For a model with a trash (`SoftDeletes`), `->trashed()` makes an action for reco
 ->actions([Action::make('restore')->trashed()->ability('delete')->handle(fn (Note $note) => $note->restore() ? 'Restored.' : null)])
 ```
 
-A row action with the key `delete` replaces the built-in Delete in the row's menu (the Users screen does this to ask what happens to the user's content). Deleting itself, from the row, the edit page or in bulk, goes through the resource's `deleteRecord($record)`: override it to delete through an action of your own, or throw `ActionFailed` to refuse with a message (the Roles screen refuses while users still have the role).
+A row action with the key `delete` replaces the built-in Delete in the row's menu and on the edit page (after it, the edit page goes back to the list), and a bulk action with the key `delete` replaces the built-in bulk Delete; the Users screen does both to ask what happens to the user's content. Otherwise deleting, from the row, the edit page or in bulk, goes through the resource's `deleteRecord($record)`: override it to delete through an action of your own, or throw `ActionFailed` to refuse with a message (the Roles screen refuses while users still have the role).

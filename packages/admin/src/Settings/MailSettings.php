@@ -41,12 +41,24 @@ final class MailSettings extends Settings
             'From' => $info['from'] === null ? 'Not set (MAIL_FROM_ADDRESS)' : trim(($info['from_name'] ?? '').' <'.$info['from'].'>'),
             'Queue connection' => $info['queue'].($info['queue'] === 'sync' ? ' (queued mail is sent during the request)' : ' (queued mail needs a running queue worker)'),
         ]);
+        if ($info['from'] !== null && self::isExampleAddress($info['from'])) {
+            $card->notice("Mail is sent from {$info['from']}, an example address: replies go nowhere and spam filters may drop it. Set MAIL_FROM_ADDRESS (and MAIL_FROM_NAME) in the app's .env to an address of your own domain.", Card::WARNING);
+        }
         if (! $info['delivers']) {
             $card->notice("The {$info['transport']} mailer doesn't deliver email: messages only go to the log. Nobody receives login codes, password resets or alerts.", Card::WARNING);
         }
         $card->button('Send a test email', route('sunrice.admin.settings.mail.test', [], false), 'Send a test email to '.(is_string(data_get($user, 'email')) ? data_get($user, 'email') : 'your address').' now?');
 
         return [$card];
+    }
+
+    /** An address on a domain reserved for examples and tests (RFC 2606), like Laravel's default hello@example.com. */
+    public static function isExampleAddress(string $address): bool
+    {
+        $domain = strtolower(trim((string) strrchr($address, '@'), '@ '));
+
+        return $domain === '' || in_array($domain, ['example.com', 'example.net', 'example.org', 'localhost'], true)
+            || preg_match('/\.(example|test|invalid|localhost|local)$/', $domain) === 1;
     }
 
     /**

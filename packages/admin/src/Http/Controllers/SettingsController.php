@@ -54,6 +54,10 @@ final class SettingsController
         $secrets = [];
         foreach ($registered->fields($form) as $field) {
             $value = $current[$field->name];
+            // Nothing saved yet: the field's default, when it has one (what applies until then).
+            if (($value === '' || $value === null) && $field->formValue(null) !== null) {
+                $value = $field->formValue(null);
+            }
             if ($field->keepsValueWhenEmpty()) {
                 $secrets[$field->name] = $value !== null && $value !== '';
                 $value = null;

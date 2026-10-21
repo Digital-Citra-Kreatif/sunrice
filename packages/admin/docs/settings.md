@@ -59,7 +59,7 @@ $shop->fill(['guestCheckout' => '0'])->save();   // converted to the property's 
 
 ## The form
 
-Settings forms use the [resource form fields](resources.md#forms), with field names matching the properties. Only the fields on the form are written. `Secret` is for API keys and the like: its value is never sent to the browser, and leaving it empty keeps the saved one. `Password` (which hashes) and fields with `saveUsing()` can't be settings.
+Settings forms use the [resource form fields](resources.md#forms), with field names matching the properties. A setting that is empty shows its field's `->default()` when it has one (CMS Languages shows the config's languages that way, until saved). Only the fields on the form are written. `Secret` is for API keys and the like: its value is never sent to the browser, and leaving it empty keeps the saved one. `Password` (which hashes) and fields with `saveUsing()` can't be settings.
 
 A section may also show read-only cards under its form with `cards(Authorizable $user)`, built with `Sunrice\Admin\Support\Card` (see [Cards beside the form](resources.md#cards-beside-the-form)): how something is set up outside the panel, with a button that tries it. A section with no fields shows only its cards and no Save button (Settings → Mail is one):
 
@@ -71,4 +71,4 @@ public static function cards(Authorizable $user): array
 }
 ```
 
-Saving a section fires `Sunrice\Admin\Events\SettingsSaved` with the section's key and the names of the settings that changed (no values: they may be secrets). The `Sunrice\Admin\Actions\Settings\SaveSettings` action does the same for your own screens.
+Saving a section fires `Sunrice\Admin\Events\SettingsSaved` with the section's key and the names of the settings that changed (no values: they may be secrets), whether the Settings page saved it or your code called `save()` (a seeder, a command): `save()` returns those names, and fires nothing when none changed. The `Sunrice\Admin\Actions\Settings\SaveSettings` action also records the change in the activity log; use it for your own screens.

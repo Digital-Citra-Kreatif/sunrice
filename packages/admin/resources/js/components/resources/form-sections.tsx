@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { FieldInput, type FieldValue } from './fields';
-import type { SectionInfo } from './types';
+import type { FieldInfo, SectionInfo } from './types';
 
 const gridColumns: Record<number, string> = { 1: '', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' };
 const spans: Record<number, string> = { 1: '', 2: 'sm:col-span-2', 3: 'sm:col-span-3', 4: 'sm:col-span-4' };
@@ -48,10 +48,29 @@ export function FormSections({ sections, data, errors, onChange }: Props) {
                             )}
                             {field.help && <p className="text-sm text-muted-foreground">{field.help}</p>}
                             <InputError message={error} />
+                            {field.type === 'password' && field.confirmed === true && (
+                                // Password::confirmed(): the same again, as "{name}_confirmation".
+                                <PasswordConfirmation field={field} value={data[`${field.name}_confirmation`] ?? null}
+                                    onChange={(value) => onChange(`${field.name}_confirmation`, value)} />
+                            )}
                         </div>
                     );
                 })}
             </CardContent>
         </Card>
     ));
+}
+
+function PasswordConfirmation({ field, value, onChange }: { field: FieldInfo; value: FieldValue; onChange: (value: FieldValue) => void }) {
+    const name = `${field.name}_confirmation`;
+
+    return (
+        <div className="mt-3 grid min-w-0 grid-cols-1 content-start gap-2">
+            <Label id={`field-${name}-label`} htmlFor={`field-${name}`}>
+                Confirm {field.label.toLowerCase()}
+                {field.required && <span className="text-destructive" aria-hidden>*</span>}
+            </Label>
+            <FieldInput field={{ ...field, name, confirmed: false, placeholder: null }} value={value} invalid={false} onChange={onChange} />
+        </div>
+    );
 }

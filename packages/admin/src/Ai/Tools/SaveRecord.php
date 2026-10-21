@@ -11,6 +11,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Sunrice\Admin\Actions\Resources\SaveRecord as SaveRecordAction;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Resources\Forms\Password;
 
 #[Description('Create a record (no "id") or change one: "values" holds only the fields to set; the others keep their values. Validated like the screen; use get_record first for the fields.')]
 final class SaveRecord extends ResourceTool
@@ -40,6 +41,12 @@ final class SaveRecord extends ResourceTool
 
         $fields = $resource->form()->fields($operation);
         $input = [...self::currentValues($fields, $record->exists ? $record : null), ...$values];
+        // A password asked for twice on the screen is sent once here.
+        foreach ($fields as $field) {
+            if ($field instanceof Password && $field->isConfirmed()) {
+                $input[$field->name.'_confirmation'] ??= $input[$field->name] ?? null;
+            }
+        }
         try {
             $changed = app(SaveRecordAction::class)->handle($resource, $record, $input, $operation);
         } catch (ValidationException $e) {

@@ -11,6 +11,7 @@ use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Password;
+use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Settings\SettingsStore;
 use Sunrice\Tests\Admin\Fixtures\Currency;
@@ -186,4 +187,28 @@ it('lists the panel\'s Security and Mail sections first, for those allowed', fun
     get('/admin/settings/outbox')->assertInertia(fn (Assert $page) => $page
         ->where('sections', [['key' => 'security', 'label' => 'Security'], ['key' => 'mail', 'label' => 'Mail'], ['key' => 'outbox', 'label' => 'Outbox']])
         ->where('cards', []));
+});
+
+it('announces what changed when settings are saved in code, as the screen does', function () {
+    Event::fake([SettingsSaved::class]);
+
+    $shop = app(ShopSettings::class);
+    $shop->currency = Currency::Dollar;
+    $shop->freeShippingFrom = 100;
+    expect($shop->save())->toBe(['currency', 'freeShippingFrom']);
+    Event::assertDispatched(SettingsSaved::class, fn (SettingsSaved $event) => $event->section === 'shop' && $event->changed === ['currency', 'freeShippingFrom']);
+
+    // Saving the same values again announces nothing.
+    expect(app(ShopSettings::class)->save())->toBe([]);
+    Event::assertDispatchedTimes(SettingsSaved::class, 1);
+});
+
+it('answers a save with the saved values, which the form starts again from', function () {
+    app(SecuritySettings::class)->fill(['twoFactor' => true])->save();
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.security'));
+
+    put('/admin/settings/security', ['twoFactor' => false], ['X-Inertia' => 'true', 'Referer' => url('/admin/settings/security')])
+        ->assertRedirect('/admin/settings/security');
+    get('/admin/settings/security')->assertInertia(fn (Assert $page) => $page->where('values.twoFactor', false));
+    expect(app(SecuritySettings::class)->twoFactor)->toBeFalse();
 });

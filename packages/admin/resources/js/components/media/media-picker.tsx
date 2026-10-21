@@ -63,7 +63,7 @@ export function MediaPickerInput({ id, value, multiple, max, types, disabled, in
                     {shown.map(({ mediaId, item }) => (
                         <div key={mediaId} className="relative w-28 overflow-hidden rounded-md border bg-card">
                             <div className="flex aspect-square items-center justify-center bg-muted">
-                                {item?.thumbnail ? <img src={item.thumbnail} alt={item.alt ?? ''} className="size-full object-cover" />
+                                {item?.thumbnail ? <img src={item.thumbnail} alt={item.alt ?? ''} className={item.mimeType.includes('svg') ? 'size-full object-contain p-2' : 'size-full object-cover'} />
                                     : item ? <FileIcon mimeType={item.mimeType} className="size-8 text-muted-foreground" />
                                         : <span className="px-2 text-center text-xs text-muted-foreground">Missing file</span>}
                             </div>

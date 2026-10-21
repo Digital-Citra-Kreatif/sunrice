@@ -48,7 +48,7 @@ final class SecuritySettings extends Settings
                             $fail('The app can\'t send email yet (the '.MailSettings::info()['transport'].' mailer only writes to the log), so nobody would get their login code. Set up mail first: see Settings → Mail.');
                         }
                     }])
-                    ->help('After the password, everyone also types a 6-digit code we email them. Make sure the app can send email first: without it, nobody can log in (php artisan sunrice:two-factor off turns it off again).'),
+                    ->help('After the password, everyone also types a 6-digit code we email them. Make sure the app can send email first (Settings → Mail → Send a test email): without it, nobody can log in. If that happens, a developer can turn it off on the server (Help → Guide → Settings says how).'),
             ]),
             Section::make('Security alerts')->schema([
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')

@@ -228,3 +228,10 @@ it('offers live pages as the homepage, searchable, and lets editors set it from 
     get('/')->assertOk()->assertSee('Welcome');
     expect(app(Panel::class)->getDefaultRoles()['editor'] ?? [])->toContain('cms.homepage');
 });
+
+it('previews titles with the saved separator and site name', function () {
+    app(SiteSettings::class)->fill(['name' => 'Lumina Estates', 'separator' => '·'])->save();
+    $help = collect(SiteSettings::form(new Form)->fields('edit'))->firstWhere('name', 'appendName')->toArray()['help'];
+
+    expect($help)->toBe('"About · Lumina Estates" in search results and browser tabs.');
+});

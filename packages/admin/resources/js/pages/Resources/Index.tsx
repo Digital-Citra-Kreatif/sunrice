@@ -96,7 +96,11 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
     const deleteRow = (row: Row) =>
         confirm(`Delete ${row.title}? This can't be undone.`, () => router.delete(`${base}/${row.id}`, { preserveScroll: true }), true);
     const runBulk = (action: ActionInfo) =>
-        confirm(action.confirm, () => router.post(`${base}/bulk/${action.key}`, { ids: selected }, { preserveScroll: true }), action.destructive);
+        confirm(action.confirm, (values) => action.fields.length === 0
+            ? router.post(`${base}/bulk/${action.key}`, { ids: selected }, { preserveScroll: true })
+            : new Promise<boolean>((resolve) => router.post(`${base}/bulk/${action.key}`, { ...values, ids: selected }, {
+                preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
+            })), action.destructive, action.fields);
 
     const exportUrl = () => {
         const params = new URLSearchParams();

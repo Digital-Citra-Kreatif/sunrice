@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Settings;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Support\Str;
+use Sunrice\Admin\Events\SettingsSaved;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Support\Card;
 
@@ -93,9 +94,23 @@ abstract class Settings
         return $this;
     }
 
-    public function save(): void
+    /**
+     * Store the values and, when some changed, fire SettingsSaved with
+     * their names (as the Settings page does).
+     *
+     * @return list<string> the settings that changed
+     */
+    public function save(): array
     {
+        $before = (new static)->toArray();
+        $after = $this->toArray();
+        $changed = array_values(array_filter(array_keys($after), fn (string $name) => $after[$name] !== $before[$name]));
         app(SettingsStore::class)->save($this);
+        if ($changed !== []) {
+            SettingsSaved::dispatch(static::key(), $changed);
+        }
+
+        return $changed;
     }
 
     /** @return array<string, mixed> property => value */

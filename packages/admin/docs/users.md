@@ -2,7 +2,7 @@
 
 The panel comes with two screens under **Administration**, built as [resources](resources.md):
 
-- **Users**: the users of the panel's guard (`config/auth.php`), with name, email, a new password (hashed; leave it empty when editing to keep the current one) and roles.
+- **Users**: the users of the panel's guard (`config/auth.php`), with name, email, a new password typed twice (hashed; leave it empty when editing to keep the current one) and roles.
 - **Roles**: the roles of the panel's guard and their permissions, grouped as the panel and its plugins register them (see [Roles and permissions](permissions.md)).
 
 Their permissions are `sunrice.users.view`, `.create`, `.update`, `.delete` and `sunrice.roles.view` … Give them to the roles that should manage people; super admins have them anyway.
@@ -14,7 +14,7 @@ Nobody can give out as much as they have, let alone more. Roles have no levels: 
 - Super admins manage every user and role.
 - Anyone else may edit, delete or change the roles of a user only if that user is strictly below them (counting roles and permissions given directly). Super admins, and anyone with the same access as theirs, are out of their reach.
 - They may give out, edit or delete a role only if it is strictly below them; only those roles, and permissions they have, are offered and accepted. A role they create or edit must end up strictly below them, and so must a user: roles that are each below them but together add up to their access are refused. The super admin role is out of their reach.
-- Everyone may edit their own name, email and password. Nobody can delete their own account or change their own roles.
+- Everyone may edit their own name, email and password, on the Users screen (if they may open it) or on **Your account** (`GET admin/account`, `sunrice.admin.account.edit` / `.update`, for everyone with panel access; under their name in the sidebar), where a new email address or password needs the current one. Nobody can delete their own account or change their own roles.
 - The super admin role can't be edited or deleted: it may do everything anyway.
 - A role still given to users can't be deleted: take it away from them first.
 
@@ -31,15 +31,19 @@ app(PermissionRank::class)->canGrantPermissions($admin, ['shop.orders.refund']);
 app(PermissionRank::class)->isStrictlyBelow($admin, $permissions); // all theirs, and not all of theirs
 ```
 
+## Invitations
+
+**New user** may leave the password empty and turn on **Email an invitation**: the new user gets an email with a link to the panel's reset page to choose their own password (until then the account has an unguessable random one). The row's **Email a password link** sends a fresh link to anyone. Both go through `Sunrice\Admin\Actions\Users\InviteUser` (`handle($user, $inviter = null)`), which uses the panel's password broker (`sunrice-admin.auth.passwords`), so the link lasts as long as its reset links (`auth.passwords.*.expire`, 60 minutes by default: raise it if invitations should last longer), and records the security event `invitation sent`.
+
 ## Deleting a user
 
-What a user made shouldn't point at someone who is gone. The row's **Delete…** on the Users screen asks what happens to it:
+What a user made shouldn't point at someone who is gone. **Delete…** on the Users screen (in the row's menu, on the edit page and for the selected users) asks what happens to it:
 
 - **Give it to another user**: their content moves to the user you pick.
 - **Keep it, without an owner** (the default): it stays, with no author or uploader.
 - **Delete it**: each kind decides what that means. Uploads stay without an uploader, since other content may use them; the CMS moves their entries and comments to the trash.
 
-The edit page's delete button and deleting several users at once keep the content without an owner. Either way the user's AI access tokens, lock state and kept edits go with them, and roles are detached.
+The user's Security card says what they own ("Owns: 3 uploads and 12 entries"). Either way the user's AI access tokens, lock state and kept edits go with them, and roles are detached.
 
 In code, `Sunrice\Admin\Actions\Users\DeleteUser` does the same (`REASSIGN`, `KEEP` and `DELETE`); it throws `ActionFailed` when reassigning without another user:
 

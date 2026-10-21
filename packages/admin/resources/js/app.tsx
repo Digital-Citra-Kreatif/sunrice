@@ -4,6 +4,7 @@ import { config, createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import AppLayout from '@/layouts/AppLayout';
 import { initializeAppearance } from '@/hooks/use-appearance';
+import { pageTitle } from '@/lib/branding';
 import { trackPanelPath } from '@/lib/admin-url';
 import { pluginPage, type PageComponent } from '@/lib/page-registry';
 import { installRuntime } from '@/runtime';
@@ -23,7 +24,7 @@ const corePages = import.meta.glob<{ default: PageComponent }>('./pages/**/*.tsx
 let brand = 'Admin';
 
 createInertiaApp({
-    title: (title) => (title && title !== brand ? `${title} · ${brand}` : brand),
+    title: (title) => pageTitle(title, brand),
     resolve: async (name, page) => {
         const props = page?.props as Partial<SharedProps> | undefined;
         brand = props?.sunrice?.brand ?? brand;
