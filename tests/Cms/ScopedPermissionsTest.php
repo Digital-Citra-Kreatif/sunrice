@@ -109,6 +109,27 @@ it('lets translators edit the other languages only', function () {
     get("/admin/cms/entries/{$post->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('can.update', false));
 });
 
+it('keeps translators out of what every language shares: parent, comments, template, blueprint and order', function () {
+    $parent = scopedDraft($this->blog);
+    $post = scopedDraft($this->blog);
+    app(CreateTranslation::class)->handle($post->entry, 'id');
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate'));
+
+    put("/admin/cms/entries/{$post->entry_id}/settings", ['locale' => 'id', 'comments_closed' => true])->assertForbidden();
+    put("/admin/cms/entries/{$post->entry_id}/settings", ['locale' => 'xx', 'parent_id' => $parent->entry_id])->assertForbidden();
+    post("/admin/cms/entries/{$post->entry_id}/move", ['locale' => 'id', 'direction' => 'up'])->assertForbidden();
+    post('/admin/cms/entries/reorder', ['locale' => 'id', 'collection' => 'blog', 'ids' => [$post->entry_id, $parent->entry_id]])->assertForbidden();
+    expect($post->entry->fresh())->comments_closed->toBeFalsy()->parent_id->toBeNull();
+    // Page settings aren't offered to them.
+    get("/admin/cms/entries/{$post->entry_id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('settings', null)->where('can.update', true));
+
+    // Authors of their own entries still may.
+    $author = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own');
+    $mine = scopedDraft($this->blog, $author);
+    put("/admin/cms/entries/{$mine->entry_id}/settings", ['comments_closed' => true])->assertRedirect();
+    expect($mine->entry->fresh()->comments_closed)->toBeTruthy();
+});
+
 it('scopes terms and submissions too', function () {
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     Taxonomy::query()->create(['handle' => 'categories', 'title' => 'Categories']);

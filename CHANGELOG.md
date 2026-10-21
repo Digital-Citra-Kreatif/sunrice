@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Translators (`cms.entries.translate` only) can no longer change what every language shares by sending a `locale`: an entry's Page settings (`parent_id`, `comments_closed`, as `template` and `blueprint` already were) and moving it up or down need `cms.entries.update` (or `update-own` for one's own), and the editor no longer shows them Page settings. (SEC-3)
 - Signing in with the right password to an account without `sunrice.access` answers like a wrong password (`auth.failed`) and counts towards the login throttle, instead of "This account can't use the admin panel.", which confirmed the account and its password; the reason is still logged ("login refused"). (SEC-2)
 - Links in emails are built from `APP_URL`, never from the request's `Host` header: the password reset link (which a forged `Host` turned into token theft), the security alerts' activity link, and the CMS's moderation, reply and submission-file links, through the new `Support\AppUrl::route()` / `url()` (`@api`). [Security](packages/admin/docs/security.md#links-in-emails) recommends `TrustHosts`. (SEC-1)
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
