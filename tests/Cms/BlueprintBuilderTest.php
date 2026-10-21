@@ -7,6 +7,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\CmsServiceProvider;
+use Sunrice\Cms\Fields\DefinitionValidator;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Fieldset;
@@ -174,4 +175,21 @@ it('keeps what visitors read of a field in other languages', function () {
 
     post('/admin/cms/blueprints', ['handle' => 'bad', 'title' => 'Bad', 'fields' => [['handle' => 'x', 'type' => 'text', 'translations' => ['Not a code!' => ['label' => 'X']]]]])
         ->assertSessionHasErrors(['fields.0.translations']);
+});
+
+it('puts "At most" behind its "Several" switch: sent with its condition, not kept while off', function () {
+    builderUser();
+
+    get('/admin/cms/blueprints/create')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('fieldTypes', function ($types) {
+            $max = collect(collect($types)->firstWhere('type', 'terms')['settings'])->firstWhere('handle', 'max');
+
+            return $max['condition']['field'] === 'multiple' && $max['condition']['operator'] === 'filled' && $max['config']['placeholder'] === 'No limit';
+        }));
+
+    $validator = app(DefinitionValidator::class);
+    $off = $validator->validate([['handle' => 'topics', 'type' => 'media', 'config' => ['multiple' => false, 'max' => 3]]]);
+    $on = $validator->validate([['handle' => 'topics', 'type' => 'media', 'config' => ['multiple' => true, 'max' => 3]]]);
+    expect($off[0]->config)->not->toHaveKey('max')
+        ->and($on[0]->config)->toBe(['multiple' => true, 'max' => 3]);
 });

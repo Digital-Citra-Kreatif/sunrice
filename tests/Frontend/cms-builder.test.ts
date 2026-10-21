@@ -208,3 +208,17 @@ test('lays a type\'s settings out: choices and switches full width, numbers and 
     ]);
     assert.deepEqual([file.options.map((s) => s.handle), file.limits.map((s) => s.handle)], [['types', 'multiple', 'options'], ['placeholder']]);
 });
+
+test('puts a setting that applies only while a switch is on next to that switch', async () => {
+    const { dependsOn, settingGroups } = await import('../../packages/cms/resources/js/lib/builder.ts');
+    const settings = [
+        { handle: 'taxonomy', type: 'select' },
+        { handle: 'multiple', type: 'toggle' },
+        { handle: 'max', type: 'number', condition: { field: 'multiple', operator: 'filled' as const } },
+    ];
+
+    assert.equal(dependsOn(settings[2]!, settings), 'multiple');
+    assert.equal(dependsOn({ handle: 'x', type: 'number', condition: { field: 'taxonomy', operator: 'filled' as const } }, settings), null);
+    const groups = settingGroups(settings);
+    assert.deepEqual([groups.options.map((s) => s.handle), groups.limits.map((s) => s.handle), groups.dependents.multiple?.map((s) => s.handle)], [['taxonomy', 'multiple'], [], ['max']]);
+});
