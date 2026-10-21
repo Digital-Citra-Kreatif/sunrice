@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { asRecord, dateInputValue, dateValueFromInput, newBlock, newRow } from '../../packages/cms/resources/js/lib/values.ts';
+import { asRecord, dateInputValue, dateValueFromInput, itemSummary, newBlock, newRow } from '../../packages/cms/resources/js/lib/values.ts';
 
 test('reads stored dates into date inputs', () => {
     assert.equal(dateInputValue('2026-10-19', false), '2026-10-19');
@@ -51,4 +51,17 @@ test('builds the entry picker\'s query', async () => {
 
     assert.equal(pickerQuery({ ids: [3, 1], collections: ['pages'] }), 'ids%5B%5D=3&ids%5B%5D=1&collections%5B%5D=pages');
     assert.equal(pickerQuery({ search: 'a&b', collections: [] }), 'search=a%26b');
+});
+
+test('names a row or block by its first filled text', () => {
+    const fields = [
+        { handle: 'icon', type: 'media' },
+        { handle: 'title', type: 'text' },
+        { handle: 'body', type: 'rich_text' },
+    ];
+    assert.equal(itemSummary(fields, { icon: 4, title: '  15 m saltwater   pool ' }), '15 m saltwater pool');
+    assert.equal(itemSummary(fields, { title: '', body: '<p>Homes of <strong>quiet</strong> distinction</p>' }), 'Homes of quiet distinction');
+    assert.equal(itemSummary(fields, { title: 'x'.repeat(80) }, 20), `${'x'.repeat(19)}…`);
+    assert.equal(itemSummary([{ handle: 'hero', type: 'group', fields: [{ handle: 'heading', type: 'text' }] }], { hero: { heading: 'Welcome' } }), 'Welcome');
+    assert.equal(itemSummary(fields, {}), null);
 });
