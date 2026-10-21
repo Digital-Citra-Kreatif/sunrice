@@ -45,3 +45,13 @@ test('moves past siblings, children included', () => {
 test('removes an item with its children', () => {
     assert.deepEqual(shape(removeItem([item('a', 0), item('a1', 1), item('b', 0)], 0)), ['b']);
 });
+
+test('the menu editor\'s entry search says to create the page first when nothing matches', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const page = await readFile(new URL('../../packages/cms/resources/js/pages/Menus/Edit.tsx', import.meta.url), 'utf8');
+    const picker = await readFile(new URL('../../packages/cms/resources/js/components/EntriesPicker.tsx', import.meta.url), 'utf8');
+
+    assert.match(page, /emptyHint=\{MENU_ENTRY_HINT\}/);
+    assert.match(page, /create the page first \(Content → Entries\)/);
+    assert.match(picker, /No entries match\.\{emptyHint/);
+});
