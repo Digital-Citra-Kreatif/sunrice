@@ -29,6 +29,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Kept pages give each visitor their own honeypot fields (`Site\HoneypotReplacer`, `@api`, added to `responsecache.replacers` by the CMS): the "sent too fast" check counted from when the page was kept, so it never refused anything there.
 - Listing and term pages query `$entries` only when the template first uses it (`Site\LazyEntries`, an `Illuminate\Contracts\Pagination\LengthAwarePaginator` that passes anything else to the paginator), so a template with an entry filter or its own query no longer pays for an unused one; **a term page's `$entries` in a hierarchical taxonomy include the entries of the terms under it** (a "Bali" page lists Canggu's too).
 - Global sets and their values, fieldsets, forms (`<x-sunrice-cms::form>`) and blueprints are read from the site cache's `pages` area (as plain attributes, never inside a database transaction), so a page with globals and a newsletter form costs no queries for them (was about eight); saving global values, term content or listing data (a versioned query update) now starts a new version of the cache areas, as other saves do (`ContentWatch::updated()`), so kept pages show it at once.
 - `RenameFieldHandle` starts a new version of every site cache area (stored values move with query updates), not only `pages`.

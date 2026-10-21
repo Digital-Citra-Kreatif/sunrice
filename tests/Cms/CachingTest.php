@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
@@ -40,6 +41,7 @@ use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\GlobalSet;
 use Sunrice\Cms\Models\Menu;
+use Sunrice\Cms\Models\Submission;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Page;
@@ -50,6 +52,7 @@ use Sunrice\Cms\Support\SiteCache;
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\artisan;
 use function Pest\Laravel\get;
+use function Pest\Laravel\post;
 use function Pest\Laravel\travelTo;
 
 beforeEach(function () {
@@ -436,4 +439,36 @@ it('runs a listing\'s and a term page\'s entries query only when the template us
     // Past the last page: still a 404.
     get('/blog?list=1&page=9')->assertNotFound();
     get('/places/bali?page=9')->assertNotFound();
+});
+
+it('gives each visitor of a kept page their own honeypot fields, so a too-fast send is still refused', function () {
+    Mail::fake();
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true, 'honeypot.enabled' => true, 'honeypot.amount_of_seconds' => 3]);
+    Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text']]]);
+    Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
+    View::addNamespace('cached', __DIR__.'/Fixtures/views');
+    $this->blog->update(['template' => 'cached::cms.with-form']);
+    cachedPost('Hello');
+    $fields = function (TestResponse $response): array {
+        preg_match('/name="(my_name_[A-Za-z0-9]{16})"/', (string) $response->getContent(), $name);
+        preg_match('/name="valid_from"\s+type="text"\s+value="([^"]+)"/', (string) $response->getContent(), $validFrom);
+
+        return [$name[1] ?? null, $validFrom[1] ?? null];
+    };
+
+    $first = $fields(get('/blog/hello')->assertHeader('X-Cache-Status', 'MISS'));
+    travelTo(now()->addMinutes(10));
+    $kept = get('/blog/hello')->assertHeader('X-Cache-Status', 'HIT');
+    $second = $fields($kept);
+    expect($second[0])->not->toBeNull()->not->toBe($first[0])
+        ->and($second[1])->not->toBeNull()->not->toBe($first[1])
+        ->and($kept->getContent())->not->toContain('__sunrice_honeypot');
+
+    // Sent right away from the kept page: too fast.
+    $send = fn (array $fields) => post('/forms/contact', ['_token' => csrfIn($kept), 'data' => ['name' => 'Bot'], $fields[0] => '', 'valid_from' => $fields[1]]);
+    $send($second)->assertOk()->assertContent('');
+    expect(Submission::query()->count())->toBe(0);
+    travelTo(now()->addSeconds(5));
+    $send($second)->assertRedirect();
+    expect(Submission::query()->count())->toBe(1);
 });
