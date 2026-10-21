@@ -181,3 +181,21 @@ it('says in plain words what a handle is, then what developers write with it as 
         });
     }
 });
+
+it('offers the listing page a blueprint of its own, saying where editors fill it in, with a way to create or edit it', function () {
+    Collection::query()->create(['handle' => 'news', 'title' => 'News', 'listing_route' => '/news']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update'));
+
+    get('/admin/cms/collections/news/edit')->assertOk()->assertInertia(function (Assert $page) {
+        $field = collect($page->toArray()['props']['sections'])->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'listing_blueprint');
+        expect($field)->toMatchArray([
+            'label' => 'Listing page blueprint',
+            'placeholder' => 'None (no editable fields)',
+            'showWhen' => ['field' => 'listing', 'value' => null],
+            'helpValues' => ['url' => ['field' => 'listing_route', 'fallback' => '/{handle}'], 'collection' => ['field' => 'title', 'fallback' => null]],
+        ])->and($field['help'])->toContain('(:url)')->toContain('Entries → :collection → Listing page')
+            ->and(array_column($field['links'], 'label'))->toBe(['Create blueprint', 'Edit'])
+            ->and($field['links'][0]['showWhen'])->toBe(['field' => 'listing_blueprint', 'value' => null, 'not' => true])
+            ->and($field['links'][1]['url'])->toBe('/admin/cms/blueprints/{listing_blueprint}/edit');
+    });
+});
