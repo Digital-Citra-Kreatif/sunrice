@@ -42,6 +42,7 @@ final class HandleInertiaRequests extends Middleware
                 'branding' => $branding,
                 'path' => '/'.$this->panel->getPath(),
                 'bundles' => array_values(array_map(fn (PluginBundle $bundle) => $bundle->toArray(), $this->panel->getBundles())),
+                'commandSearches' => $user === null ? [] : $this->panel->getCommandSearches(),
             ],
             'auth' => fn (): array => [
                 'user' => $user === null ? null : [
@@ -58,17 +59,25 @@ final class HandleInertiaRequests extends Middleware
 
     /**
      * This request's messages, with an id that is new for each one shown
-     * (the same text twice is two toasts), or null without messages.
+     * (the same text twice is two toasts), or null without messages, and
+     * the success toast's button ("success_action": Undo and the like).
      *
-     * @return array{id: string|null, success: mixed, error: mixed}
+     * @return array{id: string|null, success: mixed, error: mixed, action: array{label: string, url: string, method: 'get'|'post', data: array<mixed>}|null}
      */
     private static function flash(Request $request): array
     {
         $success = $request->hasSession() ? $request->session()->get('success') : null;
         $error = $request->hasSession() ? $request->session()->get('error') : null;
         if ($success === null && $error === null) {
-            return ['id' => null, 'success' => null, 'error' => null];
+            return ['id' => null, 'success' => null, 'error' => null, 'action' => null];
         }
+        $action = $request->session()->get('success_action');
+        $action = $success !== null && is_array($action) && is_string($action['label'] ?? null) && is_string($action['url'] ?? null) ? [
+            'label' => $action['label'],
+            'url' => $action['url'],
+            'method' => in_array($action['method'] ?? 'post', ['get', 'post'], true) ? (string) ($action['method'] ?? 'post') : 'post',
+            'data' => is_array($action['data'] ?? null) ? $action['data'] : [],
+        ] : null;
         // Once per request, however often the closure runs.
         $id = $request->attributes->get('sunrice.flash_id');
         if (! is_string($id)) {
@@ -76,6 +85,6 @@ final class HandleInertiaRequests extends Middleware
             $request->attributes->set('sunrice.flash_id', $id);
         }
 
-        return ['id' => $id, 'success' => $success, 'error' => $error];
+        return ['id' => $id, 'success' => $success, 'error' => $error, 'action' => $action];
     }
 }

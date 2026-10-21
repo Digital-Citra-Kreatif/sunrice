@@ -345,3 +345,32 @@ it('shows who published each revision, what changed, and compares one with the d
     actingAs(adminUser(Panel::ACCESS));
     get("/admin/cms/revisions/{$revision?->id}/compare")->assertForbidden();
 });
+
+it('checks limits on the server, where the editor shows them inline (the form has noValidate)', function () {
+    Blueprint::query()->create(['handle' => 'property', 'title' => 'Property', 'fields' => [
+        ['handle' => 'summary', 'type' => 'textarea', 'config' => ['max' => 300]],
+        ['handle' => 'rating', 'type' => 'number', 'config' => ['min' => 1, 'max' => 5, 'step' => 1]],
+        ['handle' => 'price', 'type' => 'number', 'config' => ['min' => 0]],
+    ]]);
+    $properties = Collection::query()->create(['handle' => 'properties', 'title' => 'Properties', 'blueprint' => 'property']);
+    $translation = app(CreateEntry::class)->handle($properties, ['title' => 'Villa']);
+    editor('view', 'update');
+
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => '', 'slug' => 'villa', 'data' => [
+        'summary' => str_repeat('x', 371), 'rating' => 6, 'price' => -1,
+    ]])->assertSessionHasErrors(['title', 'data.summary', 'data.rating', 'data.price']);
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Villa', 'slug' => 'villa', 'data' => ['rating' => 2.5]])
+        ->assertSessionHasErrors(['data.rating']);
+    put("/admin/cms/entries/{$translation->entry_id}", ['title' => 'Villa', 'slug' => 'villa', 'data' => ['summary' => str_repeat('x', 300), 'rating' => 5, 'price' => 0]])
+        ->assertSessionHasNoErrors();
+});
+
+it('tells the editor whether the collection has pages, so Preview shows only where there is one', function () {
+    $testimonials = Collection::query()->create(['handle' => 'testimonials', 'title' => 'Testimonials']);
+    $quote = app(CreateEntry::class)->handle($testimonials, ['title' => 'Great agents']);
+    $post = app(CreateEntry::class)->handle(Collection::query()->create(['handle' => 'posts', 'title' => 'Posts', 'route' => '/posts/{slug}']), ['title' => 'Hello']);
+    editor('view', 'update');
+
+    get("/admin/cms/entries/{$quote->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('collection.pages', false));
+    get("/admin/cms/entries/{$post->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('collection.pages', true));
+});

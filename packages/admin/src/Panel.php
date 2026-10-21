@@ -95,6 +95,9 @@ final class Panel
     /** @var array<string, PluginBundle> */
     private array $bundles = [];
 
+    /** @var array<string, array{url: Closure(): string, minLength: int}> command palette searches, keyed by id */
+    private array $commandSearches = [];
+
     /** @var array<string, RegisteredResource> keyed by the resource's key */
     private array $resources = [];
 
@@ -676,6 +679,43 @@ final class Panel
         $this->bundles[$bundle->id] = $bundle;
 
         return $this;
+    }
+
+    /**
+     * A search the command palette (Cmd/Ctrl+K) asks on every panel page,
+     * without loading the plugin's JavaScript: the panel requests
+     * "<url>?q=<what was typed>" once at least $minLength letters are
+     * typed and lists the "items" of the JSON answer (id, label, and
+     * optional description, group, icon, url). The route behind the URL
+     * guards itself; an error answer (403) lists nothing.
+     *
+     *     $panel->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.orders.search'));
+     *
+     * @param  Closure(): string  $url  resolved when a page is rendered, so it can use route()
+     */
+    public function commandSearch(string $id, Closure $url, int $minLength = 2): self
+    {
+        $this->assertRegistering();
+        if (isset($this->commandSearches[$id])) {
+            throw new PanelMisconfigured("Two command searches have the id \"{$id}\"{$this->owner()}.");
+        }
+        $this->commandSearches[$id] = ['url' => $url, 'minLength' => max(1, $minLength)];
+
+        return $this;
+    }
+
+    /**
+     * The command palette's searches, with their URLs.
+     *
+     * @return list<array{id: string, url: string, minLength: int}>
+     */
+    public function getCommandSearches(): array
+    {
+        return array_map(
+            fn (string $id, array $search): array => ['id' => $id, 'url' => ($search['url'])(), 'minLength' => $search['minLength']],
+            array_keys($this->commandSearches),
+            $this->commandSearches,
+        );
     }
 
     // Boot ----------------------------------------------------------------

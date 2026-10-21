@@ -19,7 +19,9 @@ use Sunrice\Cms\Support\Locales;
 use Workbench\App\Models\User;
 
 use function Pest\Laravel\actingAs;
+use function Pest\Laravel\delete;
 use function Pest\Laravel\get;
+use function Pest\Laravel\post;
 use function Pest\Laravel\travelTo;
 
 beforeEach(function () {
@@ -289,6 +291,29 @@ it('exports what the list shows: filters, search, sort and language, with every 
     expect($csv)->toContain('Gone')->toContain('trashed')->not->toContain('Assam');
 });
 
+it('exports links as their address, rich text as text, and names a field that shares a column\'s label', function () {
+    Blueprint::query()->create(['handle' => 'listing', 'title' => 'Listing', 'fields' => [
+        ['handle' => 'property_status', 'type' => 'select', 'label' => 'Status', 'config' => ['options' => [['value' => 'available', 'label' => 'Available']]]],
+        ['handle' => 'map', 'type' => 'link', 'label' => 'Map'],
+        ['handle' => 'agent_page', 'type' => 'link', 'label' => 'Agent page'],
+        ['handle' => 'body', 'type' => 'rich_text', 'label' => 'Body'],
+    ]]);
+    $listings = Collection::query()->create(['handle' => 'listings', 'title' => 'Listings', 'blueprint' => 'listing', 'route' => '/listings/{slug}']);
+    lister('cms.entries.view', 'cms.entries.export');
+    $agent = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($listings, ['title' => 'Anindya']));
+    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($listings, ['title' => 'Villa', 'data' => [
+        'property_status' => 'available',
+        'map' => ['type' => 'url', 'url' => 'https://maps.google.com/?q=Canggu', 'label' => null, 'new_tab' => false],
+        'agent_page' => ['type' => 'entry', 'entry_id' => $agent->entry_id],
+        'body' => '<p>Five <strong>bedrooms</strong>.</p><p>A pool &amp; garden.</p>',
+    ]]));
+
+    $rows = array_map(str_getcsv(...), array_filter(explode("\n", get('/admin/cms/collections/listings/entries/export?sort=title')->streamedContent())));
+
+    expect($rows[0])->toBe(['ID', 'Title', 'Slug', 'Status', 'Published', 'URL', 'Updated', 'Author', 'Status (field)', 'Map', 'Agent page', 'Body'])
+        ->and(array_slice($rows[2], 8))->toBe(['Available', 'https://maps.google.com/?q=Canggu', url('/listings/anindya'), 'Five bedrooms. A pool & garden.']);
+});
+
 it('takes as many queries for many entries as for a few', function () {
     $user = lister();
     app(Preferences::class)->set($user, 'table.cms.entries.products', ['columns' => ['author', 'field.related', 'field.kind', 'status']]);
@@ -310,4 +335,53 @@ it('takes as many queries for many entries as for a few', function () {
     }
 
     expect($count())->toBe($few);
+});
+
+it('shows the trash with "Trashed" rows, at ?status=trash too, and undoes a trashing from the toast', function () {
+    $gone = listProduct('Gone', publish: true);
+    $kept = listProduct('Kept', publish: true);
+    lister('cms.entries.view', 'cms.entries.delete');
+
+    // From the editor: the toast's Undo restores the entry.
+    delete("/admin/cms/entries/{$gone->entry_id}")
+        ->assertRedirect('/admin/cms/collections/products/entries')
+        ->assertSessionHas('success', 'Moved to the trash.')
+        ->assertSessionHas('success_action', ['label' => 'Undo', 'url' => route('sunrice.admin.cms.entries.restore', $gone->entry_id)]);
+
+    get('/admin/cms/collections/products/entries?status=trash')->assertInertia(fn (Assert $page) => $page
+        ->where('query.status', 'trashed')
+        ->where('entries.data.0.title', 'Gone')
+        ->where('entries.data.0.trashed', true)
+        ->where('entries.data.0.status', 'published'));
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.trashed', false));
+
+    post('/admin/cms/entries/'.$gone->entry_id.'/restore')->assertSessionHas('success', 'Restored.');
+    expect(listed())->toContain('Gone');
+
+    // In bulk: Undo restores the same entries.
+    post('/admin/cms/collections/products/entries/bulk', ['action' => 'trash', 'ids' => [$gone->entry_id, $kept->entry_id]])
+        ->assertSessionHas('success', '2 entries moved to the trash.')
+        ->assertSessionHas('success_action', ['label' => 'Undo', 'url' => route('sunrice.admin.cms.entries.bulk', 'products'), 'data' => ['action' => 'restore', 'ids' => [$gone->entry_id, $kept->entry_id]]]);
+    post('/admin/cms/collections/products/entries/bulk', ['action' => 'restore', 'ids' => [$gone->entry_id, $kept->entry_id]])
+        ->assertSessionMissing('success_action');
+    expect(listed())->toContain('Gone', 'Kept');
+});
+
+it('gives each row its address on the site, not only its slug', function () {
+    listProduct('Assam Gold');
+    $quotes = Collection::query()->create(['handle' => 'quotes', 'title' => 'Quotes']);
+    app(CreateEntry::class)->handle($quotes, ['title' => 'Lovely']);
+    lister();
+
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.path', '/products/assam-gold'));
+    get('/admin/cms/collections/quotes/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.path', null));
+});
+
+it('groups long numbers in the list, and keeps them as typed in the CSV', function () {
+    listProduct('Villa', ['price' => 18500000000]);
+    $user = lister('cms.entries.view', 'cms.entries.export');
+    app(Preferences::class)->set($user, 'table.cms.entries.products', ['columns' => ['field.price']]);
+
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('entries.data.0.cells', ['field.price' => '18,500,000,000']));
+    expect(get('/admin/cms/collections/products/entries/export')->streamedContent())->toContain(',18500000000,');
 });

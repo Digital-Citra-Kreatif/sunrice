@@ -42,11 +42,14 @@ export interface Branding {
     };
 }
 
+/** The success toast's button (flashed as "success_action"): Undo and the like. */
+export interface FlashAction { label: string; url: string; method: 'get' | 'post'; data: Record<string, unknown> }
+
 export interface SharedProps {
-    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[] };
+    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[]; commandSearches?: { id: string; url: string; minLength: number }[] };
     auth: { user: { id: string | number; name: string | null; email: string | null } | null };
     navigation: NavGroup[];
     /** `id` is new for each message shown, so the same text twice toasts twice. */
-    flash: { id: string | null; success: string | null; error: string | null };
+    flash: { id: string | null; success: string | null; error: string | null; action?: FlashAction | null };
     [key: string]: unknown;
 }

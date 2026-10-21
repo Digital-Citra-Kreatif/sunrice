@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { asRecord, dateInputValue, dateValueFromInput, newBlock, newRow } from '../../packages/cms/resources/js/lib/values.ts';
+import { asRecord, dateInputValue, dateValueFromInput, groupedNumber, hasSharedFields, itemSummary, offersEmptyChoice, newBlock, newRow } from '../../packages/cms/resources/js/lib/values.ts';
 
 test('reads stored dates into date inputs', () => {
     assert.equal(dateInputValue('2026-10-19', false), '2026-10-19');
@@ -61,4 +61,51 @@ test('starts scheduling on the date to come, else tomorrow, never an old publish
     assert.deepEqual(scheduleStart(null, now), new Date(2026, 9, 22, 14, 0));
     assert.deepEqual(scheduleStart(new Date(2026, 10, 1, 9, 30).toISOString(), now), new Date(2026, 10, 1, 9, 30));
     assert.match(formatDate(new Date(2026, 9, 21, 17, 12).toISOString(), 'en-US'), /17:12/);
+});
+
+test('names a row or block by its first filled text', () => {
+    const fields = [
+        { handle: 'icon', type: 'media' },
+        { handle: 'title', type: 'text' },
+        { handle: 'body', type: 'rich_text' },
+    ];
+    assert.equal(itemSummary(fields, { icon: 4, title: '  15 m saltwater   pool ' }), '15 m saltwater pool');
+    assert.equal(itemSummary(fields, { title: '', body: '<p>Homes of <strong>quiet</strong> distinction</p>' }), 'Homes of quiet distinction');
+    assert.equal(itemSummary(fields, { title: 'x'.repeat(80) }, 20), `${'x'.repeat(19)}…`);
+    assert.equal(itemSummary([{ handle: 'hero', type: 'group', fields: [{ handle: 'heading', type: 'text' }] }], { hero: { heading: 'Welcome' } }), 'Welcome');
+    assert.equal(itemSummary(fields, {}), null);
+});
+
+test('reads long numbers back grouped', () => {
+    assert.equal(groupedNumber(18500000000), '18,500,000,000');
+    assert.equal(groupedNumber('95000000.5'), '95,000,000.5');
+    assert.equal(groupedNumber(-12345), '-12,345');
+    assert.equal(groupedNumber(9999), null);
+    assert.equal(groupedNumber(null), null);
+    assert.equal(groupedNumber('abc'), null);
+});
+
+test('offers a select\'s own "None" only where it means something', () => {
+    const plain = [{ value: 'available', label: 'Available' }, { value: 'sold', label: 'Sold' }];
+    assert.equal(offersEmptyChoice(plain, false, false, true), true);
+    assert.equal(offersEmptyChoice(plain, true, false, false), false, 'required');
+    assert.equal(offersEmptyChoice([{ value: 'none', label: 'None' }, { value: 'per_month', label: 'per month' }], false, false, false), false, 'its own None');
+    assert.equal(offersEmptyChoice(plain, false, true, true), false, 'beside a default');
+    assert.equal(offersEmptyChoice(plain, false, true, false), true, 'an empty older value stays choosable');
+});
+
+test('lets a slug made from the title follow it until the entry is first published', async () => {
+    const { followingSlug, slugFrom } = await import('../../packages/cms/resources/js/lib/entries.ts');
+    assert.equal(slugFrom('Villa Arunika, Pererenan (copy)'), 'villa-arunika-pererenan-copy');
+    assert.equal(slugFrom('Café Ümit'), 'cafe-umit');
+    assert.equal(followingSlug('villa-arunika-pererenan-copy', 'Villa Arunika, Pererenan (copy)', 'Villa Senja', true), 'villa-senja');
+    assert.equal(followingSlug('villa-arunika-pererenan-copy', 'Villa Arunika, Pererenan (copy)', 'Villa Senja', false), 'villa-arunika-pererenan-copy', 'published once');
+    assert.equal(followingSlug('my-own', 'Villa', 'Villa Senja', true), 'my-own', 'typed by hand');
+});
+
+test('finds fields shared with the main language at any depth', () => {
+    assert.equal(hasSharedFields([{ fields: [{}] }]), false);
+    assert.equal(hasSharedFields([{ shared: true }]), true);
+    assert.equal(hasSharedFields([{ fields: [{ fields: [{ shared: true }] }] }]), true);
+    assert.equal(hasSharedFields([{ blocks: [{ fields: [{ shared: true }] }] }]), true);
 });

@@ -116,7 +116,8 @@ it('previews drafts through a signed link only', function () {
     $draft = sitePost($this->blog, 'Not yet', ['intro' => 'Draft intro'], publish: false);
     $url = URL::temporarySignedRoute('sunrice.cms.preview', now()->addMinutes(30), ['translation' => $draft->id]);
 
-    get($url)->assertOk()->assertSee('Draft intro')->assertSee('Preview of the draft')
+    // The ribbon is added whatever the template: an app's own templates get it too.
+    get($url)->assertOk()->assertSee('Draft intro')->assertSee('data-sunrice-draft-banner', false)->assertSee('Preview of the draft')
         ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertHeader('Cache-Control', 'no-store, private');
     get("/cms-preview/{$draft->id}")->assertForbidden();
 });
