@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
@@ -224,9 +225,9 @@ it('shares the shared fields inside translated groups, rows and blocks with the 
 
 it('dates a translation as its entry when first published', function () {
     $this->products->update(['dated' => true]);
-    Illuminate\Support\Carbon::setTestNow('2026-10-07 09:00');
+    Carbon::setTestNow('2026-10-07 09:00');
     $main = app(PublishEntry::class)->handle($this->main);
-    Illuminate\Support\Carbon::setTestNow('2026-10-20 17:29');
+    Carbon::setTestNow('2026-10-20 17:29');
     $id = app(CreateTranslation::class)->handle($this->main->entry, 'id');
     app(SaveDraft::class)->handle($id, ['title' => 'Kopi']);
 
@@ -241,5 +242,5 @@ it('dates a translation as its entry when first published', function () {
     $teh = app(CreateTranslation::class)->handle($tea->entry, 'id');
     expect(app(PublishEntry::class)->handle($teh)->published_at?->toDateTimeString())->toBe('2026-10-20 17:29:00')
         ->and($main->published_at?->toDateTimeString())->toBe('2026-10-07 09:00:00');
-    Illuminate\Support\Carbon::setTestNow();
+    Carbon::setTestNow();
 });

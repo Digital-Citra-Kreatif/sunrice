@@ -385,14 +385,8 @@ final class Panel
         if ($this->contentLocales === null) {
             return [];
         }
-        $locales = [];
-        foreach (($this->contentLocales)() as $code => $name) {
-            if (is_string($code) && $code !== '' && is_string($name)) {
-                $locales[$code] = $name;
-            }
-        }
 
-        return $locales;
+        return array_filter(($this->contentLocales)(), fn (string $code): bool => $code !== '', ARRAY_FILTER_USE_KEY);
     }
 
     /** Forget the permissions permissionsUsing() resolved, after their data changed. */

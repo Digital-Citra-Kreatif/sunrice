@@ -9,6 +9,7 @@ use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -109,7 +110,7 @@ it('takes the title visitors read in each other language', function () {
     expect($collection->translations)->toBe(['id' => ['title' => 'Properti']])->and($collection->titleIn('id'))->toBe('Properti');
 
     get("/admin/collections/{$collection->id}/edit")->assertInertia(fn (Assert $page) => $page
-        ->where('values.title_id', 'Properti')->where('sections.0.fields', fn ($fields) => collect($fields)->firstWhere('name', 'title_id')['label'] === 'Title in '.Sunrice\Cms\Support\Locales::name('id')));
+        ->where('values.title_id', 'Properti')->where('sections.0.fields', fn ($fields) => collect($fields)->firstWhere('name', 'title_id')['label'] === 'Title in '.Locales::name('id')));
     put("/admin/collections/{$collection->id}", ['title' => 'Listings', 'handle' => 'properties', 'title_id' => ''])->assertSessionHasNoErrors();
     expect($collection->fresh()?->translations)->toBeNull()->and($collection->fresh()?->titleIn('id'))->toBe('Listings');
 });

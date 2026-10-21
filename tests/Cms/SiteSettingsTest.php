@@ -25,6 +25,7 @@ use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Settings\CodeSettings;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Site;
+use Sunrice\Cms\Support\Seo;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -205,13 +206,13 @@ it('lists terms with their live entries\' counts, as a tree', function () {
 
 it('describes the site in each language', function () {
     config(['sunrice-cms.locales' => ['en', 'id']]);
-    $site = app(Sunrice\Cms\Settings\SiteSettings::class);
+    $site = app(SiteSettings::class);
     $site->fill(['description' => 'Premium homes.', 'descriptions' => "id: Rumah premium.\nfr: Maisons."])->save();
 
     expect($site->descriptionIn('id'))->toBe('Rumah premium.')
         ->and($site->descriptionIn('en'))->toBe('Premium homes.')
         ->and($site->descriptionIn('de'))->toBe('Premium homes.')
-        ->and(Sunrice\Cms\Support\Seo::forPage(null)['description'])->toBe('Premium homes.');
+        ->and(Seo::forPage(null)['description'])->toBe('Premium homes.');
     app()->setLocale('id');
-    expect(Sunrice\Cms\Support\Seo::forPage(null)['description'])->toBe('Rumah premium.');
+    expect(Seo::forPage(null)['description'])->toBe('Rumah premium.');
 });

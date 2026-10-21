@@ -22,10 +22,10 @@ use Sunrice\Admin\Actions\Media\TrashMedia;
 use Sunrice\Admin\Actions\Media\UpdateMedia;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Media\Media;
-use Sunrice\Admin\Panel;
 use Sunrice\Admin\Media\MediaConfig;
 use Sunrice\Admin\Media\MediaFolder;
 use Sunrice\Admin\Media\MediaUsages;
+use Sunrice\Admin\Panel;
 use Sunrice\Admin\Support\Like;
 
 /**

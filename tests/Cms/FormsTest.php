@@ -12,6 +12,7 @@ use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Forms\SubmitForm;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Mail\SubmissionReceived;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Form;
@@ -280,7 +281,7 @@ it('shows and checks a form in the visitor\'s language', function () {
 });
 
 it('gives a select\'s option labels in a language', function () {
-    $field = Sunrice\Cms\Fields\Field::fromArray(['handle' => 'status', 'type' => 'select', 'config' => ['options' => [['value' => 'under_offer', 'label' => 'Under offer'], ['value' => 'sold']]],
+    $field = Field::fromArray(['handle' => 'status', 'type' => 'select', 'config' => ['options' => [['value' => 'under_offer', 'label' => 'Under offer'], ['value' => 'sold']]],
         'translations' => ['id' => ['label' => 'Status', 'options' => ['under_offer' => 'Dalam penawaran']]]]);
 
     expect($field->optionLabel('under_offer', 'en'))->toBe('Under offer')

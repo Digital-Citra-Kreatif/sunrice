@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Inertia\Testing\AssertableInertia;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Actions\Users\DeleteUser;
 use Sunrice\Admin\Panel;
@@ -12,6 +13,7 @@ use Sunrice\Cms\Models\Comment;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Revision;
+use Sunrice\Cms\Settings\LocaleSettings;
 use Workbench\App\Models\User;
 
 it('is a panel plugin', function () {
@@ -93,9 +95,9 @@ it('gives the panel its content languages, for media alt text in each', function
 });
 
 it('shares the languages\' names with every admin page', function () {
-    app(Sunrice\Cms\Settings\LocaleSettings::class)->fill(['languages' => "en: English\nid: Bahasa Indonesia"])->save();
+    app(LocaleSettings::class)->fill(['languages' => "en: English\nid: Bahasa Indonesia"])->save();
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     Pest\Laravel\actingAs(adminUser(Panel::ACCESS));
 
-    Pest\Laravel\get('/admin')->assertInertia(fn (Inertia\Testing\AssertableInertia $page) => $page->where('cms.locales', ['en' => 'English', 'id' => 'Bahasa Indonesia']));
+    Pest\Laravel\get('/admin')->assertInertia(fn (AssertableInertia $page) => $page->where('cms.locales', ['en' => 'English', 'id' => 'Bahasa Indonesia']));
 });

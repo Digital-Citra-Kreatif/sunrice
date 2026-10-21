@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Validator;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -72,7 +73,7 @@ it('reads its Laravel lines only when a page asks for them, below the app\'s own
 
 it('gives the entry filter, the draft banner and the unsubscribe page Indonesian too', function () {
     app()->setLocale('id');
-    $filter = Illuminate\Support\Facades\Blade::render('<x-sunrice-cms::entry-filter collection="blog" :filters="[\'q\' => \'search\']" :sorts="[\'new\' => \'latest\', \'old\' => \'oldest\']" />');
+    $filter = Blade::render('<x-sunrice-cms::entry-filter collection="blog" :filters="[\'q\' => \'search\']" :sorts="[\'new\' => \'latest\', \'old\' => \'oldest\']" />');
     $banner = view('sunrice-cms::draft-banner', ['entry' => null, 'draft' => true, 'liveUrl' => '/x', 'draftUrl' => null, 'editUrl' => '/admin'])->render();
     $unsubscribed = view('sunrice-cms::comment-unsubscribed', ['url' => null, 'locale' => 'id'])->render();
 
