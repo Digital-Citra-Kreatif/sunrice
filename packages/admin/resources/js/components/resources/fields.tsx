@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, readableOn } from '@/lib/branding';
+import { slugInput } from '@/lib/slug';
 import { RelationSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
 
@@ -85,6 +86,10 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
         default:
             if (field.inputType === 'color') {
                 return <ColorInput common={common} value={typeof value === 'string' ? value : ''} onChange={onChange} />;
+            }
+            if (typeof field.slugFrom === 'string') {
+                return <Input {...common} type="text" className="font-mono" maxLength={Number(field.maxLength) || undefined} spellCheck={false} autoCapitalize="off"
+                    value={value === null ? '' : String(value)} onChange={(e) => onChange(slugInput(e.target.value, String(field.slugSeparator ?? '-')))} />;
             }
             return <Input {...common} type={String(field.inputType ?? 'text')} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;

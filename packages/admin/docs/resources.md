@@ -84,7 +84,7 @@ public static function query(): Builder
 
 | Field | Stored as | Options |
 | --- | --- | --- |
-| `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255) |
+| `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slug($from = 'title', $separator = '-')` (a slug or handle: filled in from `$from` as it's typed until someone types in it or it has a value, and kept to lowercase letters, digits and the separator as it's typed; check it on the server with a rule too) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |

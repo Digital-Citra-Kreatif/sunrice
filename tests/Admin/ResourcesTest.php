@@ -7,6 +7,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\RichText;
+use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Tables\Action;
 use Sunrice\Tests\Admin\Fixtures\CatalogResource;
 use Sunrice\Tests\Admin\Fixtures\Category;
@@ -361,4 +362,11 @@ it('lets a policy with export() decide exports', function () {
     ProductPolicy::$exports = false;
     get('/admin/products/export')->assertForbidden();
     ProductPolicy::$exports = true;
+});
+
+it('sends a slug field\'s source and separator to the form', function () {
+    $field = TextInput::make('handle')->slug('title', '_')->toArray();
+
+    expect($field)->toMatchArray(['slugFrom' => 'title', 'slugSeparator' => '_', 'inputType' => 'text'])
+        ->and(TextInput::make('name')->toArray())->not->toHaveKey('slugFrom');
 });

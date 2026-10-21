@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Blueprints\DeleteBlueprint;
 use Sunrice\Cms\Actions\Blueprints\SaveBlueprint;
+use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Fieldsets\DeleteFieldset;
 use Sunrice\Cms\Actions\Fieldsets\SaveFieldset;
+use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Fields\DefinitionValidator;
 use Sunrice\Cms\Fields\Field;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -105,4 +109,46 @@ it('deletes only fieldsets nothing uses', function () {
     app(DeleteFieldset::class)->handle($seo->fresh() ?? $seo);
 
     expect(Fieldset::query()->pluck('handle')->all())->toBe(['quote']);
+});
+
+it('says how to write a handle, suggesting the one meant', function () {
+    try {
+        app(SaveBlueprint::class)->handle(['handle' => 'contact-person', 'title' => 'Contact person', 'fields' => [['handle' => 'Job Title', 'type' => 'text']]]);
+        $this->fail('Saved');
+    } catch (ValidationException $e) {
+        expect($e->errors()['handle'][0])->toBe('Use lowercase letters, digits and underscores, starting with a letter: try "contact_person".');
+    }
+    try {
+        app(DefinitionValidator::class)->validate([['handle' => 'job-title', 'type' => 'text']]);
+        $this->fail('Valid');
+    } catch (ValidationException $e) {
+        expect($e->errors()['fields.0.handle'][0])->toContain('try "job_title"');
+    }
+});
+
+it('renames a blueprint and everything that names it', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.blueprints.manage'));
+    $blueprint = Blueprint::query()->create(['handle' => 'propety', 'title' => 'Property', 'fields' => [['handle' => 'price', 'type' => 'number']]]);
+    Blueprint::query()->create(['handle' => 'page', 'title' => 'Page']);
+    $listings = Collection::query()->create(['handle' => 'listings', 'title' => 'Listings', 'blueprint' => 'propety', 'listing_blueprint' => 'propety']);
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page', 'blueprints' => ['propety']]);
+    $gone = Collection::query()->create(['handle' => 'old', 'title' => 'Old', 'blueprint' => 'propety']);
+    $gone->delete();
+    $taxonomy = Taxonomy::query()->create(['handle' => 'areas', 'title' => 'Areas', 'blueprint' => 'propety']);
+    $set = GlobalSet::query()->create(['handle' => 'site', 'title' => 'Site', 'blueprint' => 'propety']);
+    $form = Form::query()->create(['handle' => 'ask', 'title' => 'Ask', 'blueprint' => 'propety']);
+    $entry = app(CreateEntry::class)->handle($pages, ['title' => 'Villa'])->entry;
+    $entry->forceFill(['blueprint' => 'propety'])->save();
+
+    Pest\Laravel\put("/admin/cms/blueprints/{$blueprint->id}", ['title' => 'Property', 'handle' => 'property', 'fields' => $blueprint->fields])->assertRedirect()->assertSessionHasNoErrors();
+
+    expect($blueprint->fresh()->handle)->toBe('property')
+        ->and($listings->fresh()->only(['blueprint', 'listing_blueprint']))->toBe(['blueprint' => 'property', 'listing_blueprint' => 'property'])
+        ->and($pages->fresh()->blueprints)->toBe(['property'])
+        ->and(Collection::withTrashed()->find($gone->id)->blueprint)->toBe('property')
+        ->and([$taxonomy->fresh()->blueprint, $set->fresh()->blueprint, $form->fresh()->blueprint, $entry->fresh()->blueprint])->toBe(['property', 'property', 'property', 'property']);
+
+    Pest\Laravel\put("/admin/cms/blueprints/{$blueprint->id}", ['title' => 'Property', 'handle' => 'page', 'fields' => []])->assertSessionHasErrors('handle');
+    expect($blueprint->fresh()->handle)->toBe('property')->and($blueprint->fresh()->fields)->not->toBe([]);
 });

@@ -13,6 +13,7 @@ use Sunrice\Cms\Content;
 use Sunrice\Cms\Globals;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\GlobalSet;
+use Sunrice\Cms\Models\Menu;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -105,4 +106,19 @@ it('edits globals in the admin', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.global-sets.view', 'cms.global-sets.create'));
     post('/admin/global-sets', ['title' => 'Social', 'handle' => 'social'])->assertSessionHasNoErrors();
     expect(GlobalSet::query()->where('handle', 'social')->exists())->toBeTrue();
+});
+
+it('renames a global set or menu from its form, the handle made from the title when creating', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.global-sets.view', 'cms.global-sets.create', 'cms.global-sets.update', 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
+    $menu = Menu::query()->create(['handle' => 'mian', 'title' => 'Main']);
+
+    get('/admin/global-sets/create')->assertInertia(fn (Assert $page) => $page->where('sections.0.fields.1', fn ($field) => $field['name'] === 'handle' && $field['slugFrom'] === 'title' && $field['slugSeparator'] === '_'));
+    put("/admin/global-sets/{$this->contact->id}", ['title' => 'Contact', 'handle' => 'contact-us'])->assertSessionHasErrors(['handle' => 'Use lowercase letters, digits and underscores, starting with a letter: try "contact_us".']);
+    put("/admin/global-sets/{$this->contact->id}", ['title' => 'Contact', 'handle' => 'contact_us'])->assertSessionHasNoErrors();
+    put("/admin/menus/{$menu->id}", ['title' => 'Main', 'handle' => 'main'])->assertSessionHasNoErrors();
+
+    expect($this->contact->fresh()->handle)->toBe('contact_us')
+        ->and($menu->fresh()->handle)->toBe('main')
+        ->and(app(Globals::class)->get('contact_us'))->toHaveKey('address');
 });

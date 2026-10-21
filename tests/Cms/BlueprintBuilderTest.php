@@ -82,13 +82,13 @@ it('creates and saves a blueprint', function () {
         ['handle' => 'intro', 'type' => 'textarea', 'label' => 'Intro', 'required' => true],
     ]])->assertRedirect('/admin/cms/blueprints/1/edit')->assertSessionHas('success');
 
-    put('/admin/cms/blueprints/1', ['title' => 'News article', 'handle' => 'ignored', 'fields' => [
+    put('/admin/cms/blueprints/1', ['title' => 'News article', 'handle' => 'news_article', 'fields' => [
         ['handle' => 'intro', 'type' => 'textarea'],
         ['handle' => 'tags', 'type' => 'select', 'config' => ['multiple' => true, 'options' => [['value' => 'a', 'label' => 'A']]]],
     ]])->assertSessionHasNoErrors();
 
     $blueprint = Blueprint::query()->firstOrFail();
-    expect($blueprint->only(['handle', 'title']))->toBe(['handle' => 'article', 'title' => 'News article'])
+    expect($blueprint->only(['handle', 'title']))->toBe(['handle' => 'news_article', 'title' => 'News article'])
         ->and(array_column($blueprint->fields, 'handle'))->toBe(['intro', 'tags']);
 
     get('/admin/cms/blueprints/1/edit')->assertInertia(fn (Assert $page) => $page->where('blueprint.fields.1.config.multiple', true));

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Resources\Forms;
 
 /**
- * A one-line text input: ->email(), ->url(), ->color(), ->maxLength(100).
+ * A one-line text input: ->email(), ->url(), ->color(), ->maxLength(100),
+ * ->slug('title', '_') (a handle or slug made from another field).
  *
  * @api
  */
@@ -14,6 +15,9 @@ final class TextInput extends Field
     private string $inputType = 'text';
 
     private int $maxLength = 255;
+
+    /** @var array{from: string, separator: string}|null */
+    private ?array $slug = null;
 
     public function type(): string
     {
@@ -43,6 +47,20 @@ final class TextInput extends Field
         return $this;
     }
 
+    /**
+     * A slug or handle: filled in from the `$from` field as it's typed
+     * ("Contact person" → "contact-person", or "contact_person" with "_")
+     * until someone types in this one (or it already has a value), and
+     * what's typed here is kept to lowercase letters, digits and the
+     * separator. Add the rule that checks it on the server too.
+     */
+    public function slug(string $from = 'title', string $separator = '-'): self
+    {
+        $this->slug = ['from' => $from, 'separator' => $separator];
+
+        return $this;
+    }
+
     public function maxLength(int $length): self
     {
         $this->maxLength = $length;
@@ -66,6 +84,6 @@ final class TextInput extends Field
 
     protected function props(): array
     {
-        return ['inputType' => $this->inputType, 'maxLength' => $this->maxLength];
+        return ['inputType' => $this->inputType, 'maxLength' => $this->maxLength, ...($this->slug !== null ? ['slugFrom' => $this->slug['from'], 'slugSeparator' => $this->slug['separator']] : [])];
     }
 }

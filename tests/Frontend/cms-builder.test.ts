@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    errorsAt, errorsUnder, fromDefinitions, handleFromLabel, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
+    errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -70,4 +70,11 @@ test('gives a value its own error and those under it', () => {
 
     assert.deepEqual(errorsAt(errors, 'config.options'), { '': 'Required.', '0.value': 'Too long.' });
     assert.deepEqual(errorsAt(errors, 'config.max'), {});
+});
+
+test('keeps a typed handle to lowercase letters, digits and underscores', () => {
+    assert.equal(handleInput('contact-person'), 'contact_person');
+    assert.equal(handleInput('Contact Person'), 'contact_person');
+    assert.equal(handleInput('phone_'), 'phone_');
+    assert.equal(handleInput('2nd-try'), 'nd_try');
 });

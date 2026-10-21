@@ -1,6 +1,8 @@
+import * as React from 'react';
 import { InputError } from '@/components/app/input-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { slugify } from '@/lib/slug';
 import { cn } from '@/lib/utils';
 import { FieldInput, type FieldValue } from './fields';
 import type { SectionInfo } from './types';
@@ -16,7 +18,26 @@ interface Props {
 }
 
 /** A form's sections as cards of fields (resources and settings). */
-export function FormSections({ sections, data, errors, onChange }: Props) {
+export function FormSections({ sections, data, errors, onChange: setValue }: Props) {
+    // Slug fields (TextInput::slug()) follow their source field until one is typed in (or has a value).
+    const slugs = sections.flatMap((section) => section.fields).filter((field) => typeof field.slugFrom === 'string');
+    const [typed, setTyped] = React.useState(() => new Set(slugs.filter((field) => (data[field.name] ?? '') !== '').map((field) => field.name)));
+    const onChange = (name: string, value: FieldValue) => {
+        setValue(name, value);
+        if (slugs.some((field) => field.name === name)) {
+            setTyped((names) => {
+                const next = new Set(names);
+                value === '' || value === null ? next.delete(name) : next.add(name);
+                return next;
+            });
+        }
+        for (const field of slugs) {
+            if (field.slugFrom === name && !typed.has(field.name)) {
+                setValue(field.name, slugify(typeof value === 'string' ? value : '', String(field.slugSeparator ?? '-'), Number(field.maxLength) || 64));
+            }
+        }
+    };
+
     return sections.map((section, index) => (
         <Card key={index}>
             {section.title && (
