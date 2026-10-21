@@ -1778,6 +1778,8 @@
                     "label": "Photos",
                     "config": {
                         "types": "jpg, jpeg, png, webp",
+                        "multiple": true,
+                        "max_files": 10,
                         "max_kb": 5120
                     },
                     "fields": [],
@@ -1817,8 +1819,10 @@
             "comments": false,
             "schema_type": null,
             "template": null,
-            "listings": {},
-            "seo": []
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "listings": {}
         },
         {
             "handle": "journal",
@@ -1835,6 +1839,9 @@
             "comments": true,
             "schema_type": "BlogPosting",
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": "excerpt",
+            "seo_image_field": "cover",
             "listings": {
                 "en": {
                     "seo": {
@@ -1854,10 +1861,6 @@
                     },
                     "intro": "Laporan pasar, panduan membeli dan cerita kehidupan di Jakarta dan Bali, ditulis oleh para penasihat kami."
                 }
-            },
-            "seo": {
-                "seo_description_field": "excerpt",
-                "seo_image_field": "cover"
             }
         },
         {
@@ -1875,11 +1878,10 @@
             "comments": false,
             "schema_type": null,
             "template": null,
-            "listings": {},
-            "seo": {
-                "seo_description_field": "intro",
-                "seo_image_field": "hero"
-            }
+            "seo_title_field": null,
+            "seo_description_field": "intro",
+            "seo_image_field": "hero",
+            "listings": {}
         },
         {
             "handle": "pages",
@@ -1896,10 +1898,10 @@
             "comments": false,
             "schema_type": null,
             "template": null,
-            "listings": {},
-            "seo": {
-                "seo_description_field": "intro"
-            }
+            "seo_title_field": null,
+            "seo_description_field": "intro",
+            "seo_image_field": null,
+            "listings": {}
         },
         {
             "handle": "properties",
@@ -1916,6 +1918,9 @@
             "comments": false,
             "schema_type": "WebPage",
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": "summary",
+            "seo_image_field": "gallery",
             "listings": {
                 "en": {
                     "seo": {
@@ -1936,10 +1941,6 @@
                     },
                     "intro": "Vila, rumah keluarga, apartemen dan tanah untuk dijual dan disewakan di Jakarta dan Bali, semuanya telah dikunjungi dan diperiksa oleh tim kami."
                 }
-            },
-            "seo": {
-                "seo_description_field": "summary",
-                "seo_image_field": "gallery"
             }
         },
         {
@@ -1957,8 +1958,10 @@
             "comments": false,
             "schema_type": null,
             "template": null,
-            "listings": {},
-            "seo": []
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
+            "listings": {}
         }
     ],
     "taxonomies": [
@@ -1969,10 +1972,12 @@
             "route": null,
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "properties"
-            ],
-            "seo": []
+            ]
         },
         {
             "handle": "listing_types",
@@ -1981,10 +1986,12 @@
             "route": null,
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "properties"
-            ],
-            "seo": []
+            ]
         },
         {
             "handle": "locations",
@@ -1993,10 +2000,12 @@
             "route": "/location/{slug}",
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "properties"
-            ],
-            "seo": []
+            ]
         },
         {
             "handle": "property_types",
@@ -2005,10 +2014,12 @@
             "route": "/property-type/{slug}",
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "properties"
-            ],
-            "seo": []
+            ]
         },
         {
             "handle": "topics",
@@ -2017,10 +2028,12 @@
             "route": "/journal/topic/{slug}",
             "blueprint": null,
             "template": null,
+            "seo_title_field": null,
+            "seo_description_field": null,
+            "seo_image_field": null,
             "collections": [
                 "journal"
-            ],
-            "seo": []
+            ]
         }
     ],
     "globals": [
@@ -2048,6 +2061,7 @@
             "notify": [
                 "ayu@lumina-estates.test"
             ],
+            "notify_roles": null,
             "message": "Thank you for getting in touch. One of our advisors will reply within one working day.",
             "redirect_url": null,
             "per_minute": null,
@@ -2060,6 +2074,7 @@
             "notify": [
                 "ayu@lumina-estates.test"
             ],
+            "notify_roles": null,
             "message": "Thank you for your interest. The listing agent will contact you shortly to arrange a viewing.",
             "redirect_url": null,
             "per_minute": null,
@@ -2070,6 +2085,7 @@
             "title": "Newsletter",
             "blueprint": "newsletter_form",
             "notify": null,
+            "notify_roles": null,
             "message": "Thank you for subscribing to the Lumina Estates journal.",
             "redirect_url": null,
             "per_minute": null,
@@ -2082,6 +2098,7 @@
             "notify": [
                 "ayu@lumina-estates.test"
             ],
+            "notify_roles": null,
             "message": "Thank you. We will be in touch within two working days with a valuation appointment.",
             "redirect_url": null,
             "per_minute": 3,

@@ -19,6 +19,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\actingAs;
@@ -151,6 +152,43 @@ it('marks the page shown and the links leading to it', function () {
 
     $this->app->instance('request', Request::create('/contact'));
     expect(app(Menus::class)->get('main')[1]['active'])->toBeTrue();
+});
+
+it('marks a link with a query string only when the address has its values, ahead of the one without', function () {
+    $this->pages->update(['listing_route' => '/pages']);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'Pages'], 'children' => [
+            ['url' => '/pages?type=sale', 'labels' => ['en' => 'For sale']],
+            ['url' => '/pages?type=rent', 'labels' => ['en' => 'For rent']],
+        ]],
+    ]);
+    $marks = function (string $address): array {
+        app()->instance('request', Request::create($address));
+        $menu = app(Menus::class)->get('main');
+
+        return [$menu[0]['active'], $menu[0]['active_trail'], $menu[0]['children'][0]['active'], $menu[0]['children'][1]['active']];
+    };
+
+    expect($marks('/pages'))->toBe([true, true, false, false])
+        ->and($marks('/pages?type=sale&page=2'))->toBe([false, true, true, false])
+        ->and($marks('/pages?type=other'))->toBe([true, true, false, false]);
+});
+
+it('puts the listing page and the parent entries of the entry shown on the trail', function () {
+    $this->pages->update(['listing_route' => '/pages', 'hierarchical' => true]);
+    $services = page('Services');
+    $design = page('Design');
+    $design->entry->update(['parent_id' => $services->entry_id]);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'Pages']],
+        ['entry_id' => $services->entry_id],
+        ['url' => '/contact', 'labels' => ['en' => 'Contact']],
+    ]);
+
+    $this->app->instance('request', Request::create('/design'));
+    (new Page(Page::ENTRY, 'en', 'cms.entry', entry: $design->fresh()))->share();
+    $menu = app(Menus::class)->get('main');
+    expect(array_map(fn (array $item) => [$item['active'], $item['active_trail']], $menu))->toBe([[false, true], [false, true], [false, false]]);
 });
 
 it('links untranslated pages at the language\'s address, or the main page with the fallback off', function () {

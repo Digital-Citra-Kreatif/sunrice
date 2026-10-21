@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Sunrice\Cms\Actions\Globals\SaveGlobals;
+use Sunrice\Cms\Models\GlobalSet;
 use Tests\Support\LuminaSite;
 
 beforeEach(function (): void {
@@ -106,8 +108,9 @@ it('renders the sell page with the CMS-printed valuation form, file input includ
 });
 
 it('shows 404 pages in the site layout, in the address language', function (): void {
-    $this->get('/no-such-page')->assertNotFound()->assertSee('This page has moved on');
-    $this->get('/id/tidak-ada')->assertNotFound()->assertSee('Halaman ini sudah pindah');
+    $this->get('/no-such-page')->assertNotFound()->assertSee('We can’t find that page')
+        ->assertSee('<meta name="robots" content="noindex">', false)->assertDontSee('rel="canonical"', false);
+    $this->get('/id/tidak-ada')->assertNotFound()->assertSee('Halaman tidak ditemukan');
 });
 
 it('redirects the old addresses', function (): void {
@@ -120,4 +123,21 @@ it('lists the site in the sitemap', function (): void {
         ->assertSee(url('/properties/villa-samudra'), false)
         ->assertSee(url('/id/properties/vila-samudra'), false)
         ->assertSee(url('/journal'), false);
+});
+
+it('serves robots.txt with the sitemap\'s address, and keeps a hidden site out', function (): void {
+    $this->get('/robots.txt')->assertOk()->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
+        ->assertSee('Disallow: /admin')->assertSee('Sitemap: '.url('sitemap.xml'));
+    config(['sunrice-cms.seo.noindex' => true]);
+    $this->get('/robots.txt')->assertSee('Disallow: /')->assertDontSee('Sitemap:');
+});
+
+it('prints the copyright line once in the footer, with the legal text the content seeds', function (): void {
+    $content = json_decode((string) file_get_contents(database_path('content.json')), true);
+    $footer = collect($content['globals'] ?? [])->firstWhere('handle', 'footer');
+    $set = GlobalSet::query()->where('handle', 'footer')->firstOrFail();
+    app(SaveGlobals::class)->handle($set, ['legal' => $footer['values']['en']['legal']], 'en');
+
+    $html = (string) $this->get('/')->getContent();
+    expect(substr_count($html, '©') + substr_count($html, '&copy;'))->toBe(1)->and($html)->toContain('Licensed real estate broker');
 });

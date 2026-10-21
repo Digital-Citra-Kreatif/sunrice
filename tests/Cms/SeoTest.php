@@ -130,7 +130,7 @@ it('refuses addresses that lead off the site in disguise', function () {
 it('asks search engines to skip noindex pages', function () {
     seoPost($this->blog, 'Hidden', ['seo' => ['noindex' => true]]);
 
-    get('/blog/hidden')->assertOk()->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    get('/blog/hidden')->assertOk()->assertSee('<meta name="robots" content="noindex">', false);
 });
 
 it('saves SEO from the editor with the draft', function () {
@@ -295,6 +295,20 @@ it('offers the blueprints\' fields for SEO in Structure → Collections and Taxo
     put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'seo_image_field' => 'headline'])->assertSessionHasErrors('seo_image_field');
     post('/admin/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'seo_title_field' => 'headline'])->assertSessionHasNoErrors();
     expect(Taxonomy::query()->where('handle', 'topics')->value('seo_title_field'))->toBe('headline');
+});
+
+it('offers only the fields of the collection\'s or taxonomy\'s own blueprints for SEO', function () {
+    Blueprint::query()->create(['handle' => 'area', 'title' => 'Area', 'fields' => [['handle' => 'summary', 'type' => 'textarea', 'label' => 'Summary']]]);
+    Blueprint::query()->create(['handle' => 'contact_form', 'title' => 'Contact form', 'fields' => [['handle' => 'message', 'type' => 'textarea', 'label' => 'Message']]]);
+    $areas = Taxonomy::query()->create(['handle' => 'areas', 'title' => 'Areas', 'blueprint' => 'area']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.collections.create', 'cms.taxonomies.view', 'cms.taxonomies.update'));
+    $choices = fn (string $url) => collect(get($url)->assertOk()->viewData('page')['props']['sections'])
+        ->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'seo_description_field')['options'];
+
+    expect(array_column($choices("/admin/collections/{$this->blog->id}/edit"), 'value'))->toBe(['intro'])
+        ->and(array_column($choices("/admin/taxonomies/{$areas->id}/edit"), 'value'))->toBe(['summary'])
+        ->and(array_column($choices('/admin/collections/create'), 'value'))->toContain('message', 'summary', 'intro');
+    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'seo_description_field' => 'message'])->assertSessionHasErrors('seo_description_field');
 });
 
 it('gives listing pages SEO of their own, per language', function () {

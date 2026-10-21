@@ -98,7 +98,8 @@ npm run build   # public/build (not committed: built on deploy)
 ```
 
 Tailwind CSS v4 (tokens in `@theme`, components in `@layer components` of `resources/css/app.css`), fonts
-self-hosted at build time from the `@fontsource` packages by laravel-vite-plugin (`@fonts` in the layout).
+self-hosted at build time by laravel-vite-plugin from the `@fontsource` packages' latin woff2 files, one file per face
+(`@fonts` in the layout, which preloads the regular weights).
 The script (`resources/js/app.js`) only enhances: the gallery viewer, the mobile menu, the header over a hero,
 reveal on scroll (off with reduced motion), filter selects submitting themselves. Every page works without it.
 
@@ -173,4 +174,5 @@ address: emails' links are built from it, and `bootstrap/app.php` trusts only it
 `expose_php = Off` in `php.ini` so responses don't announce the PHP version (`X-Powered-By`).
 
 Web server: serve `public/`; for `storage/media` add `X-Content-Type-Options: nosniff` (see the panel's
-media docs). Add `Sitemap: https://<domain>/sitemap.xml` to `public/robots.txt` for the production domain.
+media docs). `/robots.txt` is a route (`routes/web.php`) that names the sitemap at the address the site is
+served on, and keeps search engines out of a hidden site.

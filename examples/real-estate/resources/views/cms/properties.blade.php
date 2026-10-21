@@ -19,6 +19,15 @@
     $amenities = collect($v['amenities'] ?? []);
     $features = collect($v['features'] ?? [])->pluck('label')->filter();
     $status = $v['property_status'] ?? 'available';
+    // Gone (sold or let): no asking price or viewing to offer, but similar homes.
+    $gone = in_array($status, ['sold', 'rented'], true);
+    $rental = in_array($v['price_suffix'] ?? null, ['per_month', 'per_year'], true);
+    $priceLabel = match (true) {
+        $status === 'sold' => __('site.property.price_sold'),
+        $status === 'rented' => __('site.property.price_rented'),
+        $rental => __('site.property.price_rent'),
+        default => __('site.property.price'),
+    };
 
     // Nearby: the same area (the location's parent, with every place under it), this one left out.
     $area = $location?->parent ?? $location;
@@ -62,7 +71,7 @@
                     @endif
                 </div>
                 <div class="lg:text-right">
-                    <p class="eyebrow">{{ __('site.property.price') }}</p>
+                    <p class="eyebrow">{{ $priceLabel }}</p>
                     @include('cms.partials.price', ['values' => $v, 'class' => '!text-4xl mt-2'])
                 </div>
             </div>
@@ -190,6 +199,16 @@
                         </div>
                     @endif
 
+                    @if ($gone)
+                    <div class="rounded-[var(--radius-card)] bg-paper p-6 shadow-[var(--shadow-soft)] sm:p-7">
+                        <h2 class="font-serif text-2xl">{{ $status === 'sold' ? __('site.property.gone_sold') : __('site.property.gone_rented') }}</h2>
+                        <p class="mt-2 text-sm text-sand-600">{{ __('site.property.gone_text') }}</p>
+                        @php($propertiesUrl = \Sunrice\Cms\Models\Collection::query()->where('handle', 'properties')->first()?->listingUrl(\Sunrice\Cms\Support\Locales::current()))
+                        @if ($propertiesUrl)
+                            <p class="mt-5"><a href="{{ $propertiesUrl }}" class="link-arrow">{{ __('site.property.gone_link') }} @include('cms.partials.icon', ['name' => 'arrow-right'])</a></p>
+                        @endif
+                    </div>
+                    @else
                     <div class="rounded-[var(--radius-card)] bg-paper p-6 shadow-[var(--shadow-soft)] sm:p-7">
                         <h2 class="font-serif text-2xl">{{ __('site.property.enquire') }}</h2>
                         <p class="mt-1 text-sm text-sand-600">{{ __('site.property.enquire_text') }}</p>
@@ -204,6 +223,7 @@
                             <button type="submit" class="btn btn-primary btn-block">{{ __('site.property.send') }}</button>
                         </x-sunrice-cms::form>
                     </div>
+                    @endif
 
                     @if ($neighbourhood)
                         @php($nv = $neighbourhood->values())

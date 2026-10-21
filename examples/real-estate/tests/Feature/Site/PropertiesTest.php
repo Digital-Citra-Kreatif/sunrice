@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Sunrice\Cms\Actions\Entries\PublishEntry;
+use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Tests\Support\LuminaSite;
 
 beforeEach(function (): void {
@@ -82,4 +84,24 @@ it('renders the term pages, a location with the places under it', function (): v
     $this->get('/property-type/villa')->assertOk()->assertSee('Villa Samudra')->assertDontSee('Kemang Garden House');
     $this->get('/location/bali')->assertOk()->assertSee('Villa Samudra')->assertSee('Seminyak Pool Villa')->assertDontSee('Kemang Garden House');
     $this->get('/id/property-type/vila')->assertOk()->assertSee('Vila');
+});
+
+it('says a sold or let home is gone instead of offering a viewing, and labels the price for what it is', function (): void {
+    $house = $this->site->entry('properties/kemang-garden-house');
+    app(SaveDraft::class)->handle($house, ['data' => [...$house->draft_data, 'property_status' => 'sold']]);
+    app(PublishEntry::class)->handle($house->fresh());
+
+    $this->get('/properties/kemang-garden-house')->assertOk()
+        ->assertSee('Last asking price')->assertSee('This home has been sold')->assertSee('See the homes available now')
+        ->assertDontSee('Asking price')->assertDontSee(route('sunrice.cms.forms.submit', 'inquiry'), false);
+    $this->get('/properties/seminyak-pool-villa')->assertSee('<p class="eyebrow">Rent</p>', false)->assertSee(route('sunrice.cms.forms.submit', 'inquiry'), false);
+});
+
+it('states a rent\'s unit in the Offer, and shows short prices on cards', function (): void {
+    $html = $this->get('/properties/seminyak-pool-villa')->getContent();
+    preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $html, $m);
+    $listing = collect($m[1])->flatMap(fn ($json) => json_decode($json, true)['@graph'] ?? [])->firstWhere('@type', 'RealEstateListing');
+
+    expect($listing['offers']['priceSpecification'])->toMatchArray(['@type' => 'UnitPriceSpecification', 'unitCode' => 'MON', 'price' => 95_000_000]);
+    $this->get('/properties')->assertSee('IDR 28.5 billion')->assertDontSee('IDR 28,500,000,000');
 });

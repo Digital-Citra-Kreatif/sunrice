@@ -82,13 +82,13 @@ it('creates and saves a blueprint', function () {
         ['handle' => 'intro', 'type' => 'textarea', 'label' => 'Intro', 'required' => true],
     ]])->assertRedirect('/admin/cms/blueprints/1/edit')->assertSessionHas('success');
 
-    put('/admin/cms/blueprints/1', ['title' => 'News article', 'handle' => 'ignored', 'fields' => [
+    put('/admin/cms/blueprints/1', ['title' => 'News article', 'handle' => 'news_article', 'fields' => [
         ['handle' => 'intro', 'type' => 'textarea'],
         ['handle' => 'tags', 'type' => 'select', 'config' => ['multiple' => true, 'options' => [['value' => 'a', 'label' => 'A']]]],
     ]])->assertSessionHasNoErrors();
 
     $blueprint = Blueprint::query()->firstOrFail();
-    expect($blueprint->only(['handle', 'title']))->toBe(['handle' => 'article', 'title' => 'News article'])
+    expect($blueprint->only(['handle', 'title']))->toBe(['handle' => 'news_article', 'title' => 'News article'])
         ->and(array_column($blueprint->fields, 'handle'))->toBe(['intro', 'tags']);
 
     get('/admin/cms/blueprints/1/edit')->assertInertia(fn (Assert $page) => $page->where('blueprint.fields.1.config.multiple', true));
@@ -138,4 +138,11 @@ it('builds fieldsets with the same builder, saying where they are used', functio
 it('publishes its assets with the app\'s', function () {
     expect(ServiceProvider::pathsToPublish(CmsServiceProvider::class, 'laravel-assets'))
         ->toHaveKey(dirname(__DIR__, 2).'/packages/cms/dist');
+});
+
+it('gives the builder the handles content keeps for itself, to warn as they are typed', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.blueprints.manage'));
+
+    get('/admin/cms/blueprints/create')->assertInertia(fn (Assert $page) => $page->where('reserved', Blueprint::RESERVED));
+    expect(Blueprint::RESERVED)->toContain('status', 'author');
 });

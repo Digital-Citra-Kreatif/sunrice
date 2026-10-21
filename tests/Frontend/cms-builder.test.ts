@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    errorKeysAt, errorsAt, errorsUnder, fromDefinitions, handleFromLabel, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
+    errorKeysAt, errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, handleWarning, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -78,4 +78,40 @@ test('gives a value its own error and those under it', () => {
 
     assert.deepEqual(errorsAt(errors, 'config.options'), { '': 'Required.', '0.value': 'Too long.' });
     assert.deepEqual(errorsAt(errors, 'config.max'), {});
+});
+
+test('keeps a typed handle to lowercase letters, digits and underscores', () => {
+    assert.equal(handleInput('contact-person'), 'contact_person');
+    assert.equal(handleInput('Contact Person'), 'contact_person');
+    assert.equal(handleInput('phone_'), 'phone_');
+    assert.equal(handleInput('2nd-try'), 'nd_try');
+});
+
+test('warns about a reserved or taken handle as it is typed', () => {
+    const a = { key: 'a', handle: 'status', type: 'select' };
+    const b = { key: 'b', handle: 'phone', type: 'text' };
+    const c = { key: 'c', handle: 'phone', type: 'text' };
+    const include = { key: 'd', handle: 'phone', type: 'fieldset' };
+    assert.equal(handleWarning(a, [a, b], ['status', 'author']), '"status" is used by the content itself; choose another handle.');
+    assert.equal(handleWarning(a, [a, b]), null);
+    assert.equal(handleWarning(b, [a, b, c]), 'There is already a field "phone" here.');
+    assert.equal(handleWarning(b, [b, include]), null);
+});
+
+test('the builder folds fields to their summary: a new one opens alone, and all close at once', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const source = await readFile(new URL('../../packages/cms/resources/js/components/FieldBuilder.tsx', import.meta.url), 'utf8');
+
+    assert.match(source, /setOpen\(new Set\(\[field\.key\]\)\)/);
+    assert.match(source, />Close all</);
+    // No example rules that look like rules already set.
+    assert.doesNotMatch(source, /placeholder=\{'min:3/);
+});
+
+test('a multiple select setting in tick order adds what is ticked last, and numbers it', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const source = await readFile(new URL('../../packages/cms/resources/js/components/FieldInput.tsx', import.meta.url), 'utf8');
+
+    assert.match(source, /inTickOrder \? \[\.\.\.value\.filter\(\(v\) => v !== option\.value\), option\.value\]/);
+    assert.match(source, /inTickOrder=\{field\.config\?\.in_tick_order === true\}/);
 });

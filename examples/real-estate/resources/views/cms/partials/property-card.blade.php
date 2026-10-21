@@ -40,7 +40,7 @@
             @endif
         </div>
         <div class="mt-auto border-t border-sand-100 pt-4">
-            @include('cms.partials.price', ['values' => $v])
+            @include('cms.partials.price', ['values' => $v, 'short' => true])
         </div>
     </div>
 </article>

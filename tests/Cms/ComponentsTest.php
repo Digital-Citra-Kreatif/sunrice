@@ -60,7 +60,7 @@ it('takes where rows with operators, terms by slug with their children, and a pa
     request()->query->set('news', '2');
     request()->query->set('q', 'x');
     $html = Blade::render('<x-sunrice-cms::entries collection="blog" :paginate="2" page-name="news" order="alphabetical">@foreach ($component->entries as $e){{ $e->title }} @endforeach|{{ $component->entries->url(1) }}</x-sunrice-cms::entries>');
-    expect($html)->toContain('Gamma |')->toContain('q=x')->toContain('news=1');
+    expect($html)->toContain('Gamma |')->toContain('q=x')->not->toContain('news=1');
 });
 
 it('takes terms under a parent, in an order, up to a limit, and tells the term shown', function () {
@@ -91,7 +91,7 @@ it('lets the template set the SEO title, description and noindex, or describe a 
     expect($render('title="Contact" description="Write <b>to</b> us"'))
         ->toContain('<title>Contact | Acme</title>')->toContain('<meta name="description" content="Write to us">')
         ->not->toContain('noindex');
-    expect($render('default-title="Shop" noindex'))->toContain('<title>Shop | Acme</title>')->toContain('content="noindex, nofollow"');
+    expect($render('default-title="Shop" noindex'))->toContain('<title>Shop | Acme</title>')->toContain('content="noindex"');
     expect($render('collection="blog"'))->toContain('<title>Blog | Acme</title>')->toContain('<link rel="canonical" href="'.url('/blog').'">');
     expect($render(':collection="$blog"', ['blog' => $this->blog]))->toContain('<title>Blog | Acme</title>');
 

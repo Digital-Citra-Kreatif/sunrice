@@ -84,11 +84,11 @@ public static function query(): Builder
 
 | Field | Stored as | Options |
 | --- | --- | --- |
-| `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255) |
+| `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slug($from = 'title', $separator = '-')` (a slug or handle: filled in from `$from` as it's typed until someone types in it or it has a value, and kept to lowercase letters, digits and the separator as it's typed; check it on the server with a rule too) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |
-| `Select` | one of the options | `->options([value => label])` (or a closure): other values are refused; `->searchable()` adds a search box over them, for long lists |
+| `Select` | one of the options | `->options([value => label])`, or a closure that gets the record being edited (null when creating): `->options(fn (?Model $record) => …)`; other values are refused; `->searchable()` adds a search box over them, for long lists |
 | `DatePicker` | date | `->withTime()` |
 | `Password` | a hash | never sent to the browser; empty keeps the current one when editing, so `->required()` applies when creating; Laravel's `Password::defaults()` rules; `->confirmed()` asks for it twice (`{name}_confirmation`; the AI tools fill it in) |
 | `Secret` | a string | never sent to the browser; empty keeps the current value; store it encrypted (`encrypted` cast) |

@@ -144,3 +144,33 @@ it('prunes old submissions with their files', function () {
     expect(Submission::query()->pluck('data')->pluck('name')->all())->toBe(['New']);
     Storage::disk('local')->assertMissing($old->data['cv']['path']);
 });
+
+it('takes several files when the field allows, up to its limit', function () {
+    Blueprint::query()->where('handle', 'apply')->update(['fields' => [
+        ['handle' => 'name', 'type' => 'text'],
+        ['handle' => 'photos', 'type' => 'file', 'required' => true, 'config' => ['types' => 'jpg', 'multiple' => true, 'max_files' => 3]],
+    ]]);
+    expect(Blade::render('<x-sunrice-cms::form handle="apply" />'))->toContain('name="data[photos][]"')->toContain(' multiple ');
+
+    $photo = fn (string $name) => UploadedFile::fake()->image($name);
+    from('/apply')->post('/forms/apply', ['data' => ['name' => 'Ana', 'photos' => [$photo('a.jpg'), $photo('b.jpg'), $photo('c.jpg'), $photo('d.jpg')]]])->assertSessionHasErrors(['photos'], null, 'apply');
+    from('/apply')->post('/forms/apply', ['data' => ['name' => 'Ana', 'photos' => [$photo('a.jpg'), UploadedFile::fake()->create('x.pdf', 5, 'application/pdf')]]])->assertSessionHasErrors(['photos'], null, 'apply');
+    from('/apply')->post('/forms/apply', ['data' => ['name' => 'Ana', 'photos' => []]])->assertSessionHasErrors(['photos'], null, 'apply');
+    from('/apply')->post('/forms/apply', ['data' => ['name' => 'Ana', 'photos' => [$photo('front.jpg'), $photo('garden.jpg')]]])->assertSessionHasNoErrors();
+
+    $submission = Submission::query()->sole();
+    $files = $submission->data['photos'];
+    expect(array_column($files, 'name'))->toBe(['front.jpg', 'garden.jpg']);
+    Storage::disk('local')->assertExists(array_column($files, 'path'));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.submissions.view', 'cms.submissions.delete'));
+    get('/admin/cms/forms/apply/submissions')->assertInertia(fn ($page) => $page
+        ->where('submissions.data.0.rows.1.value', 'front.jpg, garden.jpg')
+        ->where('submissions.data.0.rows.1.files.1', ['name' => 'garden.jpg', 'url' => route('sunrice.admin.cms.submissions.file', [$submission->id, 'photos', 'index' => 1])]));
+    get("/admin/cms/submissions/{$submission->id}/files/photos?index=1")->assertOk()->assertDownload('garden.jpg');
+    get("/admin/cms/submissions/{$submission->id}/files/photos?index=5")->assertNotFound();
+    get("/admin/cms/submissions/{$submission->id}/files/photos")->assertNotFound();
+
+    delete("/admin/cms/submissions/{$submission->id}");
+    Storage::disk('local')->assertMissing(array_column($files, 'path'));
+});
