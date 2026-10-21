@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\StarterKit\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Sunrice\StarterKit\Actions\MakeStarter;
 
@@ -33,7 +34,7 @@ final class MakeStarterCommand extends Command
         $directory = $to !== '' ? $to : base_path("starters/{$name}");
         $public = $this->option('public');
         try {
-            $starter = $make->handle($name, $directory, $text($this->option('title')), $text($this->option('description')), is_array($public) ? array_values(array_filter($public, 'is_string')) : [], (bool) $this->option('force'));
+            $starter = $make->handle($name, $directory, $text($this->option('title')), $text($this->option('description')), array_values(array_filter(Arr::wrap($public), 'is_string')), (bool) $this->option('force'));
         } catch (InvalidArgumentException $e) {
             $this->components->error($e->getMessage());
 
