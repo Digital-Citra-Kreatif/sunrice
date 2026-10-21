@@ -27,6 +27,31 @@ final class SafeSvg
     /** Attributes holding a URL (or a value animated into one), by local name. */
     private const URL_ATTRIBUTES = ['href', 'src', 'from', 'to', 'values', 'by', 'action', 'formaction'];
 
+    /**
+     * Its size from the root element: the viewBox's width and height, else
+     * numeric width and height attributes (px or none), rounded; nulls
+     * when it says neither.
+     *
+     * @return array{0: int|null, 1: int|null}
+     */
+    public static function dimensions(string $svg): array
+    {
+        if (preg_match('/<svg\b[^>]*>/i', $svg, $root) !== 1) {
+            return [null, null];
+        }
+        $attribute = fn (string $name): ?string => preg_match('/\s'.$name.'\s*=\s*["\']([^"\']*)["\']/i', $root[0], $m) === 1 ? trim($m[1]) : null;
+        $box = preg_split('/[\s,]+/', $attribute('viewBox') ?? '') ?: [];
+        if (count($box) === 4 && is_numeric($box[2]) && is_numeric($box[3]) && (float) $box[2] > 0 && (float) $box[3] > 0) {
+            return [max(1, (int) round((float) $box[2])), max(1, (int) round((float) $box[3]))];
+        }
+        $width = preg_replace('/px$/i', '', $attribute('width') ?? '');
+        $height = preg_replace('/px$/i', '', $attribute('height') ?? '');
+
+        return is_numeric($width) && is_numeric($height) && (float) $width > 0 && (float) $height > 0
+            ? [max(1, (int) round((float) $width)), max(1, (int) round((float) $height))]
+            : [null, null];
+    }
+
     public static function isSafe(string $svg): bool
     {
         // Entities and processing instructions can smuggle content past the checks.

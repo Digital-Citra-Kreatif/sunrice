@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Media\Media;
+use Sunrice\Admin\Media\SafeSvg;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Settings\BrandingSettings;
 use Sunrice\Admin\Support\Branding;
@@ -123,4 +124,19 @@ it('accepts an image as the favicon, and only an image', function () {
     $png = iconUpload('icon.png', 32, 32);
     put('/admin/settings/branding', ['favicon' => $png->id, 'loginLayout' => 'split'])->assertSessionHasNoErrors();
     expect(app(BrandingSettings::class)->favicon)->toBe($png->id);
+});
+
+it('reads an SVG\'s size from its viewBox, so a wide SVG logo replaces the name and never becomes the icon', function () {
+    $wide = app(UploadMedia::class)->handle(UploadedFile::fake()->createWithContent('lumina-logo.svg',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 56"><rect width="208" height="56"/></svg>'), []);
+    expect([$wide->width, $wide->height])->toBe([208, 56])
+        ->and(SafeSvg::dimensions('<svg width="32px" height="30">'))->toBe([32, 30])
+        ->and(SafeSvg::dimensions('<svg>'))->toBe([null, null]);
+
+    setBranding(['logo' => $wide->id]);
+    get('/admin/login')->assertSee('branding/icon.svg', false)->assertDontSee('<link rel="icon" href="'.e($wide->url()), false);
+    expect(Branding::make()->toArray())->toMatchArray(['logo' => $wide->url(), 'logoWide' => true]);
+
+    setBranding(['logo' => iconUpload('square.png', 64, 64)->id]);
+    expect(Branding::make()->toArray()['logoWide'])->toBeFalse();
 });

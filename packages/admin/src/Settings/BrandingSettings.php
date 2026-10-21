@@ -110,7 +110,7 @@ final class BrandingSettings extends Settings
                 TextInput::make('name')->label('Panel name')->maxLength(60)->placeholder(app(Panel::class)->getBrand()),
                 TextInput::make('tagline')->maxLength(80)->placeholder('Shown under the name'),
                 MediaPicker::make('logo')->images()
-                    ->help('A square SVG or PNG works best. Without one, the sidebar shows the name\'s first letter.'),
+                    ->help('SVG or PNG. A square logo sits beside the name; a wide one (a wordmark) replaces it. Without one, the sidebar shows the name\'s first letter.'),
                 Select::make('font')->options($fonts)->placeholder('Default')
                     ->help('The typeface of the admin. Empty: the default font.'),
                 TextInput::make('color')->label('Brand colour')->color()->placeholder('#1e66f5')

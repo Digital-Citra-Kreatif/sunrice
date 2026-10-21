@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, usePage } from '@inertiajs/react';
-import { AppLogoIcon, useBranding } from '@/components/app/app-logo';
+import { AppLogoIcon, AppWordmark, useBranding } from '@/components/app/app-logo';
 import { AtmosphereArt } from '@/components/app/atmosphere-art';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,9 @@ export default function AuthLayout({ title, description, children }: { title: st
     const { login } = brand;
     const split = login.layout !== 'centered';
     const [firstLine, ...moreLines] = login.headline.split('\n');
-    const mark = (
+    const mark = brand.logo && brand.logoWide ? (
+        <div className="flex items-center"><AppWordmark className="h-9" /></div>
+    ) : (
         <div className="flex items-center gap-2.5 text-lg font-semibold tracking-tight">
             <AppLogoIcon />
             <span className="truncate">{brand.name}</span>

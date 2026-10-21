@@ -191,6 +191,7 @@ it('shares the branding with every page, with the panel\'s defaults for what is 
             'name' => 'Acme',
             'tagline' => '',
             'logo' => null,
+            'logoWide' => false,
             'lettermark' => 'A',
             'color' => null,
             'login' => [

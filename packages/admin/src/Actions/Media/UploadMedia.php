@@ -135,7 +135,11 @@ final class UploadMedia
     public static function dimensions(UploadedFile $file): array
     {
         $mime = self::mimeType($file);
-        if (! str_starts_with($mime, 'image/') || str_contains($mime, 'svg')) {
+        if (str_contains($mime, 'svg')) {
+            // From its viewBox: so a wide SVG logo isn't taken for a square icon.
+            return SafeSvg::dimensions((string) $file->getContent());
+        }
+        if (! str_starts_with($mime, 'image/')) {
             return [null, null];
         }
         $info = @getimagesize($file->getRealPath());

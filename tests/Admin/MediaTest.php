@@ -107,7 +107,7 @@ it('refuses SVGs with scripts and keeps clean ones as they are', function () {
     $media = upload(svg('<circle cx="5" cy="5" r="4" fill="#f80"/><a href="#x"><rect width="1" height="1"/></a>'));
     expect($media->mime_type)->toBe('image/svg+xml')
         ->and($media->sizes)->toBe([])
-        ->and($media->width)->toBeNull();
+        ->and([$media->width, $media->height])->toBe([10, 10]); // from its viewBox
 });
 
 it('refuses files over the size limit', function () {

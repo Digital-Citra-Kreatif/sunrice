@@ -10,7 +10,7 @@ Tampilan **Light**, **Dark**, atau **System** milik Anda sendiri dipilih di menu
 | --- | --- | --- |
 | **Panel name** (nama panel) | Bilah samping, halaman masuk, tab peramban, dan panduan ini | Nama yang diberikan developer |
 | **Tagline** | Di bawah nama di bilah samping, dan di atas formulir masuk | Tidak ada |
-| **Logo** | Bilah samping dan halaman masuk; pilih gambar dari pustaka media | Huruf pertama nama di atas warna merek |
+| **Logo** | Bilah samping dan halaman masuk; pilih gambar dari pustaka media. Logo persegi tampil di samping nama; logo melebar (wordmark) menggantikan nama | Huruf pertama nama di atas warna merek |
 | **Browser icon** | Gambar kecil di tab peramban dan penanda; ICO, PNG, atau SVG persegi dari pustaka media | Logo persegi, atau huruf pertama nama di atas warna merek |
 | **Font** (jenis huruf) | Semua halaman panel; pilih salah satu jenis huruf dalam daftar, atau **System** untuk huruf bawaan komputer | Huruf bawaan panel (Inter) |
 | **Brand colour** (warna merek) | Tombol utama, menu yang sedang aktif, garis fokus | Abu-abu netral |

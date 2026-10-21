@@ -29,6 +29,8 @@ export interface Branding {
     tagline: string;
     /** The logo image's URL, or null for the lettermark. */
     logo: string | null;
+    /** The logo is wider than square (a wordmark): shown instead of the name. */
+    logoWide?: boolean;
     /** The name's first letter, shown without a logo. */
     lettermark: string;
     color: string | null;
