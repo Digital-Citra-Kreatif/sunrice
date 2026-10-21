@@ -8,6 +8,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Entries\UnpublishEntry;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
@@ -17,6 +18,7 @@ use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Settings\SiteSettings;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -62,6 +64,35 @@ it('guards every entry route by its permission', function () {
     actingAs(adminUser(Panel::ACCESS));
     get('/admin/cms/entries')->assertForbidden();
     get('/admin/cms/collections/articles/entries')->assertForbidden();
+});
+
+it('tells the editor the slug visitors have known, so a new one gets a note, and where to add a redirect', function () {
+    $this->articles->forceFill(['route' => '/articles/{slug}'])->save();
+    $translation = draft('Hello');
+    $slug = fn (Assert $page) => $page->toArray()['props']['entry']['publishedSlug'];
+    editor('view', 'update');
+
+    // Never published: no note.
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBeNull()->and($page->toArray()['props']['redirectsUrl'])->toBeNull());
+    // Published (publishing again redirects from it), and still once taken off the site (nothing redirects then).
+    app(PublishEntry::class)->handle($translation);
+    app(SaveDraft::class)->handle($translation->fresh(), ['slug' => 'hello-again', 'version' => $translation->fresh()?->version]);
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBe('hello')->and($page->toArray()['props']['values']['slug'])->toBe('hello-again'));
+    app(UnpublishEntry::class)->handle($translation->fresh());
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBe('hello')->and($page->toArray()['props']['entry']['status'])->toBe('draft'));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.redirects.view', 'cms.redirects.create'));
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($page->toArray()['props']['redirectsUrl'])->toBe(route('sunrice.admin.cms.redirects.create')));
+
+    // The homepage stays at /, and a collection without pages has no address: no note.
+    $settings = app(SiteSettings::class);
+    $settings->homepage = $translation->entry_id;
+    $settings->save();
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBeNull());
+    $settings->homepage = null;
+    $settings->save();
+    $this->articles->forceFill(['route' => null])->save();
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => expect($slug($page))->toBeNull());
 });
 
 it('opens the first collection from the sidebar', function () {

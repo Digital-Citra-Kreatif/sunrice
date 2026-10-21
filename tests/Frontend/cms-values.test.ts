@@ -103,6 +103,15 @@ test('lets a slug made from the title follow it until the entry is first publish
     assert.equal(followingSlug('my-own', 'Villa', 'Villa Senja', true), 'my-own', 'typed by hand');
 });
 
+test('notes a new slug only for an address visitors have known: redirected when published, else a 404', async () => {
+    const { slugNote } = await import('../../packages/cms/resources/js/lib/entries.ts');
+    assert.equal(slugNote('hello', 'hello', true), null);
+    assert.equal(slugNote('hello', 'hello-world', true), 'redirects');
+    assert.equal(slugNote('hello', 'hello-world', false), 'breaks', 'published once, a draft again');
+    assert.equal(slugNote(null, 'hello-world', false), null, 'never published');
+    assert.equal(slugNote('hello', '  ', true), null, 'empty: made from the title');
+});
+
 test('finds fields shared with the main language at any depth', () => {
     assert.equal(hasSharedFields([{ fields: [{}] }]), false);
     assert.equal(hasSharedFields([{ shared: true }]), true);

@@ -30,6 +30,18 @@ beforeEach(function () {
     $this->news = app(SaveTerm::class)->handle($this->topics, ['title' => 'News']);
 });
 
+it('tells the term editor whether a new slug moves the term\'s page, and where to add a redirect', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.update', 'cms.redirects.view', 'cms.redirects.create'));
+    $edit = "/admin/cms/taxonomies/topics/terms/{$this->news->id}/edit";
+    get($edit)->assertOk()->assertInertia(fn (Assert $page) => $page->where('term.slug', 'news')->where('term.hasPage', true)->where('redirectsUrl', route('sunrice.admin.cms.redirects.create')));
+
+    $this->topics->forceFill(['route' => null])->save();
+    get($edit)->assertInertia(fn (Assert $page) => $page->where('term.hasPage', false));
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.update'));
+    get($edit)->assertOk()->assertInertia(fn (Assert $page) => $page->where('redirectsUrl', null));
+});
+
 it('gives terms pages listing their live entries, with their fields and SEO', function () {
     app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => 'Hello', 'data' => ['topics' => [$this->news->id]]]));
     app(CreateEntry::class)->handle($this->blog, ['title' => 'Draft', 'data' => ['topics' => [$this->news->id]]]);
