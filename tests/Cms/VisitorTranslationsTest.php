@@ -118,3 +118,25 @@ it('refuses the main language, unknown languages and long texts', function () {
     config(['sunrice-cms.locales' => ['en']]);
     get('/admin/cms/translations')->assertNotFound();
 });
+
+it('lists a menu\'s links as the menu shows them, telling filtered links apart (NEW2-i18n-3)', function () {
+    app(SaveMenu::class)->handle($this->menu, [
+        ['collection_id' => $this->agents->id, 'labels' => ['en' => 'Our team'], 'children' => [
+            ['collection_id' => $this->agents->id, 'labels' => ['en' => 'Senior'], 'query' => 'level=senior'],
+            ['collection_id' => $this->agents->id, 'labels' => ['en' => 'Junior'], 'query' => 'level=junior'],
+        ]],
+        ['url' => '/contact', 'labels' => ['en' => 'Contact']],
+    ]);
+    // Saved again in another order: the database's order is no longer the menu's.
+    $senior = MenuItem::query()->where('query_string', 'level=senior')->firstOrFail();
+    $senior->update(['sort_order' => 5]);
+    actingAs($this->translator);
+
+    get('/admin/cms/translations')->assertInertia(fn (Assert $page) => $page
+        ->where('sections.3.texts', fn ($texts) => collect($texts)->map(fn ($text) => [$text['label'], $text['source']])->all() === [
+            ['Link to Agents', 'Our team'],
+            ['Our team › Link to Agents · level=junior', 'Junior'],
+            ['Our team › Link to Agents · level=senior', 'Senior'],
+            ['Link to /contact', 'Contact'],
+        ]));
+});
