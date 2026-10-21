@@ -200,3 +200,17 @@ it('keeps alt text and captions per content language', function () {
     expect($media?->fresh()?->translations)->toBeNull();
     put("/admin/media/{$media?->id}", ['translations' => ['id' => ['alt' => str_repeat('x', 251)]]])->assertSessionHasErrors('translations.id.alt');
 });
+
+it('renames a folder that moves up to where its name is taken, when its folder is deleted', function () {
+    mediaUser('view', 'update');
+    $photos = MediaFolder::query()->create(['name' => 'Photos']);
+    $archive = MediaFolder::query()->create(['name' => 'Archive']);
+    $old = MediaFolder::query()->create(['name' => 'Photos', 'parent_id' => $archive->id]);
+    $file = mediaFile('old.jpg', $old);
+
+    delete("/admin/media/folders/{$archive->id}")->assertRedirect('/admin/media');
+
+    expect(MediaFolder::query()->whereNull('parent_id')->orderBy('name')->pluck('name')->all())->toBe(['Photos', 'Photos (2)'])
+        ->and($photos->fresh()?->name)->toBe('Photos')
+        ->and($file->fresh()?->folder_id)->toBe($old->id);
+});
