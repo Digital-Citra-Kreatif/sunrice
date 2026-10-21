@@ -206,7 +206,8 @@ it('edits roles and their permissions, within the editor\'s own', function () {
         'Boss' => [false, 10],
         'Editor' => [true, 2],
         'Manager' => [false, 9],
-        'Super admin' => [false, 0],
+        // It may do everything: "All", not its 0 permissions of its own.
+        'Super admin' => [false, 'All'],
     ]));
 
     get('/admin/roles/create')->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'permissions')['options'])->pluck('value')->all())->toEqualCanonicalizing(MANAGES_USERS)
