@@ -69,6 +69,9 @@ it('gives the builder the field types, their settings, fieldsets and rules', fun
         ->component('Cms/Blueprints/Edit', shouldExist: false)
         ->where('blueprint', null)
         ->where('fieldTypes.0.type', 'text')
+        // Each type's default for "Translatable": text is translated, numbers are shared.
+        ->where('fieldTypes.0.translatable', true)
+        ->where('fieldTypes', fn ($types) => collect($types)->firstWhere('type', 'number')['translatable'] === false)
         ->where('fieldTypes', fn ($types) => collect($types)->firstWhere('type', 'repeater')['hasChildren'] === true
             && collect(collect($types)->firstWhere('type', 'select')['settings'])->firstWhere('handle', 'options')['type'] === 'repeater')
         ->where('fieldsets', [['value' => 'seo', 'label' => 'SEO']])

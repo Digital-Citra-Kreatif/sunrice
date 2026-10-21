@@ -59,3 +59,31 @@ test("a refused blueprint shows the server's message under the field's setting, 
     assert.match(html, /<p id="field-k1-config-collections-error" class="[^"]*cms:text-destructive[^"]*">The &quot;From collections&quot; field is required.<\/p>/);
     assert.match(html, /role="checkbox" aria-checked="false"[^>]*aria-invalid="true"/);
 });
+
+test("a field's row shows its type, label and handle together, with Duplicate and Remove named after it", async () => {
+    const { FieldBuilder } = await loadCmsModule<{ FieldBuilder: ComponentType<any> }>('components/FieldBuilder.tsx');
+    const types = [
+        { type: 'textarea', label: 'Textarea', hasChildren: false, translatable: true, settings: [] },
+        { type: 'number', label: 'Number', hasChildren: false, translatable: false, settings: [] },
+    ];
+    const fields = [
+        { key: 'a', handle: 'excerpt', type: 'textarea', label: 'Excerpt', config: {}, fields: [], validation: [], required: true },
+        { key: 'b', handle: 'price', type: 'number', label: 'Price', config: {}, fields: [], validation: [] },
+        { key: 'c', handle: 'note', type: 'textarea', label: 'Note', config: {}, fields: [], validation: [], translatable: false, condition: { field: 'price', operator: 'filled' } },
+    ];
+    const html = render(FieldBuilder, { fields, onChange: () => undefined, types, errors: {}, locales: [{ code: 'id', name: 'Bahasa Indonesia' }] });
+    const rows = html;
+
+    // Type, label and handle in this order, on the left.
+    assert.match(rows, /Textarea<\/span><span[^>]*><span[^>]*>Excerpt<\/span><code[^>]*>excerpt<\/code>/);
+    assert.match(rows, /aria-expanded="false" aria-controls="field-a"[^>]*aria-label="Open Excerpt"/);
+    assert.match(rows, /aria-label="Duplicate Excerpt"/);
+    assert.match(rows, /aria-label="Remove Excerpt"/);
+    assert.match(rows, /aria-live="polite"/);
+    // Markers: required; shared only where a field isn't translated in a multilingual site; conditional.
+    assert.equal((rows.match(/>Shared</g) ?? []).length, 2);
+    assert.equal((rows.match(/>Required</g) ?? []).length, 1);
+    assert.equal((rows.match(/>Conditional</g) ?? []).length, 1);
+    const single = render(FieldBuilder, { fields, onChange: () => undefined, types, errors: {} });
+    assert.doesNotMatch(single, />Shared</);
+});
