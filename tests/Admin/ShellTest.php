@@ -6,6 +6,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Assets\PluginBundle;
+use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Http\Middleware\Authenticate;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Navigation\NavigationItem;
@@ -91,6 +92,23 @@ it('lists plugin bundles for the frontend to load on demand', function () {
     get('/admin')->assertInertia(fn (Assert $page) => $page->where('sunrice.bundles', [
         ['id' => 'shop', 'module' => '/vendor/shop/admin.js', 'styles' => ['/vendor/shop/admin.css'], 'pages' => ['Shop/']],
     ]));
+});
+
+it('shares command palette searches on every page, with their URLs', function () {
+    usePanel(fn (Panel $panel) => $panel
+        ->routes(fn () => Route::get('shop/search', fn () => ['items' => []])->name('shop.search'))
+        ->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.search'), minLength: 3));
+    signIn();
+
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('sunrice.commandSearches', [
+        ['id' => 'shop.orders', 'url' => url('/admin/shop/search'), 'minLength' => 3],
+    ]));
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('sunrice.commandSearches.0.id', 'shop.orders'));
+});
+
+it('refuses two command searches with the same id', function () {
+    expect(fn () => Panel::make()->commandSearch('a', fn () => '/a')->commandSearch('a', fn () => '/b'))
+        ->toThrow(PanelMisconfigured::class, 'Two command searches have the id "a"');
 });
 
 it('guards every panel route but the login pages', function () {

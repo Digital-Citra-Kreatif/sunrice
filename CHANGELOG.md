@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Cmd/Ctrl+K finds entries on every panel page (the Dashboard, Media…), not only where the CMS's bundle had loaded, and by their title in any language (a match in another language opens that language): `$panel->commandSearch($id, fn () => url, $minLength)` (`@api`, `Panel::getCommandSearches()`, shared as `sunrice.commandSearches`) declares a server search the palette asks on every page; the CMS's is `GET admin/cms/entry-search?q=` (`sunrice.admin.cms.entries.search`, `cms.entries.view`), and its bundle no longer registers a `registerCommandSource()`. See `packages/admin/docs/panel.md#command-palette-searches`.
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
 - `sunrice:translate --only=lang` translates the app's language files (never without `--only=lang`) (`lang/<from>/*.php` and `lang/<from>.json`), keeping keys already translated (`Translation\LangFileTranslator`).
 - Settings → Security chooses who else gets security alerts: more roles (`SecuritySettings::$alertRoles`) and addresses, one per line (`$alertEmails`), on top of super admins and `security.alerts.roles`/`emails`.

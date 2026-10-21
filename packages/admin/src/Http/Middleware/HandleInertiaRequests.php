@@ -42,6 +42,7 @@ final class HandleInertiaRequests extends Middleware
                 'branding' => $branding,
                 'path' => '/'.$this->panel->getPath(),
                 'bundles' => array_values(array_map(fn (PluginBundle $bundle) => $bundle->toArray(), $this->panel->getBundles())),
+                'commandSearches' => $user === null ? [] : $this->panel->getCommandSearches(),
             ],
             'auth' => fn (): array => [
                 'user' => $user === null ? null : [

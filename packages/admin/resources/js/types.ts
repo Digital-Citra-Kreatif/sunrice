@@ -43,7 +43,7 @@ export interface Branding {
 }
 
 export interface SharedProps {
-    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[] };
+    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[]; commandSearches?: { id: string; url: string; minLength: number }[] };
     auth: { user: { id: string | number; name: string | null; email: string | null } | null };
     navigation: NavGroup[];
     /** `id` is new for each message shown, so the same text twice toasts twice. */
