@@ -30,10 +30,12 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 - Listing and term pages' `$entries` is a lazy `LengthAwarePaginator` contract, and a term page's includes the terms under it in a hierarchy.
 - The comment unsubscribe page asks first and is `sunrice-cms::comment-unsubscribe` (or the site's `cms.comment-unsubscribe`).
 - The `sunrice-forms` and `sunrice-comments` rate limiters are gone: form and comment send limits count only what was kept.
+- The page cache keeps a page under a `cache.query` parameter only when the page read it (`PageCache::read()`; the entry filter and paginators do), and an entry filter's range, date range, search or option-less select values aren't kept; a site page's `?page=` past a paginator's last page is a 404.
 - Forms send visitors back to `#form-{handle}-errors` or `#form-{handle}-status` (was `#form-{handle}`), the replaced thank-you message's id is `form-{handle}-status`, and a slot's markup gets the error summary unless it has its own.
 
 ### All changes
 
+- The page cache no longer floods with copies of a page: a `?page=` past the last page of any paginator on a site page (an entry filter, `Cms::entries()->paginate()`, your own) is a 404, as it was for listings' own `$entries`; past the last of another page name the page is shown but not kept. A `cache.query` parameter counts only on pages that read it with a value they offer (new `PageCache::read($name)`, called by the entry filter for its terms, options and sorts and by paginators for their page name), so `/about?sort=zzz` and `/about?bedrooms_min=5` aren't kept, and a range filter's numbers are kept only when they're among its new `options` (steps; the CMS's markup shows them as selects). An empty parameter keys as the page without it. (CACHE-5)
 - Settings sections record the files their media pickers hold on every save, changed or not (they did only when something changed), and a backfill migration records those of every section saved before (`RecordSettingsMedia`), so an existing site's logo is no longer "unused" until its section changes. (extra: branding/settings media)
 - `<x-sunrice-cms::terms>` sets each term's taxonomy and its translations' term, so linking the terms (`$term->url()`) costs no query per term (it cost two). (NEW-frontend-4)
 - The submission email lists each of several files sent with a field on its own line, with its size and its download link in the admin (it showed only the names). (FORM-6)

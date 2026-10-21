@@ -322,9 +322,55 @@ it('keeps one page whatever other query parameters say', function () {
     get('/blog?fbclid=1')->assertHeader('X-Cache-Status', 'HIT');
     get('/blog?page=2')->assertHeader('X-Cache-Status', 'MISS')->assertSee('paged-2');
     get('/blog?page=2&utm_medium=mail')->assertHeader('X-Cache-Status', 'HIT');
+    // The plain listing doesn't read ?sort=: rendered, not kept.
     get('/blog?sort=title')->assertHeader('X-Cache-Status', 'MISS');
-    get('/blog?sort=title')->assertHeader('X-Cache-Status', 'HIT');
+    get('/blog?sort=title')->assertHeader('X-Cache-Status', 'MISS');
     expect(PageCacheHasher::query())->toBe(['page', 'sort']);
+});
+
+it('keeps no copies for pages past the last, for query parameters a page didn\'t read, nor for values of any number', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true, 'sunrice-cms.cache.query' => ['sort', 'tab', 'price_min', 'price_max', 'listings']]);
+    Blueprint::query()->where('handle', 'post')->firstOrFail()->update(['fields' => [['handle' => 'intro', 'type' => 'text'], ['handle' => 'price', 'type' => 'number']]]);
+    foreach (range(1, 3) as $i) {
+        app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => "Post {$i}", 'data' => ['price' => $i * 10]]));
+    }
+    $this->blog->update(['per_page' => 2]);
+    $views = sys_get_temp_dir().'/sunrice-read-'.uniqid();
+    mkdir("{$views}/cms", recursive: true);
+    // The listing: an entry filter with a range offering steps, a sort, and a tab of the template's own.
+    file_put_contents("{$views}/cms/blog-listing.blade.php", '@php(app(\Sunrice\Cms\Site\PageCache::class)->read("tab"))'
+        .'<x-sunrice-cms::entry-filter collection="blog" :per-page="2" :filters="[\'price\' => [\'type\' => \'range\', \'options\' => [10, 20]]]" :sorts="[\'new\' => \'latest\', \'cheap\' => \'price\']">'
+        .'@foreach ($component->entries as $e){{ $e->title }};@endforeach</x-sunrice-cms::entry-filter>');
+    // A post lists other posts under a page name of its own.
+    file_put_contents("{$views}/cms/blog.blade.php", '{{ $title }}|@foreach (Cms::entries("blog")->paginate(1, "listings") as $e){{ $e->title }};@endforeach');
+    View::addLocation($views);
+    $twice = function (string $url, string $second): void {
+        get($url)->assertOk()->assertHeader('X-Cache-Status', 'MISS');
+        get($url)->assertOk()->assertHeader('X-Cache-Status', $second);
+    };
+
+    // Past the last page: a 404 (never kept), with an entry filter as with the CMS's own $entries.
+    get('/blog?page=2')->assertOk();
+    get('/blog?page=123456')->assertNotFound();
+    get('/blog?page=123456')->assertNotFound();
+    // A step the filter offers, a sort it has and the template's own tab are kept; any other number isn't.
+    $twice('/blog?price_min=10', 'HIT');
+    $twice('/blog?price_max=20&sort=cheap&tab=a', 'HIT');
+    $twice('/blog?price_min=1234567', 'MISS');
+    $twice('/blog?sort=zzz', 'MISS');
+    // A filter's parameters on a page without that filter: not kept.
+    $twice('/blog/post-1?price_min=10', 'MISS');
+    $twice('/blog/post-1?sort=cheap', 'MISS');
+    $twice('/blog/post-1?tab=a', 'MISS');
+    get('/blog/post-1?utm_source=x')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog/post-1')->assertHeader('X-Cache-Status', 'HIT');
+    // Another page name: read where it paginates; past its last page the page shows, but isn't kept.
+    $twice('/blog/post-1?listings=2', 'HIT');
+    $twice('/blog/post-1?listings=99', 'MISS');
+    get('/blog/post-1?listings=99')->assertSee('Post 1|');
+    // An empty one (a form's blank choice) is the page without it.
+    get('/blog')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog?sort=')->assertHeader('X-Cache-Status', 'HIT');
 });
 
 it('keeps no copies for page numbers a page doesn\'t read, nor for made-up ones', function () {

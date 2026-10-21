@@ -126,8 +126,13 @@ it('says a page given values it ignores isn\'t to be kept, so made-up values can
         return app(PageCache::class)->keeps(request(), null);
     };
 
-    expect($kept('color[]=red&price_min=20&made_from=2026-05-01&sale=1&sort=cheap&topic[]=home'))->toBeTrue()
+    expect($kept('color[]=red&sale=1&sort=cheap&topic[]=home'))->toBeTrue()
         ->and($kept('other=1'))->toBeTrue()
+        ->and($kept('sale=0'))->toBeTrue()
+        // Any number, date or text: as many copies as values.
+        ->and($kept('price_min=20'))->toBeFalse()
+        ->and($kept('made_from=2026-05-01'))->toBeFalse()
+        ->and($kept('q=kettle'))->toBeFalse()
         ->and($kept('color[]=purple'))->toBeFalse()
         ->and($kept('color[]=red&color[]=purple'))->toBeFalse()
         ->and($kept('price_min=abc'))->toBeFalse()
