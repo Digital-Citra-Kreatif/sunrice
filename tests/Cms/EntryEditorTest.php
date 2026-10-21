@@ -406,3 +406,18 @@ it('tells the editor whether the collection has pages, so Preview shows only whe
     get(entryEditUrl($quote->entry_id))->assertInertia(fn (Assert $page) => $page->where('collection.pages', false));
     get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('collection.pages', true));
 });
+
+it('tells the editor which template files are tried for the page, and which exist', function () {
+    $this->articles->update(['template' => 'sunrice-cms::components.seo']);
+    $translation = draft();
+    $translation->entry->update(['template' => 'cms.special']);
+    editor('view', 'update');
+
+    get("/admin/cms/collections/articles/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('templates.own', ['view' => 'cms.special', 'exists' => false])
+        ->where('templates.fallbacks', [
+            ['view' => 'sunrice-cms::components.seo', 'exists' => true],
+            ['view' => 'cms.articles', 'exists' => false],
+            ['view' => 'cms.entry', 'exists' => false],
+        ]));
+});

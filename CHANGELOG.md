@@ -35,6 +35,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- The help under a template setting is short: one line for editors ("Leave empty to use the collection's template.") and a **Which file?** disclosure listing the files tried in order, relative to `resources/views` and wrapping only after slashes, marking the one in use (the entry and term editors get a new `templates` prop: each view and whether it exists, `TemplateHelp::lookup()`). The collection and taxonomy forms' help uses the same short paths. (extra: template help)
 - A rejected save shows one error toast: the same messages update the toast already shown (`lib/error-toast.ts`). The entry editor showed two, because its deferred revisions, loaded right after the redirect, came back with the same errors and Inertia fires its error event for each response that has them. (extra: duplicate error toast)
 - Content → Translations lists a menu's links as the menu shows them, each followed by those under it, and describes them with their place and filters ("Properties › Link to Properties · listing_type=for-sale"), where filtered links all read "Link to Properties" in database order. (NEW2-i18n-3)
 - A listing link with filters ("For sale") and no label in a language shows the main language's label, not the listing's title in that language, which made "For sale" and "For rent" both read "Properti" like their parent; the menu editor's placeholder says so ("as English"). (NEW2-i18n-2)
