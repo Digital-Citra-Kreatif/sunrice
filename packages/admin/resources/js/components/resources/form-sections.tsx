@@ -1,8 +1,9 @@
-import * as React from 'react';
 import { InputError } from '@/components/app/input-error';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CollapsibleCard } from '@/components/app/collapsible-card';
+import { Card, CardContent } from '@/components/ui/card';
+import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
-import { slugify } from '@/lib/slug';
+import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { FieldInput, type FieldValue } from './fields';
 import type { FieldInfo, SectionInfo } from './types';
@@ -12,43 +13,25 @@ const spans: Record<number, string> = { 1: '', 2: 'sm:col-span-2', 3: 'sm:col-sp
 
 interface Props {
     sections: SectionInfo[];
+    /** Remembers which titled sections are folded, under this key plus the title. */
+    storageKey?: string;
     data: Record<string, FieldValue>;
     errors: Partial<Record<string, string>>;
     onChange: (name: string, value: FieldValue) => void;
 }
 
 /** A form's sections as cards of fields (resources and settings). */
-export function FormSections({ sections, data, errors, onChange: setValue }: Props) {
-    // Slug fields (TextInput::slug()) follow their source field until one is typed in (or has a value).
-    const slugs = sections.flatMap((section) => section.fields).filter((field) => typeof field.slugFrom === 'string');
-    const [typed, setTyped] = React.useState(() => new Set(slugs.filter((field) => (data[field.name] ?? '') !== '').map((field) => field.name)));
-    const onChange = (name: string, value: FieldValue) => {
-        setValue(name, value);
-        if (slugs.some((field) => field.name === name)) {
-            setTyped((names) => {
-                const next = new Set(names);
-                value === '' || value === null ? next.delete(name) : next.add(name);
-                return next;
-            });
-        }
-        for (const field of slugs) {
-            if (field.slugFrom === name && !typed.has(field.name)) {
-                setValue(field.name, slugify(typeof value === 'string' ? value : '', String(field.slugSeparator ?? '-'), Number(field.maxLength) || 64));
-            }
-        }
-    };
-
-    return sections.map((section, index) => (
-        <Card key={index}>
-            {section.title && (
-                <CardHeader>
-                    <CardTitle>{section.title}</CardTitle>
-                    {section.description && <CardDescription>{section.description}</CardDescription>}
-                </CardHeader>
-            )}
-            <CardContent className={cn('grid gap-5', gridColumns[section.columns])}>
-                {section.fields.map((field) => {
+export function FormSections({ sections, data, errors, storageKey, onChange }: Props) {
+    return sections.map((section, index) => {
+        // Fields whose condition isn't met are hidden (showWhen), a section of only those too.
+        const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data));
+        if (fields.length === 0) return null;
+        const content = (
+            <div className={cn('grid gap-5', gridColumns[section.columns])}>
+                {fields.map((field) => {
                     const error = errors[field.name];
+                    // A section's only field named like the section: the card's title says it already.
+                    const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
                     const input = <FieldInput field={field} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
 
                     return (
@@ -60,14 +43,16 @@ export function FormSections({ sections, data, errors, onChange: setValue }: Pro
                                 </div>
                             ) : (
                                 <>
-                                    <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>
-                                        {field.label}
-                                        {field.required && <span className="text-destructive" aria-hidden>*</span>}
-                                    </Label>
+                                    {label === null ? <span id={`field-${field.name}-label`} className="sr-only">{field.label}</span> : (
+                                        <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>
+                                            {label}
+                                            {field.required && <span className="text-destructive" aria-hidden>*</span>}
+                                        </Label>
+                                    )}
                                     {input}
                                 </>
                             )}
-                            {field.help && <p className="text-sm text-muted-foreground">{field.help}</p>}
+                            {field.help && <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">{field.help}</p>}
                             <InputError message={error} />
                             {field.type === 'password' && field.confirmed === true && (
                                 // Password::confirmed(): the same again, as "{name}_confirmation".
@@ -77,9 +62,19 @@ export function FormSections({ sections, data, errors, onChange: setValue }: Pro
                         </div>
                     );
                 })}
-            </CardContent>
-        </Card>
-    ));
+            </div>
+        );
+
+        // A titled section folds away (remembered), and opens on an error inside.
+        return section.title ? (
+            <CollapsibleCard key={index} title={section.title} description={section.description ?? undefined} titleClassName="text-base"
+                storageKey={storageKey ? `${storageKey}:${section.title}` : undefined} hasErrors={fields.some((field) => errors[field.name] !== undefined)}>
+                {content}
+            </CollapsibleCard>
+        ) : (
+            <Card key={index}><CardContent>{content}</CardContent></Card>
+        );
+    });
 }
 
 function PasswordConfirmation({ field, value, onChange }: { field: FieldInfo; value: FieldValue; onChange: (value: FieldValue) => void }) {
@@ -88,7 +83,7 @@ function PasswordConfirmation({ field, value, onChange }: { field: FieldInfo; va
     return (
         <div className="mt-3 grid min-w-0 grid-cols-1 content-start gap-2">
             <Label id={`field-${name}-label`} htmlFor={`field-${name}`}>
-                Confirm {field.label.toLowerCase()}
+                {t('Confirm :field', { field: field.label.toLowerCase() })}
                 {field.required && <span className="text-destructive" aria-hidden>*</span>}
             </Label>
             <FieldInput field={{ ...field, name, confirmed: false, placeholder: null }} value={value} invalid={false} onChange={onChange} />

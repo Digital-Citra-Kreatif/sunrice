@@ -63,7 +63,7 @@ final class AiAccessController
         foreach ($panel->getPermissions() as $name => $permission) {
             // Everyone here may connect agents: not worth saying.
             if ($name !== 'sunrice.ai.connect' && $panel->isPrivilegedPermission($name) && ($superAdmin || ($user instanceof Authorizable && $user->can($name)))) {
-                $privileged[] = $permission->label;
+                $privileged[] = $permission->saidLabel();
             }
         }
 
@@ -92,7 +92,7 @@ final class AiAccessController
         $model = AiToken::query()->where('user_id', self::key($user))->findOrFail($token);
         $revoke->one($model, $user);
 
-        return back()->with('success', "\"{$model->name}\" revoked: agents using it can no longer connect.");
+        return back()->with('success', __('":name" revoked: agents using it can no longer connect.', ['name' => $model->name]));
     }
 
     private function user(Request $request): Model

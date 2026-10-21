@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
+use Sunrice\Admin\Support\Say;
 
 /**
  * One editable attribute of a resource's model. The field decides how it
@@ -51,6 +52,9 @@ abstract class Field implements Component
 
     /** @var (Closure(Model, mixed): void)|null */
     protected ?Closure $saveUsing = null;
+
+    /** @var array{field: string, value: string|int|bool|null}|null */
+    private ?array $showWhen = null;
 
     final public function __construct(public readonly string $name)
     {
@@ -175,6 +179,19 @@ abstract class Field implements Component
      *
      * @param  bool|Closure(?Model): bool  $disabled
      */
+    /**
+     * Shown only while another field of the form is filled in (switched
+     * on, chosen, typed in), or holds `$value`: ->showWhen('route'),
+     * ->showWhen('kind', 'link'). It's only hidden on screen: what it
+     * holds is still sent, checked and saved.
+     */
+    public function showWhen(string $field, string|int|bool|null $value = null): static
+    {
+        $this->showWhen = ['field' => $field, 'value' => $value];
+
+        return $this;
+    }
+
     public function disabled(bool|Closure $disabled = true): static
     {
         $this->disabled = $disabled;
@@ -314,12 +331,13 @@ abstract class Field implements Component
             'kind' => 'field',
             'type' => $this->type(),
             'name' => $this->name,
-            'label' => $this->label,
+            'label' => Say::it($this->label),
             'required' => $this->isRequired($record),
             'disabled' => $this->isDisabled($record),
-            'help' => $this->help,
-            'placeholder' => $this->placeholder,
+            'help' => Say::it($this->help),
+            'placeholder' => Say::it($this->placeholder),
             'span' => $this->span,
+            'showWhen' => $this->showWhen,
             ...$this->props(),
         ];
     }

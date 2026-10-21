@@ -45,10 +45,10 @@ final class SecuritySettings extends Settings
                     ->rules([function (string $attribute, mixed $value, \Closure $fail): void {
                         // Turning it on while mail only goes to the log would lock everyone out.
                         if (filter_var($value, FILTER_VALIDATE_BOOLEAN) && ! app(self::class)->twoFactor && ! MailSettings::info()['delivers']) {
-                            $fail('The app can\'t send email yet (the '.MailSettings::info()['transport'].' mailer only writes to the log), so nobody would get their login code. Set up mail first: see Settings → Mail.');
+                            $fail(__('The app can\'t send email yet (the :mailer mailer only writes to the log), so nobody would get their login code. Set up mail first: see Settings → Mail.', ['mailer' => MailSettings::info()['transport']]));
                         }
                     }])
-                    ->help('After the password, everyone also types a 6-digit code we email them. Make sure the app can send email first (Settings → Mail → Send a test email): without it, nobody can log in. If that happens, a developer can turn it off on the server (Help → Guide → Settings says how).'),
+                    ->help('Everyone also enters a 6-digit code sent by email. Check email works first (Settings → Mail → Send a test email), or nobody can sign in. If that happens, a developer can turn it off on the server (Help → Guide → Settings says how).'),
             ]),
             Section::make('Security alerts')->schema([
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')
@@ -57,10 +57,10 @@ final class SecuritySettings extends Settings
                 Textarea::make('alertEmails')->label('And to these addresses')->rows(3)->maxLength(2000)->placeholder('security@example.com')
                     ->rules([function (string $attribute, mixed $value, \Closure $fail): void {
                         if (is_string($value) && count(self::emails($value)) !== count(array_filter(preg_split('/[\s,;]+/', $value) ?: []))) {
-                            $fail('Write one email address per line.');
+                            $fail(__('Write one email address per line.'));
                         }
                     }])
-                    ->help('One per line, e.g. whoever looks after the server.'),
+                    ->help('One per line.'),
             ]),
         ]);
     }

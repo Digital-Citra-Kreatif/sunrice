@@ -276,7 +276,7 @@ it('moderates in the admin, behind its permissions', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.comments.view'));
     get('/admin/cms/comments')->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Comments/Index', shouldExist: false)
-        ->where('counts', ['all' => 1, 'pending' => 1, 'approved' => 0, 'spam' => 1, 'trash' => 0])
+        ->where('counts', ['all' => 1, 'pending' => 1, 'approved' => 0, 'spam' => 1, 'trashed' => 0])
         ->where('comments.data.0.body', 'Is this on?')
         ->where('comments.data.0.entry.title', 'Hello')
         ->where('can', ['moderate' => false, 'delete' => false]));
@@ -295,8 +295,8 @@ it('moderates in the admin, behind its permissions', function () {
     expect(Comment::onlyTrashed()->count())->toBe(1);
     post("/admin/cms/comments/{$pending->id}/restore");
     post('/admin/cms/comments/bulk', ['action' => 'trash', 'ids' => [$pending->id, $spam->id]]);
-    get('/admin/cms/comments?status=trash')->assertInertia(fn (Assert $page) => $page
-        ->where('counts', ['all' => 1, 'pending' => 0, 'approved' => 1, 'spam' => 0, 'trash' => 2]) // the reply stays
+    get('/admin/cms/comments?status=trashed')->assertInertia(fn (Assert $page) => $page
+        ->where('counts', ['all' => 1, 'pending' => 0, 'approved' => 1, 'spam' => 0, 'trashed' => 2]) // the reply stays
         ->where('comments.total', 2));
     post('/admin/cms/comments/bulk', ['action' => 'delete', 'ids' => [$pending->id]]);
     expect(Comment::withTrashed()->find($pending->id))->toBeNull()

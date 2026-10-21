@@ -41,7 +41,7 @@ it('shows editors a banner on live pages with newer drafts', function () {
         ->assertSee('data-sunrice-draft-banner', false)
         ->assertSee('This page has unpublished changes.')
         ->assertSee('href="'.url('/blog/hello').'?draft"', false)
-        ->assertSee(route('sunrice.admin.cms.entries.edit', [$this->post->entry_id, 'locale' => 'en']), false)
+        ->assertSee(url(entryEditUrl($this->post->entry_id, 'en')), false)
         ->assertHeader('Cache-Control', 'no-store, private');
     expect(Content::page()?->draft)->toBeFalse();
 });

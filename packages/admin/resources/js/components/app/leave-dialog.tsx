@@ -3,6 +3,7 @@ import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { isAskingToLeave, leave, stay, subscribeLeave } from '@/lib/leave-confirm';
+import { t } from '@/lib/i18n';
 
 /** The panel's "Leave without saving?" (useUnsavedChanges), rendered once in the admin layout. */
 export function LeaveDialog() {
@@ -16,12 +17,12 @@ export function LeaveDialog() {
                 if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
             }}>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Leave without saving?</AlertDialogTitle>
-                    <AlertDialogDescription>You have unsaved changes on this page. If you leave, they're lost.</AlertDialogDescription>
+                    <AlertDialogTitle>{t('Leave without saving?')}</AlertDialogTitle>
+                    <AlertDialogDescription>{t('You have unsaved changes on this page. If you leave, they\'re lost.')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={stay}>Stay</AlertDialogCancel>
-                    <AlertDialogAction variant="destructive" onClick={leave}>Leave without saving</AlertDialogAction>
+                    <AlertDialogCancel onClick={stay}>{t('Stay')}</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={leave}>{t('Leave without saving')}</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

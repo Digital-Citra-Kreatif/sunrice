@@ -37,7 +37,7 @@ use function Pest\Laravel\get;
 
 beforeEach(function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
-    actingAs(adminUser('sunrice.access', 'cms.entries.view', 'cms.entries.update', 'cms.entries.delete', 'cms.terms.manage'));
+    actingAs(adminUser('sunrice.access', 'cms.entries.view', 'cms.entries.update', 'cms.entries.delete', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     Fieldset::query()->create(['handle' => 'links', 'title' => 'Links', 'fields' => [['handle' => 'target', 'type' => 'entries', 'config' => ['collections' => ['pages']]]]]);
     Blueprint::query()->create(['handle' => 'page', 'title' => 'Page', 'fields' => [
         ['handle' => 'related', 'type' => 'entries', 'config' => ['collections' => ['pages'], 'multiple' => true]],
@@ -101,7 +101,7 @@ it('records what term pages and global sets point at', function () {
 it('lists where an entry is used in its editor', function () {
     refPage($this->pages, 'Home', ['related' => [$this->about->id]]);
 
-    get(route('sunrice.admin.cms.entries.edit', $this->about->id))->assertOk()->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($this->about->id))->assertOk()->assertInertia(fn (Assert $page) => $page
         ->has('usedBy', 1)
         ->where('usedBy.0.label', 'Pages: Home (EN)')
         ->where('usedBy.0.field', 'related')
@@ -117,8 +117,8 @@ it('names a reference\'s field in words, not as its path', function () {
 it('lists where a term is used on its page and in the list', function () {
     refPage($this->pages, 'Home', ['topics' => [$this->news->id]]);
 
-    get(route('sunrice.admin.cms.terms.edit', $this->news->id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('usedBy.0.label', 'Pages: Home (EN)'));
-    get(route('sunrice.admin.cms.terms.index', 'topics'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('terms.0.usedBy', ['Pages: Home (EN)']));
+    get(termEditUrl($this->news->id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('usedBy.0.label', 'Pages: Home (EN)'));
+    get(route('sunrice.admin.cms.taxonomies.terms.index', 'topics'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('terms.0.usedBy', ['Pages: Home (EN)']));
 });
 
 it('refuses to delete a referenced entry for good unless forced', function () {

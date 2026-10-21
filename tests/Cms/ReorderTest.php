@@ -145,12 +145,12 @@ it('reorders terms from the list for those who manage the taxonomy', function ()
     actingAs(adminUser(Panel::ACCESS));
     post('/admin/cms/terms/reorder', ['taxonomy' => 'categories', 'ids' => [$b->id, $a->id]])->assertForbidden();
 
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
     post('/admin/cms/terms/reorder', ['taxonomy' => 'categories', 'ids' => [$b->id, $a->id], 'parent_id' => null])->assertRedirect()->assertSessionHasNoErrors();
     expect(Term::query()->orderBy('sort_order')->pluck('id')->all())->toBe([$b->id, $a->id]);
     post('/admin/cms/terms/reorder', ['taxonomy' => 'nope', 'ids' => [$a->id]])->assertNotFound();
 
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.tags.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.tags.view', 'cms.terms.tags.create', 'cms.terms.tags.update', 'cms.terms.tags.delete'));
     post('/admin/cms/terms/reorder', ['taxonomy' => 'categories', 'ids' => [$a->id, $b->id]])->assertForbidden();
 });

@@ -114,7 +114,7 @@ it('trashes, restores and deletes for good, one or many', function () {
 
     mediaUser('view', 'delete');
     delete("/admin/media/{$one->id}")->assertSessionHas('success', 'Moved to the trash.');
-    get('/admin/media?trash=1')->assertInertia(fn (Assert $page) => $page->where('media.total', 1)->where('media.data.0.trashed', true));
+    get('/admin/media?status=trashed')->assertInertia(fn (Assert $page) => $page->where('media.total', 1)->where('media.data.0.trashed', true));
     post("/admin/media/{$one->id}/restore")->assertSessionHas('success', 'Restored.');
     delete("/admin/media/{$one->id}/force")->assertNotFound(); // only from the trash
 

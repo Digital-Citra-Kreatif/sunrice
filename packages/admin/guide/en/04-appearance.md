@@ -12,7 +12,7 @@ Your own **Light**, **Dark** or **System** appearance is chosen in the user menu
 | **Tagline** | Under the name in the sidebar, and above the sign-in form | Nothing |
 | **Logo** | The sidebar and the sign-in page; pick an image from the media library. A square logo sits beside the name; a wide one (a wordmark) replaces the name | The name's first letter on the brand colour |
 | **Browser icon** | The small picture in browser tabs and bookmarks; a square ICO, PNG or SVG from the media library | A square logo, else the name's first letter on the brand colour |
-| **Font** | Every page of the panel; choose one of the listed typefaces, or **System** for your computer's own. The listed typefaces come from Bunny Fonts on the internet: on a private network without internet access, or if you'd rather browsers didn't contact another company, choose **System** | The panel's usual typeface (Inter, also from Bunny Fonts) |
+| **Font** | Every page of the panel; choose one of the listed typefaces, or **System** for your computer's own. The listed typefaces come from Bunny Fonts on the internet: on a private network without internet access, or if you'd rather browsers didn't contact another company, choose **System** | The panel's usual typeface (Instrument Sans, also from Bunny Fonts) |
 | **Brand colour** | Main buttons, the current menu item, focus outlines | Neutral grey |
 
 For the brand colour, type a colour code like `#2563eb` or use the colour picker. The panel puts black or white text on it, whichever is easier to read, and a lighter shade in dark mode. The sample next to the field shows how buttons will look.

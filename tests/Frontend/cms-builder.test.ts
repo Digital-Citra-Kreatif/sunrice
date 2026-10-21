@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    errorKeysAt, errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, handleWarning, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
+    cleanHandle, errorKeysAt, errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, handleWarning, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -103,7 +103,7 @@ test('the builder folds fields to their summary: a new one opens alone, and all 
     const source = await readFile(new URL('../../packages/cms/resources/js/components/FieldBuilder.tsx', import.meta.url), 'utf8');
 
     assert.match(source, /setOpen\(new Set\(\[field\.key\]\)\)/);
-    assert.match(source, />Close all</);
+    assert.match(source, /t\('Close all'\)/);
     // No example rules that look like rules already set.
     assert.doesNotMatch(source, /placeholder=\{'min:3/);
 });
@@ -114,4 +114,12 @@ test('a multiple select setting in tick order adds what is ticked last, and numb
 
     assert.match(source, /inTickOrder \? \[\.\.\.value\.filter\(\(v\) => v !== option\.value\), option\.value\]/);
     assert.match(source, /inTickOrder=\{field\.config\?\.in_tick_order === true\}/);
+});
+
+test('keeps a typed handle to what a handle may hold', () => {
+    assert.equal(cleanHandle('textareaqwataSSS'), 'textareaqwatasss');
+    assert.equal(cleanHandle('Hero Image'), 'hero_image');
+    assert.equal(cleanHandle('2nd-title'), 'nd_title');
+    assert.equal(cleanHandle('café  menu!'), 'cafe_menu_');
+    assert.equal(cleanHandle('hero_'), 'hero_');
 });

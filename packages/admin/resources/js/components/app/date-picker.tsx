@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { dateLabel, formatDateValue, parseDateValue, parseTimeInput } from '@/lib/date-value';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 export interface DatePickerProps {
     id?: string;
@@ -28,7 +29,7 @@ export interface DatePickerProps {
  * writes the same strings a native date or datetime-local input would, so
  * it drops in where those were.
  */
-export function DatePicker({ id, value, onChange, withTime = false, disabled = false, invalid = false, required = false, placeholder = 'Pick a date', className }: DatePickerProps) {
+export function DatePicker({ id, value, onChange, withTime = false, disabled = false, invalid = false, required = false, placeholder, className }: DatePickerProps) {
     const [open, setOpen] = React.useState(false);
     const { date, time } = parseDateValue(value);
     const label = dateLabel(value, withTime);
@@ -46,7 +47,7 @@ export function DatePicker({ id, value, onChange, withTime = false, disabled = f
                     className={cn('h-10 w-full max-w-64 justify-start gap-2 px-3 font-normal data-[empty=true]:text-muted-foreground', className)}
                 >
                     <CalendarIcon className="text-muted-foreground" />
-                    <span className="truncate">{label || placeholder}</span>
+                    <span className="truncate">{label || (placeholder ?? t('Pick a date'))}</span>
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -63,7 +64,7 @@ export function DatePicker({ id, value, onChange, withTime = false, disabled = f
                     <div className="flex items-center gap-2 border-t px-3 py-2">
                         {withTime && (
                             <>
-                                <Label htmlFor={id ? `${id}-time` : undefined} className="text-xs text-muted-foreground">Time (24h)</Label>
+                                <Label htmlFor={id ? `${id}-time` : undefined} className="text-xs text-muted-foreground">{t('Time (24h)')}</Label>
                                 <TimeInput id={id ? `${id}-time` : undefined} value={time} disabled={!date}
                                     onChange={(next) => onChange(formatDateValue(date, next, true))} />
                             </>
@@ -71,7 +72,7 @@ export function DatePicker({ id, value, onChange, withTime = false, disabled = f
                         {label && !required && (
                             <Button type="button" variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={() => { onChange(null); setOpen(false); }}>
                                 <X />
-                                Clear
+                                {t('Clear')}
                             </Button>
                         )}
                     </div>

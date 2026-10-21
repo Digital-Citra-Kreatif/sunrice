@@ -40,10 +40,10 @@ it('finds entries by their title in any language, once per entry, within what th
     $trashed->entry->delete();
 
     actingAs(adminUser(Panel::ACCESS));
-    getJson('/admin/cms/entry-search?q=menteng')->assertForbidden();
+    getJson('/admin/cms/entries/search?q=menteng')->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
-    $items = getJson('/admin/cms/entry-search?q=menteng')->assertOk()->json('items');
+    $items = getJson('/admin/cms/entries/search?q=menteng')->assertOk()->json('items');
 
     expect($items)->toHaveCount(2)
         ->and($items[0])->toBe([
@@ -52,12 +52,12 @@ it('finds entries by their title in any language, once per entry, within what th
             'description' => 'Properties',
             'group' => 'Entries',
             'icon' => 'file-text',
-            'url' => route('sunrice.admin.cms.entries.edit', $menteng->entry_id),
+            'url' => route('sunrice.admin.cms.collections.entries.edit', ['collection' => 'properties', 'entry' => $menteng->entry_id]),
         ])
         ->and($items[1]['label'])->toBe('Rumah Taman Menteng')
         ->and($items[1]['description'])->toBe('Properties · ID · draft')
-        ->and($items[1]['url'])->toBe(route('sunrice.admin.cms.entries.edit', ['entry' => $garden->entry_id, 'locale' => 'id']));
+        ->and($items[1]['url'])->toBe(route('sunrice.admin.cms.collections.entries.edit', ['collection' => $garden->entry->collection->handle, 'entry' => $garden->entry_id, 'locale' => 'id']));
 
-    getJson('/admin/cms/entry-search?q=rumah taman')->assertJsonPath('items.0.id', $garden->entry_id);
-    getJson('/admin/cms/entry-search?q=')->assertExactJson(['items' => []]);
+    getJson('/admin/cms/entries/search?q=rumah taman')->assertJsonPath('items.0.id', $garden->entry_id);
+    getJson('/admin/cms/entries/search?q=')->assertExactJson(['items' => []]);
 });

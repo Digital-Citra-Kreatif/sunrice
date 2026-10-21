@@ -122,7 +122,7 @@ it('records blocked uploads, exports and changes of roles and permissions', func
     post('/admin/media', ['file' => UploadedFile::fake()->createWithContent('shell.php', '<?php')])->assertSessionHasErrors('file');
     post('/admin/media', ['file' => UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')]);
     post('/admin/media', ['file' => UploadedFile::fake()->create('notes.exe.docx-not-allowed.xyz', 1)]); // merely not allowed: no event
-    get('/admin/products/export')->assertOk()->streamedContent();
+    get('/admin/shop/products/export')->assertOk()->streamedContent();
 
     Role::findOrCreate('editor', 'web');
     put("/admin/users/{$this->customer->id}", ['name' => 'Budi', 'email' => 'budi@shop.test', 'roles' => ['editor']])->assertSessionHasNoErrors();

@@ -10,6 +10,7 @@ use Sunrice\Admin\Http\Middleware\Authenticate;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\PanelRoutes;
+use Sunrice\Admin\Resources\Http\ResourceController;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Http\Middleware\AuthorizeContent;
 
@@ -39,6 +40,8 @@ it('declares a permission or content check on every CMS admin route', function (
     expect($routes->count())->toBeGreaterThan(40);
 
     $unguarded = $routes
+        // The resources' routes: ResourceController checks each resource's permissions (tests/Admin/ResourcesTest).
+        ->reject(fn (RegisteredRoute $route) => str_starts_with($route->getActionName(), ResourceController::class.'@'))
         ->reject(fn (RegisteredRoute $route) => collect($route->gatherMiddleware())
             ->contains(fn (string $middleware) => str_starts_with($middleware, 'can:') || str_starts_with($middleware, AuthorizeContent::class)))
         ->map(fn (RegisteredRoute $route) => $route->getName())->all();

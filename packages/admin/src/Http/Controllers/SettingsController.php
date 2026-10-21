@@ -19,6 +19,7 @@ use Sunrice\Admin\Settings\BrandingSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Support\Card;
+use Sunrice\Admin\Support\Say;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
@@ -66,9 +67,9 @@ final class SettingsController
         }
 
         return Inertia::render('Settings/Edit', [
-            'section' => ['key' => $registered->key(), 'label' => $registered->class::label(), 'description' => $registered->class::description()],
+            'section' => ['key' => $registered->key(), 'label' => Say::it($registered->class::label()), 'description' => Say::it($registered->class::description())],
             'sections' => array_values(array_map(
-                fn (RegisteredSettings $other) => ['key' => $other->key(), 'label' => $other->class::label()],
+                fn (RegisteredSettings $other) => ['key' => $other->key(), 'label' => Say::it($other->class::label())],
                 array_filter($this->panel->getSettings(), fn (RegisteredSettings $other) => $other->allows($user)),
             )),
             'form' => $form->toSections('edit'),
@@ -82,7 +83,7 @@ final class SettingsController
     {
         $registered = $this->section($this->user($request), $section);
         $changed = $update->handle($registered, $request->all());
-        $message = $registered->class::label().' settings saved.';
+        $message = __(':label settings saved.', ['label' => Say::it($registered->class::label())]);
 
         // The font and colour are in the page's <head>: load the whole page again to show them.
         if ($registered->class === BrandingSettings::class && $changed !== []) {

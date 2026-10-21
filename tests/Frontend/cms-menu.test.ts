@@ -58,9 +58,9 @@ test('the menu editor\'s entry search says to create the page first when nothing
     const page = await readFile(new URL('../../packages/cms/resources/js/pages/Menus/Edit.tsx', import.meta.url), 'utf8');
     const picker = await readFile(new URL('../../packages/cms/resources/js/components/EntriesPicker.tsx', import.meta.url), 'utf8');
 
-    assert.match(page, /emptyHint=\{MENU_ENTRY_HINT\}/);
+    assert.match(page, /emptyHint=\{menuEntryHint\(\)\}/);
     assert.match(page, /create the page first \(Content → Entries\)/);
-    assert.match(picker, /No entries match\.'\}\{emptyHint/);
+    assert.match(picker, /t\('No entries match\.'\)\}\{emptyHint/);
 });
 
 test('a listing link keeps its filters through the tree', () => {

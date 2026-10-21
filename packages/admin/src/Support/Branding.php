@@ -221,7 +221,7 @@ final class Branding
     public function toArray(): array
     {
         $url = fn (?int $id): ?string => $this->image($id)?->url();
-        $text = fn (string $value, string $key): string => trim($value) !== '' ? trim($value) : BrandingSettings::LOGIN_DEFAULTS[$key];
+        $text = fn (string $value, string $key): string => trim($value) !== '' ? trim($value) : Say::it(BrandingSettings::LOGIN_DEFAULTS[$key]);
 
         return [
             'name' => $this->name(),

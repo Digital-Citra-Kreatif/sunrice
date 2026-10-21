@@ -129,7 +129,7 @@ The panel is calm and warm: neutral surfaces with a hint of warmth, one accent u
 | `--shadow-pop` (`shadow-pop`) | Deeper: dialogs, menus, popovers, tooltips, toasts. |
 | `--ease-out-quart` (`ease-out-quart`) | `cubic-bezier(0.22, 1, 0.36, 1)`: nearly everything that moves (150–300 ms). |
 | `--ease-spring` (`ease-spring`) | A `linear()` spring with a touch of overshoot: dialogs entering, the switch thumb, the checkbox tick. |
-| `--sunrice-font` | The typeface (Inter unless Settings → Branding or `sunrice-admin.font` sets another; see [Branding](branding.md)). |
+| `--sunrice-font` | The typeface (Instrument Sans unless Settings → Branding or `sunrice-admin.font` sets another; see [Branding](branding.md)). |
 | `--primary`, `--primary-foreground`, `--sidebar-primary` | The brand colour when one is set in Settings → Branding, with black or white text on it. |
 
 Add the ones you use to your `@theme inline reference` block, as the CMS does (`--shadow-card: var(--shadow-card)`, `--ease-spring: var(--ease-spring)`, `--color-ring-glow: var(--ring-glow)`), and they become `shop:shadow-card`, `shop:ease-spring` and `shop:ring-ring-glow`.

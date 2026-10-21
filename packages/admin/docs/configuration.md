@@ -15,8 +15,8 @@ A dash in the *Env* column means the key has no environment variable: change it 
 | Key | Default | Env | |
 | --- | --- | --- | --- |
 | `super_admin_role` | `'super-admin'` | — | The role whose users may do everything (`Gate::before`). Created by `sunrice:sync-permissions`, given by `sunrice:make-admin`. See [Roles and permissions](permissions.md#super-admins). |
-| `font.stylesheet` | Inter from Bunny Fonts | — | A stylesheet loaded on every admin page for the typeface; `null` loads none. Settings → Branding's font wins. See [Branding](branding.md#fonts). |
-| `font.family` | `null` | — | The font family the panel uses instead of Inter (`--sunrice-font`). |
+| `font.stylesheet` | Instrument Sans from Bunny Fonts | — | A stylesheet loaded on every admin page for the typeface; `null` loads none. Settings → Branding's font wins. See [Branding](branding.md#fonts). |
+| `font.family` | `null` | — | The font family the panel uses instead of Instrument Sans (`--sunrice-font`). |
 
 ## Signing in
 

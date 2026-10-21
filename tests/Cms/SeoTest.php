@@ -18,6 +18,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Redirect;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Site\Sitemap;
 use Sunrice\Cms\Support\SafeUrl;
@@ -242,12 +243,12 @@ it('splits the sitemap into an index of files past the limit', function () {
 
 it('guards redirects with their permissions', function () {
     actingAs(adminUser(Panel::ACCESS));
-    get('/admin/redirects')->assertForbidden();
+    get('/admin/cms/redirects')->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.redirects.view', 'cms.redirects.create'));
-    get('/admin/redirects')->assertOk();
-    post('/admin/redirects', ['from_path' => '/old', 'to_url' => '/new', 'status' => '301'])->assertSessionHasNoErrors();
-    post('/admin/redirects', ['from_path' => 'no-slash', 'to_url' => 'javascript:alert(1)', 'status' => '301'])
+    get('/admin/cms/redirects')->assertOk();
+    post('/admin/cms/redirects', ['from_path' => '/old', 'to_url' => '/new', 'status' => '301'])->assertSessionHasNoErrors();
+    post('/admin/cms/redirects', ['from_path' => 'no-slash', 'to_url' => 'javascript:alert(1)', 'status' => '301'])
         ->assertSessionHasErrors(['from_path', 'to_url']);
 
     get('/old')->assertRedirect('/new');
@@ -283,33 +284,56 @@ it('fills in a term page\'s SEO from the fields its taxonomy names', function ()
     expect(Seo::forTerm($news->translations()->firstOrFail())['description'])->toBe('All the news');
 });
 
-it('offers the blueprints\' fields for SEO in Structure → Collections and Taxonomies', function () {
+it('sets the site\'s SEO and each collection\'s and taxonomy\'s SEO fields in Settings → SEO', function () {
     Blueprint::query()->create(['handle' => 'article', 'title' => 'Article', 'fields' => [
         ['handle' => 'headline', 'type' => 'text', 'label' => 'Headline'],
         ['handle' => 'cover', 'type' => 'media'],
     ]]);
-    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.taxonomies.view', 'cms.taxonomies.create'));
+    $this->blog->update(['blueprint' => 'article']);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'blueprint' => 'article']);
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin/cms/seo')->assertForbidden();
 
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'blueprint' => 'article', 'seo_title_field' => 'headline', 'seo_image_field' => 'cover'])->assertSessionHasNoErrors();
-    expect($this->blog->fresh()?->seo_title_field)->toBe('headline')->and($this->blog->fresh()?->seo_image_field)->toBe('cover');
-    // Only fields of the right kind.
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'seo_image_field' => 'headline'])->assertSessionHasErrors('seo_image_field');
-    post('/admin/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'seo_title_field' => 'headline'])->assertSessionHasNoErrors();
-    expect(Taxonomy::query()->where('handle', 'topics')->value('seo_title_field'))->toBe('headline');
+    // Without the structure permissions: only the site's settings.
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    get('/admin/cms/seo')->assertOk()->assertInertia(fn ($page) => $page->component('Cms/Seo/Edit', shouldExist: false)
+        ->where('collections', null)->where('taxonomies', null)->where('site.appendName', true));
+    put('/admin/cms/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '·', 'twitter' => 'not a handle!']])->assertSessionHasErrors('site.twitter');
+    put('/admin/cms/seo', ['site' => ['noindex' => true, 'appendName' => true, 'separator' => '·', 'twitter' => '@acme'],
+        'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'title' => 'headline']]])->assertSessionHasNoErrors();
+    expect(app(SiteSettings::class)->title('About'))->toBe('About · Acme')
+        ->and(app(SiteSettings::class)->noindex)->toBeTrue()
+        ->and($this->blog->fresh()?->seo_title_field)->toBeNull();
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.collections.update', 'cms.taxonomies.update'));
+    get('/admin/cms/seo')->assertInertia(fn ($page) => $page
+        ->where('collections.0.title', 'Blog')->where('collections.0.blueprint', 'Article')
+        ->where('collections.0.options.title', [['value' => 'headline', 'label' => 'Headline']])
+        ->where('collections.0.options.image', [['value' => 'cover', 'label' => 'Cover']])
+        ->where('taxonomies.0.title', 'Topics'));
+    $site = ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => ''];
+    put('/admin/cms/seo', ['site' => $site, 'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'image' => 'headline']]])->assertSessionHasErrors('mappings.0.image');
+    put('/admin/cms/seo', ['site' => $site, 'mappings' => [
+        ['kind' => 'collection', 'id' => $this->blog->id, 'title' => 'headline', 'image' => 'cover'],
+        ['kind' => 'taxonomy', 'id' => $topics->id, 'title' => 'headline'],
+    ]])->assertSessionHasNoErrors();
+    expect($this->blog->fresh()?->only(['seo_title_field', 'seo_description_field', 'seo_image_field']))->toBe(['seo_title_field' => 'headline', 'seo_description_field' => null, 'seo_image_field' => 'cover'])
+        ->and($topics->fresh()?->seo_title_field)->toBe('headline')
+        ->and(app(SiteSettings::class)->noindex)->toBeFalse();
 });
 
 it('offers only the fields of the collection\'s or taxonomy\'s own blueprints for SEO', function () {
     Blueprint::query()->create(['handle' => 'area', 'title' => 'Area', 'fields' => [['handle' => 'summary', 'type' => 'textarea', 'label' => 'Summary']]]);
     Blueprint::query()->create(['handle' => 'contact_form', 'title' => 'Contact form', 'fields' => [['handle' => 'message', 'type' => 'textarea', 'label' => 'Message']]]);
     $areas = Taxonomy::query()->create(['handle' => 'areas', 'title' => 'Areas', 'blueprint' => 'area']);
-    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.collections.create', 'cms.taxonomies.view', 'cms.taxonomies.update'));
-    $choices = fn (string $url) => collect(get($url)->assertOk()->viewData('page')['props']['sections'])
-        ->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'seo_description_field')['options'];
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.collections.update', 'cms.taxonomies.update'));
+    $props = get('/admin/cms/seo')->assertOk()->viewData('page')['props'];
+    $choices = fn (string $kind, int $id) => array_column(collect($props[$kind])->firstWhere('id', $id)['options']['description'], 'value');
 
-    expect(array_column($choices("/admin/collections/{$this->blog->id}/edit"), 'value'))->toBe(['intro'])
-        ->and(array_column($choices("/admin/taxonomies/{$areas->id}/edit"), 'value'))->toBe(['summary'])
-        ->and(array_column($choices('/admin/collections/create'), 'value'))->toContain('message', 'summary', 'intro');
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'seo_description_field' => 'message'])->assertSessionHasErrors('seo_description_field');
+    expect($choices('collections', $this->blog->id))->toBe(['intro'])
+        ->and($choices('taxonomies', $areas->id))->toBe(['summary']);
+    put('/admin/cms/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => ''], 'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'description' => 'message']]])
+        ->assertSessionHasErrors('mappings.0.description');
 });
 
 it('gives listing pages SEO of their own, per language', function () {
@@ -317,11 +341,11 @@ it('gives listing pages SEO of their own, per language', function () {
     $this->blog->update(['listing_route' => '/blog']);
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
 
-    get('/admin/cms/collections/blog/listing')->assertOk()->assertInertia(fn ($page) => $page->where('seo', null));
+    get('/admin/cms/collections/blog/listing/edit')->assertOk()->assertInertia(fn ($page) => $page->where('seo', null));
     put('/admin/cms/collections/blog/listing', ['locale' => 'en', 'data' => [], 'seo' => ['title' => 'All our posts', 'description' => 'Read them', 'image' => $image->id]])->assertSessionHasNoErrors();
     put('/admin/cms/collections/blog/listing', ['locale' => 'id', 'data' => [], 'seo' => ['title' => 'Semua tulisan']])->assertSessionHasNoErrors();
     put('/admin/cms/collections/blog/listing', ['locale' => 'en', 'data' => [], 'seo' => ['title' => str_repeat('a', 300)]])->assertSessionHasErrors('seo.title');
-    get('/admin/cms/collections/blog/listing')->assertInertia(fn ($page) => $page->where('seo.title', 'All our posts')->missing('values.seo'));
+    get('/admin/cms/collections/blog/listing/edit')->assertInertia(fn ($page) => $page->where('seo.title', 'All our posts')->missing('values.seo'));
 
     get('/blog')->assertOk()
         ->assertSee('<title>All our posts | Acme</title>', false)

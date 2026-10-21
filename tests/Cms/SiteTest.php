@@ -155,7 +155,7 @@ it('gives the editor the preview and live links', function () {
     $hello = sitePost($this->blog, 'Hello');
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
 
-    get("/admin/cms/entries/{$hello->entry_id}/edit")->assertInertia(fn ($page) => $page
+    get(entryEditUrl($hello->entry_id))->assertInertia(fn ($page) => $page
         ->where('entry.url', url('/blog/hello'))
         ->where('entry.previewUrl', fn (string $url) => str_contains($url, "/cms-preview/{$hello->id}?expires=")));
 });
@@ -164,10 +164,10 @@ it('checks collection URLs in the admin', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.create'));
 
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news', 'route' => 'news/{slug}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/news/{id}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/blog/{slug}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/news/{slug}'])->assertSessionHasNoErrors();
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'route' => 'news/{slug}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/news/{id}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/blog/{slug}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'News', 'handle' => 'news', 'route' => '/news/{slug}'])->assertSessionHasNoErrors();
 });
 
 it('queries live entries for templates', function () {

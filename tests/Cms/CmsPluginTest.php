@@ -22,7 +22,9 @@ it('is a panel plugin', function () {
 
     expect($panel->getPlugin('cms'))->toBeInstanceOf(CmsPlugin::class)
         ->and($panel->isPrivilegedPermission('cms.settings.code'))->toBeTrue()
-        ->and($panel->isPrivilegedPermission('cms.blueprints.manage'))->toBeTrue()
+        ->and($panel->isPrivilegedPermission('cms.blueprints.update'))->toBeTrue()
+        ->and($panel->isPrivilegedPermission('cms.fieldsets.create'))->toBeTrue()
+        ->and($panel->isPrivilegedPermission('cms.blueprints.view'))->toBeFalse()
         ->and($panel->isPrivilegedPermission('cms.entries.publish'))->toBeFalse()
         ->and(array_keys($panel->getUserContent()))->toBe(['media', 'cms.entries', 'cms.comments']);
 });

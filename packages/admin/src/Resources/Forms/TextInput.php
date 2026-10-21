@@ -8,7 +8,7 @@ use Closure;
 
 /**
  * A one-line text input: ->email(), ->url(), ->color(), ->maxLength(100),
- * ->slug('title', '_') (a handle or slug made from another field).
+ * ->slugFrom('title').
  *
  * @api
  */
@@ -18,8 +18,10 @@ final class TextInput extends Field
 
     private int $maxLength = 255;
 
-    /** @var array{from: string, separator: string}|null */
-    private ?array $slug = null;
+    private ?string $slugFrom = null;
+
+    /** @var '_'|'-' */
+    private string $slugSeparator = '_';
 
     public function type(): string
     {
@@ -50,15 +52,18 @@ final class TextInput extends Field
     }
 
     /**
-     * A slug or handle: filled in from the `$from` field as it's typed
-     * ("Contact person" → "contact-person", or "contact_person" with "_")
-     * until someone types in this one (or it already has a value), and
-     * what's typed here is kept to lowercase letters, digits and the
-     * separator. Add the rule that checks it on the server too.
+     * While creating, fill it from another field as that one is typed,
+     * made fit for a handle or an address ("Main menu" → "main_menu", or
+     * with '-' "main-menu"), until someone types in this one. What's typed
+     * in it is kept to lowercase letters, digits and the separator; add the
+     * rule that checks it on the server too.
+     *
+     * @param  '_'|'-'  $separator
      */
-    public function slug(string $from = 'title', string $separator = '-'): self
+    public function slugFrom(string $field, string $separator = '_'): self
     {
-        $this->slug = ['from' => $from, 'separator' => $separator];
+        $this->slugFrom = $field;
+        $this->slugSeparator = $separator;
 
         return $this;
     }
@@ -76,7 +81,7 @@ final class TextInput extends Field
             // One message that shows the format, whatever is wrong with it.
             return ['string', function (string $attribute, mixed $value, Closure $fail): void {
                 if (! is_string($value) || preg_match('/^#[0-9a-fA-F]{6}$/', $value) !== 1) {
-                    $fail('The :attribute must be a colour written as # and six hex digits, like #1e66f5.');
+                    $fail(__('The :attribute must be a colour written as # and six hex digits, like #1e66f5.'));
                 }
             }];
         }
@@ -94,6 +99,7 @@ final class TextInput extends Field
 
     protected function props(): array
     {
-        return ['inputType' => $this->inputType, 'maxLength' => $this->maxLength, ...($this->slug !== null ? ['slugFrom' => $this->slug['from'], 'slugSeparator' => $this->slug['separator']] : [])];
+        return ['inputType' => $this->inputType, 'maxLength' => $this->maxLength]
+            + ($this->slugFrom !== null ? ['slugFrom' => $this->slugFrom, 'slugSeparator' => $this->slugSeparator] : []);
     }
 }

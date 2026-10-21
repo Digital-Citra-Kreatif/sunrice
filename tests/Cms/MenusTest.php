@@ -24,6 +24,7 @@ use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+use function Pest\Laravel\post;
 use function Pest\Laravel\put;
 
 beforeEach(function () {
@@ -111,14 +112,14 @@ it('edits menus in the admin', function () {
     app(SaveMenu::class)->handle($this->main, [['entry_id' => $about->entry_id]]);
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
 
-    get('/admin/cms/menus/main')->assertInertia(fn (Assert $page) => $page
+    get('/admin/cms/menus/main/links')->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Menus/Edit', shouldExist: false)
         ->where('items.0.target', ['title' => 'About', 'kind' => 'Pages', 'live' => true])
         ->where('can.update', false));
-    put('/admin/cms/menus/main', ['items' => []])->assertForbidden();
+    put('/admin/cms/menus/main/links', ['items' => []])->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
-    put('/admin/cms/menus/main', ['items' => [['url' => '/contact', 'labels' => ['en' => 'Contact']]]])->assertSessionHasNoErrors();
+    put('/admin/cms/menus/main/links', ['items' => [['url' => '/contact', 'labels' => ['en' => 'Contact']]]])->assertSessionHasNoErrors();
     expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Contact']);
 });
 
@@ -159,7 +160,7 @@ it('links to a listing page with filters, in each language', function () {
 
     // The editor gets them back; only listing links take them, as a query string.
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
-    get('/admin/cms/menus/main')->assertInertia(fn (Assert $page) => $page->where('items.0.query', 'listing_type=for-sale&city%5B0%5D=jakarta')->where('items.1.query', null));
+    get('/admin/cms/menus/main/links')->assertInertia(fn (Assert $page) => $page->where('items.0.query', 'listing_type=for-sale&city%5B0%5D=jakarta')->where('items.1.query', null));
     expect(fn () => app(SaveMenu::class)->handle($this->main, [['url' => '/x', 'labels' => ['en' => 'X'], 'query' => 'a=1']]))->toThrow(ValidationException::class, 'Only a link to a listing page')
         ->and(fn () => app(SaveMenu::class)->handle($this->main, [['collection_id' => $this->pages->id, 'query' => 'a=1#top']]))->toThrow(ValidationException::class, 'listing_type=for-sale');
 });
@@ -234,15 +235,16 @@ it('links untranslated pages at the language\'s address, or the main page with t
     expect(array_column(app(Menus::class)->get('main', 'id'), 'url'))->toBe([url('/about'), url('/tags/news')]);
 });
 
-it('labels the menus resource apart from the menu editor in the sidebar', function () {
+it('lists the menus once, under Content, each opening its links', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.menus.view'));
 
     get('/admin/cms/menus')->assertOk()->assertInertia(function (Assert $page) {
         $items = collect($page->toArray()['props']['navigation'])->pluck('items')->flatten(1)->keyBy('key');
 
-        expect($items['cms-menus']['label'])->toBe('Menus')
-            ->and($items['resources.menus']['label'])->toBe('Menu settings');
+        expect($items['resources.menus']['label'])->toBe('Menus')
+            ->and($items->keys()->filter(fn (string $key) => str_contains($key, 'menus'))->values()->all())->toBe(['resources.menus']);
+        $page->where('rows.data.0.key', 'main')->where('rows.data.0.url', url('/admin/cms/menus/main/links'));
     });
     expect(app(Panel::class)->getPermissions()['cms.menus.view']->label)->toBe('View Menus');
 });
@@ -267,4 +269,20 @@ it('replaces a nested menu\'s links when saved again, without duplicating them',
 
     expect($this->main->items()->count())->toBe(8)
         ->and(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Properties', 'Team', 'About', 'Contact']);
+});
+
+it('fills a new menu\'s handle from its title, and keeps it on the edit form, with the way to its links', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
+
+    get('/admin/cms/menus/create')->assertInertia(fn (Assert $page) => $page
+        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.slugFrom', 'title'));
+    post('/admin/cms/menus', ['title' => 'Footer', 'handle' => 'Footer Links'])
+        ->assertSessionHasErrors(['handle' => 'Use lowercase letters, digits and underscores, starting with a letter: try "footer_links".']);
+
+    get('/admin/cms/menus/main/edit')->assertInertia(fn (Assert $page) => $page
+        ->where('sections.0.fields.1.name', 'handle')->where('values.handle', 'main')
+        ->where('aside.0.title', 'Links')->where('aside.0.links.0.url', '/admin/cms/menus/main/links'));
+    put('/admin/cms/menus/main', ['title' => 'Main menu', 'handle' => 'main'])->assertSessionHasNoErrors();
+    expect($this->main->fresh()?->only(['title', 'handle']))->toBe(['title' => 'Main menu', 'handle' => 'main']);
 });

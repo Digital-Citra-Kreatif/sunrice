@@ -28,11 +28,13 @@ final class LoginCode extends Notification
     {
         return (new MailMessage)
             // In the subject only when asked: notifications show subjects on locked screens.
-            ->subject(config('sunrice-admin.auth.two_factor_code_in_subject') === true ? "Your {$this->brand} login code: {$this->code}" : "Your {$this->brand} login code")
-            ->line('Type this code to finish logging in to the admin panel:')
+            ->subject(config('sunrice-admin.auth.two_factor_code_in_subject') === true
+                ? __('Your :brand login code: :code', ['brand' => $this->brand, 'code' => $this->code])
+                : __('Your :brand login code', ['brand' => $this->brand]))
+            ->line(__('Type this code to finish logging in to the admin panel:'))
             ->line("**{$this->code}**")
-            ->line('It works for '.TwoFactorLogin::LIFETIME_MINUTES.' minutes.')
-            ->line('If you didn\'t just log in, change your password: someone else knows it.')
-            ->salutation("Regards,  \n{$this->brand}");
+            ->line(__('It works for :minutes minutes.', ['minutes' => TwoFactorLogin::LIFETIME_MINUTES]))
+            ->line(__('If you didn\'t just log in, change your password: someone else knows it.'))
+            ->salutation(__('Regards,')."  \n{$this->brand}");
     }
 }

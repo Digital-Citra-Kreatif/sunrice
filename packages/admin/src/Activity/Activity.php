@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Activity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Sunrice\Admin\Support\Say;
 
 /**
  * One line of the activity log, written by ActivityLog.
@@ -54,17 +55,22 @@ class Activity extends Model
      */
     public function sentence(): string
     {
-        $who = $this->user_name ?? ($this->source === 'system' ? 'System' : null);
+        $who = $this->user_name ?? ($this->source === 'system' ? Say::it('System') : null);
+        $action = Say::it($this->action);
         if ($this->isAboutItsActor() || $this->subject_label === null) {
-            $phrase = self::PHRASES[$this->action] ?? $this->action;
+            $phrase = isset(self::PHRASES[$this->action]) ? Say::it(self::PHRASES[$this->action]) : $action;
 
             return $who === null ? Str::ucfirst($phrase) : "{$who} {$phrase}";
         }
         if ($this->subject_type === 'account' || $who === null) {
-            return Str::ucfirst($this->action)." for {$this->subject_label}".($who === null ? '' : " by {$who}");
+            $replace = ['action' => Str::ucfirst($action), 'subject' => $this->subject_label, 'who' => (string) $who];
+
+            $said = $who === null ? __(':action for :subject', $replace) : __(':action for :subject by :who', $replace);
+
+            return is_string($said) ? $said : "{$replace['action']} {$this->subject_label}";
         }
 
-        return "{$who} {$this->action} {$this->subject_label}";
+        return "{$who} {$action} {$this->subject_label}";
     }
 
     /** @return array<string, string> */

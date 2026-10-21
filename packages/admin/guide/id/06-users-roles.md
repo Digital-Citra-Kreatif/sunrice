@@ -1,54 +1,54 @@
 # Pengguna dan peran
 
-Setiap orang yang bekerja di {panel} memiliki akun **pengguna** (*user*), dan setiap akun memiliki satu atau beberapa **peran** (*role*). Peran adalah sekumpulan izin, seperti *menerbitkan entri* atau *mengunggah media*, yang menentukan apa yang dilihat dan boleh dilakukan orang tersebut. **Users** dan **Roles** ada di bawah Administration, untuk pengelola situs.
+Setiap orang yang bekerja di {panel} memiliki akun **pengguna** (*user*), dan setiap akun memiliki satu atau beberapa **peran** (*role*). Peran adalah sekumpulan izin, seperti *menerbitkan entri* atau *mengunggah media*, yang menentukan apa yang dilihat dan boleh dilakukan orang tersebut. **Pengguna** dan **Peran** ada di bawah Administrasi, untuk pengelola situs.
 
 ## Pengguna
 
-Daftar **Users** menampilkan nama, alamat email, peran, apakah akun **Locked** (terkunci), dan kapan akun dibuat. Cari berdasarkan nama atau email, atau saring berdasarkan peran.
+Daftar **Pengguna** menampilkan nama, alamat email, peran, apakah akun **Dikunci**, dan kapan akun dibuat. Cari berdasarkan nama atau email, atau saring berdasarkan peran.
 
 ### Menambahkan orang
 
-1. Klik **New user**.
-2. Di bagian **Account**, ketik **Name** dan **Email**. Lalu ketik **Password** dan sekali lagi di **Confirm password**, atau biarkan kosong dan nyalakan **Email an invitation**: mereka menerima email berisi tautan untuk memilih kata sandi sendiri.
-3. Di bagian **Roles**, centang perannya.
-4. Klik **Create user**. Tanpa undangan, beri tahu mereka alamat panel dan kata sandinya.
+1. Klik **Tambah pengguna**.
+2. Di bagian **Akun**, ketik **Nama** dan **Email**. Lalu ketik **Kata sandi** dan sekali lagi di **Konfirmasi kata sandi**, atau biarkan kosong dan nyalakan **Kirim undangan lewat email**: mereka menerima email berisi tautan untuk memilih kata sandi sendiri.
+3. Di bagian **Peran**, centang perannya.
+4. Klik **Buat pengguna**. Tanpa undangan, beri tahu mereka alamat panel dan kata sandinya.
 
-Untuk mengirim tautan baru untuk memilih kata sandi (misalnya undangan yang sudah kedaluwarsa), pakai **Email a password link** di menu baris.
+Untuk mengirim tautan baru untuk memilih kata sandi (misalnya undangan yang sudah kedaluwarsa), pakai **Kirim tautan kata sandi lewat email** di menu baris.
 
 Peran yang bisa Anda berikan hanya yang berada di bawah peran Anda sendiri (lihat [Siapa boleh mengelola siapa](#siapa-boleh-mengelola-siapa)).
 
 ### Mengubah data seseorang
 
-Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Password** kosong untuk mempertahankan kata sandi saat ini; kata sandi baru diketik dua kali. Di samping formulir, kartu **Security** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, apa saja miliknya (**Owns**: unggahan, entri…), dan kejadian keamanan terbarunya, dengan **See all in the activity log**.
+Klik pengguna untuk mengubah nama, email, kata sandi, atau perannya. Biarkan **Kata sandi** kosong untuk mempertahankan kata sandi saat ini; kata sandi baru diketik dua kali. Di samping formulir, kartu **Keamanan** menampilkan apakah akun terkunci (kapan, oleh siapa, dan mengapa), kapan terakhir masuk dan dari mana, berapa token akses AI yang dimiliki, apa saja miliknya (**Miliknya**: unggahan, entri…), dan kejadian keamanan terbarunya, dengan **Lihat semua di log aktivitas**.
 
-Setiap orang mengubah nama, email, dan kata sandinya sendiri di **Your account** (di bawah namanya di bagian bawah bilah samping; lihat [Selamat datang](guide:panel/welcome#akun-anda)). Tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
+Setiap orang mengubah nama, email, dan kata sandinya sendiri di **Akun Anda** (di bawah namanya di bagian bawah bilah samping; lihat [Selamat datang](guide:panel/welcome#akun-anda)). Tidak ada yang bisa mengubah perannya sendiri atau menghapus akunnya sendiri.
 
 ## Jika akun mungkin jatuh ke tangan yang salah
 
-Jika kata sandi mungkin bocor, laptop hilang, atau seseorang keluar dengan tidak baik-baik, gunakan menu di ujung baris pengguna (atau kartu Security):
+Jika kata sandi mungkin bocor, laptop hilang, atau seseorang keluar dengan tidak baik-baik, gunakan menu di ujung baris pengguna (atau kartu Keamanan):
 
-- **Sign out everywhere** mengakhiri semua sesinya di semua komputer, dan mencabut token akses AI-nya. Orang itu bisa masuk lagi dengan kata sandinya, jadi ganti dulu kata sandinya jika mungkin sudah diketahui orang lain.
-- **Lock account** mengeluarkannya dari mana saja dan mencegahnya masuk sama sekali, sampai ada yang membuka kuncinya. Tambahkan alasan bila perlu, misalnya *Kata sandi mungkin bocor*; alasan ini tampil di halamannya. Tidak ada yang dihapus.
-- **Unlock account** mengizinkannya masuk lagi. Ini juga membuka kunci akibat terlalu banyak salah kata sandi.
-- **Revoke AI tokens** menghentikan semua asisten AI yang terhubung dengan akunnya.
+- **Keluarkan dari semua perangkat** mengakhiri semua sesinya di semua komputer, dan mencabut token akses AI-nya. Orang itu bisa masuk lagi dengan kata sandinya, jadi ganti dulu kata sandinya jika mungkin sudah diketahui orang lain.
+- **Kunci akun** mengeluarkannya dari mana saja dan mencegahnya masuk sama sekali, sampai ada yang membuka kuncinya. Tambahkan alasan bila perlu, misalnya *Kata sandi mungkin bocor*; alasan ini tampil di halamannya. Tidak ada yang dihapus.
+- **Buka kunci akun** mengizinkannya masuk lagi. Ini juga membuka kunci akibat terlalu banyak salah kata sandi.
+- **Cabut token AI** menghentikan semua asisten AI yang terhubung dengan akunnya.
 
 Setiap tindakan ini dicatat sebagai kejadian keamanan di [log aktivitas](guide:panel/activity-log).
 
 ## Menghapus pengguna
 
-**Delete…** (di menu baris, tombol tempat sampah di halamannya, atau untuk beberapa pengguna yang dicentang sekaligus) menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
+**Hapus…** (di menu baris, tombol tempat sampah di halamannya, atau untuk beberapa pengguna yang dicentang sekaligus) menanyakan apa yang terjadi pada hasil kerjanya (entri, komentar, dan unggahan):
 
-- **Give it to another user**: diberikan kepada pengguna lain, dipilih di **Give it to**.
-- **Keep it, without an owner**: tetap ada tanpa pemilik (pilihan bawaan).
-- **Delete it**: entri dan komentar masuk tempat sampah; unggahan tetap ada, karena mungkin dipakai halaman lain.
+- **Berikan ke pengguna lain**: diberikan kepada pengguna lain, dipilih di **Berikan ke**.
+- **Simpan, tanpa pemilik**: tetap ada tanpa pemilik (pilihan bawaan).
+- **Hapus**: entri dan komentar masuk tempat sampah; unggahan tetap ada, karena mungkin dipakai halaman lain.
 
-Peran, token AI, dan status kuncinya ikut terhapus. Jika ragu, pilih **Lock account**: tindakan itu bisa dibatalkan.
+Peran, token AI, dan status kuncinya ikut terhapus. Jika ragu, pilih **Kunci akun**: tindakan itu bisa dibatalkan.
 
 ## Peran
 
-Daftar **Roles** menampilkan setiap peran dan jumlah izinnya. Klik **New role**, beri **Name**, lalu centang **Permissions**-nya, yang dikelompokkan per bidang (panel, media, entri setiap koleksi, pengaturan…).
+Daftar **Peran** menampilkan setiap peran dan jumlah izinnya. Klik **Tambah peran**, beri **Nama**, lalu centang **Izin**-nya, yang dikelompokkan per bidang (panel, media, entri setiap koleksi, pengaturan…).
 
-Mengunduh daftar sebagai spreadsheet (**Export CSV**) adalah izin tersendiri, terpisah dari melihat daftar, karena ekspor membawa data keluar dari panel.
+Mengunduh daftar sebagai spreadsheet (**Ekspor CSV**) adalah izin tersendiri, terpisah dari melihat daftar, karena ekspor membawa data keluar dari panel.
 
 Situs Anda mungkin sudah memiliki peran siap pakai sebagai titik awal:
 
@@ -57,7 +57,7 @@ Situs Anda mungkin sudah memiliki peran siap pakai sebagai titik awal:
 | **administrator** | Semuanya, bagi orang yang menjalankan situs. |
 | **editor** | Semua konten: entri, term, global, menu, komentar, media, serta membaca dan mengekspor kiriman formulir. Tidak termasuk struktur, pengaturan, atau pengguna. |
 | **author** | Menulis entri dan mengubah entrinya sendiri, mengunggah media, dan melihat draf di situs. Tidak bisa menerbitkan. |
-| **translator** | Menulis bahasa lain dari entri, di setiap koleksi yang boleh dilihatnya. Untuk membatasi penerjemah ke beberapa koleksi saja, beri peran itu **View** di grup *Entries:* koleksi tersebut, bukan *View entries*. |
+| **translator** | Menulis bahasa lain dari entri, di setiap koleksi yang boleh dilihatnya. Untuk membatasi penerjemah ke beberapa koleksi saja, beri peran itu **Lihat** di grup *Entri:* koleksi tersebut, bukan *Lihat entri*. |
 
 Setiap peran yang bisa membuka panel juga bisa membaca panduan ini.
 

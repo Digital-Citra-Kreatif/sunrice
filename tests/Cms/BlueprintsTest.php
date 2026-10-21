@@ -130,7 +130,7 @@ it('says how to write a handle, suggesting the one meant', function () {
 
 it('renames a blueprint and everything that names it', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
-    actingAs(adminUser(Panel::ACCESS, 'cms.blueprints.manage'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.blueprints.view', 'cms.blueprints.update'));
     $blueprint = Blueprint::query()->create(['handle' => 'propety', 'title' => 'Property', 'fields' => [['handle' => 'price', 'type' => 'number']]]);
     Blueprint::query()->create(['handle' => 'page', 'title' => 'Page']);
     $listings = Collection::query()->create(['handle' => 'listings', 'title' => 'Listings', 'blueprint' => 'propety', 'listing_blueprint' => 'propety']);
@@ -143,7 +143,7 @@ it('renames a blueprint and everything that names it', function () {
     $entry = app(CreateEntry::class)->handle($pages, ['title' => 'Villa'])->entry;
     $entry->forceFill(['blueprint' => 'propety'])->save();
 
-    Pest\Laravel\put("/admin/cms/blueprints/{$blueprint->id}", ['title' => 'Property', 'handle' => 'property', 'fields' => $blueprint->fields])->assertRedirect()->assertSessionHasNoErrors();
+    Pest\Laravel\put('/admin/cms/blueprints/propety', ['title' => 'Property', 'handle' => 'property', 'fields' => $blueprint->fields])->assertRedirect()->assertSessionHasNoErrors();
 
     expect($blueprint->fresh()->handle)->toBe('property')
         ->and($listings->fresh()->only(['blueprint', 'listing_blueprint']))->toBe(['blueprint' => 'property', 'listing_blueprint' => 'property'])
@@ -151,7 +151,7 @@ it('renames a blueprint and everything that names it', function () {
         ->and(Collection::withTrashed()->find($gone->id)->blueprint)->toBe('property')
         ->and([$taxonomy->fresh()->blueprint, $set->fresh()->blueprint, $form->fresh()->blueprint, $entry->fresh()->blueprint])->toBe(['property', 'property', 'property', 'property']);
 
-    Pest\Laravel\put("/admin/cms/blueprints/{$blueprint->id}", ['title' => 'Property', 'handle' => 'page', 'fields' => []])->assertSessionHasErrors('handle');
+    Pest\Laravel\put('/admin/cms/blueprints/property', ['title' => 'Property', 'handle' => 'page', 'fields' => []])->assertSessionHasErrors('handle');
     expect($blueprint->fresh()->handle)->toBe('property')->and($blueprint->fresh()->fields)->not->toBe([]);
 });
 

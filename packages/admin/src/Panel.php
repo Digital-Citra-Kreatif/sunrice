@@ -26,6 +26,7 @@ use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Support\Branding;
+use Sunrice\Admin\Support\Say;
 use Sunrice\Admin\Users\RoleResource;
 use Sunrice\Admin\Users\UserContent;
 use Sunrice\Admin\Users\UserResource;
@@ -70,6 +71,9 @@ final class Panel
 
     /** @var array<string, NavigationItem> */
     private array $navigation = [];
+
+    /** @var list<Closure(): iterable<NavigationItem>> */
+    private array $navigationResolvers = [];
 
     /** @var array<string, Permission> */
     private array $permissions = [];
@@ -294,6 +298,27 @@ final class Panel
     }
 
     /**
+     * Navigation items made from data, worked out on each page instead of
+     * at boot, e.g. one item per record:
+     *
+     *     $panel->navigationUsing(fn () => Shop::query()->get()->map(
+     *         fn ($shop) => NavigationItem::make("shop-{$shop->handle}")->label($shop->name)
+     *             ->url("shops/{$shop->handle}")->group('Shops')->permission('shop.orders.view')));
+     *
+     * Each item still says who sees it. Keys must not clash with other
+     * items'; a submenu's parent may be a registered item or one of these.
+     *
+     * @param  Closure(): iterable<NavigationItem>  $resolve
+     */
+    public function navigationUsing(Closure $resolve): self
+    {
+        $this->assertRegistering();
+        $this->navigationResolvers[] = $resolve;
+
+        return $this;
+    }
+
+    /**
      * Tiles on the dashboard (see Sunrice\Admin\Dashboard\Widget). A
      * plugin's keys start with its id and a dot ("shop.orders"); the app's
      * may not use a plugin's id.
@@ -349,7 +374,7 @@ final class Panel
      * and again after flushPermissions():
      *
      *     $panel->permissionsUsing(fn () => Shop::query()->get()->map(
-     *         fn ($shop) => Permission::make("shop.{$shop->handle}.orders", "Orders of {$shop->name}", 'Shops')));
+     *         fn ($shop) => Permission::make("shop.{$shop->handle}.orders", 'Orders of :shop', 'Shops', ['shop' => $shop->name])));
      *
      * Their names start with the plugin's id, like its other permissions.
      * Run SyncPermissions after the data changes to create and delete them.
@@ -477,7 +502,8 @@ final class Panel
             if (! is_subclass_of($class, Resource::class)) {
                 throw new PanelMisconfigured("{$class} isn't a resource: extend ".Resource::class.'.');
             }
-            $this->registerResource($class, $this->registering === null ? $class::key() : $this->registering->id().'.'.$class::key());
+            $this->registerResource($class, $this->registering === null ? $class::key() : $this->registering->id().'.'.$class::key(),
+                ($this->registering === null ? '' : $this->registering->id().'/').$class::path());
         }
 
         return $this;
@@ -506,7 +532,7 @@ final class Panel
             }
 
             $permission = ($this->registering === null ? '' : $this->registering->id().'.')."settings.{$key}";
-            $this->permissions(Permission::make($permission, "Edit {$class::label()} settings", 'Settings'));
+            $this->permissions(Permission::make($permission, 'Edit :label settings', 'Settings', ['label' => $class::label()]));
             $this->settings[$key] = new RegisteredSettings($class, $permission);
         }
 
@@ -816,7 +842,7 @@ final class Panel
                 Permission::make('sunrice.media.update', 'Edit and organise media', 'Media'),
                 Permission::make('sunrice.media.delete', 'Delete media', 'Media'),
             );
-            $this->navigation(NavigationItem::make('media')->label('Media')->url('media')->icon('image')->sort(50)->permission('sunrice.media.view'));
+            $this->navigation(NavigationItem::make('media')->label('Media')->url('media')->icon('image')->sort(5)->permission('sunrice.media.view'));
             $this->widgets(PanelWidgets::media());
             // Deleting a user: their uploads move to the heir or stay without an uploader (other content may use them).
             $this->userContent('media', 'uploads',
@@ -1096,7 +1122,16 @@ final class Panel
      */
     public function navigationFor(Authorizable $user): array
     {
-        $visible = array_filter($this->navigation, fn (NavigationItem $item): bool => $item->isVisibleTo($user));
+        $items = $this->navigation;
+        foreach ($this->navigationResolvers as $resolve) {
+            foreach ($resolve() as $item) {
+                if (isset($items[$item->key])) {
+                    throw new PanelMisconfigured("Two navigation items have the key \"{$item->key}\" (one from navigationUsing()).");
+                }
+                $items[$item->key] = $item;
+            }
+        }
+        $visible = array_filter($items, fn (NavigationItem $item): bool => $item->isVisibleTo($user));
         uasort($visible, fn (NavigationItem $a, NavigationItem $b) => [$a->getSort(), $a->getLabel()] <=> [$b->getSort(), $b->getLabel()]);
 
         $children = [];
@@ -1112,7 +1147,7 @@ final class Panel
                 continue;
             }
             $group = $item->getGroup();
-            $groups[$group ?? ''] ??= ['group' => $group, 'items' => []];
+            $groups[$group ?? ''] ??= ['group' => Say::it($group), 'items' => []];
             $groups[$group ?? '']['items'][] = [...self::link($item), 'children' => $children[$item->key] ?? []];
         }
 
@@ -1160,7 +1195,7 @@ final class Panel
     /** @return array{key: string, label: string, url: string, icon: string} */
     private static function link(NavigationItem $item): array
     {
-        return ['key' => $item->key, 'label' => $item->getLabel(), 'url' => $item->getUrl(), 'icon' => $item->getIcon()];
+        return ['key' => $item->key, 'label' => $item->isVerbatim() ? $item->getLabel() : Say::it($item->getLabel()), 'url' => $item->getUrl(), 'icon' => $item->getIcon()];
     }
 
     /**
@@ -1208,33 +1243,34 @@ final class Panel
     }
 
     /** @param class-string<resource> $class */
-    private function registerResource(string $class, string $prefix): void
+    private function registerResource(string $class, string $prefix, ?string $path = null): void
     {
         $key = $class::key();
-        if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1 || in_array($key, self::RESERVED_KEYS, true)) {
-            throw new PanelMisconfigured("The resource {$class} has the key \"{$key}\": use lowercase letters, numbers and dashes, and not one of the panel's own paths.");
+        if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1 || in_array($key, self::RESERVED_KEYS, true)
+            || preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $class::path()) !== 1 || in_array($class::path(), self::RESERVED_KEYS, true)) {
+            throw new PanelMisconfigured("The resource {$class} has the key \"{$key}\" and the path \"{$class::path()}\": use lowercase letters, numbers and dashes, and not one of the panel's own paths.");
         }
         if (isset($this->resources[$key])) {
             throw new PanelMisconfigured("Two resources have the key \"{$key}\": {$this->resources[$key]->class} and {$class}{$this->owner()}.");
         }
 
-        $resource = new RegisteredResource($class, $prefix);
+        $resource = new RegisteredResource($class, $prefix, $path);
         $this->resources[$key] = $resource;
 
         $label = $class::label();
         $this->permissions(
-            Permission::make("{$prefix}.view", "View {$label}", $label),
-            Permission::make("{$prefix}.create", "Create {$label}", $label),
-            Permission::make("{$prefix}.update", "Edit {$label}", $label),
-            Permission::make("{$prefix}.delete", "Delete {$label}", $label),
+            Permission::make("{$prefix}.view", 'View :label', $label, ['label' => $label]),
+            Permission::make("{$prefix}.create", 'Create :label', $label, ['label' => $label]),
+            Permission::make("{$prefix}.update", 'Edit :label', $label, ['label' => $label]),
+            Permission::make("{$prefix}.delete", 'Delete :label', $label, ['label' => $label]),
         );
         // "<prefix>.export" for a resource whose table is ->exportable(); worked out when
         // permissions are needed, so the table isn't built at boot.
         $this->permissionResolvers[] = ['owner' => $this->registering?->id(), 'resolve' => fn (): array => $resource->table()->isExportable()
-            ? [Permission::make("{$prefix}.export", "Export {$label}", $label)]
+            ? [Permission::make("{$prefix}.export", 'Export :label', $label, ['label' => $label])]
             : []];
         $this->navigation(
-            NavigationItem::make("resources.{$key}")->label($class::navigationLabel())->url($key)->icon($class::navigationIcon())
+            NavigationItem::make("resources.{$key}")->label($class::navigationLabel())->url($resource->path())->icon($class::navigationIcon())
                 ->group($class::navigationGroup())->sort($class::navigationSort())->visible($resource->visibleTo()),
         );
     }

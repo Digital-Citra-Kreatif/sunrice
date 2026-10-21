@@ -172,11 +172,11 @@ test('asks a server search with the query, prefixes its ids, and lists nothing w
         const ok = !url.includes('forbidden');
         return { ok, json: async () => ({ items: [{ id: 7, label: 'Menteng Residence', group: 'Entries', url: '/admin/cms/entries/7/edit' }, { id: 8 }] }) } as Response;
     }) as typeof fetch;
-    const search = commandSearchSource({ id: 'cms.entries', url: '/admin/cms/entry-search', minLength: 2 }, request);
+    const search = commandSearchSource({ id: 'cms.entries', url: '/admin/cms/entries/search', minLength: 2 }, request);
 
     const found = await queryCommandSources(' rumah taman ', new AbortController().signal, [search]);
     assert.deepEqual(found, [{ id: 'cms.entries:7', label: 'Menteng Residence', group: 'Entries', url: '/admin/cms/entries/7/edit' }]);
-    assert.deepEqual(calls, ['/admin/cms/entry-search?q=rumah%20taman']);
+    assert.deepEqual(calls, ['/admin/cms/entries/search?q=rumah%20taman']);
     assert.deepEqual(await queryCommandSources('forbidden', new AbortController().signal, [search]), []);
     assert.deepEqual(await queryCommandSources('x', new AbortController().signal, [search]), [], 'below minLength');
     assert.equal(calls.length, 2);

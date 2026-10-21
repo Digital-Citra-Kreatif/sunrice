@@ -48,7 +48,8 @@ export interface Branding {
 export interface FlashAction { label: string; url: string; method: 'get' | 'post'; data: Record<string, unknown> }
 
 export interface SharedProps {
-    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[]; commandSearches?: { id: string; url: string; minLength: number }[] };
+    /** locale: the panel's language; locales: those a user may pick (code => name). */
+    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[]; commandSearches?: { id: string; url: string; minLength: number }[]; locale: string; locales: Record<string, string> };
     auth: { user: { id: string | number; name: string | null; email: string | null } | null };
     navigation: NavGroup[];
     /** `id` is new for each message shown, so the same text twice toasts twice. */

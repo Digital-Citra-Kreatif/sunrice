@@ -137,7 +137,9 @@ class RoleResource extends Resource
     {
         $users = static::usersWith($record);
         if ($users > 0) {
-            throw new ActionFailed('The role "'.static::title($record)."\" is still given to {$users} ".($users === 1 ? 'user' : 'users').'. Take it away from them first.');
+            throw new ActionFailed($users === 1
+                ? __('The role ":role" is still given to 1 user. Take it away from them first.', ['role' => static::title($record)])
+                : __('The role ":role" is still given to :count users. Take it away from them first.', ['role' => static::title($record), 'count' => $users]));
         }
         $record->delete();
     }
@@ -163,7 +165,7 @@ class RoleResource extends Resource
                 $groups = [];
                 foreach (app(Panel::class)->getPermissions() as $permission) {
                     if (in_array($permission->name, $existing, true) && $actor instanceof Model && app(PermissionRank::class)->canGrantPermissions($actor, [$permission->name])) {
-                        $groups[$permission->group][$permission->name] = $permission->label;
+                        $groups[$permission->group][$permission->name] = $permission->saidLabel();
                     }
                 }
 
@@ -181,7 +183,7 @@ class RoleResource extends Resource
                 // Nobody makes a role equal to or above their own access.
                 $actor = auth(app(Panel::class)->getGuard())->user();
                 if ($actor instanceof Model && ! app(PermissionRank::class)->isStrictlyBelow($actor, $names)) {
-                    throw ValidationException::withMessages(['permissions' => 'A role must have less access than yours: leave out at least one of your permissions.']);
+                    throw ValidationException::withMessages(['permissions' => __('A role must have less access than yours: leave out at least one of your permissions.')]);
                 }
 
                 $before = static::namesOf($role->getRelationValue('permissions'));

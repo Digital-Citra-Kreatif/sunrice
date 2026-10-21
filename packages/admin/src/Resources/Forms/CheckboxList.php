@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Resources\Forms;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
+use Sunrice\Admin\Support\Say;
 
 /**
  * Several choices from a list, as an array of the chosen values. Options
@@ -28,6 +29,9 @@ final class CheckboxList extends Field
     /** @var array<string|int, string|array<string|int, string>>|Closure(): array<string|int, string|array<string|int, string>> */
     private array|Closure $options = [];
 
+    /** Its option labels are data, shown as written. */
+    private bool $verbatim = false;
+
     /**
      * value => label, or group => [value => label].
      *
@@ -36,6 +40,17 @@ final class CheckboxList extends Field
     public function options(array|Closure $options): self
     {
         $this->options = $options;
+
+        return $this;
+    }
+
+    /**
+     * Shows the option labels as written instead of in the panel's
+     * language: for options that are data (blueprint titles, roles).
+     */
+    public function verbatim(bool $verbatim = true): self
+    {
+        $this->verbatim = $verbatim;
 
         return $this;
     }
@@ -83,10 +98,10 @@ final class CheckboxList extends Field
         foreach ($options as $key => $item) {
             if (is_array($item)) {
                 foreach ($item as $value => $label) {
-                    $list[] = ['value' => (string) $value, 'label' => $label, 'group' => (string) $key];
+                    $list[] = ['value' => (string) $value, 'label' => $this->verbatim ? $label : Say::it($label), 'group' => Say::it((string) $key)];
                 }
             } else {
-                $list[] = ['value' => (string) $key, 'label' => $item, 'group' => null];
+                $list[] = ['value' => (string) $key, 'label' => $this->verbatim ? $item : Say::it($item), 'group' => null];
             }
         }
 

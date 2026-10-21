@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 
 interface Props {
     /** The address the code went to, partly hidden (j•••@example.com). */
@@ -40,10 +41,10 @@ export default function TwoFactor({ email, resendIn, minutes }: Props) {
     });
 
     return (
-        <AuthLayout title="Check your email" description={`We sent a 6-digit code to ${email}. It works for ${minutes} minutes.`}>
+        <AuthLayout title={t('Check your email')} description={t('We sent a 6-digit code to :email. It works for :minutes minutes.', { email, minutes })}>
             <form onSubmit={submit} className="grid gap-6">
                 <div className="grid gap-2">
-                    <Label htmlFor="code">Login code</Label>
+                    <Label htmlFor="code">{t('Login code')}</Label>
                     <Input id="code" inputMode="numeric" autoComplete="one-time-code" autoFocus required maxLength={20}
                         className="text-center font-mono text-lg tracking-[0.5em]" value={form.data.code}
                         onChange={(e) => form.setData('code', e.target.value)} aria-invalid={!!form.errors.code} />
@@ -51,13 +52,13 @@ export default function TwoFactor({ email, resendIn, minutes }: Props) {
                 </div>
                 <Button type="submit" disabled={form.processing} className="w-full">
                     {form.processing && <LoaderCircle className="animate-spin" />}
-                    Log in
+                    {t('Log in')}
                 </Button>
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <Button type="button" variant="link" className="h-auto p-0 text-muted-foreground" disabled={wait > 0 || resending} onClick={resend}>
-                        {wait > 0 ? `Send a new code in ${wait}s` : 'Send a new code'}
+                        {wait > 0 ? t('Send a new code in :time', { time: `${wait}s` }) : t('Send a new code')}
                     </Button>
-                    <Link href={adminUrl('login')} className="underline-offset-4 hover:text-foreground hover:underline">Back to log in</Link>
+                    <Link href={adminUrl('login')} className="underline-offset-4 hover:text-foreground hover:underline">{t('Back to log in')}</Link>
                 </div>
             </form>
         </AuthLayout>

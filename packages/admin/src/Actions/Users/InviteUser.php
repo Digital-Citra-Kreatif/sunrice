@@ -35,12 +35,12 @@ final class InviteUser
     {
         $email = $user->getAttribute('email');
         if (! $user instanceof CanResetPassword || ! is_string($email) || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            throw new ActionFailed('This user can\'t be sent a password link: they need an email address, and the user model Laravel\'s CanResetPassword.');
+            throw new ActionFailed(__('This user can\'t be sent a password link: they need an email address, and the user model Laravel\'s CanResetPassword.'));
         }
         $name = config('sunrice-admin.auth.passwords');
         $broker = Password::broker(is_string($name) ? $name : null);
         if (! $broker instanceof PasswordBroker) {
-            throw new ActionFailed('The panel needs Laravel\'s password broker to send password links.');
+            throw new ActionFailed(__('The panel needs Laravel\'s password broker to send password links.'));
         }
         $default = config('auth.defaults.passwords');
         $config = config('auth.passwords.'.(is_string($name) ? $name : (is_string($default) ? $default : 'users')).'.expire', 60);

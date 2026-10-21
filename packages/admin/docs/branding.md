@@ -8,7 +8,7 @@
 | Tagline | Under the name in the sidebar and above the sign-in form | Nothing |
 | Logo (an image from the media library) | The sidebar and the sign-in page: a square-ish logo beside the name, a wide one (a wordmark, more than 1.25 times as wide as tall) instead of the name, at its own proportions (the collapsed sidebar then shows the lettermark) | The name's first letter on the brand colour |
 | Browser icon (an image: ICO, PNG or SVG) | Browser tabs and bookmarks, on every panel page including sign-in | The logo when it is square-ish, else the name's first letter on the brand colour |
-| Font | Everywhere in the admin | The `sunrice-admin.font` config (Inter) |
+| Font | Everywhere in the admin | The `sunrice-admin.font` config (Instrument Sans) |
 | Brand colour (`#rrggbb`) | Primary buttons, the active menu item, focus rings | The neutral palette |
 | Sign-in page: layout | A side panel next to the form (`split`), or the form alone (`centered`) | `split` |
 | Sign-in page: small heading, headline, text, note at the bottom | The side panel (each new line of the headline starts a lighter line) | Built-in wording |
@@ -28,14 +28,14 @@ The font list (`BrandingSettings::FONTS`) is Inter, Instrument Sans, Manrope, DM
 
 ```php
 'font' => [
-    'stylesheet' => 'https://fonts.bunny.net/css?family=inter:400,500,600&display=swap',
+    'stylesheet' => 'https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap',
     'family' => null,   // e.g. 'Brand Sans', the --sunrice-font
 ],
 ```
 
 Use the config for a font that isn't on the list (self-hosted, say). A strict `Content-Security-Policy` needs `fonts.bunny.net` in `style-src` and `font-src` for the listed fonts.
 
-**Privacy and offline installs.** Every listed font except System, and the default Inter, is a request from each admin's browser to `fonts.bunny.net`, a third party (Bunny Fonts doesn't log IP addresses, but your privacy policy may still need to mention it). When that request is blocked (an intranet, a firewall, a server without internet), the panel quietly falls back to the system font, so a chosen font seems to do nothing. For these installs choose **System**, or self-host the font and point the config at it:
+**Privacy and offline installs.** Every listed font except System, and the default Instrument Sans, is a request from each admin's browser to `fonts.bunny.net`, a third party (Bunny Fonts doesn't log IP addresses, but your privacy policy may still need to mention it). When that request is blocked (an intranet, a firewall, a server without internet), the panel quietly falls back to the system font, so a chosen font seems to do nothing. For these installs choose **System**, or self-host the font and point the config at it:
 
 ```php
 'font' => [

@@ -5,22 +5,36 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Permissions;
 
 use InvalidArgumentException;
+use Sunrice\Admin\Support\Say;
 
 /**
  * A permission roles can be given, shown in the role editor under its
  * group. Names are dotted and lowercase: "shop.orders.refund".
  *
+ * The label and group are English, said in the user's language in the
+ * role editor. A label with a name in it uses a placeholder, so the
+ * sentence can be translated once: Permission::make("shop.{$handle}.orders",
+ * 'Orders of :shop', 'Shops', ['shop' => $name]).
+ *
  * @api
  */
 final readonly class Permission
 {
+    /**
+     * @param  string  $label  in English, with the replacements filled in
+     * @param  string  $words  the label as written, with its placeholders
+     * @param  array<string, string>  $replace  the placeholders' values
+     */
     private function __construct(
         public string $name,
         public string $label,
         public string $group,
+        private string $words,
+        private array $replace,
     ) {}
 
-    public static function make(string $name, string $label, string $group = 'Other'): self
+    /** @param  array<string, string>  $replace  values for the label's placeholders (":label") */
+    public static function make(string $name, string $label, string $group = 'Other', array $replace = []): self
     {
         if (preg_match('/^[a-z0-9]+(?:[-_][a-z0-9]+)*(?:\.[a-z0-9]+(?:[-_][a-z0-9]+)*)+$/', $name) !== 1) {
             throw new InvalidArgumentException("Permission \"{$name}\": use lowercase dotted names like \"shop.orders.refund\".");
@@ -29,7 +43,20 @@ final readonly class Permission
             throw new InvalidArgumentException("Permission \"{$name}\" needs a label.");
         }
 
-        return new self($name, $label, $group);
+        $filled = $label;
+        foreach ($replace as $key => $value) {
+            $filled = str_replace(':'.$key, $value, $filled);
+        }
+
+        return new self($name, $filled, $group, $label, $replace);
+    }
+
+    /** The label in the signed-in user's language; names in it are said too. */
+    public function saidLabel(): string
+    {
+        $said = __($this->words, array_map(fn (string $value): string => Say::it($value), $this->replace));
+
+        return is_string($said) ? $said : $this->label;
     }
 
     /** The part before the first dot: the owner's prefix. */

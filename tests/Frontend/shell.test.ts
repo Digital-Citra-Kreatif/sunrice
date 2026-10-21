@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { copyText, type ClipboardEnv } from '../../packages/admin/resources/js/lib/clipboard.ts';
+import { parseFolded, withFolded } from '../../packages/admin/resources/js/lib/folded-groups.ts';
 import { matchNavigation, navigationCrumbs } from '../../packages/admin/resources/js/lib/nav-match.ts';
 
 const navigation = [
@@ -64,4 +65,13 @@ test('falls back to a hidden textarea on plain http, and says when that fails', 
     const failing = fakeDocument(false);
     await assert.rejects(copyText('link', { isSecureContext: false, document: failing.document }), /Copy failed/);
     assert.ok(failing.log.includes('remove'));
+});
+
+test('remembers which sidebar groups are folded', () => {
+    assert.deepEqual(parseFolded(null), []);
+    assert.deepEqual(parseFolded('not json'), []);
+    assert.deepEqual(parseFolded('["Structure", 5]'), ['Structure']);
+    assert.deepEqual(withFolded(['Structure'], 'Shop', false), ['Structure', 'Shop']);
+    assert.deepEqual(withFolded(['Structure', 'Shop'], 'Structure', true), ['Shop']);
+    assert.deepEqual(withFolded(['Shop'], 'Shop', false), ['Shop']);
 });

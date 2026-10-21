@@ -39,6 +39,7 @@ use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Support\Card;
+use Sunrice\Admin\Support\Say;
 
 /**
  * The panel's Users screen: the users of the panel's guard, their
@@ -124,7 +125,7 @@ class UserResource extends Resource
                 Password::make('password')->onlyOnEdit()->confirmed()->span(2)
                     ->help('Leave it empty to keep the current password.'),
             ]),
-            Section::make('Roles')->description('What the user may do in the panel. You can give out roles with less access than yours, and together they must leave the user with less than yours.')->schema([
+            Section::make('Roles')->description('What this person can do in the panel.')->schema([
                 static::rolesField(),
             ]),
         ]);
@@ -151,7 +152,11 @@ class UserResource extends Resource
                     ->handle(function (Model $user): string {
                         $deleted = app(AccountGuard::class)->signOutEverywhere($user);
 
-                        return 'Signed out everywhere'.($deleted === null ? '.' : " ({$deleted} ".($deleted === 1 ? 'session' : 'sessions').' ended).');
+                        return match (true) {
+                            $deleted === null => __('Signed out everywhere.'),
+                            $deleted === 1 => __('Signed out everywhere (1 session ended).'),
+                            default => __('Signed out everywhere (:count sessions ended).', ['count' => $deleted]),
+                        };
                     }),
                 Action::make('invite')->label('Email a password link')
                     ->confirm('Email this user a link to choose a new password? Their current password keeps working until they do.')
@@ -160,14 +165,20 @@ class UserResource extends Resource
                         $actor = auth(app(Panel::class)->getGuard())->user();
                         app(InviteUser::class)->handle($user, $actor instanceof Model ? $actor : null);
 
-                        return 'A password link is on its way to '.static::title($user).'.';
+                        $said = __('A password link is on its way to :name.', ['name' => static::title($user)]);
+
+                        return is_string($said) ? $said : '';
                     }),
                 Action::make('revoke-tokens')->label('Revoke AI tokens')
                     ->confirm('Revoke all of this user\'s AI access tokens? AI agents using them stop working at once.')
                     ->handle(function (Model $user): string {
                         $count = app(RevokeAiTokens::class)->all($user);
 
-                        return $count === 0 ? 'This user had no AI access tokens.' : "{$count} AI access ".($count === 1 ? 'token' : 'tokens').' revoked.';
+                        return match ($count) {
+                            0 => __('This user had no AI access tokens.'),
+                            1 => __('1 AI access token revoked.'),
+                            default => __(':count AI access tokens revoked.', ['count' => $count]),
+                        };
                     }),
                 Action::make('lock')->label('Lock account')->destructive()
                     ->confirm('Lock this account? They are signed out everywhere and can\'t log in until someone unlocks it. Nothing is deleted.')
@@ -175,18 +186,18 @@ class UserResource extends Resource
                     ->visible(fn (Model $user) => ! app(AccountGuard::class)->isLocked($user) && ! static::isCurrentUser($user))
                     ->handle(function (Model $user, array $input): string {
                         if (static::isCurrentUser($user)) {
-                            throw new ActionFailed('You can\'t lock your own account.');
+                            throw new ActionFailed(__('You can\'t lock your own account.'));
                         }
                         app(AccountGuard::class)->lock($user, is_string($input['reason'] ?? null) ? $input['reason'] : null);
 
-                        return 'Account locked.';
+                        return __('Account locked.');
                     }),
                 Action::make('unlock')->label('Unlock account')
                     ->visible(fn (Model $user) => app(AccountGuard::class)->isLocked($user))
                     ->handle(function (Model $user): string {
                         app(AccountGuard::class)->unlock($user);
 
-                        return 'Account unlocked.';
+                        return __('Account unlocked.');
                     }),
                 static::deleteAction(),
                 static::bulkDeleteAction(),
@@ -214,33 +225,41 @@ class UserResource extends Resource
         $card = Card::make('Security')->description('If this account may be in the wrong hands: sign it out everywhere, revoke its AI tokens or lock it from the users list.');
         if ($state?->locked_at !== null) {
             $card->notice(
-                'Locked '.$state->locked_at->toDayDateTimeString().($state->locked_by === null ? '' : ' by '.$state->locked_by),
+                $state->locked_by === null
+                    ? __('Locked :date', ['date' => $state->locked_at->toDayDateTimeString()])
+                    : __('Locked :date by :name', ['date' => $state->locked_at->toDayDateTimeString(), 'name' => $state->locked_by]),
                 Card::DANGER,
-                trim(($state->locked_reason === null ? '' : $state->locked_reason.' · ').'This account can\'t log in, open the panel or use its AI tokens until it\'s unlocked.'),
+                trim(($state->locked_reason === null ? '' : $state->locked_reason.' · ').__('This account can\'t log in, open the panel or use its AI tokens until it\'s unlocked.')),
             );
         } elseif ($passwordLock > 0) {
             $minutes = (int) ceil($passwordLock / 60);
-            $card->notice('Locked after too many wrong passwords', Card::WARNING, "It unlocks by itself in {$minutes} ".Str::plural('minute', $minutes).'.');
+            $card->notice('Locked after too many wrong passwords', Card::WARNING, $minutes === 1
+                ? __('It unlocks by itself in 1 minute.')
+                : __('It unlocks by itself in :count minutes.', ['count' => $minutes]));
         }
 
         $card->rows([
-            'Last login' => $lastLogin === null ? 'No login recorded' : ($lastLogin->created_at?->toDayDateTimeString() ?? '').($lastLogin->ip_address === null ? '' : ' from '.$lastLogin->ip_address),
+            'Last login' => match (true) {
+                $lastLogin === null => __('No login recorded'),
+                $lastLogin->ip_address === null => $lastLogin->created_at?->toDayDateTimeString() ?? '',
+                default => __(':date from :ip', ['date' => $lastLogin->created_at?->toDayDateTimeString() ?? '', 'ip' => $lastLogin->ip_address]),
+            },
             'AI access tokens' => AiToken::query()->where('user_id', $id)->count(),
             'Signed out everywhere' => $state?->signed_out_at,
             // What deleting them would deal with (one count query per kind registered).
             ...(app(DeleteUser::class)->labels() === [] ? [] : ['Owns' => self::owned(app(DeleteUser::class)->counts($record)) ?: 'Nothing']),
         ]);
         $card->list('Latest security events', $events->map(fn (Activity $event) => [
-            'label' => Str::ucfirst($event->action),
+            'label' => Say::it(Str::ucfirst($event->action)),
             'meta' => implode(' · ', array_filter([
                 is_string($event->properties['note'] ?? null) ? $event->properties['note'] : null,
-                $event->user_id !== null && $event->user_id !== $id && $event->user_name !== null ? 'by '.$event->user_name : null,
+                $event->user_id !== null && $event->user_id !== $id && $event->user_name !== null ? __('by :name', ['name' => $event->user_name]) : null,
                 $event->ip_address === null ? null : 'IP '.$event->ip_address,
-            ])) ?: null,
+            ], fn (mixed $part): bool => is_string($part) && $part !== '')) ?: null,
             'at' => $event->created_at,
         ]));
         // The list's row actions, which check the right to update this user again.
-        $actions = '/'.trim(route('sunrice.admin.resources.users.index', [], false), '/')."/{$id}/actions";
+        $actions = '/'.trim(route('sunrice.admin.users.index', [], false), '/')."/{$id}/actions";
         $card->button('Sign out everywhere', "{$actions}/sign-out", 'End all of this user\'s sessions? They can log in again with their password.');
         $card->button('Revoke AI tokens', "{$actions}/revoke-tokens", 'Revoke all of this user\'s AI access tokens? AI agents using them stop working at once.');
         if ($user->can('sunrice.activity.view')) {
@@ -259,13 +278,14 @@ class UserResource extends Resource
         $owned = app(DeleteUser::class)->labels();
 
         return Action::make('delete')->label('Delete…')->ability('delete')->destructive()
-            ->confirm('Delete this user? This can\'t be undone.'.($owned === [] ? '' : ' Choose what happens to their '.self::list($owned).'.'))
+            ->confirm($owned === [] ? 'Delete this user? This can\'t be undone.'
+                : __('Delete this user? This can\'t be undone. Choose what happens to their :content.', ['content' => self::list(array_map(Say::it(...), $owned))]))
             ->form(...static::deleteFields())
             ->handle(function (Model $user, array $input): string {
                 [$mode, $heir] = static::deleteChoice($input);
                 $counts = app(DeleteUser::class)->handle($user, $mode, $heir);
 
-                return static::title($user).' deleted.'.static::deletedContent($counts, $mode, $heir);
+                return static::deletedMessage(static::title($user), $counts, $mode, $heir);
             });
     }
 
@@ -275,7 +295,8 @@ class UserResource extends Resource
         $owned = app(DeleteUser::class)->labels();
 
         return Action::bulk('delete')->label('Delete…')->ability('delete')->destructive()
-            ->confirm('Delete the selected users? This can\'t be undone.'.($owned === [] ? '' : ' Choose what happens to their '.self::list($owned).'.'))
+            ->confirm($owned === [] ? 'Delete the selected users? This can\'t be undone.'
+                : __('Delete the selected users? This can\'t be undone. Choose what happens to their :content.', ['content' => self::list(array_map(Say::it(...), $owned))]))
             ->form(...static::deleteFields())
             ->handle(function (SupportCollection $users, array $input): string {
                 [$mode, $heir] = static::deleteChoice($input);
@@ -287,8 +308,9 @@ class UserResource extends Resource
                         }
                     }
                 });
+                $title = $users->count() === 1 ? __('1 user') : __(':count users', ['count' => $users->count()]);
 
-                return $users->count().' '.Str::plural('user', $users->count()).' deleted.'.static::deletedContent($counts, $mode, $heir);
+                return static::deletedMessage(is_string($title) ? $title : '', $counts, $mode, $heir);
             });
     }
 
@@ -301,7 +323,7 @@ class UserResource extends Resource
                 DeleteUser::KEEP => 'Keep it, without an owner',
                 DeleteUser::DELETE => 'Delete it (entries and comments go to the trash; uploads stay)',
             ]),
-            Select::make('heir')->label('Give it to')->options(static fn (): array => static::heirs())
+            Select::make('heir')->label('Give it to')->verbatim()->options(static fn (): array => static::heirs())
                 ->help('Only when giving their content to another user.'),
         ];
     }
@@ -318,18 +340,24 @@ class UserResource extends Resource
         return [$mode, $heir instanceof Model ? $heir : null];
     }
 
-    /** @param array<string, int> $counts */
-    protected static function deletedContent(array $counts, string $mode, ?Model $heir): string
+    /**
+     * "Rina deleted. Their 3 entries went to Dewi.", in the panel's language.
+     *
+     * @param  array<string, int>  $counts
+     */
+    protected static function deletedMessage(string $title, array $counts, string $mode, ?Model $heir): string
     {
         $what = self::owned($counts);
-        $heirName = $heir instanceof Model ? static::title($heir) : '';
-
-        return match (true) {
-            $what === '' => '',
-            $mode === DeleteUser::REASSIGN => " Their {$what} went to {$heirName}.",
-            $mode === DeleteUser::DELETE => " Their {$what} got deleted".(isset($counts['uploads']) ? ', apart from uploads, which stay without an uploader.' : '.'),
-            default => " Their {$what} have no owner now.",
+        $replace = ['title' => $title, 'content' => $what, 'heir' => $heir instanceof Model ? static::title($heir) : ''];
+        $message = match (true) {
+            $what === '' => __(':title deleted.', $replace),
+            $mode === DeleteUser::REASSIGN => __(':title deleted. Their :content went to :heir.', $replace),
+            $mode === DeleteUser::DELETE && isset($counts['uploads']) => __(':title deleted. Their :content got deleted, apart from uploads, which stay without an uploader.', $replace),
+            $mode === DeleteUser::DELETE => __(':title deleted. Their :content got deleted.', $replace),
+            default => __(':title deleted. Their :content have no owner now.', $replace),
         };
+
+        return is_string($message) ? $message : $title;
     }
 
     /** A new user starts with an unguessable password, so one created with an invitation has one. */
@@ -414,7 +442,7 @@ class UserResource extends Resource
                         $permissions = [...$permissions, ...static::namesOf($role->getRelationValue('permissions'))];
                     }
                     if (! app(PermissionRank::class)->isStrictlyBelow($actor, array_values(array_unique($permissions)))) {
-                        throw ValidationException::withMessages(['roles' => 'Together these roles would give as much access as yours or more. Ask someone with more access.']);
+                        throw ValidationException::withMessages(['roles' => __('Together these roles would give as much access as yours or more. Ask someone with more access.')]);
                     }
                 }
 
@@ -428,7 +456,7 @@ class UserResource extends Resource
 
                 return $user !== null && $current instanceof Model && $user->is($current);
             })
-            ->help('Nobody can change their own roles.');
+            ->help('You can give roles with less access than your own. Nobody can change their own roles.');
     }
 
     /**
@@ -494,7 +522,7 @@ class UserResource extends Resource
      */
     private static function owned(array $counts): string
     {
-        return self::list(array_map(fn (int $count, string $label) => $count.' '.($count === 1 ? Str::singular($label) : $label), $counts, array_keys($counts)));
+        return self::list(array_map(fn (int $count, string $label) => $count.' '.Say::it($count === 1 ? Str::singular($label) : $label), $counts, array_keys($counts)));
     }
 
     /**
@@ -506,6 +534,6 @@ class UserResource extends Resource
     {
         $last = array_pop($items);
 
-        return $last === null ? '' : ($items === [] ? $last : implode(', ', $items).' and '.$last);
+        return $last === null ? '' : ($items === [] ? $last : __(':items and :last', ['items' => implode(', ', $items), 'last' => $last]));
     }
 }

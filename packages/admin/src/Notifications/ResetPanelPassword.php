@@ -28,8 +28,8 @@ final class ResetPanelPassword extends ResetPassword
     protected function buildMailMessage($url): MailMessage
     {
         return parent::buildMailMessage($url)
-            ->subject("Reset your {$this->brand} password")
-            ->salutation("Regards,  \n{$this->brand}");
+            ->subject(__('Reset your :brand password', ['brand' => $this->brand]))
+            ->salutation(__('Regards,')."  \n{$this->brand}");
     }
 
     protected function resetUrl(mixed $notifiable): string

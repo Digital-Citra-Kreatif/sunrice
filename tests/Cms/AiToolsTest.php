@@ -86,7 +86,7 @@ it('tells which translations are outdated', function () {
 });
 
 it('writes drafts and publishes them, as the editor does', function () {
-    $token = cmsAgent(['cms.entries.view', 'cms.entries.create', 'cms.entries.update', 'cms.entries.publish', 'cms.terms.manage']);
+    $token = cmsAgent(['cms.entries.view', 'cms.entries.create', 'cms.entries.update', 'cms.entries.publish', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete']);
     $tag = cmsTool($token, 'cms_save_term', ['taxonomy' => 'tags', 'title' => 'News']);
     expect($tag)->toContain('taxonomy');
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
@@ -184,7 +184,7 @@ it('lists, shows and restores an entry\'s revisions', function () {
 it('orders entries, terms and menu items', function () {
     $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'post', 'route' => '/{slug}', 'ordered' => true]);
     $ids = collect(['A', 'B', 'C'])->map(fn (string $t) => app(CreateEntry::class)->handle($pages, ['title' => $t, 'data' => ['intro' => 'x']])->entry_id)->all();
-    $editor = cmsAgent(['cms.entries.view', 'cms.entries.update', 'cms.terms.manage', 'cms.menus.view', 'cms.menus.update']);
+    $editor = cmsAgent(['cms.entries.view', 'cms.entries.update', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete', 'cms.menus.view', 'cms.menus.update']);
 
     expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2]]]))->toContain('permission to order entries')
         ->and(cmsTool($editor, 'cms_reorder', ['type' => 'entries', 'in' => 'pages', 'ids' => [$ids[2], $ids[0]]]))->toBe(['saved' => true, 'changed' => true, 'order' => [$ids[2], $ids[0], $ids[1]]])
@@ -227,7 +227,7 @@ it('reads and saves listing pages', function () {
 
 it('reads and saves blueprints and fieldsets, with the field types', function () {
     expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_get_blueprint'))->toContain('permission to manage blueprints');
-    $token = cmsAgent(['cms.blueprints.manage']);
+    $token = cmsAgent(['cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.view', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete']);
 
     expect(array_column(cmsTool($token, 'cms_field_types')['fieldTypes'], 'type'))->toContain('text', 'rich_text', 'media', 'terms')
         ->and(cmsTool($token, 'cms_get_blueprint')['blueprints'][0])->toBe(['handle' => 'post', 'title' => 'Post', 'fields' => 2, 'collections' => ['blog']])
@@ -357,7 +357,7 @@ it('writes templates only for super admins when the site allows it, checked and 
     app(PublishEntry::class)->handle($this->hello);
 
     expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_get_template_guide'))->toContain('permission');
-    $builder = cmsAgent(['cms.blueprints.manage']);
+    $builder = cmsAgent(['cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.view', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete']);
     $guide = cmsTool($builder, 'cms_get_template_guide');
     expect($guide['guide'])->toContain('resources/views/cms')
         ->and($guide['current']['collections']['blog']['entry_page']['uses'])->toBe('sunrice-cms::entry')
@@ -399,7 +399,7 @@ it('writes templates only for super admins when the site allows it, checked and 
 });
 
 it('gives read-only tokens the new reading tools only, and the CMS docs', function () {
-    $readOnly = cmsAgent(['cms.entries.view', 'cms.blueprints.manage', 'cms.menus.view'], readOnly: true);
+    $readOnly = cmsAgent(['cms.entries.view', 'cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.view', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete', 'cms.menus.view'], readOnly: true);
     $tools = test()->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'], ['Authorization' => "Bearer {$readOnly}"])->json('result.tools.*.name');
     expect($tools)->toContain('cms_get_listing', 'cms_get_blueprint', 'cms_field_types', 'cms_get_menu', 'cms_seo_audit', 'cms_render_page', 'cms_get_template_guide', 'cms_read_template')
         ->not->toContain('cms_entry_revisions', 'cms_reorder', 'cms_save_listing', 'cms_save_blueprint', 'cms_save_menu', 'cms_delete_submissions', 'cms_manage_entry', 'cms_write_template');

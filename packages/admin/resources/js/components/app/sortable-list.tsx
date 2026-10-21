@@ -10,6 +10,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { moveItem } from '@/lib/move-item';
 import { sortableAnnouncements } from '@/lib/sortable-announcements';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 export { moveItem };
 
@@ -44,11 +45,11 @@ export interface SortableListProps<T> {
 }
 
 /** The grip button that starts a drag; also sortable by keyboard (space, arrows, space). */
-export function SortableHandle({ className, label = 'Reorder', ...handle }: SortableHandleProps & { label?: string }) {
+export function SortableHandle({ className, label, ...handle }: SortableHandleProps & { label?: string }) {
     return (
         <button
             type="button"
-            aria-label={label}
+            aria-label={label ?? t('Reorder')}
             className={cn(
                 'inline-grid size-7 shrink-0 cursor-grab place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing disabled:cursor-default disabled:opacity-40',
                 className,
@@ -104,7 +105,7 @@ export function SortableList<T>({ items, getId, getLabel, onReorder, children, d
     );
 
     const announcements = React.useMemo(
-        () => sortableAnnouncements(ids, getLabel ? (_id, index) => getLabel(items[index] as T) : undefined),
+        () => sortableAnnouncements(ids, getLabel ? (_id, index) => getLabel(items[index] as T) : undefined, t),
         [ids, items, getLabel],
     );
 

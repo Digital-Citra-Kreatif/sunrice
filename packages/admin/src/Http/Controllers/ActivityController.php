@@ -18,6 +18,7 @@ use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Support\Like;
+use Sunrice\Admin\Support\Say;
 
 /**
  * The activity log page: who changed what, newest first, with filters.
@@ -145,7 +146,7 @@ final class ActivityController
 
         return back()->with('success', $deleted === 0
             ? 'Nothing was older than that.'
-            : "Deleted {$deleted} activity log ".Str::plural('line', $deleted).'.');
+            : ($deleted === 1 ? __('Deleted 1 activity log line.') : __('Deleted :count activity log lines.', ['count' => $deleted])));
     }
 
     /** The config's `activity.keep_days`, the dialog's suggestion (null: kept forever). */
@@ -196,7 +197,7 @@ final class ActivityController
     {
         $resource = $this->panel->getResources()[$type] ?? null;
 
-        return $resource !== null ? $resource->class::singularLabel() : Str::ucfirst($type);
+        return Say::it($resource !== null ? $resource->class::singularLabel() : Str::ucfirst($type));
     }
 
     private function subjectUrl(Activity $activity): ?string
@@ -205,12 +206,14 @@ final class ActivityController
         if ($id === null) {
             return null;
         }
-        if (isset($this->panel->getResources()[$activity->subject_type])) {
-            return route("sunrice.admin.resources.{$activity->subject_type}.edit", $id, false);
+        // By id: the edit page sends it on to the record's own address.
+        $resources = $this->panel->getResources();
+        if (isset($resources[$activity->subject_type])) {
+            return route($resources[$activity->subject_type]->routeName('edit'), $id, false);
         }
         // Security events are about accounts: the user's page.
-        if ($activity->subject_type === 'account' && isset($this->panel->getResources()['users'])) {
-            return route('sunrice.admin.resources.users.edit', $id, false);
+        if ($activity->subject_type === 'account' && isset($resources['users'])) {
+            return route($resources['users']->routeName('edit'), $id, false);
         }
         if ($activity->subject_type === 'settings' && isset($this->panel->getSettings()[$id])) {
             return route('sunrice.admin.settings.edit', $id, false);

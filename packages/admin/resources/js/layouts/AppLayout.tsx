@@ -10,6 +10,7 @@ import { BreadcrumbProvider } from '@/components/app/breadcrumbs';
 import { LeaveDialog } from '@/components/app/leave-dialog';
 import { CommandPalette, isCommandPaletteShortcut, setCommandPaletteOpen, useCommandPaletteOpen } from '@/components/app/command-palette';
 import type { SharedProps } from '@/types';
+import { t } from '@/lib/i18n';
 
 /** The sidebar's open/collapsed state, kept in a cookie by the sidebar. */
 function sidebarDefaultOpen(): boolean {
@@ -56,7 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             router.on('error', (event) => {
                 const messages = Object.values(event.detail.errors ?? {}).filter(Boolean) as string[];
                 if (messages.length > 0) {
-                    toast.error(messages.length === 1 ? messages[0] : `${messages[0]} (+${messages.length - 1} more)`);
+                    toast.error(messages.length === 1 ? messages[0] : t(':message (+:count more)', { message: messages[0], count: messages.length - 1 }));
                 }
             }),
         [],
@@ -69,7 +70,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <AppSidebar />
                     <SidebarInset className="min-w-0 overflow-x-clip border border-border/60 shadow-[0_4px_30px_-12px_rgb(0_0_0/0.08)]">
                         <AppHeader />
-                        <main key={page.component} className="sunrice-page-enter mx-auto flex w-full max-w-7xl flex-1 flex-col p-5 md:p-8 lg:p-10">{children}</main>
+                        <main key={page.component} className="sunrice-page-enter mx-auto flex w-full max-w-screen-2xl flex-1 flex-col p-5 md:p-8 lg:p-10">{children}</main>
                     </SidebarInset>
                     <Toaster position="top-right" />
                     <CommandPalette />

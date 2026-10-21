@@ -89,8 +89,8 @@ it('lists recent edits and what is scheduled', function () {
     $recent = widgetData('cms.recent-edits', $editor)['rows'];
     expect(array_column($recent, 'title'))->toBe(['Newest draft', 'Soon', 'Later', 'Older'])
         ->and(array_column($recent, 'badge'))->toBe(['Draft', 'Scheduled', 'Scheduled', 'Live'])
-        ->and($recent[0]['url'])->toBe("cms/entries/{$newest->entry_id}/edit")
-        ->and($recent[1]['url'])->toBe("cms/entries/{$soon->entry_id}/edit");
+        ->and($recent[0]['url'])->toBe("cms/collections/blog/entries/{$newest->entry_id}/edit")
+        ->and($recent[1]['url'])->toBe("cms/collections/news/entries/{$soon->entry_id}/edit");
 
     expect(array_column(widgetData('cms.scheduled', $editor)['rows'], 'title'))->toBe(['Soon', 'Later']);
 });
@@ -165,7 +165,7 @@ it('lists what is left to set up for site managers, until it is done', function 
     expect(widgetKeys($manager))->toContain('cms.setup')
         ->and(widgetKeys(adminUser(Panel::ACCESS, 'cms.entries.view')))->not->toContain('cms.setup')
         ->and(collect(widgetData('cms.setup', $manager)['rows'])->pluck('title')->all())->toBe(['Write the first entries', 'Choose the homepage', 'Add links to the Legal menu'])
-        ->and(collect(widgetData('cms.setup', $manager)['rows'])->pluck('url')->all())->toBe(['cms/entries', 'settings/site', 'cms/menus/legal']);
+        ->and(collect(widgetData('cms.setup', $manager)['rows'])->pluck('url')->all())->toBe(['cms/entries', 'settings/site', 'cms/menus/legal/links']);
 
     $home = dashPost($this->blog, 'Welcome');
     app(SiteSettings::class)->fill(['homepage' => $home->entry_id])->save();

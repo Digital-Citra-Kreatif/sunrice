@@ -76,7 +76,15 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 
 ## Navigation
 
-`NavigationItem::make($key)` takes a label, a `url` relative to the panel path, an `icon` (a lucide name), a `group`, a `parent` (another item's key, for a submenu), a `sort` (lower first, 100 by default) and a `permission`. An item without a permission is shown to everyone who can open the panel. Hiding a parent hides its submenu.
+`NavigationItem::make($key)` takes a label, a `url` relative to the panel path, an `icon` (a lucide name), a `group`, a `parent` (another item's key, for a submenu), a `sort` (lower first, 100 by default) and a `permission`. An item without a permission is shown to everyone who can open the panel. Hiding a parent hides its submenu. Labels and groups are said in the panel's language ([panel languages](languages.md)); `->verbatim()` shows a label that is data (a collection's title) as written.
+
+Items made from data (one per record) come from `navigationUsing()`, worked out on each page rather than at boot, so new and renamed records show at once. Keep the closure cheap (it runs on every page; cache what it reads), and give each item its own `permission()` or `visible()`. The CMS lists its collections and taxonomies this way.
+
+```php
+$panel->navigationUsing(fn () => Shop::query()->get()->map(
+    fn (Shop $shop) => NavigationItem::make("shop-{$shop->handle}")->label($shop->name)
+        ->url("shops/{$shop->handle}")->group('Shops')->permission("shop.{$shop->handle}.view")));
+```
 
 ## Dashboard widgets
 
@@ -131,7 +139,7 @@ Under the panel's path, a 403, 404, 419 (the page expired) or 500 is the panel's
 
 ### Command palette searches
 
-The command palette (Cmd/Ctrl+K) lists the navigation on every page. `$panel->commandSearch($id, fn () => url, $minLength = 2)` adds a search it asks on every page too, without loading the plugin's JavaScript: once `$minLength` letters are typed (debounced) it requests `<url>?q=…` and lists the answer's `items`, each with an `id`, a `label` and optional `description`, `group` (the heading), `icon` (a navigation icon name) and `url` (the page it opens). The route guards itself like any other (an error answer lists nothing), and should answer quickly with a handful of items. The CMS searches entries this way (`cms.entries`, `GET admin/cms/entry-search?q=`, titles in every language).
+The command palette (Cmd/Ctrl+K) lists the navigation on every page. `$panel->commandSearch($id, fn () => url, $minLength = 2)` adds a search it asks on every page too, without loading the plugin's JavaScript: once `$minLength` letters are typed (debounced) it requests `<url>?q=…` and lists the answer's `items`, each with an `id`, a `label` and optional `description`, `group` (the heading), `icon` (a navigation icon name) and `url` (the page it opens). The route guards itself like any other (an error answer lists nothing), and should answer quickly with a handful of items. The CMS searches entries this way (`cms.entries`, `GET admin/cms/entries/search?q=`, titles in every language).
 
 ```php
 $panel->routes(fn () => Route::get('shop/orders/search', OrderSearch::class)->name('shop.orders.search')->middleware('can:shop.orders.view'));

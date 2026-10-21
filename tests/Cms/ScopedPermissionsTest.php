@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Sunrice\Admin\Actions\Permissions\RenamePermissions;
 use Sunrice\Admin\Actions\Permissions\SeedRoles;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
+use Sunrice\Cms\Admin\HandleField;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -47,7 +49,7 @@ it('has permissions for each collection, taxonomy and form, kept in step with th
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     $form = Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'post']);
 
-    expect(Permission::query()->pluck('name')->all())->toContain('cms.entries.blog.view', 'cms.entries.news.publish', 'cms.terms.tags.manage', 'cms.submissions.contact.view', 'cms.submissions.contact.delete', 'cms.entries.blog.export', 'cms.submissions.contact.export')
+    expect(Permission::query()->pluck('name')->all())->toContain('cms.entries.blog.view', 'cms.entries.news.publish', 'cms.terms.tags.view', 'cms.terms.tags.create', 'cms.terms.tags.update', 'cms.terms.tags.delete', 'cms.submissions.contact.view', 'cms.submissions.contact.delete', 'cms.entries.blog.export', 'cms.submissions.contact.export')
         ->and(app(Panel::class)->getPermissions()['cms.entries.blog.update']->group)->toBe('Entries: Blog');
 
     $form->delete();
@@ -66,14 +68,14 @@ it('lets someone work in one collection only', function () {
         ->where('collections', [['handle' => 'blog', 'title' => 'Blog']])
         ->where('can', ['create' => false, 'update' => true, 'publish' => false, 'delete' => false, 'export' => false]));
     get('/admin/cms/collections/news/entries')->assertForbidden();
-    get("/admin/cms/entries/{$news->entry_id}/edit")->assertForbidden();
+    get(entryEditUrl($news->entry_id))->assertForbidden();
     put("/admin/cms/entries/{$blog->entry_id}", ['title' => 'Mine', 'version' => 1])->assertSessionHasNoErrors();
     put("/admin/cms/entries/{$blog->entry_id}", ['title' => 'Live', 'publish' => true, 'version' => 2])->assertForbidden();
     post("/admin/cms/entries/{$blog->entry_id}/publish")->assertForbidden();
 
     expect(Access::entries($user, 'view'))->toBeTrue()
         ->and(Access::entries($user, 'view', 'news'))->toBeFalse()
-        ->and(collect(app(Panel::class)->navigationFor($user))->pluck('items')->flatten(1)->pluck('key')->all())->toBe(['cms-entries']);
+        ->and(collect(app(Panel::class)->navigationFor($user))->pluck('items')->flatten(1)->pluck('key')->all())->toBe(['cms-collection-blog']);
 });
 
 it('lets authors edit and trash only their own entries', function () {
@@ -82,8 +84,8 @@ it('lets authors edit and trash only their own entries', function () {
     $other = scopedDraft($this->blog, adminUser());
     actingAs($author);
 
-    get("/admin/cms/entries/{$theirs->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('can.update', true)->where('can.publish', false));
-    get("/admin/cms/entries/{$other->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('can.update', false));
+    get(entryEditUrl($theirs->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.update', true)->where('can.publish', false));
+    get(entryEditUrl($other->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.update', false));
     put("/admin/cms/entries/{$theirs->entry_id}", ['title' => 'Mine', 'version' => 1])->assertSessionHasNoErrors();
     put("/admin/cms/entries/{$other->entry_id}", ['title' => 'Mine', 'version' => 1])->assertForbidden();
     delete("/admin/cms/entries/{$other->entry_id}")->assertForbidden();
@@ -105,8 +107,8 @@ it('lets translators edit the other languages only', function () {
     put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'id', 'title' => 'Halo', 'version' => $id->version])->assertSessionHasNoErrors();
     put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'en', 'title' => 'Hello', 'version' => $post->version])->assertForbidden();
     put("/admin/cms/entries/{$post->entry_id}/settings", ['template' => 'x'])->assertForbidden();
-    get("/admin/cms/entries/{$post->entry_id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('can.update', true));
-    get("/admin/cms/entries/{$post->entry_id}/edit")->assertInertia(fn (Assert $page) => $page->where('can.update', false));
+    get(entryEditUrl($post->entry_id, 'id'))->assertInertia(fn (Assert $page) => $page->where('can.update', true));
+    get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.update', false));
 });
 
 it('keeps translators out of what every language shares: parent, comments, template, blueprint and order', function () {
@@ -124,7 +126,7 @@ it('keeps translators out of what every language shares: parent, comments, templ
     put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'id', 'title' => 'Judul', 'data' => [], 'comments_closed' => true])->assertSessionHasNoErrors()->assertRedirect();
     expect($post->entry->fresh())->comments_closed->toBeFalsy()->parent_id->toBeNull();
     // Page settings aren't offered to them.
-    get("/admin/cms/entries/{$post->entry_id}/edit?locale=id")->assertInertia(fn (Assert $page) => $page->where('settings', null)->where('can.update', true));
+    get(entryEditUrl($post->entry_id, 'id'))->assertInertia(fn (Assert $page) => $page->where('settings', null)->where('can.update', true));
 
     // Authors of their own entries still may.
     $author = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own');
@@ -150,7 +152,7 @@ it('scopes terms and submissions too', function () {
     Taxonomy::query()->create(['handle' => 'categories', 'title' => 'Categories']);
     Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'post']);
     Form::query()->create(['handle' => 'jobs', 'title' => 'Jobs', 'blueprint' => 'post']);
-    actingAs(adminUser(Panel::ACCESS, 'cms.terms.tags.manage', 'cms.submissions.jobs.view'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.tags.view', 'cms.terms.tags.create', 'cms.terms.tags.update', 'cms.terms.tags.delete', 'cms.submissions.jobs.view'));
 
     get('/admin/cms/terms')->assertRedirect('/admin/cms/taxonomies/tags/terms');
     get('/admin/cms/taxonomies/tags/terms')->assertOk()->assertInertia(fn (Assert $page) => $page->where('taxonomies', [['handle' => 'tags', 'title' => 'Tags']]));
@@ -163,7 +165,7 @@ it('scopes terms and submissions too', function () {
 it('gives the default roles their content permissions', function () {
     app(SeedRoles::class)->handle();
 
-    expect(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.entries.publish', 'cms.entries.blog.publish', 'cms.terms.manage')
+    expect(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.entries.publish', 'cms.entries.blog.publish', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete')
         ->not->toContain('cms.collections.create')
         // Edits menus' links, but doesn't create or delete the menus templates rely on.
         ->and(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.menus.view', 'cms.menus.update')->not->toContain('cms.menus.create', 'cms.menus.delete')
@@ -175,22 +177,22 @@ it('gives the default roles their content permissions', function () {
 it('renames a collection\'s, taxonomy\'s and form\'s permissions with its handle, so roles keep them', function () {
     $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     $form = Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'post']);
-    $role = Role::findOrCreate('blogger', 'web')->givePermissionTo([Panel::ACCESS, 'cms.entries.blog.view', 'cms.entries.blog.update', 'cms.terms.tags.manage', 'cms.submissions.contact.view']);
+    $role = Role::findOrCreate('blogger', 'web')->givePermissionTo([Panel::ACCESS, 'cms.entries.blog.view', 'cms.entries.blog.update', 'cms.terms.tags.view', 'cms.terms.tags.create', 'cms.terms.tags.update', 'cms.terms.tags.delete', 'cms.submissions.contact.view']);
     $blogger = adminUser()->assignRole($role);
     $entry = scopedDraft($this->blog);
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.taxonomies.view', 'cms.taxonomies.update', 'cms.forms.view', 'cms.forms.update'));
 
-    get("/admin/collections/{$this->blog->id}/edit")->assertInertia(fn (Assert $page) => $page
-        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.help', fn (string $help) => str_contains($help, 'Careful')));
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'handle' => 'news', 'per_page' => 10])->assertSessionHasErrors('handle'); // taken
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Blog', 'handle' => 'Bad Handle', 'per_page' => 10])->assertSessionHasErrors('handle');
-    put("/admin/collections/{$this->blog->id}", ['title' => 'Journal', 'handle' => 'journal', 'blueprint' => 'post', 'per_page' => 10])->assertSessionHasNoErrors();
-    put("/admin/taxonomies/{$tags->id}", ['title' => 'Topics', 'handle' => 'topics'])->assertSessionHasNoErrors();
-    put("/admin/forms/{$form->id}", ['title' => 'Contact', 'handle' => 'enquiry', 'blueprint' => 'post'])->assertSessionHasNoErrors();
+    get("/admin/cms/collections/{$this->blog->handle}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.help', HandleField::WARNING));
+    put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Blog', 'handle' => 'news', 'per_page' => 10])->assertSessionHasErrors('handle'); // taken
+    put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Blog', 'handle' => 'Bad Handle', 'per_page' => 10])->assertSessionHasErrors('handle');
+    put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Journal', 'handle' => 'journal', 'blueprint' => 'post', 'per_page' => 10])->assertSessionHasNoErrors();
+    put("/admin/cms/taxonomies/{$tags->handle}", ['title' => 'Topics', 'handle' => 'topics'])->assertSessionHasNoErrors();
+    put("/admin/cms/forms/{$form->handle}", ['title' => 'Contact', 'handle' => 'enquiry', 'blueprint' => 'post'])->assertSessionHasNoErrors();
 
     expect($this->blog->fresh()?->handle)->toBe('journal')
         ->and($role->fresh()?->permissions->pluck('name')->sort()->values()->all())
-        ->toBe(['cms.entries.journal.update', 'cms.entries.journal.view', 'cms.submissions.enquiry.view', 'cms.terms.topics.manage', Panel::ACCESS])
+        ->toBe(['cms.entries.journal.update', 'cms.entries.journal.view', 'cms.submissions.enquiry.view', 'cms.terms.topics.create', 'cms.terms.topics.delete', 'cms.terms.topics.update', 'cms.terms.topics.view', Panel::ACCESS])
         ->and(Permission::query()->where('name', 'like', 'cms.entries.blog.%')->exists())->toBeFalse()
         ->and(Permission::query()->pluck('name')->all())->toContain('cms.entries.journal.publish', 'cms.submissions.enquiry.delete');
 
@@ -198,10 +200,10 @@ it('renames a collection\'s, taxonomy\'s and form\'s permissions with its handle
     app(SyncPermissions::class)->handle();
     $blogger = $blogger->fresh();
     expect(Access::entries($blogger, 'update', 'journal'))->toBeTrue()
-        ->and(Access::terms($blogger, 'topics'))->toBeTrue()
+        ->and(Access::terms($blogger, 'view', 'topics'))->toBeTrue()
         ->and(Access::submissions($blogger, 'view', 'enquiry'))->toBeTrue();
     actingAs($blogger);
-    get("/admin/cms/entries/{$entry->entry_id}/edit")->assertOk();
+    get(entryEditUrl($entry->entry_id))->assertOk();
 });
 
 it('leaves a permission alone when its new name is already stored', function () {
@@ -210,4 +212,22 @@ it('leaves a permission alone when its new name is already stored', function () 
     expect(app(RenamePermissions::class)->handle(['cms.entries.blog.view' => 'cms.entries.journal.view', 'cms.entries.blog.create' => 'cms.entries.journal.create']))
         ->toBe(['cms.entries.blog.create'])
         ->and(Permission::query()->where('name', 'cms.entries.blog.view')->exists())->toBeTrue();
+});
+
+it('gives whoever had a renamed permission its new ones', function () {
+    $role = Role::findOrCreate('old', 'web');
+    foreach (['cms.terms.manage', 'cms.terms.tags.manage', 'cms.blueprints.manage', 'cms.global-sets.update'] as $name) {
+        $role->givePermissionTo(Permission::findOrCreate($name, 'web'));
+    }
+
+    (require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_02_01_000024_split_cms_manage_permissions.php')->up();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    expect(Role::findByName('old', 'web')->permissions->pluck('name')->sort()->values()->all())->toBe([
+        'cms.blueprints.create', 'cms.blueprints.delete', 'cms.blueprints.update', 'cms.blueprints.view',
+        'cms.fieldsets.create', 'cms.fieldsets.delete', 'cms.fieldsets.update', 'cms.fieldsets.view',
+        'cms.globals.update',
+        'cms.terms.create', 'cms.terms.delete', 'cms.terms.tags.create', 'cms.terms.tags.delete', 'cms.terms.tags.update', 'cms.terms.tags.view',
+        'cms.terms.update', 'cms.terms.view',
+    ])->and(Permission::query()->where('name', 'like', '%manage')->count())->toBe(0);
 });

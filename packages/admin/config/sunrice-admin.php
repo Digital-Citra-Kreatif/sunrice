@@ -4,16 +4,26 @@ declare(strict_types=1);
 
 return [
 
+    // The panel's languages (its own words, not the website's content
+    // languages): each user picks one under their name in the sidebar.
+    // The words are Laravel JSON translations (lang/{code}.json in each
+    // package; your app's lang/{code}.json overrides and adds to them).
+    'locales' => ['en' => 'English', 'id' => 'Bahasa Indonesia'],
+
+    // The panel's language for those who haven't picked one (and on the
+    // sign-in page, until someone does on this browser).
+    'locale' => env('SUNRICE_ADMIN_LOCALE', 'en'),
+
     // The role whose users may do everything (Gate::before). Created by
     // `php artisan sunrice:sync-permissions`; give it with `sunrice:make-admin`.
     'super_admin_role' => 'super-admin',
 
     // The panel's typeface. `stylesheet` is loaded on every admin page
     // (null loads none); `family` names the font the panel uses instead of
-    // Inter (the CSS variable --sunrice-font). Set both to use another web
+    // Instrument Sans (the CSS variable --sunrice-font). Set both to use another web
     // font, or family alone for a system font.
     'font' => [
-        'stylesheet' => 'https://fonts.bunny.net/css?family=inter:400,500,600&display=swap',
+        'stylesheet' => 'https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap',
         'family' => null,
     ],
 

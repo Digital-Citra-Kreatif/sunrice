@@ -101,7 +101,7 @@ When something may be a break-in, the panel emails super admins, users with the 
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
 | Many things deleted in a short time | `mass_deletes` (20) deletes, trashes, unpublishes or purges (deleted content removed for good, `purged`) by one person or AI agent within 10 minutes (`SecurityAlerts::DESTRUCTIVE_ACTIONS`). |
 
-**Privileged permissions** are the panel's `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.*` (connecting agents, letting them read the error log and run commands) and `sunrice.activity.*`, plus what plugins register with `$panel->privilegedPermissions()` (the CMS: `cms.settings.code` and `cms.blueprints.manage`); `Panel::isPrivilegedPermission()` tells.
+**Privileged permissions** are the panel's `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.*` (connecting agents, letting them read the error log and run commands) and `sunrice.activity.*`, plus what plugins register with `$panel->privilegedPermissions()` (the CMS: `cms.settings.code` and creating, editing and deleting blueprints and fieldsets); `Panel::isPrivilegedPermission()` tells.
 
 The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. Each recipient's mail is queued (`Mail::queue()`), so set up a queue worker or the `sync` driver; they need your app's mail settings.
 

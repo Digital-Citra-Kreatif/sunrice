@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ChevronsUpDown, LogOut, Monitor, Moon, Sun, UserRound } from 'lucide-react';
+import { ChevronsUpDown, Languages, LogOut, Monitor, Moon, Sun, UserRound } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
@@ -9,6 +9,7 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/c
 import { useAppearance, type Appearance } from '@/hooks/use-appearance';
 import { adminUrl } from '@/lib/admin-url';
 import { initials } from '@/lib/branding';
+import { t } from '@/lib/i18n';
 import type { SharedProps } from '@/types';
 
 type User = NonNullable<SharedProps['auth']['user']>;
@@ -27,9 +28,9 @@ function UserInfo({ user }: { user: User }) {
     );
 }
 
-/** The signed-in user at the foot of the sidebar: their account, appearance (light, dark, system) and logging out. */
+/** The signed-in user at the foot of the sidebar: their account, appearance (light, dark, system), the panel's language and logging out. */
 export function NavUser() {
-    const { auth } = usePage<SharedProps>().props;
+    const { auth, sunrice } = usePage<SharedProps>().props;
     const { isMobile, state } = useSidebar();
     const { appearance, updateAppearance } = useAppearance();
     const user = auth.user;
@@ -40,7 +41,7 @@ export function NavUser() {
             <SidebarMenuItem>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <SidebarMenuButton size="lg" tooltip={user.name ?? user.email ?? 'Account'}
+                        <SidebarMenuButton size="lg" tooltip={user.name ?? user.email ?? t('Account')}
                             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
                             <UserInfo user={user} />
                             <ChevronsUpDown className="ml-auto size-4" />
@@ -53,20 +54,35 @@ export function NavUser() {
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                            <Link href={adminUrl('account')}><UserRound /> Your account</Link>
+                            <Link href={adminUrl('account')}><UserRound /> {t('Your account')}</Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Appearance</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t('Appearance')}</DropdownMenuLabel>
                             <DropdownMenuRadioGroup value={appearance} onValueChange={(value) => updateAppearance(value as Appearance)}>
-                                <DropdownMenuRadioItem value="light"><Sun /> Light</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="dark"><Moon /> Dark</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="system"><Monitor /> System</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="light"><Sun /> {t('Light')}</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="dark"><Moon /> {t('Dark')}</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="system"><Monitor /> {t('System')}</DropdownMenuRadioItem>
                             </DropdownMenuRadioGroup>
                         </DropdownMenuGroup>
+                        {Object.keys(sunrice.locales ?? {}).length > 1 && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground"><Languages className="size-3.5" /> {t('Panel language')}</DropdownMenuLabel>
+                                    {/* The page reloads in the new language: its words come with the page. */}
+                                    <DropdownMenuRadioGroup value={sunrice.locale}
+                                        onValueChange={(locale) => router.put(adminUrl('language'), { locale }, { onSuccess: () => window.location.reload() })}>
+                                        {Object.entries(sunrice.locales).map(([code, name]) => (
+                                            <DropdownMenuRadioItem key={code} value={code}>{name}</DropdownMenuRadioItem>
+                                        ))}
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuGroup>
+                            </>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => router.post(adminUrl('logout'))}>
-                            <LogOut /> Log out
+                            <LogOut /> {t('Log out')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

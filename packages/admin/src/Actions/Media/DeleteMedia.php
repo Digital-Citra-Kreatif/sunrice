@@ -30,8 +30,9 @@ final class DeleteMedia
     {
         if (! $force && $media->usages()->exists()) {
             $used = app(MediaUsages::class)->of($media);
-            throw ValidationException::withMessages(['media' => sprintf('%s is used by %s. Delete it anyway?', $media->filename,
-                implode(', ', array_slice(array_column($used, 'label'), 0, 5)).(count($used) > 5 ? ' and '.(count($used) - 5).' more' : ''))]);
+            $places = implode(', ', array_slice(array_column($used, 'label'), 0, 5));
+            $places = count($used) > 5 ? __(':places and :count more', ['places' => $places, 'count' => count($used) - 5]) : $places;
+            throw ValidationException::withMessages(['media' => __(':file is used by :places. Delete it anyway?', ['file' => $media->filename, 'places' => $places])]);
         }
         OptimizeImage::forgetBackup($media);
         $files = $media->files();

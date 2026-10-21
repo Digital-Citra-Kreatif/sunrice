@@ -11,6 +11,7 @@ import { enUS } from "date-fns/locale/en-US"
 import { cn } from "@/lib/utils"
 import { firstDayOfWeek, monthWeeks, moveFocus, tabbableDay, weekdays } from "@/lib/calendar-grid"
 import { Button } from "@/components/ui/button"
+import { t } from "@/lib/i18n"
 
 export interface CalendarProps extends Omit<React.ComponentProps<"div">, "onSelect" | "defaultValue"> {
   selected?: Date | null
@@ -76,10 +77,10 @@ function Calendar({ selected = null, onSelect, defaultMonth, locale = enUS, auto
       {...props}
     >
       <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-1">
-        <Button type="button" variant="ghost" size="icon" className="size-(--cell-size) p-0 select-none" aria-label="Go to the previous month" onClick={() => showMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>
+        <Button type="button" variant="ghost" size="icon" className="size-(--cell-size) p-0 select-none" aria-label={t('Go to the previous month')} onClick={() => showMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>
           <ChevronLeftIcon className="size-4 rtl:rotate-180" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" className="size-(--cell-size) p-0 select-none" aria-label="Go to the next month" onClick={() => showMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>
+        <Button type="button" variant="ghost" size="icon" className="size-(--cell-size) p-0 select-none" aria-label={t('Go to the next month')} onClick={() => showMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>
           <ChevronRightIcon className="size-4 rtl:rotate-180" />
         </Button>
       </div>

@@ -143,8 +143,8 @@ it('checks fields in a collection\'s URL against its blueprint', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.create'));
 
-    post('/admin/collections', ['title' => 'Flats', 'handle' => 'flats', 'route' => '/flats/{project}/{slug}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'Flats', 'handle' => 'flats', 'blueprint' => 'unit', 'route' => '/flats/{others}/{slug}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'Flats', 'handle' => 'flats', 'blueprint' => 'unit', 'route' => '/flats/{nope}/{slug}'])->assertSessionHasErrors('route');
-    post('/admin/collections', ['title' => 'Flats', 'handle' => 'flats', 'blueprint' => 'unit', 'route' => '/flats/{project}/{slug}'])->assertSessionHasNoErrors();
+    post('/admin/cms/collections', ['title' => 'Flats', 'handle' => 'flats', 'route' => '/flats/{project}/{slug}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'Flats', 'handle' => 'flats', 'blueprint' => 'unit', 'route' => '/flats/{others}/{slug}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'Flats', 'handle' => 'flats', 'blueprint' => 'unit', 'route' => '/flats/{nope}/{slug}'])->assertSessionHasErrors('route');
+    post('/admin/cms/collections', ['title' => 'Flats', 'handle' => 'flats', 'blueprint' => 'unit', 'route' => '/flats/{project}/{slug}'])->assertSessionHasNoErrors();
 });

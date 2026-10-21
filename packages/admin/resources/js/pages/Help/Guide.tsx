@@ -5,6 +5,7 @@ import { HelpReader, type HelpPageProps } from '@/components/app/help-reader';
 import { PageHeader } from '@/components/app/page-header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { adminUrl } from '@/lib/admin-url';
+import { t } from '@/lib/i18n';
 
 interface Props extends HelpPageProps {
     language: string;
@@ -13,26 +14,12 @@ interface Props extends HelpPageProps {
     shownIn: string | null;
 }
 
-interface Text { title: string; intro: string; pages: string; onThisPage: string; previous: string; next: string; language: string; empty: string; shownIn: string }
-
-const ENGLISH: Text = {
-    title: 'Guide', intro: 'How to work in the panel: content, media, settings and your team.', pages: 'Guide pages', onThisPage: 'On this page',
-    previous: 'Previous', next: 'Next', language: 'Guide language', empty: 'No guide is installed.', shownIn: 'This page isn’t written in your language yet, so it’s shown in',
-};
-
-const TEXT: Record<string, Text> = {
-    en: ENGLISH,
-    id: {
-        title: 'Panduan', intro: 'Cara bekerja di panel: konten, media, pengaturan, dan tim Anda.', pages: 'Halaman panduan', onThisPage: 'Di halaman ini',
-        previous: 'Sebelumnya', next: 'Berikutnya', language: 'Bahasa panduan', empty: 'Belum ada panduan yang terpasang.', shownIn: 'Halaman ini belum tersedia dalam bahasa Anda, jadi ditampilkan dalam',
-    },
-};
-
 /** Help → Guide: the user guide in the reader's language (Panel::guide()), remembered for the next pages. */
 export default function HelpGuide({ language, languages, shownIn, ...props }: Props) {
-    const text = TEXT[language] ?? ENGLISH;
+    const text = { title: t('Guide'), intro: t('How to work in the panel: content, media, settings and your team.') };
+    const labels = { pages: t('Guide pages'), onThisPage: t('On this page'), previous: t('Previous'), next: t('Next'), empty: t('No guide is installed.') };
     const base = adminUrl('guide');
-    useBreadcrumbs([{ label: 'Help' }, { label: text.title, href: base }, ...(props.title ? [{ label: props.title }] : [])]);
+    useBreadcrumbs([{ label: t('Help') }, { label: text.title, href: base }, ...(props.title ? [{ label: props.title }] : [])]);
     const shownLabel = languages.find((l) => l.code === shownIn)?.label ?? shownIn;
 
     return (
@@ -44,7 +31,7 @@ export default function HelpGuide({ language, languages, shownIn, ...props }: Pr
                     description={text.intro}
                     actions={languages.length > 1 && (
                         <Select value={language} onValueChange={(lang) => router.visit(`${props.page ? `${base}/${props.page}` : base}?lang=${encodeURIComponent(lang)}`, { preserveScroll: true })}>
-                            <SelectTrigger className="w-full sm:w-52" aria-label={text.language}>
+                            <SelectTrigger className="w-full sm:w-52" aria-label={t('Guide language')}>
                                 <Languages className="size-4 text-muted-foreground" />
                                 <SelectValue />
                             </SelectTrigger>
@@ -57,9 +44,9 @@ export default function HelpGuide({ language, languages, shownIn, ...props }: Pr
                 <HelpReader
                     kind="guide"
                     {...props}
-                    labels={text}
+                    labels={labels}
                     notice={shownIn && (
-                        <p className="mb-6 rounded-lg bg-accent-tint px-4 py-2.5 text-sm text-muted-foreground" role="note">{text.shownIn} {shownLabel}.</p>
+                        <p className="mb-6 rounded-lg bg-accent-tint px-4 py-2.5 text-sm text-muted-foreground" role="note">{t('This page isn’t written in your language yet, so it’s shown in :language.', { language: shownLabel ?? '' })}</p>
                     )}
                 />
             </div>

@@ -142,12 +142,12 @@ abstract class RelationSelect extends Field
             $keys = array_values(array_unique(array_filter(is_array($value) ? $value : [$value], fn (mixed $key): bool => is_int($key) || is_string($key))));
             $count = is_array($value) ? count($value) : 1;
             if ($record === null || count($keys) !== $count) {
-                $fail('The selected :attribute is invalid.');
+                $fail(__('The selected :attribute is invalid.'));
 
                 return;
             }
             if ($keys !== [] && $this->relatedQuery($record)->whereKey($keys)->count() !== count($keys)) {
-                $fail('The selected :attribute is invalid.');
+                $fail(__('The selected :attribute is invalid.'));
             }
         };
     }

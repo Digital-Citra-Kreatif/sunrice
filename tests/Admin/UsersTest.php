@@ -68,7 +68,7 @@ function formField(Assert $page, string $name): ?array
 
 it('adds the Users and Roles screens with their permissions', function () {
     expect(array_keys(app(Panel::class)->getPermissions()))->toContain('sunrice.users.view', 'sunrice.users.delete', 'sunrice.roles.update')
-        ->and(route('sunrice.admin.resources.users.index', absolute: false))->toBe('/admin/users');
+        ->and(route('sunrice.admin.users.index', absolute: false))->toBe('/admin/users');
 
     actingAs($this->manager);
     get('/admin')->assertInertia(fn (Assert $page) => $page
@@ -166,7 +166,7 @@ it('lets users manage only users strictly below them, and edit their own account
         put("/admin/users/{$other->id}", ['name' => 'x', 'email' => 'x@example.com'])->assertForbidden();
         delete("/admin/users/{$other->id}")->assertForbidden();
     }
-    post('/admin/users/bulk/delete', ['ids' => [$this->editor->id, $this->boss->id]])->assertForbidden();
+    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->editor->id, $this->boss->id]])->assertForbidden();
     expect(User::query()->count())->toBe(5);
 
     // Only roles strictly below their own access are offered or accepted: not their own role.
@@ -242,7 +242,7 @@ it('keeps permissions the form doesn\'t offer, and never edits the super admin r
 
     // A role still given to someone can't be deleted, one by one or in bulk.
     delete("/admin/roles/{$this->editorRole->id}")->assertRedirect()->assertSessionHas('error', 'The role "Editor" is still given to 1 user. Take it away from them first.');
-    post('/admin/roles/bulk/delete', ['ids' => [$this->editorRole->id]])->assertSessionHas('error');
+    post('/admin/roles/bulk', ['action' => 'delete', 'ids' => [$this->editorRole->id]])->assertSessionHas('error');
     expect($this->editorRole->fresh())->not->toBeNull()
         ->and($this->editor->fresh()->getRoleNames()->all())->toBe(['editor']);
 
@@ -337,7 +337,7 @@ it('shows a Security card on the user\'s page, and locks with a reason', functio
         ->locked_by->toBe('Super');
 
     get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => $page
-        ->component('Resources/Form', false)
+        ->component('Resources/Edit', false)
         ->has('aside', 1)
         ->where('aside.0.title', 'Security')
         ->where('aside.0.blocks.0.type', 'notice')
@@ -392,12 +392,12 @@ it('asks what happens to a user\'s content on the edit page and in bulk too', fu
         ->where('bulkActions', fn ($actions) => collect($actions)->where('key', 'delete')->count() === 1
             && collect($actions)->firstWhere('key', 'delete')['fields'][0]['name'] === 'content'));
     $other = person('Other', 'editor');
-    post('/admin/users/bulk/delete', ['ids' => [$this->manager->id, $other->id], 'content' => 'reassign', 'heir' => $this->boss->id])
+    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->manager->id, $other->id], 'content' => 'reassign', 'heir' => $this->boss->id])
         ->assertSessionHas('success', '2 users deleted. Their 2 uploads went to Boss.');
     expect(User::query()->whereKey([$this->manager->id, $other->id])->count())->toBe(0)
         ->and(Media::query()->where('uploaded_by', (string) $this->boss->id)->count())->toBe(3);
-    post('/admin/users/bulk/delete', ['ids' => [$this->boss->id], 'content' => 'reassign', 'heir' => $this->boss->id])->assertSessionHas('error');
-    post('/admin/users/bulk/delete', ['ids' => [$this->super->id], 'content' => 'keep'])->assertForbidden();
+    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->boss->id], 'content' => 'reassign', 'heir' => $this->boss->id])->assertSessionHas('error');
+    post('/admin/users/bulk', ['action' => 'delete', 'ids' => [$this->super->id], 'content' => 'keep'])->assertForbidden();
     expect($this->boss->fresh())->not->toBeNull();
 });
 

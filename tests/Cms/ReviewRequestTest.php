@@ -44,7 +44,7 @@ it('lets an author submit a draft for review, telling those who may publish it',
     Mail::assertQueuedCount(1);
     expect((new ReviewRequested($translation, $this->author))->render())->toContain('Rina')->toContain('Our first year');
 
-    get("/admin/cms/entries/{$this->draft->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
+    get(entryEditUrl($this->draft->entry_id))->assertInertia(fn (Assert $page) => $page
         ->where('entry.review.by', 'Rina')
         ->where('can.publish', false));
 });

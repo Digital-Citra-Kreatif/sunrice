@@ -148,7 +148,7 @@ it('loads the panel font, or the one configured instead', function () {
 
     get('/admin/login')->assertOk()
         ->assertSee('<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>', false)
-        ->assertSee('https://fonts.bunny.net/css?family=inter:400,500,600&amp;display=swap', false)
+        ->assertSee('https://fonts.bunny.net/css?family=instrument-sans:400,500,600&amp;display=swap', false)
         ->assertDontSee('--sunrice-font');
 
     config(['sunrice-admin.font' => ['stylesheet' => null, 'family' => 'Instrument "Sans"']]);

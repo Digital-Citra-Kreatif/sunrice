@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Resources\Forms;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
+use Sunrice\Admin\Support\Say;
 
 /**
  * A choice from fixed options: ->options(['draft' => 'Draft', 'live' => 'Live']),
@@ -25,6 +26,9 @@ final class Select extends Field
 
     private bool $searchable = false;
 
+    /** Its option labels are data, shown as written. */
+    private bool $verbatim = false;
+
     /** The record the form is shown or saved for, for an options closure. */
     private ?Model $record = null;
 
@@ -40,6 +44,17 @@ final class Select extends Field
     public function searchable(bool $searchable = true): self
     {
         $this->searchable = $searchable;
+
+        return $this;
+    }
+
+    /**
+     * Shows the option labels as written instead of in the panel's
+     * language: for options that are data (blueprint titles, roles).
+     */
+    public function verbatim(bool $verbatim = true): self
+    {
+        $this->verbatim = $verbatim;
 
         return $this;
     }
@@ -71,7 +86,7 @@ final class Select extends Field
     protected function props(): array
     {
         return ['options' => array_map(
-            fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => $label],
+            fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => $this->verbatim ? $label : Say::it($label)],
             array_keys($options = $this->resolve()),
             array_values($options),
         )] + ($this->searchable ? ['searchable' => true] : []);

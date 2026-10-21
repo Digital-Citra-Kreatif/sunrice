@@ -80,7 +80,7 @@ it('saves the parent and template from the editor, and renders the entry\'s own 
     View::addLocation(__DIR__.'/Fixtures/views');
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
 
-    get("/admin/cms/entries/{$team->id}/edit")->assertInertia(fn (Assert $page) => $page->where('settings', ['parentId' => null, 'template' => null, 'commentsClosed' => false, 'blueprint' => 'page']));
+    get(entryEditUrl($team->id))->assertInertia(fn (Assert $page) => $page->where('settings', ['parentId' => null, 'template' => null, 'commentsClosed' => false, 'blueprint' => 'page']));
     put("/admin/cms/entries/{$team->id}/settings", ['parent_id' => $about->id, 'template' => 'Bad Name!'])->assertSessionHasErrors('template');
     put("/admin/cms/entries/{$team->id}/settings", ['parent_id' => $about->id, 'template' => 'cms.special'])->assertSessionHasNoErrors();
 
@@ -117,14 +117,14 @@ it('serves listing pages with their fields, paginated, in each language', functi
     get('/sitemap.xml')->assertSee(url('/articles'))->assertSee(url('/id/articles'));
 
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
-    get('/admin/cms/collections/articles/listing')->assertInertia(fn (Assert $page) => $page
-        ->component('Cms/Entries/Listing', shouldExist: false)->where('values.intro', 'All our <news>'));
+    get('/admin/cms/collections/articles/listing/edit')->assertInertia(fn (Assert $page) => $page
+        ->component('Cms/Listing/Edit', shouldExist: false)->where('values.intro', 'All our <news>'));
     put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Semua berita']])->assertSessionHasNoErrors();
     get('/id/articles')->assertSee('Semua berita');
-    get('/admin/cms/collections/pages/listing')->assertNotFound();
+    get('/admin/cms/collections/pages/listing/edit')->assertNotFound();
 
     // A save over someone else's newer one is refused.
-    get('/admin/cms/collections/articles/listing?locale=id')->assertInertia(fn (Assert $page) => $page->where('version', 1));
+    get('/admin/cms/collections/articles/listing/edit?locale=id')->assertInertia(fn (Assert $page) => $page->where('version', 1));
     put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Berita'], 'version' => 1])->assertSessionHasNoErrors();
     put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Stale'], 'version' => 1])->assertSessionHasErrors('version');
     expect(fn () => app(SaveListing::class)->handle($articles, ['intro' => 'Stale'], 'id', 1))->toThrow(ValidationException::class, 'Someone else saved')

@@ -112,9 +112,11 @@ it('edits the site settings behind their permission', function () {
     get('/admin/settings/site')->assertForbidden();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
-    put('/admin/settings/site', ['name' => 'Acme', 'twitter' => 'not a handle!'])->assertSessionHasErrors('twitter');
-    put('/admin/settings/site', ['name' => 'Acme', 'twitter' => '@acme', 'separator' => '·', 'appendName' => true])->assertSessionHasNoErrors();
-    expect(app(SiteSettings::class)->title('About'))->toBe('About · Acme');
+    put('/admin/settings/site', ['name' => str_repeat('a', 101)])->assertSessionHasErrors('name');
+    put('/admin/settings/site', ['name' => 'Acme'])->assertSessionHasNoErrors();
+    expect(app(SiteSettings::class)->title('About'))->toBe('About | Acme');
+    // Search engines and sharing are on their own page.
+    get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('cards.0.links.0.url', '/admin/cms/seo'));
 });
 
 it('prints the site code, and alerts when it changes', function () {
@@ -228,13 +230,6 @@ it('offers live pages as the homepage, searchable, and lets editors set it from 
     expect((new SiteSettings)->homepage)->toBe($home->entry_id);
     get('/')->assertOk()->assertSee('Welcome');
     expect(app(Panel::class)->getDefaultRoles()['editor'] ?? [])->toContain('cms.homepage');
-});
-
-it('previews titles with the saved separator and site name', function () {
-    app(SiteSettings::class)->fill(['name' => 'Lumina Estates', 'separator' => '·'])->save();
-    $help = collect(SiteSettings::form(new Form)->fields('edit'))->firstWhere('name', 'appendName')->toArray()['help'];
-
-    expect($help)->toBe('"About · Lumina Estates" in search results and browser tabs.');
 });
 
 it('describes the site in each language', function () {

@@ -7,7 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { adminUrl } from '@/lib/admin-url';
 import { fetchJson, withQuery } from '@/lib/fetch-json';
 import { cn } from '@/lib/utils';
-import { ResourceKeyContext } from './resource-context';
+import { ResourcePathContext } from './resource-context';
+import { t } from '@/lib/i18n';
 
 export type RelationKey = string | number;
 
@@ -17,13 +18,13 @@ export interface RelationOption {
 }
 
 /** The address a relation field searches (ResourceController::options). */
-export function optionsUrl(resource: string, field: string, query: string): string {
-    return withQuery(adminUrl(`resources/${resource}/options/${field}`), { q: query.trim() });
+export function optionsUrl(path: string, field: string, query: string): string {
+    return withQuery(adminUrl(`${path}/options/${field}`), { q: query.trim() });
 }
 
 /** Options as the person types (debounced), from the resource's options route. */
 function useRelationSearch(field: string, open: boolean) {
-    const resource = React.useContext(ResourceKeyContext);
+    const resource = React.useContext(ResourcePathContext);
     const [query, setQuery] = React.useState('');
     const [options, setOptions] = React.useState<RelationOption[]>([]);
     const [loading, setLoading] = React.useState(false);
@@ -36,7 +37,7 @@ function useRelationSearch(field: string, open: boolean) {
         const timer = window.setTimeout(() => {
             fetchJson<{ options: RelationOption[] }>(optionsUrl(resource, field, query), { signal: controller.signal })
                 .then((body) => { setOptions(body.options); setError(null); })
-                .catch((e: unknown) => { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'Search failed.'); })
+                .catch((e: unknown) => { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : t('Search failed.')); })
                 .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         }, query === '' ? 0 : 200);
 
@@ -85,15 +86,15 @@ export function RelationSelect({ id, field, multiple, value, selected, required,
             <PopoverTrigger asChild>
                 <Button id={id} type="button" variant="outline" role="combobox" aria-expanded={open} aria-invalid={invalid} disabled={disabled}
                     className={cn('w-full justify-between font-normal', !multiple && chosen.length === 0 && 'text-muted-foreground')}>
-                    <span className="truncate">{multiple ? 'Add…' : chosen.length > 0 ? labelOf(chosen[0]!) : (placeholder ?? 'Choose…')}</span>
+                    <span className="truncate">{multiple ? t('Add…') : chosen.length > 0 ? labelOf(chosen[0]!) : (placeholder ?? t('Choose…'))}</span>
                     <ChevronsUpDown className="opacity-50" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
                 <Command shouldFilter={false}>
-                    <CommandInput placeholder="Search…" value={query} onValueChange={setQuery} />
+                    <CommandInput placeholder={t('Search…')} value={query} onValueChange={setQuery} />
                     <CommandList>
-                        <CommandEmpty>{loading ? 'Searching…' : (error ?? 'Nothing found.')}</CommandEmpty>
+                        <CommandEmpty>{loading ? t('Searching…') : (error ?? t('Nothing found.'))}</CommandEmpty>
                         {options.map((option) => {
                             const isChosen = chosen.some((key) => String(key) === String(option.value));
                             return (
@@ -114,7 +115,7 @@ export function RelationSelect({ id, field, multiple, value, selected, required,
             <div className="flex items-center gap-2">
                 {picker}
                 {!required && chosen.length > 0 && !disabled && (
-                    <Button type="button" variant="ghost" size="icon" aria-label="Clear" onClick={() => onChange(null)}><X /></Button>
+                    <Button type="button" variant="ghost" size="icon" aria-label={t('Clear')} onClick={() => onChange(null)}><X /></Button>
                 )}
             </div>
         );
@@ -127,10 +128,10 @@ export function RelationSelect({ id, field, multiple, value, selected, required,
                     onReorder={(items) => onChange(items)}>
                     {(key, { handle }) => (
                         <div className="flex items-center gap-2 rounded-md border bg-card px-2 py-1 text-sm">
-                            <SortableHandle {...handle} label={`Move ${labelOf(key)}`} />
+                            <SortableHandle {...handle} label={t('Move :name', { name: labelOf(key) })} />
                             <span className="flex-1 truncate">{labelOf(key)}</span>
                             {!disabled && (
-                                <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={`Remove ${labelOf(key)}`}
+                                <Button type="button" variant="ghost" size="icon" className="size-7" aria-label={t('Remove :name', { name: labelOf(key) })}
                                     onClick={() => onChange(chosen.filter((other) => String(other) !== String(key)))}><X /></Button>
                             )}
                         </div>
@@ -168,9 +169,9 @@ export function SearchableSelect({ id, options, value, required, disabled, inval
                 </PopoverTrigger>
                 <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
                     <Command>
-                        <CommandInput placeholder="Search…" />
+                        <CommandInput placeholder={t('Search…')} />
                         <CommandList>
-                            <CommandEmpty>Nothing found.</CommandEmpty>
+                            <CommandEmpty>{t('Nothing found.')}</CommandEmpty>
                             {options.map((option) => (
                                 <CommandItem key={option.value} value={`${option.label} ${option.value}`} onSelect={() => { onChange(option.value); setOpen(false); }}>
                                     <Check className={cn(option.value === value ? 'opacity-100' : 'opacity-0')} />
@@ -182,7 +183,7 @@ export function SearchableSelect({ id, options, value, required, disabled, inval
                 </PopoverContent>
             </Popover>
             {!required && current && !disabled && (
-                <Button type="button" variant="ghost" size="icon" aria-label="Clear" onClick={() => onChange(null)}><X /></Button>
+                <Button type="button" variant="ghost" size="icon" aria-label={t('Clear')} onClick={() => onChange(null)}><X /></Button>
             )}
         </div>
     );

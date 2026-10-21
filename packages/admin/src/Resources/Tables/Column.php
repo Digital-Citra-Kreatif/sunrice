@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Sunrice\Admin\Support\Say;
 use UnitEnum;
 
 /**
@@ -200,6 +201,6 @@ final class Column
     /** @return array{name: string, label: string, sortable: bool, display: string} */
     public function toArray(): array
     {
-        return ['name' => $this->name, 'label' => $this->label, 'sortable' => $this->sortable, 'display' => $this->display];
+        return ['name' => $this->name, 'label' => Say::it($this->label), 'sortable' => $this->sortable, 'display' => $this->display];
     }
 }

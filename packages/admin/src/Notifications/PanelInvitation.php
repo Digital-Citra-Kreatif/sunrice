@@ -29,11 +29,13 @@ final class PanelInvitation extends ResetPassword
     protected function buildMailMessage($url): MailMessage
     {
         return (new MailMessage)
-            ->subject("You're invited to {$this->brand}")
-            ->line(($this->inviter === null ? 'You have an account' : "{$this->inviter} made you an account")." on {$this->brand}, for {$this->email}.")
-            ->line('Choose your password to sign in:')
-            ->action('Choose your password', $url)
-            ->line("The link works for {$this->minutes} minutes. After that, use \"Forgot password?\" on the login page for a new one.")
+            ->subject(__('You\'re invited to :brand', ['brand' => $this->brand]))
+            ->line($this->inviter === null
+                ? __('You have an account on :brand, for :email.', ['brand' => $this->brand, 'email' => $this->email])
+                : __(':name made you an account on :brand, for :email.', ['name' => $this->inviter, 'brand' => $this->brand, 'email' => $this->email]))
+            ->line(__('Choose your password to sign in:'))
+            ->action(__('Choose your password'), $url)
+            ->line(__('The link works for :minutes minutes. After that, use "Forgot password?" on the login page for a new one.', ['minutes' => $this->minutes]))
             ->salutation("Regards,  \n{$this->brand}");
     }
 
