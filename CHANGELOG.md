@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Structured data types for collections: Real estate listing, and Person, Place and Product (the page is a ProfilePage, WebPage or ItemPage whose `mainEntity` is the thing, `@id` `{url}#main` for templates to add to) (`StructuredData::ENTRY_TYPES`).
 - A form's File field can take several files: **Several files** (`multiple`) and **At most (files)** (`max_files`, 10 by default, at most 20); stored as a list of `{path, name, size, mime}`, each downloadable from the submission (`?index=n`), deleted with it, and named in emails and exports (`FileField::isMultiple()`, `maxFiles()`; submission rows gain `files`).
 - Blueprint builder: a new field opens alone (the others fold to their summary line), **Close all** / **Open all** fold every card on a level, and *Extra rules* no longer shows example rules that look already set; its help is plain language.
 - A taxonomy no longer has to be attached twice: the entries list filters by every taxonomy the collection's blueprints have a terms field for, as well as those ticked on the taxonomy's form.

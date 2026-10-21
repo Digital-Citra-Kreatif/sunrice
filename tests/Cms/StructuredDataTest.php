@@ -105,3 +105,21 @@ it('takes nodes from templates, prints them safely, and can be turned off', func
     app(SiteSettings::class)->fill(['structuredData' => false, 'publisher' => 'Person'])->save();
     expect(Blade::render('<x-sunrice-cms::seo title="Events" />'))->not->toContain('application/ld+json');
 });
+
+it('describes people, places and products as what a page is about', function (string $type, string $page) {
+    $agents = Collection::query()->create(['handle' => 'agents', 'title' => 'Agents', 'blueprint' => 'post', 'route' => '/team/{slug}', 'schema_type' => $type]);
+    schemaPost($agents, 'Ayu Lestari', ['description' => 'Senior agent in Canggu.']);
+
+    $nodes = nodes(get('/team/ayu-lestari')->assertOk());
+
+    expect($nodes[$page])->toMatchArray(['url' => url('/team/ayu-lestari'), 'name' => 'Ayu Lestari'])
+        ->and($nodes[$page]['mainEntity'])->toBe(['@type' => $type, '@id' => url('/team/ayu-lestari').'#main', 'name' => 'Ayu Lestari', 'url' => url('/team/ayu-lestari'), 'description' => 'Senior agent in Canggu.'])
+        ->and($nodes)->toHaveKey('BreadcrumbList');
+})->with([['Person', 'ProfilePage'], ['Place', 'WebPage'], ['Product', 'ItemPage']]);
+
+it('describes a real estate listing as its page', function () {
+    $homes = Collection::query()->create(['handle' => 'homes', 'title' => 'Homes', 'blueprint' => 'post', 'route' => '/homes/{slug}', 'schema_type' => 'RealEstateListing']);
+    schemaPost($homes, 'Villa Damai');
+
+    expect(nodes(get('/homes/villa-damai')->assertOk())['RealEstateListing'])->toMatchArray(['name' => 'Villa Damai'])->not->toHaveKey('mainEntity');
+});
