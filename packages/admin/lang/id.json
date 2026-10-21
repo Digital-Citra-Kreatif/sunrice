@@ -66,6 +66,8 @@
     ":title deleted. Their :content went to :heir.": ":title dihapus. :content miliknya dialihkan ke :heir.",
     ":title restored.": ":title dipulihkan.",
     ":who deleted, trashed or unpublished :count things within 10 minutes (the last: :last).": ":who menghapus, membuang, atau membatalkan terbit :count hal dalam 10 menit (terakhir: :last).",
+    "APP_DEBUG is on in production: error pages show code, settings and secrets to anyone. Set APP_DEBUG=false in .env, then run php artisan config:cache.": "APP_DEBUG menyala di produksi: halaman galat menampilkan kode, pengaturan, dan rahasia kepada siapa saja. Setel APP_DEBUG=false di .env, lalu jalankan php artisan config:cache.",
+    "APP_URL starts with http:// in production, so links in emails and the sitemap aren't encrypted. Serve the site over HTTPS and set APP_URL to its https:// address.": "APP_URL diawali http:// di produksi, jadi tautan di email dan peta situs tidak dienkripsi. Sajikan situs melalui HTTPS dan setel APP_URL ke alamat https://-nya.",
     "[:brand] Security: :headline": "[:brand] Keamanan: :headline",
     "A dangerous upload was blocked": "Unggahan berbahaya diblokir",
     "A full token can do everything you can, as you. Among it:": "Token penuh bisa melakukan semua yang bisa Anda lakukan, atas nama Anda. Di antaranya:",

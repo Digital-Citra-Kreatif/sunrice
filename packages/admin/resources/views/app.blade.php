@@ -49,6 +49,12 @@
             {{ __('The admin assets published for :list are older than the installed packages, so the panel may run old code. On the server, run php artisan sunrice:assets and php artisan vendor:publish --tag=laravel-assets --force.', ['list' => implode(', ', $sunriceStale)]) }}
         </p>
     @endif
+    @if ($sunriceUser instanceof \Illuminate\Database\Eloquent\Model && app(\Sunrice\Admin\Users\PermissionRank::class)->isSuperAdmin($sunriceUser))
+        {{-- Only on full page loads, for super admins: settings that are dangerous on a live site. --}}
+        @foreach (\Sunrice\Admin\Security\ProductionChecks::warnings() as $sunriceWarning)
+            <p role="alert" style="font: 14px/1.4 system-ui; margin: 0; padding: .6rem 1rem; background: #fee2e2; color: #7f1d1d; border-bottom: 1px solid #ef4444">{{ $sunriceWarning }}</p>
+        @endforeach
+    @endif
     @inertia
 </body>
 </html>
