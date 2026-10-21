@@ -9,6 +9,7 @@ import { InfoCards } from '@/components/resources/info-cards';
 import type { InfoCard, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
+import { savedValues } from '@/lib/settings-form';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 import { useScrollFade } from '@/hooks/use-scroll-fade';
 import { cn } from '@/lib/utils';
@@ -46,10 +47,12 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
         if (form.processing) return;
         form.put(adminUrl(`settings/${section.key}`), {
             preserveScroll: true,
-            // Typed secrets are cleared again; what's on screen is the new baseline.
-            onSuccess: () => {
-                form.reset(...Object.keys(secrets));
-                form.setDefaults();
+            // Start again from what was saved (typed secrets cleared): the new baseline.
+            // (Not form.reset(...keys): with no secrets that resets every field to the old values.)
+            onSuccess: (page) => {
+                const saved = savedValues(page.props as Record<string, unknown>, form.data);
+                form.setDefaults(saved);
+                form.setData(saved);
             },
         });
     };

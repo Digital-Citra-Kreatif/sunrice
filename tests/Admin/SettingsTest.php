@@ -201,3 +201,13 @@ it('announces what changed when settings are saved in code, as the screen does',
     expect(app(ShopSettings::class)->save())->toBe([]);
     Event::assertDispatchedTimes(SettingsSaved::class, 1);
 });
+
+it('answers a save with the saved values, which the form starts again from', function () {
+    app(\Sunrice\Admin\Security\SecuritySettings::class)->fill(['twoFactor' => true])->save();
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.settings.security'));
+
+    put('/admin/settings/security', ['twoFactor' => false], ['X-Inertia' => 'true', 'Referer' => url('/admin/settings/security')])
+        ->assertRedirect('/admin/settings/security');
+    get('/admin/settings/security')->assertInertia(fn (Assert $page) => $page->where('values.twoFactor', false));
+    expect(app(\Sunrice\Admin\Security\SecuritySettings::class)->twoFactor)->toBeFalse();
+});

@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Fixed: after saving, a Settings page showed the values from before the save (the two-factor switch sprang back on, a number field emptied or kept its old value) until a reload; the form now starts again from the saved values (`lib/settings-form.ts`).
 - `Settings::save()` fires `SettingsSaved` with the names of the settings that changed (and returns them), as the docs said: a homepage or languages saved in a seeder now take effect in the same process (it was fired only by the Settings page and `SaveSettings`).
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
 - `sunrice:translate --only=lang` translates the app's language files (never without `--only=lang`) (`lang/<from>/*.php` and `lang/<from>.json`), keeping keys already translated (`Translation\LangFileTranslator`).
