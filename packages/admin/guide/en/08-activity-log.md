@@ -4,14 +4,15 @@ The **Activity log** under Administration answers *who changed what, and when*. 
 
 ## Reading the log
 
-Each line shows **When**, **Who**, **What** (the action and the item) and **Details** (the fields that changed, and from which address). Newest lines come first.
+Each line shows **When**, **Who**, **What** (the action and the item), **Details** (the fields that changed) and the **IP address** it came from. Newest lines come first. **Columns** hides the ones you don't need (your choice is remembered).
 
 - **Source** tells where a change came from: **Admin** (someone in the panel), **AI agent** (with the name of its token), **System** (the server itself, such as scheduled publishing) or **Security** (sign-ins and other security events).
 - The log names the fields that changed, never their old or new values, so it holds no passwords or personal details. Settings are the exception: it shows what a setting was and became (*Close after days: 30 → 365*), except secret keys.
 
 ## Finding something
 
-- **Search…** looks through people's names, items and actions.
+- **Search…** looks through people's names, items and actions, and IP addresses: a whole one (`203.0.113.7`) or its start (`192.168.`).
+- Click an IP address to see only what came from it, security events included (wrong passwords, blocked sign-ins…).
 - Filter by **Source**, by **Who** did it, by kind of item, by **Action** (*published*, *deleted*, *logged in*…) or by dates.
 - Click a person's name to see only their activity.
 - Click the history icon on a line to see the whole history of that one item.

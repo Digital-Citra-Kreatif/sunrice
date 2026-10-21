@@ -744,5 +744,8 @@
     "Use “:code”": "Pakai “:code”",
     "For developers": "Untuk developer",
     "Everyone also enters a 6-digit code sent by email. Check that email works first (Settings → Mail → Send a test email), or nobody can sign in.": "Semua orang juga memasukkan kode 6 digit yang dikirim lewat email. Pastikan email berfungsi dulu (Pengaturan → Email → Kirim email uji), atau tidak ada yang bisa masuk.",
-    "Locked out because email stopped working? Turn it off on the server:": "Terkunci karena email berhenti berfungsi? Matikan di server:"
+    "Locked out because email stopped working? Turn it off on the server:": "Terkunci karena email berhenti berfungsi? Matikan di server:",
+    "Clear the IP filter": "Hapus filter IP",
+    "Show only what came from :ip": "Tampilkan hanya yang berasal dari :ip",
+    "Search names, actions or IP…": "Cari nama, tindakan, atau IP…"
 }

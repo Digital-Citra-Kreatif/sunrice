@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, History, Search, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Columns3, History, Search, Trash2, X } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { DatePicker } from '@/components/app/date-picker';
 import { PageHeader } from '@/components/app/page-header';
@@ -9,12 +9,15 @@ import type { FieldInfo } from '@/components/resources/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
 import { panelLocale, t } from '@/lib/i18n';
 import { queryParams } from '@/lib/query-params';
+import { toggleColumn, type TablePreferences } from '@/lib/table-preferences';
+import { useTablePreferences } from '@/lib/use-table-preferences';
 
 interface Row {
     id: number;
@@ -46,6 +49,8 @@ interface Query {
     user: string | null;
     from: string | null;
     to: string | null;
+    /** An address, or the start of one ("192.168."). */
+    ip: string | null;
 }
 
 interface Props {
@@ -60,7 +65,12 @@ interface Props {
     /** Set when the user may prune (sunrice.activity.prune): the configured days to keep. */
     prune: { keepDays: number | null } | null;
     rows: { data: Row[]; total: number; currentPage: number; lastPage: number; prevUrl: string | null; nextUrl: string | null };
+    /** The user's shown columns. */
+    preferences?: TablePreferences & { key: string };
 }
+
+/** The columns one may hide (When always shows). */
+const COLUMNS = ['who', 'what', 'details', 'ip'] as const;
 
 const ALL = '__all';
 
@@ -76,11 +86,16 @@ function sourceLabel(source: string): string {
 }
 
 /** Who changed what, newest first. */
-export default function ActivityIndex({ query, types, actions, people = [], sources, perPageOptions, defaultPerPage, prune, rows }: Props) {
+export default function ActivityIndex({ query, types, actions, people = [], sources, perPageOptions, defaultPerPage, prune, rows, preferences: initialPreferences }: Props) {
     useBreadcrumbs([{ label: t('Activity log') }]);
     const [search, setSearch] = React.useState(query.search);
     const [confirm, confirmDialog] = useConfirm();
     const base = adminUrl('activity');
+    const { preferences, setColumns } = useTablePreferences(initialPreferences?.key ?? 'table.activity', initialPreferences ?? null);
+    const shown = preferences.columns ?? [...COLUMNS];
+    const show = (column: (typeof COLUMNS)[number]) => shown.includes(column);
+    const columnLabel: Record<(typeof COLUMNS)[number], string> = { who: t('Who'), what: t('What'), details: t('Details'), ip: t('IP address') };
+    const filtered = Boolean(query.search || query.source || query.type || query.action || query.from || query.to || query.ip || query.user);
     // Showing one item's history: which one, from its lines.
     const first = rows.data[0];
     const historyOf = query.subject && first ? `${first.typeLabel.toLowerCase()} ${first.subject ?? ''}`.trim() : null;
@@ -113,7 +128,7 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
             <div className="flex flex-wrap items-center gap-2">
                 <form className="relative w-full sm:w-64" onSubmit={(e) => { e.preventDefault(); visit({ search }); }}>
                     <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input type="search" aria-label={t('Search the activity log')} placeholder={t('Search…')} className="pl-8" value={search}
+                    <Input type="search" aria-label={t('Search the activity log')} placeholder={t('Search names, actions or IP…')} className="pl-8" value={search}
                         onChange={(e) => { setSearch(e.target.value); if (e.target.value === '' && query.search) visit({ search: '' }); }} />
                 </form>
                 <Select value={query.source ?? ALL} onValueChange={(value) => visit({ source: value === ALL ? null : value })}>
@@ -149,11 +164,30 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
                     <DatePicker className="w-36" placeholder={t('From')} value={query.from} onChange={(from) => visit({ from })} />
                     <DatePicker className="w-36" placeholder={t('To')} value={query.to} onChange={(to) => visit({ to })} />
                 </div>
+                {query.ip && (
+                    <Button variant="secondary" size="sm" onClick={() => visit({ ip: null })} aria-label={t('Clear the IP filter')}>
+                        {t('IP :ip', { ip: query.ip })}<X />
+                    </Button>
+                )}
                 {query.subject && (
                     <Button variant="secondary" size="sm" onClick={() => visit({ subject: null })}>
                         {historyOf ? t('History of :item', { item: historyOf }) : t('History of one item')}<X />
                     </Button>
                 )}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="ml-auto"><Columns3 /> {t('Columns')}</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{t('Show columns')}</DropdownMenuLabel>
+                        {COLUMNS.map((column) => (
+                            <DropdownMenuCheckboxItem key={column} checked={show(column)} onSelect={(event) => event.preventDefault()}
+                                onCheckedChange={() => void setColumns(toggleColumn(shown, column, [...COLUMNS]))}>
+                                {columnLabel[column]}
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             <Card className="overflow-hidden py-0">
@@ -161,27 +195,28 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-44">{t('When')}</TableHead>
-                            <TableHead className="w-48">{t('Who')}</TableHead>
-                            <TableHead>{t('What')}</TableHead>
-                            <TableHead>{t('Details')}</TableHead>
+                            {show('who') && <TableHead className="w-48">{t('Who')}</TableHead>}
+                            {show('what') && <TableHead>{t('What')}</TableHead>}
+                            {show('details') && <TableHead>{t('Details')}</TableHead>}
+                            {show('ip') && <TableHead className="w-36">{t('IP address')}</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {rows.data.length === 0 && (
-                            <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">{query.search || query.source || query.type || query.action || query.from || query.to ? t('Nothing recorded that matches.') : t('Nothing recorded yet.')}</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={1 + shown.length} className="py-12 text-center text-muted-foreground">{filtered ? t('Nothing recorded that matches.') : t('Nothing recorded yet.')}</TableCell></TableRow>
                         )}
                         {rows.data.map((row, i) => (
                             <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties}>
                                 <TableCell className="align-top whitespace-nowrap text-muted-foreground">{row.at ? new Date(row.at).toLocaleString(panelLocale(), { dateStyle: 'medium', timeStyle: 'short' }) : ''}</TableCell>
-                                <TableCell className="align-top">
+                                {show('who') && <TableCell className="align-top">
                                     {row.userId ? (
                                         <button type="button" className="text-left hover:underline" onClick={() => visit({ user: row.userId })}>{row.user}</button>
                                     ) : <span>{row.user ?? (row.source === 'system' ? t('System') : t('Someone not signed in'))}</span>}
                                     <div className="mt-0.5 flex flex-wrap gap-1">
                                         {row.source !== 'admin' && <Badge variant={row.source === 'security' ? 'warning' : 'secondary'}>{sourceLabel(row.source)}{row.via ? ` · ${row.via}` : ''}</Badge>}
                                     </div>
-                                </TableCell>
-                                <TableCell className="align-top">
+                                </TableCell>}
+                                {show('what') && <TableCell className="align-top">
                                     <span className="font-medium">{row.action}</span>{' '}
                                     {!row.self && (
                                         <>
@@ -196,12 +231,17 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
                                             <History className="size-3.5" />
                                         </Button>
                                     )}
-                                </TableCell>
-                                <TableCell className="align-top text-sm text-muted-foreground">
+                                </TableCell>}
+                                {show('details') && <TableCell className="align-top text-sm text-muted-foreground">
                                     {row.changed.length > 0 && <span>{row.changed.join(', ')}</span>}
                                     {row.note && <span>{row.changed.length > 0 ? ' · ' : ''}{row.note}</span>}
-                                    {row.ip && <span className="block text-xs">{t('IP :ip', { ip: row.ip })}</span>}
-                                </TableCell>
+                                </TableCell>}
+                                {show('ip') && <TableCell className="align-top font-mono text-xs whitespace-nowrap text-muted-foreground">
+                                    {row.ip && (query.ip === row.ip ? <span>{row.ip}</span> : (
+                                        <button type="button" className="hover:text-foreground hover:underline" title={t('Show only what came from :ip', { ip: row.ip })}
+                                            onClick={() => visit({ ip: row.ip })}>{row.ip}</button>
+                                    ))}
+                                </TableCell>}
                             </TableRow>
                         ))}
                     </TableBody>

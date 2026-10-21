@@ -17,6 +17,7 @@ use Sunrice\Admin\Actions\Activity\PruneActivity;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Preferences\Preferences;
 use Sunrice\Admin\Support\Like;
 use Sunrice\Admin\Support\Say;
 
@@ -33,7 +34,29 @@ final class ActivityController
 
     public const PER_PAGE_OPTIONS = [25, 50, 100, 200];
 
+    /** The user's shown columns (useTablePreferences). */
+    public const PREFERENCES = 'table.activity';
+
     public function __construct(private Panel $panel) {}
+
+    /**
+     * Lines from an address: exactly a whole one, or starting with a part ("192.168.", "2001:db8:"), which the index serves.
+     *
+     * @param  Builder<Activity>  $query
+     * @return Builder<Activity>
+     */
+    private static function whereIp(Builder $query, string $ip): Builder
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP) !== false
+            ? $query->where('ip_address', $ip)
+            : $query->whereLike('ip_address', Like::escape($ip).'%');
+    }
+
+    /** Whether a search could be (the start of) an IP address: digits with dots, or hex with colons. */
+    private static function looksLikeIp(string $text): bool
+    {
+        return preg_match('/^(\d{1,3}\.){1,3}\d{0,3}$|^[0-9a-f]{1,4}:[0-9a-f:]*$/i', $text) === 1;
+    }
 
     public function __invoke(Request $request): Response
     {
@@ -51,6 +74,7 @@ final class ActivityController
             'user' => ['nullable', 'string', 'max:64'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
+            'ip' => ['nullable', 'string', 'max:45', 'regex:/^[0-9A-Fa-f:.]+$/'],
         ]);
         $text = fn (string $key): ?string => is_string($query[$key] ?? null) && trim($query[$key]) !== '' ? trim($query[$key]) : null;
         $search = $text('search');
@@ -64,10 +88,13 @@ final class ActivityController
             ->when($text('user'), fn (Builder $q, string $v) => $q->where('user_id', $v))
             ->when($text('from'), fn (Builder $q, string $v) => $q->where('created_at', '>=', now()->parse($v)->startOfDay()))
             ->when($text('to'), fn (Builder $q, string $v) => $q->where('created_at', '<=', now()->parse($v)->endOfDay()))
+            ->when($text('ip'), fn (Builder $q, string $v) => self::whereIp($q, $v))
             ->when($search, fn (Builder $q, string $v) => $q->where(fn (Builder $w) => $w
                 ->whereLike('subject_label', '%'.Like::escape($v).'%')
                 ->orWhereLike('user_name', '%'.Like::escape($v).'%')
-                ->orWhereLike('action', '%'.Like::escape($v).'%')))
+                ->orWhereLike('action', '%'.Like::escape($v).'%')
+                // An address, or the start of one ("192.168."): by IP too.
+                ->when(self::looksLikeIp($v), fn (Builder $ip) => $ip->orWhere(fn (Builder $by) => self::whereIp($by, $v)))))
             ->orderByDesc('id')
             ->paginate($perPage)
             ->withQueryString();
@@ -116,7 +143,9 @@ final class ActivityController
                 'user' => $text('user'),
                 'from' => $text('from'),
                 'to' => $text('to'),
+                'ip' => $text('ip'),
             ],
+            'preferences' => ['key' => self::PREFERENCES, ...app(Preferences::class)->table($user, self::PREFERENCES)],
             'types' => $types,
             'actions' => $actions,
             'people' => $names,

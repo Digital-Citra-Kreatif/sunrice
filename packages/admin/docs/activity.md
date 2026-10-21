@@ -1,6 +1,6 @@
 # Activity log
 
-**Administration → Activity log** shows who changed what in the panel, and when, newest first. Filter it by source, by who (`user`; or click a person), by kind of thing, by action (`deleted`, `logged in` …), by dates or by searching, and choose how many lines a page shows (25, 50, 100 or 200; kept in the address as `per_page`); the history icon shows one item's history. A security event about the person's own account reads "Rina logged in", not "Rina logged in Rina"; the dashboard's Recent activity uses the same sentences (`Activity::sentence()`) and leaves security events out (they're in the log, and alerts are emailed). It needs the `sunrice.activity.view` permission.
+**Administration → Activity log** shows who changed what in the panel, and when, newest first. Filter it by source, by who (`user`; or click a person), by kind of thing, by action (`deleted`, `logged in` …), by dates, by IP address (`ip`: a whole address matches exactly, a start such as `192.168.` or `2001:db8:` by prefix; clicking an address in the **IP address** column filters by it; a search that looks like one matches addresses the same way) or by searching, and choose how many lines a page shows (25, 50, 100 or 200; kept in the address as `per_page`); the history icon shows one item's history. A security event about the person's own account reads "Rina logged in", not "Rina logged in Rina"; the dashboard's Recent activity uses the same sentences (`Activity::sentence()`) and leaves security events out (they're in the log, and alerts are emailed). It needs the `sunrice.activity.view` permission.
 
 ## What the panel records
 
@@ -8,7 +8,7 @@
 - **Settings**: a section's changed settings, with what each was and became ("Close after days: 30 → 365", `properties.values`), except secrets (`#[Encrypted]` properties and `Secret` fields), which are only named.
 - **Media**: uploaded, replaced, updated (title, alt text, caption), moved, trashed, restored, deleted; folders created, renamed and deleted.
 
-For resources, values are never stored, only which fields changed, so the log holds no personal data or secrets. The page shows the names readably (`closeAfterDays` as "Close after days"). Each line keeps the user's name as it was, so it reads well after the user is deleted, and the IP address.
+For resources, values are never stored, only which fields changed, so the log holds no personal data or secrets. The page shows the names readably (`closeAfterDays` as "Close after days"). Each line keeps the user's name as it was, so it reads well after the user is deleted, and the IP address (`ip_address`, indexed for the filter, security events' too). The page's **Columns** menu hides Who, What, Details or IP address, remembered per user (`table.activity`, see [preferences](preferences.md)). There is no export of the log.
 
 **Source** says where a change came from: **Admin** (someone signed in), **AI agent** (with the name of its access token), **System** (the console or the queue) or **Security** ([security events](security.md)). Changes made by nobody signed in, outside the console (a visitor), aren't recorded. Within one request, several "updated" lines for the same thing become one.
 
