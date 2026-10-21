@@ -22,6 +22,7 @@ use Sunrice\Cms\Structure\ImportReport;
 use Sunrice\Cms\Structure\StructureExporter;
 use Sunrice\Cms\Structure\StructureImporter;
 use Sunrice\Cms\Structure\StructureImportFailed;
+use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\artisan;
 
@@ -39,11 +40,11 @@ it('stops before importing anything when the file has texts in a language the si
 
     // The fresh install the report came from: English only.
     expect(fn () => app(StructureImporter::class)->import($file))->toThrow(StructureImportFailed::class,
-        "Can't import the file: It has texts in Bahasa Indonesia (id), which isn't one of this site's languages (en). Add it in Settings → Languages or set SUNRICE_LOCALES=en,id, then import again");
-    expect(fn () => app(StructureImporter::class)->import($file, dryRun: true))->toThrow(StructureImportFailed::class, 'Bahasa Indonesia (id)');
+        "Can't import the file: It has texts in ".Locales::displayName('id')." (id), which isn't one of this site's languages (en). Add it in Settings → Languages or set SUNRICE_LOCALES=en,id, then import again");
+    expect(fn () => app(StructureImporter::class)->import($file, dryRun: true))->toThrow(StructureImportFailed::class, Locales::displayName('id').' (id)');
     expect(Blueprint::query()->count())->toBe(0)->and(Collection::query()->count())->toBe(0);
     file_put_contents($path = sys_get_temp_dir().'/structure-'.uniqid().'.json', json_encode($file));
-    artisan('sunrice:import-structure', ['file' => $path])->expectsOutputToContain('Bahasa Indonesia (id)')->assertFailed();
+    artisan('sunrice:import-structure', ['file' => $path])->expectsOutputToContain(Locales::displayName('id').' (id)')->assertFailed();
     artisan('sunrice:import-structure', ['file' => $path, '--skip-other-languages' => true, '--dry-run' => true])->expectsOutputToContain('Left out: the texts in id')->assertSuccessful();
 
     // Left out when asked: the English is imported, and the report says what was skipped.
