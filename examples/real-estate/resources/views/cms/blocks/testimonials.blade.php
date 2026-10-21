@@ -1,5 +1,5 @@
 {{-- Block "testimonials": heading, testimonials (quote, client, client_role, photo, rating). --}}
-@php($testimonials = \App\Support\Hydrate::together($block->testimonials ?? []))
+@php($testimonials = collect($block->testimonials ?? []))
 @if ($testimonials->isNotEmpty())
 <section id="{{ $blockId }}" class="section bg-teal-900 text-white">
     <div class="container-site">

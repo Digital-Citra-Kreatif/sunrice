@@ -13,7 +13,6 @@
     $type = $v['property_type'] ?? null;
     $listingType = $v['listing_type'] ?? null;
     $agent = $v['agent'] ?? null;
-    \App\Support\Hydrate::together(array_filter([$agent, $values['neighbourhood'] ?? null]));
     $agentValues = $agent?->values() ?? [];
     $neighbourhood = $v['neighbourhood'] ?? null;
     $amenities = collect($v['amenities'] ?? []);

@@ -3,7 +3,7 @@
     shows the latest properties marked "featured" (a Cms::entries() query, kept with remember()).
 --}}
 @php
-    $properties = \App\Support\Hydrate::together($block->properties ?? []);
+    $properties = collect($block->properties ?? []);
     if ($properties->isEmpty()) {
         $properties = cms_entries('properties')->where('featured', true)->latest()->limit(6)->remember()->get();
     }

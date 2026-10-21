@@ -8,7 +8,7 @@
     $author = $values['author_agent'] ?? null;
     $authorValues = $author?->values() ?? [];
     $topics = collect($values['topics'] ?? []);
-    $related = \App\Support\Hydrate::together($values['related'] ?? []);
+    $related = collect($values['related'] ?? []);
 @endphp
 
 @section('content')
