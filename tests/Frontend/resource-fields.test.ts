@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createElement, type ComponentType } from 'react';
 import { formatDateRange, parseDateRange } from '../../packages/admin/resources/js/lib/date-range.ts';
+import { changeWarning } from '../../packages/admin/resources/js/lib/change-warning.ts';
 import { isSafeUrl } from '../../packages/admin/resources/js/lib/safe-url.ts';
 import { slugify, slugInput } from '../../packages/admin/resources/js/lib/slug.ts';
 import { loadAdminModule, render } from './support/render.ts';
@@ -14,6 +15,27 @@ test('reads and writes a date range filter\'s value', () => {
     assert.equal(formatDateRange('2026-01-01', null), '2026-01-01,');
     assert.equal(formatDateRange('2026-01-01T10:00', '2026-01-31'), '2026-01-01,2026-01-31');
     assert.equal(formatDateRange(null, null), '');
+});
+
+test('warns about a changed value only on an edit form, once it differs from the saved one', () => {
+    const warning = 'Templates that use ":old" need ":new".';
+    assert.equal(changeWarning(warning, 'news', { handle: 'news' }, 'handle'), null);
+    assert.equal(changeWarning(warning, 'journal', { handle: 'news' }, 'handle'), 'Templates that use "news" need "journal".');
+    assert.equal(changeWarning(warning, '', { handle: 'news' }, 'handle'), 'Templates that use "news" need "…".');
+    assert.equal(changeWarning(warning, 'journal', undefined, 'handle'), null, 'creating: nothing saved');
+    assert.equal(changeWarning(null, 'journal', { handle: 'news' }, 'handle'), null);
+    assert.equal(changeWarning(warning, null, { handle: '' }, 'handle'), null, 'empty and missing alike');
+});
+
+test('shows a field\'s change warning under it on an edit form', async () => {
+    const { FormSections } = await loadAdminModule<{ FormSections: ComponentType<any> }>('components/resources/form-sections.tsx');
+    const field = { kind: 'field', type: 'text', name: 'handle', label: 'Handle', required: false, disabled: false, help: null, placeholder: null, span: 1, warnWhenChanged: 'Code that uses ":old" breaks.' };
+    const sections = [{ kind: 'section', title: null, description: null, columns: 1, fields: [field] }];
+    const props = { sections, errors: {}, onChange: () => undefined };
+
+    assert.match(render(FormSections, { ...props, data: { handle: 'journal' }, saved: { handle: 'news' } }), /Code that uses &quot;news&quot; breaks\./);
+    assert.doesNotMatch(render(FormSections, { ...props, data: { handle: 'news' }, saved: { handle: 'news' } }), /breaks/);
+    assert.doesNotMatch(render(FormSections, { ...props, data: { handle: 'journal' } }), /breaks/);
 });
 
 test('keeps only safe link addresses in rich text', () => {

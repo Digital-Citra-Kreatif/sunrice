@@ -89,7 +89,8 @@ class RoleResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            TextInput::make('name')->required()->unique()->maxLength(125),
+            TextInput::make('name')->required()->unique()->maxLength(125)
+                ->warnWhenChanged('Users keep this role and its permissions. Code that checks it by name (hasRole(\':old\'), @role(\':old\')) needs the new one, and if ":old" is one of the panel\'s default roles, sunrice:roles creates it again.'),
             Section::make('Permissions')->description('What users with this role may do. You can give out permissions you have yourself, and a role must have less access than yours.')->schema([
                 static::permissionsField(),
             ]),

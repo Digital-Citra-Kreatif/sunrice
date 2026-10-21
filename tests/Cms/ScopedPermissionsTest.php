@@ -183,7 +183,7 @@ it('renames a collection\'s, taxonomy\'s and form\'s permissions with its handle
     actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update', 'cms.taxonomies.view', 'cms.taxonomies.update', 'cms.forms.view', 'cms.forms.update'));
 
     get("/admin/cms/collections/{$this->blog->handle}/edit")->assertInertia(fn (Assert $page) => $page
-        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.help', HandleField::WARNING));
+        ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.warnWhenChanged', HandleField::warning('collection')));
     put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Blog', 'handle' => 'news', 'per_page' => 10])->assertSessionHasErrors('handle'); // taken
     put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Blog', 'handle' => 'Bad Handle', 'per_page' => 10])->assertSessionHasErrors('handle');
     put("/admin/cms/collections/{$this->blog->handle}", ['title' => 'Journal', 'handle' => 'journal', 'blueprint' => 'post', 'per_page' => 10])->assertSessionHasNoErrors();

@@ -31,6 +31,8 @@ abstract class Field implements Component
 
     protected ?string $placeholder = null;
 
+    protected ?string $warnWhenChanged = null;
+
     protected mixed $default = null;
 
     /** @var list<string|object> */
@@ -101,6 +103,19 @@ abstract class Field implements Component
     public function help(?string $text): static
     {
         $this->help = $text;
+
+        return $this;
+    }
+
+    /**
+     * A warning shown under the field on an edit form once its value
+     * differs from the saved one (not when creating), for values code
+     * relies on (a handle templates name, a role's name). `:old` and `:new`
+     * in the text become the saved and the typed value.
+     */
+    public function warnWhenChanged(?string $text): static
+    {
+        $this->warnWhenChanged = $text;
 
         return $this;
     }
@@ -336,6 +351,8 @@ abstract class Field implements Component
             'disabled' => $this->isDisabled($record),
             'help' => Say::it($this->help),
             'placeholder' => Say::it($this->placeholder),
+            // Only on an edit form: a new record has nothing saved to change.
+            'warnWhenChanged' => $record !== null && $record->exists ? Say::it($this->warnWhenChanged) : null,
             'span' => $this->span,
             'showWhen' => $this->showWhen,
             ...$this->props(),

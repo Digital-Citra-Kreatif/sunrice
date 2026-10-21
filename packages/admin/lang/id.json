@@ -729,5 +729,6 @@
     "Your content, in good hands.": "Konten Anda, di tangan yang tepat.",
     "Your name, email address and password. Your roles are changed by a site manager.": "Nama, alamat email, dan kata sandi Anda. Peran Anda diubah oleh pengelola situs.",
     "Your new token “:name”": "Token baru Anda “:name”",
-    "Your password has been reset. You can log in now.": "Kata sandi Anda telah diatur ulang. Sekarang Anda bisa masuk."
+    "Your password has been reset. You can log in now.": "Kata sandi Anda telah diatur ulang. Sekarang Anda bisa masuk.",
+    "Users keep this role and its permissions. Code that checks it by name (hasRole(':old'), @role(':old')) needs the new one, and if \":old\" is one of the panel's default roles, sunrice:roles creates it again.": "Pengguna tetap memiliki peran ini beserta izinnya. Kode yang memeriksanya lewat nama (hasRole(':old'), @role(':old')) perlu nama baru, dan jika \":old\" adalah salah satu peran bawaan panel, sunrice:roles akan membuatnya lagi."
 }

@@ -6,9 +6,14 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
+use Sunrice\Cms\Admin\HandleField;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Form;
+use Sunrice\Cms\Models\GlobalSet;
+use Sunrice\Cms\Models\Menu;
+use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
@@ -86,6 +91,28 @@ it('changes the handle when editing, only to a free and valid one', function () 
     put("/admin/cms/collections/{$pages->handle}", ['title' => 'Site pages', 'handle' => 'other'])->assertSessionHasNoErrors();
 
     expect($pages->fresh()?->only(['handle', 'title']))->toBe(['handle' => 'other', 'title' => 'Site pages']);
+});
+
+it('warns on the edit form, not when creating, what a new handle breaks and what Sunrice updates', function () {
+    Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact']);
+    Collection::query()->create(['handle' => 'news', 'title' => 'News']);
+    Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics']);
+    Form::query()->create(['handle' => 'enquiry', 'title' => 'Enquiry', 'blueprint' => 'contact']);
+    GlobalSet::query()->create(['handle' => 'company', 'title' => 'Company', 'blueprint' => 'contact']);
+    Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    actingAs(adminUser(Panel::ACCESS, ...collect(['collections', 'taxonomies', 'forms', 'globals', 'menus'])->crossJoin(['view', 'create', 'update'])->map(fn ($p) => "cms.{$p[0]}.{$p[1]}")->all()));
+    $handle = fn (Assert $page): array => collect($page->toArray()['props']['sections'])->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'handle');
+
+    foreach (['collections/news' => ['cms/:old.blade.php', 'renames the collection\'s permissions'], 'taxonomies/topics' => ['whereTerm(\':old\'', 'renames the taxonomy\'s permissions'],
+        'forms/enquiry' => ['<x-sunrice-cms::form handle=":old" />', 'keeps its submissions'], 'globals/company' => ['cms_global(\':old\')', 'keeps the set\'s values'],
+        'menus/main' => ['cms_menu(\':old\')', 'keeps the menu\'s links']] as $path => $says) {
+        get("/admin/cms/{$path}/edit")->assertOk()->assertInertia(fn (Assert $page) => expect($handle($page)['warnWhenChanged'])->toContain(...$says));
+        $list = explode('/', $path)[0];
+        get("/admin/cms/{$list}/create")->assertOk()->assertInertia(fn (Assert $page) => expect($handle($page)['warnWhenChanged'])->toBeNull());
+    }
+
+    app()->setLocale('id');
+    expect(HandleField::warning('menu'))->toStartWith('Mengubah handle')->toContain('cms_menu(\':old\')');
 });
 
 it('deletes a collection but keeps its entries', function () {

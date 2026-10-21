@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Eloquent\Model;
 use Sunrice\Admin\Resources\Forms\Pairs;
 use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Forms\Toggle;
@@ -25,4 +26,18 @@ it('describes pairs: their labels, suggestions, first badge and third column', f
         'firstBadge' => 'Main',
         'extra' => ['label' => 'Address', 'placeholder' => '/{key}', 'firstPlaceholder' => '/'],
     ])->and(Pairs::make('x')->validationRules(null))->toContain('string');
+});
+
+it('sends a field\'s change warning to edit forms only, in the panel\'s language', function () {
+    $field = TextInput::make('handle')->warnWhenChanged('Users keep this role and its permissions. Code that checks it by name (hasRole(\':old\'), @role(\':old\')) needs the new one, and if ":old" is one of the panel\'s default roles, sunrice:roles creates it again.');
+    $saved = new class extends Model {};
+    $saved->exists = true;
+
+    expect($field->toArray($saved)['warnWhenChanged'])->toContain('hasRole(\':old\')')
+        ->and($field->toArray(new class extends Model {})['warnWhenChanged'])->toBeNull()
+        ->and($field->toArray()['warnWhenChanged'])->toBeNull()
+        ->and(TextInput::make('title')->toArray($saved)['warnWhenChanged'])->toBeNull();
+
+    app()->setLocale('id');
+    expect($field->toArray($saved)['warnWhenChanged'])->toStartWith('Pengguna tetap');
 });

@@ -215,6 +215,9 @@ it('edits roles and their permissions, within the editor\'s own', function () {
     post('/admin/roles', ['name' => 'helper', 'permissions' => [Panel::ACCESS, 'sunrice.users.view']])->assertRedirect();
     $helper = Role::findByName('helper', 'web');
     expect($helper->permissions->pluck('name')->sort()->values()->all())->toBe([Panel::ACCESS, 'sunrice.users.view']);
+    // Renaming one warns about code that checks it by name; a new one has nothing to warn about.
+    get("/admin/roles/{$helper->id}/edit")->assertInertia(fn (Assert $page) => expect(formField($page, 'name')['warnWhenChanged'])->toContain('hasRole(\':old\')'));
+    get('/admin/roles/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'name')['warnWhenChanged'])->toBeNull());
 
     // Permissions they don't have themselves are refused, the app's own too; so is a role as powerful as they are.
     put("/admin/roles/{$helper->id}", ['name' => 'helper', 'permissions' => ['reports.export']])->assertSessionHasErrors('permissions.0');

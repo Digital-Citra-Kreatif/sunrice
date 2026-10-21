@@ -96,7 +96,7 @@ export default function ResourceEdit({ resource, record, sections, values, can, 
             />
 
             <ResourcePathContext value={resource.path}>
-                <FormSections sections={sections} data={form.data} errors={form.errors} storageKey={`sunrice:resource:${resource.key}`} onChange={change} />
+                <FormSections sections={sections} data={form.data} saved={record ? values : undefined} errors={form.errors} storageKey={`sunrice:resource:${resource.key}`} onChange={change} />
             </ResourcePathContext>
         </form>
     );

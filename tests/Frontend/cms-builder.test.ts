@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    cleanHandle, errorKeysAt, errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, handleWarning, hasErrors, move, newField, relabel, toDefinitions, uniqueHandle,
+    cleanHandle, errorKeysAt, errorsAt, errorsUnder, fromDefinitions, handleFromLabel, handleInput, handleWarning, hasErrors, markSaved, move, newField, relabel, renamedFrom, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -54,6 +54,22 @@ test('round-trips definitions, dropping the builder\'s keys and stray children',
         { handle: 'hero', type: 'group', label: 'Hero', validation: [], fields: [{ handle: 'heading', type: 'text', validation: ['min:3'] }] },
         { handle: 'body', type: 'textarea', validation: [] },
     ]);
+});
+
+test('tells a saved field whose handle changed, until it is saved again', () => {
+    const [hero, body] = fromDefinitions([
+        { handle: 'hero', type: 'group', fields: [{ handle: 'heading', type: 'text' }] },
+        { handle: 'links', type: 'fieldset' },
+    ]);
+    assert.ok(hero && body);
+    assert.equal(renamedFrom(hero), null);
+    assert.equal(renamedFrom({ ...hero, handle: 'banner' }), 'hero');
+    assert.equal(renamedFrom({ ...body, handle: 'other' }), null, 'a fieldset include has no handle of its own');
+    assert.equal(renamedFrom(newField('text', 'Intro', [])), null, 'a field added since was never saved');
+
+    const [saved] = markSaved([{ ...hero, handle: 'banner', fields: hero.fields.map((f) => ({ ...f, handle: 'title' })) }]);
+    assert.equal(renamedFrom(saved!), null);
+    assert.equal(saved!.fields[0]?.savedHandle, 'title');
 });
 
 test('finds errors under a field', () => {

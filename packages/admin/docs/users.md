@@ -16,6 +16,7 @@ Nobody can give out as much as they have, let alone more. Roles have no levels: 
 - They may give out, edit or delete a role only if it is strictly below them; only those roles, and permissions they have, are offered and accepted. A role they create or edit must end up strictly below them, and so must a user: roles that are each below them but together add up to their access are refused. The super admin role is out of their reach.
 - Everyone may edit their own name, email and password, on the Users screen (if they may open it) or on **Your account** (`GET admin/account`, `sunrice.admin.account.edit` / `.update`, for everyone with panel access; under their name in the sidebar), where a new email address or password needs the current one. Nobody can delete their own account or change their own roles.
 - The super admin role can't be edited or deleted: it may do everything anyway.
+- Renaming a role keeps its users and permissions; the form warns that code checking it by name (`hasRole('editor')`, `@role('editor')`) needs the new one, and that `sunrice:roles` creates a default role again under its old name.
 - A role still given to users can't be deleted: take it away from them first.
 
 Saving a user or a role leaves alone what the form doesn't offer: roles of other guards and permissions the panel doesn't register (your app's own) stay as they are.

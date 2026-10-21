@@ -117,6 +117,12 @@ public static function query(): Builder
 
 Every field takes `->label()`, `->required()`, `->help()`, `->placeholder()`, `->default()` (the create form's value), `->rules([...])` (more Laravel rules), `->unique()` (except the record being edited), `->onlyOnCreate()` / `->onlyOnEdit()` and `->span(2)` (columns in a section's grid). `Section::make('Title')->columns(2)->schema([...])` groups fields in a card.
 
+`->warnWhenChanged('…')` warns under a field on the edit form once its value differs from the saved one (never when creating), for values code relies on, such as a handle templates name or a role's name. `:old` and `:new` in the text become the saved and the typed value; like labels and help, the text is said in the panel's language (give it an Indonesian line). The panel's Roles screen warns this way when a role is renamed: code that checks it by name needs the new one.
+
+```php
+TextInput::make('code')->warnWhenChanged('Invoices printed before keep ":old"; reports that filter by it need ":new".'),
+```
+
 `->disabled()` shows a field without letting anyone change it (it's never validated or written); give it a closure to decide per record: `->disabled(fn (?Model $record) => $record?->locked)` (null when creating).
 
 A field that isn't a column reads and writes with closures; `saveUsing` runs after the record is saved, in the same transaction:
