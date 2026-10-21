@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flatten, indent, moveItem, newItem, outdent, removeItem, toTree, type FlatItem } from '../../packages/cms/resources/js/lib/menu.ts';
+import { flatten, indent, labelFallback, moveItem, newItem, outdent, removeItem, toTree, type FlatItem } from '../../packages/cms/resources/js/lib/menu.ts';
 
 const item = (label: string, depth: number) => newItem({ url: `/${label}`, labels: { en: label }, depth });
 const shape = (items: FlatItem[]) => items.map((i) => `${'-'.repeat(i.depth)}${i.labels.en}`);
@@ -68,4 +68,12 @@ test('a listing link keeps its filters through the tree', () => {
     assert.equal(newItem({ url: '/x' }).query, null);
     assert.equal(toTree([listing])[0]!.query, 'listing_type=for-sale');
     assert.equal(flatten(toTree([listing]))[0]!.query, 'listing_type=for-sale');
+});
+
+test('a filtered listing link falls back to the main language label, like an address (NEW2-i18n-2)', () => {
+    assert.equal(labelFallback({ url: null, collection_id: 3, query: 'listing_type=for-sale' }), 'main');
+    assert.equal(labelFallback({ url: null, collection_id: 3, query: '  ' }), 'title');
+    assert.equal(labelFallback({ url: null, collection_id: 3, query: null }), 'title');
+    assert.equal(labelFallback({ url: null, collection_id: null }), 'title');
+    assert.equal(labelFallback({ url: '/contact', collection_id: null }), 'main');
 });

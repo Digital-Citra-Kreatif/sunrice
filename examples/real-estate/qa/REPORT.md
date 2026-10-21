@@ -428,6 +428,7 @@ Each finding gives its severity, the hats that hit it, where it happens, steps, 
 - **Actual:** The only way to back-date a post is Publish ▾ → "Publish on a date…" with a past date. Changing a date later means Unpublish and re-publish.
 - **Screenshot:** `screenshots/editor-40-journal-create.jpg`
 - **Fix:** Show a "Published date" field in the Status card.
+- **Later note (after round 2):** the date-only "Change the date" control the first fix added (and round 1 tested) was removed when main reworked publishing: the Status card now has a **Publish date** field, and publishing (or **Publish changes**) publishes with that date; a date in the future schedules it. See [retest/SUMMARY.md](retest/SUMMARY.md).
 
 #### ED-8
 **Revisions show only title and time**

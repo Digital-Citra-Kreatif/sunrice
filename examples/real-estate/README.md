@@ -4,7 +4,7 @@ The website of Lumina Estates, a premium residential agency in Jakarta and Bali,
 [Sunrice](../../README.md) (`sunrice/admin` + `sunrice/cms`). English is the main language, Indonesian (`/id/…`)
 the second.
 
-> **In this repository** this app is an example and a field test of Sunrice: it requires the packages from `../../packages/*` (a Composer path repository). The QA campaign that built it (admin, developer, editor, frontend and security testing) is in [`qa/REPORT.md`](qa/REPORT.md), with the per-role findings, scripts and screenshots in `qa/`. Photos aren't included: the environment that built it couldn't reach Unsplash; `qa/unsplash-wanted.md` lists them. `database/content.json` holds the content (`php artisan sunrice:import-structure database/content.json`).
+> **In this repository** this app is an example and a field test of Sunrice: it requires the packages from `../../packages/*` (a Composer path repository). The QA campaign that built it (admin, developer, editor, frontend and security testing) is in [`qa/REPORT.md`](qa/REPORT.md), with the per-role findings, scripts and screenshots in `qa/`. Photos aren't included: the environment that built it couldn't reach Unsplash; `qa/unsplash-wanted.md` lists them. `database/content.json` holds the content (`php artisan sunrice:import-structure database/content.json`, after `db:seed`).
 
 ## What lives where
 
@@ -47,8 +47,8 @@ How the CMS picks a template: the entry's own (Page settings), the collection's,
 
 1. Change it in the admin (Structure → Blueprints, Collections …) on a development copy.
 2. Rename fields with `php artisan sunrice:rename-field …` (never in the builder: the values would stay behind).
-3. `php artisan lumina:export-structure` (the CMS's `sunrice:export-structure` plus the "SEO from fields"
-   settings it leaves out), commit `database/structure.json` with the templates that use it.
+3. `php artisan sunrice:export-structure database/structure.json` (every setting, "SEO from fields" and
+   the site's languages included), commit `database/structure.json` with the templates that use it.
 4. On the server: `php artisan sunrice:import-structure database/structure.json --dry-run`, then without
    `--dry-run`. The import adds and updates, never deletes content; it refuses to drop fields unless `--force`.
    Menus are content: the live menus keep their links, and only links the file has and they lack are added
@@ -142,13 +142,19 @@ Fresh install:
 
 ```bash
 composer install
-cp .env.example .env && php artisan key:generate     # set APP_URL, DB_*, MAIL_*, SUNRICE_LOCALES=en,id
+cp .env.example .env && php artisan key:generate     # set APP_URL, DB_*, MAIL_*; keep SUNRICE_LOCALES=en,id
 php artisan sunrice:install --roles                  # migrations, admin assets, storage link, roles, a super admin
 php artisan db:seed                                  # the content model from database/structure.json
+php artisan sunrice:import-structure database/content.json   # optional: the demo content (properties, agents, journal…)
 npm ci && npm run build
 ```
 
-Then, in the admin: Settings → Languages (`en`, `id`), Settings → Site (homepage, site name), the pages'
+`SUNRICE_LOCALES=en,id` must be set before `db:seed`: the structure has Indonesian texts, and an import stops,
+importing nothing, when the site lacks one of the file's languages ("It has texts in Bahasa Indonesia (id),
+which isn't one of this site's languages (en)…"). `database/content.json` points at entries, terms and files by
+slug and path, so it imports into an empty site; photos aren't included.
+
+Then, in the admin: Settings → Site (homepage, site name), the pages'
 templates for Contact (`cms.contact`) and Sell with us (`cms.sell`).
 
 Every deploy:

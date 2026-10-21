@@ -44,10 +44,35 @@
     @endif
     @if (($sunriceUser = auth(app(\Sunrice\Admin\Panel::class)->getGuard())->user()) instanceof \Illuminate\Database\Eloquent\Model
         && app(\Sunrice\Admin\Users\PermissionRank::class)->isSuperAdmin($sunriceUser) && ($sunriceStale = \Sunrice\Admin\Assets\AdminAssets::stale()) !== [])
-        {{-- Only on full page loads, for super admins: the assets published are older than the packages installed. --}}
-        <p role="alert" style="font: 14px/1.4 system-ui; margin: 0; padding: .6rem 1rem; background: #fef3c7; color: #78350f; border-bottom: 1px solid #f59e0b">
-            {{ __('The admin assets published for :list are older than the installed packages, so the panel may run old code. On the server, run php artisan sunrice:assets and php artisan vendor:publish --tag=laravel-assets --force.', ['list' => implode(', ', $sunriceStale)]) }}
-        </p>
+        {{-- Only on full page loads, for super admins: the assets published are older than the packages installed.
+             In Blade, not React, since the React code may be the old one. It stays at the top, in the page's flow:
+             the sidebar (fixed) and the sticky header start below it (--sunrice-banner, its height). --}}
+        <div id="sunrice-stale-assets" role="alert" style="position: sticky; top: 0; z-index: 40; font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: .6rem 1rem; background: #fef3c7; color: #78350f; border-bottom: 1px solid #f59e0b; overflow-wrap: anywhere">
+            {!! __('The admin assets of :list are older than the installed packages, so the panel may run old code. On the server, run :assets and :publish.', [
+                'list' => e(\Illuminate\Support\Arr::join($sunriceStale, ', ', ' '.__('and').' ')),
+                'assets' => '<code>php artisan sunrice:assets</code>',
+                'publish' => '<code>php artisan vendor:publish --tag=laravel-assets --force</code>',
+            ]) !!}
+        </div>
+        <style @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
+            #sunrice-stale-assets code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: #fde68a; padding: 0 .25rem; border-radius: .25rem; white-space: nowrap; }
+            [data-slot="sidebar-container"] { top: var(--sunrice-banner, 0px) !important; height: calc(100svh - var(--sunrice-banner, 0px)) !important; }
+            [data-slot="sidebar-inset"] header.sticky { top: var(--sunrice-banner, 0px); }
+            /* On phones the sidebar is a drawer: the warning scrolls away with the page rather than take the screen's top. */
+            @media (max-width: 767px) {
+                #sunrice-stale-assets { position: static; }
+                #sunrice-stale-assets code { white-space: normal; }
+                [data-slot="sidebar-inset"] header.sticky { top: 0; }
+            }
+        </style>
+        <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
+            (function () {
+                var banner = document.getElementById('sunrice-stale-assets');
+                var set = function () { document.documentElement.style.setProperty('--sunrice-banner', banner.offsetHeight + 'px'); };
+                set();
+                if (window.ResizeObserver) new ResizeObserver(set).observe(banner); else window.addEventListener('resize', set);
+            })();
+        </script>
     @endif
     @if ($sunriceUser instanceof \Illuminate\Database\Eloquent\Model && app(\Sunrice\Admin\Users\PermissionRank::class)->isSuperAdmin($sunriceUser))
         {{-- Only on full page loads, for super admins: settings that are dangerous on a live site. --}}

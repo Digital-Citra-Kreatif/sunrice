@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
@@ -435,4 +438,64 @@ it('tells the editor whether the collection has pages, so Preview shows only whe
 
     get(entryEditUrl($quote->entry_id))->assertInertia(fn (Assert $page) => $page->where('collection.pages', false));
     get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('collection.pages', true));
+});
+
+it('tells the editor which template files are tried for the page, and which exist', function () {
+    $this->articles->update(['template' => 'sunrice-cms::components.seo']);
+    $translation = draft();
+    $translation->entry->update(['template' => 'cms.special']);
+    editor('view', 'update');
+
+    get("/admin/cms/collections/articles/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('templates.own', ['view' => 'cms.special', 'exists' => false])
+        ->where('templates.fallbacks', [
+            ['view' => 'sunrice-cms::components.seo', 'exists' => true],
+            ['view' => 'cms.articles', 'exists' => false],
+            ['view' => 'cms.entry', 'exists' => false],
+        ]));
+});
+
+it('compares SEO and structured values in words, setting by setting, never as JSON', function () {
+    config(['inertia.testing.ensure_pages_exist' => false]);
+    Storage::fake('public');
+    config(['sunrice-admin.media.queue' => false]);
+    $old = app(UploadMedia::class)->handle(UploadedFile::fake()->image('old-share.jpg', 20, 20));
+    $new = app(UploadMedia::class)->handle(UploadedFile::fake()->image('new-share.jpg', 20, 20));
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics']);
+    $news = app(SaveTerm::class)->handle($topics, ['title' => 'News']);
+    $tips = app(SaveTerm::class)->handle($topics, ['title' => 'Tips']);
+    Blueprint::query()->where('handle', 'article')->update(['fields' => [
+        ['handle' => 'intro', 'type' => 'textarea', 'required' => true],
+        ['handle' => 'more', 'type' => 'link', 'label' => 'Read more'],
+        ['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics', 'multiple' => true]],
+        ['handle' => 'photos', 'type' => 'media', 'config' => ['multiple' => true]],
+        ['handle' => 'facts', 'type' => 'repeater', 'fields' => [['handle' => 'label', 'type' => 'text']]],
+    ]]);
+    editor('view', 'update', 'publish');
+    $translation = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->articles, ['title' => 'Hello', 'data' => [
+        'intro' => 'Hi', 'more' => ['type' => 'url', 'url' => 'https://example.com/a'], 'topics' => [$news->id], 'photos' => [$old->id],
+        'facts' => [['_id' => 'r1', 'label' => 'Sunny']],
+    ], 'seo' => ['title' => 'Old title', 'image' => $old->id]]));
+    app(SaveDraft::class)->handle($translation->fresh(), ['data' => [
+        'intro' => 'Hi', 'more' => ['type' => 'url', 'url' => 'https://example.com/b'], 'topics' => [$news->id, $tips->id], 'photos' => [$new->id],
+        'facts' => [['_id' => 'r1', 'label' => 'Sunny'], ['_id' => 'r2', 'label' => 'Quiet']],
+    ], 'seo' => ['title' => 'New title', 'description' => null, 'image' => $new->id, 'noindex' => true]]);
+
+    $revision = $translation->revisions()->first();
+    $fields = get("/admin/cms/entries/{$translation->entry_id}/revisions/{$revision?->id}/compare")->assertOk()->json('fields');
+
+    expect($fields)->toBe([
+        ['label' => 'Read more', 'revision' => 'https://example.com/a', 'draft' => 'https://example.com/b'],
+        ['label' => 'Topics', 'revision' => 'News', 'draft' => 'News, Tips'],
+        ['label' => 'Photos', 'revision' => 'old-share.jpg', 'draft' => 'new-share.jpg'],
+        ['label' => 'Facts', 'revision' => 'Label: Sunny', 'draft' => "Label: Sunny\nLabel: Quiet"],
+        ['label' => 'Meta title', 'revision' => 'Old title', 'draft' => 'New title'],
+        ['label' => 'Open Graph image', 'revision' => 'old-share.jpg', 'draft' => 'new-share.jpg'],
+        ['label' => 'Hide from search engines (noindex)', 'revision' => 'No', 'draft' => 'Yes'],
+    ]);
+
+    // Each revision's changes name SEO settings the same way.
+    app(PublishEntry::class)->handle($translation->fresh());
+    get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => $page
+        ->loadDeferredProps(fn (Assert $reload) => $reload->where('revisions.0.changed', ['Read more', 'Topics', 'Photos', 'Facts', 'Meta title', 'Open Graph image', 'Hide from search engines (noindex)'])));
 });

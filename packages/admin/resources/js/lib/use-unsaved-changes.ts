@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { router } from '@inertiajs/react';
 import { askToLeave } from '@/lib/leave-confirm';
+import { createUnloadGuard } from '@/lib/unload-guard';
 
 /**
  * Guards a form with unsaved edits: asks before leaving the page (links and
@@ -15,8 +16,13 @@ export function useUnsavedChanges(dirty: boolean, onSave?: () => void): void {
     saveRef.current = onSave;
 
     React.useEffect(() => {
+        // Not for a reload the app starts itself after a save (createUnloadGuard()).
+        const guard = createUnloadGuard();
+        const removeStart = router.on('start', (event) => guard.start(event.detail.visit));
+        const removeError = router.on('error', () => guard.error());
+        const removeNavigate = router.on('navigate', () => guard.navigate());
         const beforeUnload = (event: BeforeUnloadEvent) => {
-            if (!dirtyRef.current) return;
+            if (!guard.shouldWarn(dirtyRef.current)) return;
             event.preventDefault();
             event.returnValue = '';
         };
@@ -38,8 +44,9 @@ export function useUnsavedChanges(dirty: boolean, onSave?: () => void): void {
             });
         });
         // A confirmed visit that didn't leave (cancelled, failed): ask again next time.
-        const removeFinish = router.on('finish', () => {
+        const removeFinish = router.on('finish', (event) => {
             confirmed = false;
+            guard.finish(event.detail.visit);
         });
         const keydown = (event: KeyboardEvent) => {
             if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's' && saveRef.current) {
@@ -53,6 +60,9 @@ export function useUnsavedChanges(dirty: boolean, onSave?: () => void): void {
         return () => {
             removeBefore();
             removeFinish();
+            removeStart();
+            removeError();
+            removeNavigate();
             window.removeEventListener('beforeunload', beforeUnload);
             window.removeEventListener('keydown', keydown);
         };

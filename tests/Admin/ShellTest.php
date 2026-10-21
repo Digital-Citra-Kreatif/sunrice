@@ -154,7 +154,7 @@ it('warns super admins when the published assets are older than the installed pa
     mkdir($public.'/vendor/shop', recursive: true);
     file_put_contents($public.'/vendor/shop/admin.js', 'new();');
     app()->usePublicPath($public);
-    usePanel(fn (Panel $panel) => $panel->bundle(PluginBundle::make('shop')->module('/vendor/shop/admin.js')->pages('Shop/')->publishedFrom($dist, $public.'/vendor/shop')));
+    usePanel(fn (Panel $panel) => $panel->bundle(PluginBundle::make('shop')->module('/vendor/shop/admin.js')->pages('Shop/')->named('Acme <Shop>')->publishedFrom($dist, $public.'/vendor/shop')));
     artisan('sunrice:assets')->assertSuccessful();
     $admin = adminUser(Panel::ACCESS);
     Role::findOrCreate(SyncPermissions::superAdminRole(), 'web');
@@ -167,8 +167,13 @@ it('warns super admins when the published assets are older than the installed pa
     // An update without publishing: the panel's manifest and the plugin's build changed.
     file_put_contents($public.'/vendor/sunrice-admin/manifest.json', '{"old": true}');
     file_put_contents($dist.'/admin.js', 'newer();');
-    get('/admin')->assertOk()->assertSee('The admin assets published for Sunrice, shop are older than the installed packages')
-        ->assertSee('php artisan sunrice:assets');
+    // Named by the bundle's display name, with the commands to run as code; in the page's flow, above the shell (NEW2-front-3).
+    get('/admin')->assertOk()
+        ->assertSee('The admin assets of Sunrice and Acme &lt;Shop&gt; are older than the installed packages, so the panel may run old code.', false)
+        ->assertSee('On the server, run <code>php artisan sunrice:assets</code> and <code>php artisan vendor:publish --tag=laravel-assets --force</code>.', false)
+        ->assertSee('id="sunrice-stale-assets"', false)
+        ->assertSee('--sunrice-banner', false);
+    expect(PluginBundle::make('shop')->displayName())->toBe('shop');
     // Only to super admins, and only on full page loads.
     actingAs(adminUser(Panel::ACCESS));
     get('/admin')->assertOk()->assertDontSee($warning);

@@ -203,12 +203,17 @@ it('lists each term with its entry count, and the taxonomy\'s collections and se
 
 it('explains a template setting with the files tried in order when it is empty', function () {
     expect(TemplateHelp::text('cms.topic', ['cms.taxonomy-{handle}', 'cms.term']))->toBe(implode("\n", [
-        'A Blade view: cms.topic is resources/views/cms/topic.blade.php.',
-        'Empty: the first that exists of',
-        '1. resources/views/cms/taxonomy-{handle}.blade.php',
-        '2. resources/views/cms/term.blade.php',
+        'Leave empty to use the first that exists, under resources/views:',
+        '1. cms/taxonomy-{handle}.blade.php',
+        '2. cms/term.blade.php',
         '3. the built-in template',
+        'A view name is a file there: cms.topic is cms/topic.blade.php.',
     ]));
+    // The editor's "Which file?": the views tried, in order, and which exist.
+    expect(TemplateHelp::lookup([null, 'sunrice-cms::site.nope', '', 'sunrice-cms::components.seo']))->toBe([
+        ['view' => 'sunrice-cms::site.nope', 'exists' => false],
+        ['view' => 'sunrice-cms::components.seo', 'exists' => true],
+    ]);
 });
 
 it('creates a term on its own page, then goes to its page or back to the list', function () {

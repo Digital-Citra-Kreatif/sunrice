@@ -601,7 +601,7 @@
     "The activity log was pruned": "Log aktivitas dipangkas",
     "The address :ip asked for more password reset emails than allowed and was blocked for a while.": "Alamat :ip meminta email atur ulang kata sandi lebih banyak dari yang diizinkan dan diblokir untuk sementara.",
     "The address :ip tried passwords for many accounts and was blocked. The last one was :account.": "Alamat :ip mencoba kata sandi untuk banyak akun dan diblokir. Yang terakhir adalah :account.",
-    "The admin assets published for :list are older than the installed packages, so the panel may run old code. On the server, run php artisan sunrice:assets and php artisan vendor:publish --tag=laravel-assets --force.": "Aset admin yang dipublikasikan untuk :list lebih lama daripada paket yang terpasang, jadi panel mungkin menjalankan kode lama. Di server, jalankan php artisan sunrice:assets dan php artisan vendor:publish --tag=laravel-assets --force.",
+    "The admin assets of :list are older than the installed packages, so the panel may run old code. On the server, run :assets and :publish.": "Aset admin :list lebih lama daripada paket yang terpasang, jadi panel mungkin menjalankan kode lama. Di server, jalankan :assets dan :publish.",
     "The app can't send email yet (the :mailer mailer only writes to the log), so nobody would get their login code. Set up mail first: see Settings → Mail.": "Aplikasi belum bisa mengirim email (mailer :mailer hanya menulis ke log), sehingga tidak ada yang akan menerima kode masuknya. Siapkan email dulu: lihat Pengaturan → Email.",
     "The file is larger than the :size limit.": "File lebih besar dari batas :size.",
     "The file is larger than the server accepts (:size) or didn't finish uploading.": "File lebih besar dari yang diterima server (:size) atau unggahannya tidak selesai.",
@@ -739,5 +739,6 @@
     "Your new token “:name”": "Token baru Anda “:name”",
     "Your password has been reset. You can log in now.": "Kata sandi Anda telah diatur ulang. Sekarang Anda bisa masuk.",
     "Users keep this role and its permissions. Code that checks it by name (hasRole(':old'), @role(':old')) needs the new one, and if \":old\" is one of the panel's default roles, sunrice:roles creates it again.": "Pengguna tetap memiliki peran ini beserta izinnya. Kode yang memeriksanya lewat nama (hasRole(':old'), @role(':old')) perlu nama baru, dan jika \":old\" adalah salah satu peran bawaan panel, sunrice:roles akan membuatnya lagi.",
-    "Type a password, or turn on Email an invitation.": "Ketik kata sandi, atau nyalakan Kirim undangan lewat email."
+    "Type a password, or turn on Email an invitation.": "Ketik kata sandi, atau nyalakan Kirim undangan lewat email.",
+    "and": "dan"
 }

@@ -85,8 +85,9 @@ final class SettingsController
         $changed = $update->handle($registered, $request->all());
         $message = __(':label settings saved.', ['label' => Say::it($registered->class::label())]);
 
-        // The font and colour are in the page's <head>: load the whole page again to show them.
-        if ($registered->class === BrandingSettings::class && $changed !== []) {
+        // The font, colour and icon are in the page's <head> (the icon follows the logo and the name):
+        // load the whole page again to show them. Words alone (tagline, sign-in texts) update in place.
+        if ($registered->class === BrandingSettings::class && array_intersect($changed, BrandingSettings::IN_HEAD) !== []) {
             $request->session()->flash('success', $message);
 
             return Inertia::location(route('sunrice.admin.settings.edit', $registered->key()));

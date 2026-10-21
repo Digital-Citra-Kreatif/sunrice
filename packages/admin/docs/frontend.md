@@ -76,11 +76,12 @@ $panel->bundle(
         ->module(asset('vendor/shop/admin.js'))
         ->style(asset('vendor/shop/admin.css'))
         ->pages('Shop/')
+        ->named('Acme Shop')
         ->publishedFrom(__DIR__.'/../dist', public_path('vendor/shop')),
 );
 ```
 
-`publishedFrom()` (optional) says where the package's built files are and where they're published: when a published file is missing or differs from the build (an update that didn't publish them, as when a package symlinked from a path changes without `composer update`), super admins see a warning at the top of the panel naming the bundle. Publish under the `laravel-assets` tag too (`$this->publishes([...], ['shop-assets', 'laravel-assets'])`), which Laravel apps publish after every `composer update`.
+`publishedFrom()` (optional) says where the package's built files are and where they're published: when a published file is missing or differs from the build (an update that didn't publish them, as when a package symlinked from a path changes without `composer update`), super admins see a warning at the top of the panel naming the bundle by `named()` ("Acme Shop"; its id without it), with the commands to run. The warning is part of the page (the sidebar and header start below it), and it's plain Blade, since the panel's React code may be the stale one. Publish under the `laravel-assets` tag too (`$this->publishes([...], ['shop-assets', 'laravel-assets'])`), which Laravel apps publish after every `composer update`.
 
 ### Styles
 
