@@ -49,6 +49,25 @@ it('keeps a not-found page out of search results, without a canonical address', 
         ->not->toContain('og:url');
 });
 
+it('shows a listing page past its last as a plain not-found page: no canonical, alternates or listing data (NEW2-front-1)', function () {
+    edgePost('One');
+    $views = sys_get_temp_dir().'/sunrice-errors-'.uniqid();
+    mkdir($views.'/errors', recursive: true);
+    file_put_contents($views.'/errors/404.blade.php', '<html><head><x-sunrice-cms::seo /></head><body>Gone</body></html>');
+    config(['view.paths' => [$views, ...config('view.paths')]]);
+
+    $html = (string) get('/blog?page=123456')->assertNotFound()->getContent();
+
+    expect($html)->toContain('<meta name="robots" content="noindex">')
+        ->not->toContain('rel="canonical"')
+        ->not->toContain('hreflang')
+        ->not->toContain('og:url')
+        ->not->toContain('CollectionPage')
+        ->not->toContain('BreadcrumbList')
+        ->not->toContain('page=123456')
+        ->toContain('"WebSite"');
+});
+
 it('numbers the title of a listing past its first page, and links page 1 without ?page=1', function () {
     edgePost('One');
     edgePost('Two');
