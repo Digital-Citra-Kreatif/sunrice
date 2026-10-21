@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- **The login code email no longer has the code in its subject** (shown on locked phones' notifications): only in the body, unless `sunrice-admin.auth.two_factor_code_in_subject` (`SUNRICE_LOGIN_CODE_IN_SUBJECT`) is `true`. (SEC-11)
 - The default `editor` role gets `cms.menus.view` and `cms.menus.update` instead of `cms.menus.*`: editors change menus' links but no longer create or delete menus (like `main`, which templates rely on). Roles seeded before keep what they have: take `cms.menus.create` and `cms.menus.delete` from them in Roles. (SEC-10)
 - Forgot and reset password requests are also capped per IP an hour (`auth.throttle.password_resets_per_hour`, 20; besides 5 a minute), so one address can't mail reset links to address after address; reaching a limit is a `password reset blocked` security event and an alert ("One address keeps asking for password resets"). (SEC-9)
 - Uploads named as images (`.jpg`, `.png`, `.gif`, `.webp`, `.avif`, `.bmp`) must be readable images and free of PHP code, in the media library ("This isn't a valid image"; a polyglot is an "upload blocked" security event) and in forms' file fields, through the new `Media\FileContent` (`@api`: `matchesExtension()`, `containsPhp()`). A text file named `.jpg` was stored as a document. (SEC-8, SEC-12)

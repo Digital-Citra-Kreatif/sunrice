@@ -49,6 +49,7 @@ What changed in the `Unreleased` version that may need a change in your app, tem
 
 Also worth checking, though not breaking for most apps:
 
+- **The login code email's subject no longer has the code** ("Your … login code"); set `SUNRICE_LOGIN_CODE_IN_SUBJECT=true` (`auth.two_factor_code_in_subject`) to keep it there. See [Signing in](../packages/admin/docs/auth.md#two-factor-login).
 - The settings keys `security` and `mail` belong to the panel's own sections: give your own settings sections other keys.
 - The CMS requires `spatie/laravel-honeypot`, and its whole-page cache (`sunrice-cms.cache.pages`) needs `spatie/laravel-responsecache`; the `X-Sunrice-Cache` header is gone. See [Caching](../packages/cms/docs/caching.md).
 - Every default role with `sunrice.access` now also gets `sunrice.guide.view` when `sunrice:roles` runs.

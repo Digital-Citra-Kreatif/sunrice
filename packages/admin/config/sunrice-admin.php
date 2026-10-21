@@ -27,6 +27,10 @@ return [
         // setting says; null follows the setting.
         'two_factor' => null,
 
+        // Put the login code in the email's subject too ("Your … login code: 123456"),
+        // handy but readable on locked phones' notifications. Off: only in the body.
+        'two_factor_code_in_subject' => env('SUNRICE_LOGIN_CODE_IN_SUBJECT', false),
+
         // Brute-force protection for the panel's login. Wrong passwords are
         // counted three ways; the first limit reached makes the person wait.
         'throttle' => [
