@@ -167,5 +167,10 @@ On the server, keep running:
 - a queue worker (`php artisan queue:work`, Supervisor or systemd): form and comment notifications, image sizes;
 - the scheduler (`* * * * * php artisan schedule:run`): scheduled publishing, pruning old submissions and spam.
 
+The server's `.env` sets `APP_ENV=production` and `APP_DEBUG=false` (with debug on, error pages show stack
+traces and file paths; with it off, visitors get `resources/views/errors/`), and `APP_URL` to the real
+address: emails' links are built from it, and `bootstrap/app.php` trusts only its host (`trustHosts()`). Set
+`expose_php = Off` in `php.ini` so responses don't announce the PHP version (`X-Powered-By`).
+
 Web server: serve `public/`; for `storage/media` add `X-Content-Type-Options: nosniff` (see the panel's
 media docs). Add `Sitemap: https://<domain>/sitemap.xml` to `public/robots.txt` for the production domain.
