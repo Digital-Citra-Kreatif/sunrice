@@ -17,6 +17,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Revision;
+use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -112,7 +113,7 @@ it('edits each language in the editor', function () {
 
     get("/admin/cms/entries/{$entry->id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('entry.locale', 'en')->where('entry.isMain', true)->where('shared', [])
-        ->where('locales', [['code' => 'en', 'name' => 'en', 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => null, 'outdated' => false]]));
+        ->where('locales', [['code' => 'en', 'name' => Locales::displayName('en'), 'main' => true, 'status' => 'draft', 'outdated' => false], ['code' => 'id', 'name' => Locales::displayName('id'), 'main' => false, 'status' => null, 'outdated' => false]]));
     get("/admin/cms/entries/{$entry->id}/edit?locale=id")->assertNotFound();
 
     post("/admin/cms/entries/{$entry->id}/translations", ['locale' => 'id'])->assertRedirect("/admin/cms/entries/{$entry->id}/edit?locale=id");
@@ -126,7 +127,7 @@ it('edits each language in the editor', function () {
         ->and($this->main->fresh()?->status)->toBe('draft');
 
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('entries.data.0.locales.1', ['code' => 'id', 'name' => 'id', 'main' => false, 'status' => 'published', 'outdated' => false]));
+        ->where('entries.data.0.locales.1', ['code' => 'id', 'name' => Locales::displayName('id'), 'main' => false, 'status' => 'published', 'outdated' => false]));
 
     delete("/admin/cms/entries/{$entry->id}/translations/id")->assertRedirect("/admin/cms/entries/{$entry->id}/edit");
     delete("/admin/cms/entries/{$entry->id}/translations/en")->assertSessionHasErrors('locale');

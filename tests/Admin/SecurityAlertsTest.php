@@ -15,6 +15,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
+use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Tests\Admin\Fixtures\TestPlugin;
 use Workbench\App\Models\User;
 
@@ -186,4 +187,19 @@ it('raises a plugin\'s own alert, once per rule and key in the cooldown, and non
 
     expect(alertsSent())->toBe(['The payout account was changed', 'Another shop\'s payout account was changed']);
     expect(Mail::queued(SecurityAlert::class)->first()->render())->toContain('Ana changed where payouts go.')->toContain('Change it back');
+});
+
+it('sends alerts to the roles and addresses chosen in Settings → Security', function () {
+    Role::findOrCreate('ops', 'web');
+    User::query()->create(['name' => 'Ops', 'email' => 'ops@example.com', 'password' => 'secret-password'])->assignRole('ops');
+    actingAs($this->admin);
+    put('/admin/settings/security', ['twoFactor' => false, 'alertRoles' => ['ops'], 'alertEmails' => "night@example.com\nday@example.com"])->assertSessionHasNoErrors();
+    put('/admin/settings/security', ['twoFactor' => false, 'alertRoles' => [], 'alertEmails' => 'not an address'])->assertSessionHasErrors('alertEmails');
+    expect(app(SecuritySettings::class)->alertRoles)->toBe(['ops']);
+
+    config(['sunrice-admin.security.alerts.mass_deletes' => 1]);
+    app(ActivityLog::class)->record('deleted', 'product', null, 'Mug');
+
+    $to = Mail::queued(SecurityAlert::class)->flatMap(fn (SecurityAlert $mail) => array_column($mail->to, 'address'))->all();
+    expect($to)->toContain('admin@example.com', 'ops@example.com', 'night@example.com', 'day@example.com', 'security@example.com');
 });

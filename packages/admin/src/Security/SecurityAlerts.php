@@ -297,13 +297,14 @@ final class SecurityAlerts
         $this->log->record('alert sent', null, $headline, ['note' => "{$rule} to ".count($recipients).' '.(count($recipients) === 1 ? 'person' : 'people')]);
     }
 
-    /** @return list<string> super admins, users with the configured roles, and the configured emails */
+    /** @return list<string> super admins, users with the configured roles (config and Settings → Security), and the configured emails */
     private function recipients(): array
     {
+        $settings = app(SecuritySettings::class);
         $roles = config('sunrice-admin.security.alerts.roles');
-        $roles = [SyncPermissions::superAdminRole(), ...(is_array($roles) ? array_filter($roles, 'is_string') : [])];
+        $roles = [SyncPermissions::superAdminRole(), ...(is_array($roles) ? array_filter($roles, 'is_string') : []), ...$settings->alertRoles];
         $emails = config('sunrice-admin.security.alerts.emails');
-        $emails = is_array($emails) ? array_filter($emails, 'is_string') : [];
+        $emails = [...(is_array($emails) ? array_filter($emails, 'is_string') : []), ...SecuritySettings::emails($settings->alertEmails)];
 
         try {
             // Through spatie/laravel-permission's tables, for any user model.

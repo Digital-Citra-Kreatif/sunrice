@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -172,6 +173,22 @@ it('translates terms, globals and menu labels', function () {
         ->and($contact->fresh()?->data('id'))->toBe(['address' => 'ID: Main St', 'open' => true])
         ->and(MenuItem::query()->firstOrFail()->labels)->toBe(['en' => 'About us', 'id' => 'ID: About us'])
         ->and(EntryTranslation::query()->where('locale', 'id')->exists())->toBeFalse();
+});
+
+it('translates the app\'s language files', function () {
+    fakeGemini();
+    $lang = sys_get_temp_dir().'/sunrice-lang-'.uniqid();
+    File::ensureDirectoryExists("{$lang}/en");
+    File::put("{$lang}/en/shop.php", "<?php return ['cart' => 'Cart', 'checkout' => ['title' => 'Pay :amount']];");
+    File::put("{$lang}/en.json", json_encode(['Sign in' => 'Sign in', 'Hello' => 'Hello']));
+    File::put("{$lang}/id.json", json_encode(['Hello' => 'Halo', 'Extra' => 'Tambahan']));
+    app()->useLangPath($lang);
+
+    artisan('sunrice:translate', ['--only' => ['lang']])->assertSuccessful();
+
+    expect(require "{$lang}/id/shop.php")->toBe(['cart' => 'ID: Cart', 'checkout' => ['title' => 'ID: Pay :amount']])
+        ->and(json_decode(File::get("{$lang}/id.json"), true))->toBe(['Sign in' => 'ID: Sign in', 'Hello' => 'Halo', 'Extra' => 'Tambahan']);
+    File::deleteDirectory($lang);
 });
 
 it('translates from the main language in the editor, when a service is set up', function () {

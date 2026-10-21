@@ -64,7 +64,7 @@ app(SecurityLog::class)->about('api key rotated', 'integration', $integration, '
 
 ## Email alerts
 
-When something may be a break-in, the panel emails super admins, users with the roles in `security.alerts.roles`, and the addresses in `security.alerts.emails` (`config/sunrice-admin.php`). Each alert says what happened and what to do, and links to the security events:
+When something may be a break-in, the panel emails super admins, users with the roles in `security.alerts.roles`, the addresses in `security.alerts.emails` (`config/sunrice-admin.php`), and the roles and addresses chosen in Settings → Security (`SecuritySettings::$alertRoles`, `$alertEmails`). Each alert says what happened and what to do, and links to the security events:
 
 | Alert | When |
 | --- | --- |
@@ -96,7 +96,7 @@ app(\Sunrice\Admin\Security\SecurityAlerts::class)->raise('shop-payout-changed',
     'If nobody meant to, change it back and check who did it in the activity log.', ['Who' => $who]);
 ```
 
-It goes to the same people (super admins, `security.alerts.roles` and `security.alerts.emails`), is queued, records an `alert sent` security event, does nothing when alerts are off, and never throws.
+It goes to the same people (super admins, `security.alerts.roles`, `security.alerts.emails` and those chosen in Settings → Security), is queued, records an `alert sent` security event, does nothing when alerts are off, and never throws.
 
 To watch the activity log or the security events the way the built-in rules do, listen to `Sunrice\Admin\Events\ActivityRecorded` (every new line, `$event->activity`) or `SecurityEventRecorded`, count what you need, and raise when a threshold is reached:
 
