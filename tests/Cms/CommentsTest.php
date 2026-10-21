@@ -167,9 +167,14 @@ it('posts from the site, back to the thread, with errors and the captcha', funct
 
 it('limits comments per visitor', function () {
     commentSettings(['perMinute' => 2]);
+    postJson("/comments/{$this->post->entry_id}", ['body' => ''])->assertUnprocessable(); // doesn't count
     postJson("/comments/{$this->post->entry_id}", guest())->assertCreated();
     postJson("/comments/{$this->post->entry_id}", guest())->assertCreated();
     postJson("/comments/{$this->post->entry_id}", guest())->assertStatus(429);
+    // On the page: back to the form, with the message and what was typed.
+    from('/blog/hello')->post("/comments/{$this->post->entry_id}", guest(['body' => 'Still here']))
+        ->assertRedirect('/blog/hello#comment-form')->assertSessionHasErrors(['_limit'], null, 'comments')->assertSessionHasInput('body', 'Still here');
+    expect((string) get('/blog/hello')->getContent())->toContain('Please wait')->toContain('Still here');
 });
 
 it('emails moderators, and commenters about replies once, with a way to stop', function () {
