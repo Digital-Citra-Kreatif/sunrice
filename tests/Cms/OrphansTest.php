@@ -65,6 +65,9 @@ it('lists deleted collections and taxonomies, missing media files and links to m
 it('purges deleted collections and taxonomies with what they kept, freeing their handles', function () {
     artisan('sunrice:orphans', ['--purge' => true])->expectsConfirmation('Delete the deleted collections and taxonomies listed, with their entries and terms, for good? This can\'t be undone.', 'no')->assertFailed();
     expect(Collection::withTrashed()->where('handle', 'news')->exists())->toBeTrue();
+    // Without a prompt to answer, it says how to go ahead (NEW-admin-2).
+    artisan('sunrice:orphans', ['--purge' => true, '--no-interaction' => true])->expectsOutputToContain('Nothing was deleted: run it with --force')->assertFailed();
+    artisan('sunrice:orphans')->expectsOutputToContain('Restore deleted collections and taxonomies from the Trash of their lists')->assertSuccessful();
 
     artisan('sunrice:orphans', ['--purge' => true, '--force' => true])->expectsOutputToContain('handle is free')->assertSuccessful();
     expect(Collection::withTrashed()->where('handle', 'news')->exists())->toBeFalse()

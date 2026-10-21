@@ -33,6 +33,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- `sunrice:orphans --purge --no-interaction` says to add `--force` instead of a bare "Nothing was deleted.", and its hint points to the lists' **Trash**, not an old "Deleted" filter; the guide says deleted collections are deleted for good only with `sunrice:orphans --purge`. (The 404 on Delete in a "Deleted" filter and "can't be undone" on deleting a collection came from admin assets older than the trash; the current lists say "Move … to the trash? You can restore it." and offer only **Restore** in the trash, now tested.) (NEW-admin-2)
 - Fixed: moving an entry to the trash left its edit lock behind (releasing answered 403, as the trashed entry was no longer editable). Releasing a lock no longer asks whether the person may still edit the item, only frees their own (the same tab and user): `EditLocks::release()` takes an optional `$userId`. (NEW-editor-4)
 - New user without a password or an invitation says "Type a password, or turn on Email an invitation." instead of Laravel's "The Password field is required unless Email an invitation is in true, 1." (NEW-admin-3)
 - `cms_render_page` checks its "public pages only" rule on the path as routing reads it: percent-encoding decoded (again until nothing changes), backslashes and repeated slashes as one, `.` and `..` resolved, so `/%61dmin` and `/%5Finertia/…` are refused like `/admin` and `/_inertia/…`. (NEW-security-2)
