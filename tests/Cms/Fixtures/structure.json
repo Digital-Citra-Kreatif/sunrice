@@ -48,7 +48,7 @@
         {"taxonomy": "topics", "slug": "local", "parent": "news", "template": null, "translations": {"en": {"title": "Local", "slug": "local", "data": null}}}
     ],
     "entries": [
-        {"collection": "pages", "slug": "about", "parent": null, "template": null, "translations": {"en": {"title": "About", "slug": "about", "data": {"intro": "Who we are", "sections": [], "topics": []}, "published": true}}},
+        {"collection": "pages", "slug": "about", "parent": null, "template": null, "translations": {"en": {"title": "About", "slug": "about", "data": {"intro": "Who we are", "sections": [], "topics": []}, "published": true, "published_at": "2026-01-15T09:00:00+00:00"}}},
         {"collection": "pages", "slug": "team", "parent": "about", "template": "cms.team", "translations": {"en": {"title": "Team", "slug": "team", "data": {"intro": null, "sections": [], "topics": []}, "published": false}}}
     ]
 }

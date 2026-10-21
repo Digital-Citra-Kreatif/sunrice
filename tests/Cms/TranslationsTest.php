@@ -244,3 +244,30 @@ it('dates a translation as its entry when first published', function () {
         ->and($main->published_at?->toDateTimeString())->toBe('2026-10-07 09:00:00');
     Carbon::setTestNow();
 });
+
+it('publishes another language when a block or row has a required shared field, as saving its draft does', function () {
+    Fieldset::query()->create(['handle' => 'stats', 'title' => 'Stats', 'fields' => [
+        ['handle' => 'label', 'type' => 'text'],
+        ['handle' => 'source', 'type' => 'number', 'required' => true],
+    ]]);
+    Blueprint::query()->create(['handle' => 'report', 'title' => 'Report', 'fields' => [
+        ['handle' => 'sections', 'type' => 'flexible', 'config' => ['blocks' => ['stats']]],
+        ['handle' => 'years', 'type' => 'repeater', 'fields' => [['handle' => 'note', 'type' => 'text'], ['handle' => 'year', 'type' => 'number', 'required' => true]]],
+    ]]);
+    $reports = Collection::query()->create(['handle' => 'reports', 'title' => 'Reports', 'blueprint' => 'report']);
+    $main = app(CreateEntry::class)->handle($reports, ['title' => 'Annual', 'data' => [
+        'sections' => [['id' => 'b1', 'type' => 'stats', 'values' => ['label' => 'Staff', 'source' => 3]]],
+        'years' => [['_id' => 'r1', 'note' => 'Good', 'year' => 2025]],
+    ]]);
+    $id = app(CreateTranslation::class)->handle($main->entry, 'id');
+    app(SaveDraft::class)->handle($id, ['data' => [
+        'sections' => [['id' => 'b1', 'type' => 'stats', 'values' => ['label' => 'Staf']]],
+        'years' => [['_id' => 'r1', 'note' => 'Baik']],
+    ]]);
+
+    $published = app(PublishEntry::class)->handle($id->fresh() ?? $id);
+
+    expect($published->isPublished())->toBeTrue()
+        ->and($published->data['sections'][0]['values'])->toBe(['label' => 'Staf'])
+        ->and($published->data['years'][0])->not->toHaveKey('year');
+});

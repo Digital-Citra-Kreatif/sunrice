@@ -120,6 +120,10 @@ it('refuses unknown collections, filter types and names', function () {
 });
 
 it('says a page given values it ignores isn\'t to be kept, so made-up values can\'t fill the page cache', function () {
+    // Unlisted, a filter's parameters never key a kept page: the filtered page isn't kept at all.
+    get('/catalogue?sale=1')->assertOk();
+    expect(app(PageCache::class)->keeps(request(), null))->toBeFalse();
+    config(['sunrice-cms.cache.query' => ['color', 'sale', 'sort', 'topic', 'price_min', 'made_from']]);
     $kept = function (string $query): bool {
         get('/catalogue?'.$query)->assertOk();
 

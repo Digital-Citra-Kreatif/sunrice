@@ -172,7 +172,8 @@ it('ignores other query parameters, or skips the cache for them, but never for t
     file_put_contents("{$views}/cms/blog.blade.php", '@php(app(\Sunrice\Cms\Site\PageCache::class)->read("tab"))tab={{ request("tab") }}');
     View::addLocation($views);
 
-    // Ignored by default: the same kept page.
+    // Ignored: the same kept page.
+    saveCache(['otherQuery' => CacheSettings::IGNORE]);
     get('/blog/hello')->assertHeader('X-Cache-Status', 'MISS');
     get('/blog/hello?utm_source=mail&x='.uniqid())->assertHeader('X-Cache-Status', 'HIT');
 

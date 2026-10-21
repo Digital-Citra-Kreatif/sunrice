@@ -9,6 +9,7 @@ use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
+use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
@@ -251,4 +252,14 @@ it('carries a listing page\'s files and SEO between sites, by path', function ()
     $data = $articles->listings()->where('locale', 'en')->sole()->data;
     expect($data['hero'])->toBe($here->id)
         ->and($data['seo'])->toMatchArray(['title' => 'All our articles', 'image' => $here->id]);
+});
+
+it('keeps entries\' publish dates between sites, and refuses one that isn\'t a date', function () {
+    app(StructureImporter::class)->import(structureFixture());
+    $about = EntryTranslation::query()->where('draft_slug', 'about')->sole();
+    expect($about->published_at?->toIso8601String())->toBe('2026-01-15T09:00:00+00:00');
+
+    $file = structureFixture();
+    $file['entries'] = [['collection' => 'pages', 'slug' => 'dated', 'translations' => ['en' => ['title' => 'Dated', 'slug' => 'dated', 'data' => [], 'published' => true, 'published_at' => 'not a date']]]];
+    expect(fn () => app(StructureImporter::class)->import($file))->toThrow(StructureImportFailed::class, 'published_at must be a date');
 });

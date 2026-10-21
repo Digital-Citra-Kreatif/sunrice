@@ -482,3 +482,16 @@ it('thanks visitors in their language', function () {
     $this->form->update(['message' => null]);
     postJson('/forms/contact', [...contactInput(), 'locale' => 'en'])->assertJson(['message' => 'Thank you, we got your message.']);
 });
+
+it('takes a required toggle as a consent box that must be ticked', function () {
+    $blueprint = Blueprint::query()->where('handle', 'contact')->firstOrFail();
+    $blueprint->update(['fields' => [...$blueprint->fields, ['handle' => 'consent', 'type' => 'toggle', 'label' => 'I agree', 'required' => true]]]);
+    $this->form->update(['per_minute' => 100]);
+
+    // The component sends a hidden 0 before the box: unticked is refused.
+    from('/contact-page')->post('/forms/contact', contactInput(['consent' => '0']))->assertSessionHasErrors(['consent'], errorBag: 'contact');
+    from('/contact-page')->post('/forms/contact', contactInput())->assertSessionHasErrors(['consent'], errorBag: 'contact');
+    from('/contact-page')->post('/forms/contact', contactInput(['consent' => '1']))->assertSessionHasNoErrors();
+    expect(Submission::query()->latest('id')->firstOrFail()->data['consent'])->toBeTrue()
+        ->and(Blade::render('<x-sunrice-cms::form handle="contact" />'))->toMatch('/<input type="checkbox" id="[^"]*consent[^"]*" name="data\[consent\]" value="1"\s+required/');
+});

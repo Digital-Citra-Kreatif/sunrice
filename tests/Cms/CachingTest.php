@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
 use Illuminate\Testing\TestResponse;
+use Spatie\ResponseCache\ResponseCache;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
@@ -43,6 +44,7 @@ use Sunrice\Cms\Models\GlobalSet;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Submission;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Settings\CacheSettings;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Site\PageCache;
@@ -312,6 +314,7 @@ it('lets no comment touch the cache, unless an approved one shows on a kept page
 
 it('keeps one page whatever other query parameters say', function () {
     config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true, 'sunrice-cms.cache.query' => ['sort']]);
+    app(CacheSettings::class)->fill(['otherQuery' => CacheSettings::IGNORE])->save();
     foreach (range(1, 3) as $i) {
         cachedPost("Post {$i}");
     }
@@ -372,6 +375,32 @@ it('keeps no copies for pages past the last, for query parameters a page didn\'t
     // An empty one (a form's blank choice) is the page without it.
     get('/blog')->assertHeader('X-Cache-Status', 'MISS');
     get('/blog?sort=')->assertHeader('X-Cache-Status', 'HIT');
+});
+
+it('never keeps a filtered page under the address without its filter, when the filter\'s parameters aren\'t listed', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
+    Blueprint::query()->where('handle', 'post')->firstOrFail()->update(['fields' => [['handle' => 'intro', 'type' => 'text'], ['handle' => 'price', 'type' => 'number']]]);
+    foreach (range(1, 3) as $i) {
+        app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => "Post {$i}", 'data' => ['price' => $i * 10]]));
+    }
+    $views = sys_get_temp_dir().'/sunrice-unlisted-'.uniqid();
+    mkdir("{$views}/cms", recursive: true);
+    file_put_contents("{$views}/cms/blog-listing.blade.php", '<x-sunrice-cms::entry-filter collection="blog" :filters="[\'price\' => [\'type\' => \'range\', \'options\' => [10, 20, 30]]]">'
+        .'@foreach ($component->entries as $e){{ $e->title }};@endforeach</x-sunrice-cms::entry-filter>');
+    View::addLocation($views);
+
+    // By default other parameters skip the cache: the filter works, and the plain listing stays whole.
+    expect(app(CacheSettings::class)->skipsOtherQuery())->toBeTrue();
+    get('/blog?price_min=30')->assertSee('Post 3;')->assertDontSee('Post 1;')->assertHeaderMissing('X-Cache-Status');
+    get('/blog')->assertSee('Post 1;')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog?price_min=30')->assertDontSee('Post 1;');
+
+    // Ignoring other parameters, the filtered page still isn't kept as the plain listing.
+    app(SiteCache::class)->changed('test');
+    app(ResponseCache::class)->clear();
+    app(CacheSettings::class)->fill(['otherQuery' => CacheSettings::IGNORE])->save();
+    get('/blog?price_min=30')->assertSee('Post 3;')->assertDontSee('Post 1;');
+    get('/blog')->assertSee('Post 1;')->assertSee('Post 2;');
 });
 
 it('keeps no copies for page numbers a page doesn\'t read, nor for made-up ones', function () {

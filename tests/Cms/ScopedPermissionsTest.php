@@ -187,6 +187,8 @@ it('gives the default roles their content permissions', function () {
 
     expect(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.entries.publish', 'cms.entries.blog.publish', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete')
         ->not->toContain('cms.collections.create')
+        // Not the submissions: visitors' personal details go to those an admin picks (F-019).
+        ->not->toContain('cms.submissions.view')->not->toContain('cms.submissions.export')
         // Edits menus' links, but doesn't create or delete the menus templates rely on.
         ->and(Role::findByName('editor', 'web')->permissions->pluck('name'))->toContain('cms.menus.view', 'cms.menus.update')->not->toContain('cms.menus.create', 'cms.menus.delete')
         ->and(Role::findByName('author', 'web')->permissions->pluck('name')->sort()->values()->all())
