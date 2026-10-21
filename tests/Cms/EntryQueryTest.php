@@ -12,6 +12,7 @@ use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\Content;
+use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
@@ -90,6 +91,53 @@ it('hydrates a result with one shared context: one query per kind, however many 
         ->and(countQueries(fn () => Content::entries('blog')->where('cover', $cover->id)->first()?->values()))->toBe($few);
     $view = Blade::render('<x-sunrice-cms::entries collection="blog">@foreach ($component->entries as $post){{ $post->values()["cover"]?->filename }};@endforeach</x-sunrice-cms::entries>');
     expect(substr_count($view, 'cover.jpg;'))->toBe(9);
+});
+
+it('takes the main language\'s entries not live in a language, with the fallback on', function () {
+    $news = queryTerm('News');
+    $hello = queryPost('Hello', ['price' => 10, 'topics' => [$news->id]]);
+    queryPost('Coffee', ['price' => 20, 'topics' => [$news->id]]);
+    $id = app(CreateTranslation::class)->handle($hello->entry, 'id');
+    app(SaveDraft::class)->handle($id, ['title' => 'Halo', 'slug' => 'halo']);
+    app(PublishEntry::class)->handle($id->refresh());
+    // A translation that isn't live doesn't count: the main language's stands in.
+    $coffee = Content::entries('blog')->whereSlug('coffee')->first();
+    $kopi = app(CreateTranslation::class)->handle($coffee->entry, 'id');
+    app(SaveDraft::class)->handle($kopi, ['title' => 'Kopi', 'slug' => 'kopi']);
+
+    $query = fn () => Content::entries('blog')->locale('id')->orderBy('price');
+    expect($query()->get()->pluck('title')->all())->toBe(['Halo', 'Coffee'])
+        ->and($query()->count())->toBe(2)
+        ->and($query()->whereTerm('topics', 'news')->paginate(10)->total())->toBe(2)
+        ->and($query()->where('price', '>', 15)->get()->map->url()->all())->toBe([url('/id/blog/coffee')])
+        ->and($query()->search('coffee')->get()->pluck('locale')->all())->toBe(['en'])
+        // A preview counts the translation's draft.
+        ->and($query()->preview()->get()->pluck('draft_title')->all())->toBe(['Halo', 'Kopi'])
+        // Asked not to, or with the fallback off: only the language's own.
+        ->and($query()->fallback(false)->get()->pluck('title')->all())->toBe(['Halo']);
+
+    config(['sunrice-cms.site.fallback' => false]);
+    expect($query()->get()->pluck('title')->all())->toBe(['Halo']);
+});
+
+it('links entries not live in a language to their page at its address', function () {
+    $coffee = queryPost('Coffee');
+    $kopi = app(CreateTranslation::class)->handle($coffee->entry, 'id'); // a draft: the main language's stands in
+    $tea = queryPost('Tea', ['related' => [$coffee->entry_id]]);
+
+    $related = $tea->values(new HydrationContext('id'))['related'];
+    expect($related->map->title->all())->toBe(['Coffee'])
+        ->and($related->first()?->url())->toBe(url('/id/blog/coffee'))
+        ->and($tea->values(new HydrationContext('en'))['related']->first()?->url())->toBe(url('/blog/coffee'));
+
+    app(PublishEntry::class)->handle($kopi);
+    expect($tea->values(new HydrationContext('id'))['related']->first()?->locale)->toBe('id');
+
+    // Terms too: an untranslated one's page at the language's address.
+    $news = queryTerm('News');
+    expect($news->url('id'))->toBe(url('/id/topics/news'))->and($news->url('en'))->toBe(url('/topics/news'));
+    config(['sunrice-cms.site.fallback' => false]);
+    expect($news->url('id'))->toBeNull();
 });
 
 it('finds entries in another language, and drafts in a preview', function () {

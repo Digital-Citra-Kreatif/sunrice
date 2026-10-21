@@ -227,8 +227,37 @@ it('serves an untranslated term\'s page in the main language too', function () {
     get('/id/tags/berita')->assertOk()->assertViewHas('fallback', false);
 });
 
-it('leaves pages shown in the main language out of the search in another', function () {
+it('finds pages shown in the main language in the search in another, at that language\'s address', function () {
     sitePost($this->blog, 'Coffee beans');
+    commitForFullText();
 
-    get('/id/search?q=coffee')->assertOk()->assertDontSee(url('/id/blog/coffee-beans'))->assertDontSee(url('/blog/coffee-beans'));
+    get('/id/search?q=coffee')->assertOk()->assertSee('<a href="'.url('/id/blog/coffee-beans').'">Coffee beans</a>', false);
+
+    config(['sunrice-cms.site.fallback' => false]);
+    get('/id/search?q=beans')->assertOk()->assertDontSee(url('/id/blog/coffee-beans'))->assertDontSee(url('/blog/coffee-beans'));
+});
+
+it('lists the main language\'s entries on listing and term pages in a language they aren\'t translated into', function () {
+    $tags = Taxonomy::query()->firstOrFail();
+    $tags->update(['route' => '/tags/{slug}']);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    $this->blog->update(['listing_route' => '/blog']);
+    $hello = sitePost($this->blog, 'Hello', ['tags' => [$news->id]]);
+    sitePost($this->blog, 'Coffee', ['tags' => [$news->id]]);
+    $halo = app(CreateTranslation::class)->handle($hello->entry, 'id');
+    app(SaveDraft::class)->handle($halo, ['title' => 'Halo', 'slug' => 'halo']);
+    app(PublishEntry::class)->handle($halo->refresh());
+
+    // One row per entry: the translation where it's live, else the main language's, at this language's address.
+    get('/id/blog')->assertOk()
+        ->assertSee('<a href="'.url('/id/blog/halo').'">Halo</a>', false)
+        ->assertSee('<a href="'.url('/id/blog/coffee').'">Coffee</a>', false)
+        ->assertDontSee('>Hello<', false);
+    get('/id/tags/news')->assertOk()
+        ->assertSee('<a href="'.url('/id/blog/halo').'">Halo</a>', false)
+        ->assertSee('<a href="'.url('/id/blog/coffee').'">Coffee</a>', false);
+    get('/blog')->assertOk()->assertSee('>Hello<', false)->assertDontSee('Halo');
+
+    config(['sunrice-cms.site.fallback' => false]);
+    get('/id/blog')->assertOk()->assertSee('Halo')->assertDontSee('Coffee');
 });
