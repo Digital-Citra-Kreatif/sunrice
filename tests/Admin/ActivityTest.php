@@ -223,7 +223,7 @@ it('reads like sentences, with what settings changed from and to, and filters by
     $security->record('login failed', $dewi);
     actingAs($this->admin);
 
-    expect(Activity::query()->where('subject_type', 'settings')->sole()->properties['values'])->toBe(['from' => ['from' => 'shop@example.com', 'to' => 'hello@example.com']]);
+    expect(Activity::query()->where('subject_type', 'settings')->sole()->properties['values'])->toEqual(['from' => ['from' => 'shop@example.com', 'to' => 'hello@example.com']]); // MySQL's JSON keeps keys in its own order
 
     get('/admin/activity')->assertInertia(fn (Assert $page) => $page
         ->where('rows.data.0.action', 'login failed')

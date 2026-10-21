@@ -89,6 +89,7 @@ function queriesFor(string $path, string $see): int
 }
 
 it('hydrates a listing\'s, a term page\'s and the search\'s cards together', function () {
+    commitForFullText(); // the search's FULLTEXT index on MySQL sees committed rows only
     properties(2);
     $few = [queriesFor('/properties', 'Agent 1'), queriesFor('/tags/bali', 'Agent 1'), queriesFor('/search?q=villa', 'Agent 1')];
     properties(6);
