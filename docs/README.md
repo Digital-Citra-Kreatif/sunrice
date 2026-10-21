@@ -45,7 +45,7 @@ Developer documentation for `sunrice/admin` (the panel) and `sunrice/cms` (the C
 | [Comments](../packages/cms/docs/comments.md) | Comments, moderation, Settings → Comments. |
 | [The site](../packages/cms/docs/site.md) | URLs, templates, SEO, site code, layout helpers, redirects, listing pages, querying entries, components, search, previews. |
 | [Helpers and the `Cms` facade](../packages/cms/docs/helpers.md) | `Cms::…`, the `cms_*` functions, `@bodyClass`, the `EntryQuery` reference. |
-| [Caching, events and scheduled publishing](../packages/cms/docs/caching.md) | The site's cache, the whole-page cache, content events. |
+| [Caching, events and scheduled publishing](../packages/cms/docs/caching.md) | The site's cache, the whole-page cache, Settings → Cache and clearing the caches, content events. |
 | [Machine translation](../packages/cms/docs/translation.md) | Translators, `sunrice:translate`. |
 | [Structure tooling](../packages/cms/docs/structure.md) | References, renaming fields, export and import, leftovers, demo content. |
 | [AI tools for content](../packages/cms/docs/ai.md) | The CMS's tools for AI agents. |
