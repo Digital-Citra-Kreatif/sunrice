@@ -21,10 +21,24 @@ final class Select extends Field
     /** @var array<string|int, string>|Closure(): array<string|int, string> */
     private array|Closure $options = [];
 
+    /** Its option labels are data, shown as written. */
+    private bool $verbatim = false;
+
     /** @param array<string|int, string>|Closure(): array<string|int, string> $options value => label */
     public function options(array|Closure $options): self
     {
         $this->options = $options;
+
+        return $this;
+    }
+
+    /**
+     * Shows the option labels as written instead of in the panel's
+     * language: for options that are data (blueprint titles, roles).
+     */
+    public function verbatim(bool $verbatim = true): self
+    {
+        $this->verbatim = $verbatim;
 
         return $this;
     }
@@ -42,7 +56,7 @@ final class Select extends Field
     protected function props(): array
     {
         return ['options' => array_map(
-            fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => Say::it($label)],
+            fn (string|int $value, string $label) => ['value' => (string) $value, 'label' => $this->verbatim ? $label : Say::it($label)],
             array_keys($options = $this->resolve()),
             array_values($options),
         )];

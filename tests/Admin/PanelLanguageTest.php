@@ -61,3 +61,11 @@ it('says a permission\'s label with its placeholders in the panel\'s language, a
     expect($permission->label)->toBe('View Name')
         ->and($permission->saidLabel())->toBe(__('View :label', ['label' => 'Nama']));
 });
+
+it('keeps option labels that are data as written', function () {
+    app()->setLocale('id');
+    $said = Sunrice\Admin\Resources\Forms\Select::make('x')->options(['a' => 'Name'])->toArray();
+    $kept = Sunrice\Admin\Resources\Forms\Select::make('x')->verbatim()->options(['a' => 'Name'])->toArray();
+
+    expect($said['options'][0]['label'])->toBe(__('Name'))->and($kept['options'][0]['label'])->toBe('Name');
+});
