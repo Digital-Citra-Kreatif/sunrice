@@ -28,6 +28,7 @@ use Sunrice\Cms\Structure\ImportReport;
 use Sunrice\Cms\Structure\StructureExporter;
 use Sunrice\Cms\Structure\StructureImporter;
 use Sunrice\Cms\Structure\StructureImportFailed;
+use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -267,14 +268,14 @@ it('offers each other language\'s URL fields in the collection and taxonomy form
 
     get('/admin/cms/collections/books/edit')->assertOk()->assertInertia(function (Assert $page) use ($fields) {
         $all = $fields($page->toArray()['props']['sections']);
-        expect($all['route_id'])->toMatchArray(['label' => 'Entry URL in Bahasa Indonesia', 'placeholderFrom' => ['field' => 'route', 'fallback' => '/{handle}/{slug}'], 'showWhen' => ['field' => 'pages', 'value' => null]])
-            ->and($all['listing_route_id'])->toMatchArray(['label' => 'Listing page URL in Bahasa Indonesia', 'placeholderFrom' => ['field' => 'listing_route', 'fallback' => '/{handle}']])
+        expect($all['route_id'])->toMatchArray(['label' => 'Entry URL in '.Locales::name('id'), 'placeholderFrom' => ['field' => 'route', 'fallback' => '/{handle}/{slug}'], 'showWhen' => ['field' => 'pages', 'value' => null]])
+            ->and($all['listing_route_id'])->toMatchArray(['label' => 'Listing page URL in '.Locales::name('id'), 'placeholderFrom' => ['field' => 'listing_route', 'fallback' => '/{handle}']])
             ->and($all['listing_route_id']['links'][0])->toMatchArray(['label' => 'View on site', 'url' => url('/id/books')])
             ->and($page->toArray()['props']['values'])->toMatchArray(['route_id' => null, 'listing_route_id' => null]);
     });
     get('/admin/cms/taxonomies/topics/edit')->assertOk()->assertInertia(function (Assert $page) use ($fields) {
         $all = $fields($page->toArray()['props']['sections']);
-        expect($all['route_id'])->toMatchArray(['label' => 'Term page URL in Bahasa Indonesia'])
+        expect($all['route_id'])->toMatchArray(['label' => 'Term page URL in '.Locales::name('id')])
             ->and($all['route_id']['links'][0])->toMatchArray(['label' => 'View a term page', 'url' => url('/id/topics/berita')]);
     });
 });
@@ -294,11 +295,11 @@ it('saves a language\'s own patterns from the form, checking them', function () 
 
     // No two collections at one address in a language: another's own pattern, or its main one used there.
     Collection::query()->create(['handle' => 'news', 'title' => 'News', 'blueprint' => 'book', 'route' => '/news/{slug}', 'listing_route' => '/news']);
-    $edit(['route_id' => '/news/{slug}'])->assertSessionHasErrors(['route_id' => 'News has this URL in Bahasa Indonesia already.']);
+    $edit(['route_id' => '/news/{slug}'])->assertSessionHasErrors(['route_id' => 'News has this URL in '.Locales::name('id').' already.']);
     $edit(['listing_route_id' => '/news'])->assertSessionHasErrors('listing_route_id');
-    put('/admin/cms/collections/news', ['title' => 'News', 'blueprint' => 'book', 'route_id' => '/buku/{slug}'])->assertSessionHasErrors(['route_id' => 'Books has this URL in Bahasa Indonesia already.']);
+    put('/admin/cms/collections/news', ['title' => 'News', 'blueprint' => 'book', 'route_id' => '/buku/{slug}'])->assertSessionHasErrors(['route_id' => 'Books has this URL in '.Locales::name('id').' already.']);
     // The main pattern too, in a language that uses it.
-    put('/admin/cms/collections/news', ['title' => 'News', 'blueprint' => 'book', 'route' => '/buku/{slug}'])->assertSessionHasErrors(['route' => 'Books has this URL in Bahasa Indonesia already.']);
+    put('/admin/cms/collections/news', ['title' => 'News', 'blueprint' => 'book', 'route' => '/buku/{slug}'])->assertSessionHasErrors(['route' => 'Books has this URL in '.Locales::name('id').' already.']);
     put('/admin/cms/collections/news', ['title' => 'News', 'blueprint' => 'book', 'route' => '/buku/{slug}', 'route_id' => '/berita/{slug}'])->assertSessionHasNoErrors();
 
     // Emptied: the main pattern under the prefix again, the old one redirecting.
