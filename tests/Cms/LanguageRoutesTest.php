@@ -335,6 +335,13 @@ it('exports and imports the languages\' own patterns, checking them', function (
     expect(fn () => app(StructureImporter::class)->import($bad))->toThrow(StructureImportFailed::class);
     $bad['collections'][array_search('books', array_column($bad['collections'], 'handle'), true)]['routes'] = ['id' => ['slug' => '/x/{slug}']];
     expect(fn () => app(StructureImporter::class)->import($bad))->toThrow(StructureImportFailed::class);
+
+    // Patterns in a language the site doesn't have: like its other texts, the import stops, or leaves them out.
+    $other = $exported;
+    $other['collections'][array_search('books', array_column($other['collections'], 'handle'), true)]['routes'] = ['ms' => ['route' => '/buku-ms/{slug}']];
+    expect(fn () => app(StructureImporter::class)->import($other))->toThrow(StructureImportFailed::class);
+    app(StructureImporter::class)->import($other, skipOtherLanguages: true);
+    expect(Collection::query()->find($this->books->id)?->routes)->toBeNull();
 });
 
 it('keeps every address when the main language switches: the patterns swap', function () {
