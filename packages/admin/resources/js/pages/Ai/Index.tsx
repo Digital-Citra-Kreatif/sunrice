@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
 import { copyText } from '@/lib/clipboard';
-import { t } from '@/lib/i18n';
+import { panelLocale, t } from '@/lib/i18n';
 import type { SharedProps } from '@/types';
 
 interface Token {
@@ -38,7 +38,7 @@ interface Props {
 }
 
 const NEVER = 'never';
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—');
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(panelLocale(), { dateStyle: 'medium', timeStyle: 'short' }) : '—');
 
 /** The user's AI access tokens, and how to connect an AI agent. */
 export default function AiIndex({ endpoint, tokens, created }: Props) {

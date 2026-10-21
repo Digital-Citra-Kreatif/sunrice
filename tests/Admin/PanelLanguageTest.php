@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Preferences\Preferences;
 use Sunrice\Admin\Support\PanelLocale;
 
@@ -51,4 +52,12 @@ it('says flash messages and definitions in the panel\'s language, and uses the d
 
     config(['sunrice-admin.locales' => ['en' => 'English'], 'sunrice-admin.locale' => 'id']);
     expect(PanelLocale::default())->toBe('en')->and(PanelLocale::valid('id'))->toBeFalse();
+});
+
+it('says a permission\'s label with its placeholders in the panel\'s language, and keeps the English label', function () {
+    app()->setLocale('id');
+    $permission = Permission::make('shop.orders.view', 'View :label', 'Shop', ['label' => 'Name']);
+
+    expect($permission->label)->toBe('View Name')
+        ->and($permission->saidLabel())->toBe(__('View :label', ['label' => 'Nama']));
 });

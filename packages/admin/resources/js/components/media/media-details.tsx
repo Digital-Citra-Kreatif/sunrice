@@ -14,7 +14,7 @@ import { copyText } from '@/lib/clipboard';
 import { fetchJson } from '@/lib/fetch-json';
 import { formatBytes, mediaKind } from './format';
 import type { MediaItem, MediaUsageInfo } from './types';
-import { t } from '@/lib/i18n';
+import { panelLocale, t } from '@/lib/i18n';
 
 interface Props {
     item: MediaItem | null;
@@ -88,7 +88,7 @@ function Details({ item, can, accept, onClose }: Props & { item: MediaItem }) {
                     <dt className="text-muted-foreground">{t('Type')}</dt><dd className="truncate">{item.mimeType}</dd>
                     <dt className="text-muted-foreground">{t('Size')}</dt><dd>{formatBytes(item.size)}</dd>
                     {item.width && item.height && (<><dt className="text-muted-foreground">{t('Dimensions')}</dt><dd>{item.width} × {item.height}</dd></>)}
-                    {item.createdAt && (<><dt className="text-muted-foreground">{t('Uploaded')}</dt><dd>{new Date(item.createdAt).toLocaleString()}</dd></>)}
+                    {item.createdAt && (<><dt className="text-muted-foreground">{t('Uploaded')}</dt><dd>{new Date(item.createdAt).toLocaleString(panelLocale())}</dd></>)}
                 </dl>
 
                 {usages.length > 0 && (

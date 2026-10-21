@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
-import { t } from '@/lib/i18n';
+import { panelLocale, t } from '@/lib/i18n';
 import { queryParams } from '@/lib/query-params';
 
 interface Row {
@@ -160,7 +160,7 @@ export default function ActivityIndex({ query, types, actions, sources, perPageO
                         )}
                         {rows.data.map((row, i) => (
                             <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties}>
-                                <TableCell className="align-top whitespace-nowrap text-muted-foreground">{row.at ? new Date(row.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : ''}</TableCell>
+                                <TableCell className="align-top whitespace-nowrap text-muted-foreground">{row.at ? new Date(row.at).toLocaleString(panelLocale(), { dateStyle: 'medium', timeStyle: 'short' }) : ''}</TableCell>
                                 <TableCell className="align-top">
                                     {row.userId ? (
                                         <button type="button" className="text-left hover:underline" onClick={() => visit({ user: row.userId })}>{row.user}</button>

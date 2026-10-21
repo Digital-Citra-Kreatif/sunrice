@@ -27,11 +27,11 @@ final class LoginCode extends Notification
     public function toMail(mixed $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("Your {$this->brand} login code: {$this->code}")
-            ->line('Type this code to finish logging in to the admin panel:')
+            ->subject(__('Your :brand login code: :code', ['brand' => $this->brand, 'code' => $this->code]))
+            ->line(__('Type this code to finish logging in to the admin panel:'))
             ->line("**{$this->code}**")
-            ->line('It works for '.TwoFactorLogin::LIFETIME_MINUTES.' minutes.')
-            ->line('If you didn\'t just log in, change your password: someone else knows it.')
-            ->salutation("Regards,  \n{$this->brand}");
+            ->line(__('It works for :minutes minutes.', ['minutes' => TwoFactorLogin::LIFETIME_MINUTES]))
+            ->line(__('If you didn\'t just log in, change your password: someone else knows it.'))
+            ->salutation(__('Regards,')."  \n{$this->brand}");
     }
 }

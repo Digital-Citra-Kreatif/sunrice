@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources\Forms;
 
+use Sunrice\Admin\Support\Say;
+
 /**
  * A list of key and value pairs, kept as text, one "key: value" per line,
  * and edited as rows: add, remove, move up and down.
@@ -97,12 +99,12 @@ final class Pairs extends Field
     protected function props(): array
     {
         return [
-            'keyLabel' => $this->keyLabel,
-            'valueLabel' => $this->valueLabel,
+            'keyLabel' => Say::it($this->keyLabel),
+            'valueLabel' => Say::it($this->valueLabel),
             'suggestions' => array_map(fn (string $key, string $value): array => ['key' => $key, 'value' => $value], array_keys($this->suggestions), $this->suggestions),
-            'firstBadge' => $this->firstBadge,
-            'addLabel' => $this->addLabel,
-            'extra' => $this->extra,
+            'firstBadge' => Say::it($this->firstBadge),
+            'addLabel' => Say::it($this->addLabel),
+            'extra' => $this->extra === null ? null : array_map(fn (?string $text): ?string => Say::it($text), $this->extra),
         ];
     }
 }

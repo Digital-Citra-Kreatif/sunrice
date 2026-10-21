@@ -365,7 +365,7 @@ final class Panel
      * and again after flushPermissions():
      *
      *     $panel->permissionsUsing(fn () => Shop::query()->get()->map(
-     *         fn ($shop) => Permission::make("shop.{$shop->handle}.orders", "Orders of {$shop->name}", 'Shops')));
+     *         fn ($shop) => Permission::make("shop.{$shop->handle}.orders", 'Orders of :shop', 'Shops', ['shop' => $shop->name])));
      *
      * Their names start with the plugin's id, like its other permissions.
      * Run SyncPermissions after the data changes to create and delete them.
@@ -490,7 +490,7 @@ final class Panel
             }
 
             $permission = ($this->registering === null ? '' : $this->registering->id().'.')."settings.{$key}";
-            $this->permissions(Permission::make($permission, "Edit {$class::label()} settings", 'Settings'));
+            $this->permissions(Permission::make($permission, 'Edit :label settings', 'Settings', ['label' => $class::label()]));
             $this->settings[$key] = new RegisteredSettings($class, $permission);
         }
 
@@ -1068,7 +1068,7 @@ final class Panel
                 continue;
             }
             $group = $item->getGroup();
-            $groups[$group ?? ''] ??= ['group' => $group, 'items' => []];
+            $groups[$group ?? ''] ??= ['group' => Say::it($group), 'items' => []];
             $groups[$group ?? '']['items'][] = [...self::link($item), 'children' => $children[$item->key] ?? []];
         }
 
@@ -1116,7 +1116,7 @@ final class Panel
     /** @return array{key: string, label: string, url: string, icon: string} */
     private static function link(NavigationItem $item): array
     {
-        return ['key' => $item->key, 'label' => Say::it($item->getLabel()), 'url' => $item->getUrl(), 'icon' => $item->getIcon()];
+        return ['key' => $item->key, 'label' => $item->isVerbatim() ? $item->getLabel() : Say::it($item->getLabel()), 'url' => $item->getUrl(), 'icon' => $item->getIcon()];
     }
 
     /**
@@ -1180,15 +1180,15 @@ final class Panel
 
         $label = $class::label();
         $this->permissions(
-            Permission::make("{$prefix}.view", "View {$label}", $label),
-            Permission::make("{$prefix}.create", "Create {$label}", $label),
-            Permission::make("{$prefix}.update", "Edit {$label}", $label),
-            Permission::make("{$prefix}.delete", "Delete {$label}", $label),
+            Permission::make("{$prefix}.view", 'View :label', $label, ['label' => $label]),
+            Permission::make("{$prefix}.create", 'Create :label', $label, ['label' => $label]),
+            Permission::make("{$prefix}.update", 'Edit :label', $label, ['label' => $label]),
+            Permission::make("{$prefix}.delete", 'Delete :label', $label, ['label' => $label]),
         );
         // "<prefix>.export" for a resource whose table is ->exportable(); worked out when
         // permissions are needed, so the table isn't built at boot.
         $this->permissionResolvers[] = ['owner' => $this->registering?->id(), 'resolve' => fn (): array => $resource->table()->isExportable()
-            ? [Permission::make("{$prefix}.export", "Export {$label}", $label)]
+            ? [Permission::make("{$prefix}.export", 'Export :label', $label, ['label' => $label])]
             : []];
         $this->navigation(
             NavigationItem::make("resources.{$key}")->label($class::navigationLabel())->url($resource->path())->icon($class::navigationIcon())

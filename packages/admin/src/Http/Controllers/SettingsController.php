@@ -79,7 +79,7 @@ final class SettingsController
     {
         $registered = $this->section($this->user($request), $section);
         $changed = $update->handle($registered, $request->all());
-        $message = $registered->class::label().' settings saved.';
+        $message = __(':label settings saved.', ['label' => Say::it($registered->class::label())]);
 
         // The font and colour are in the page's <head>: load the whole page again to show them.
         if ($registered->class === BrandingSettings::class && $changed !== []) {

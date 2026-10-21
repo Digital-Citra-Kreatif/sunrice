@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { useConfirm } from './confirm';
 import type { InfoBlock, InfoCard } from './types';
-import { t } from '@/lib/i18n';
+import { panelLocale, t } from '@/lib/i18n';
 
-export const formatDateTime = (iso: string | null): string => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
+export const formatDateTime = (iso: string | null): string => (iso ? new Date(iso).toLocaleString(panelLocale(), { dateStyle: 'medium', timeStyle: 'short' }) : '');
 
 const tones: Record<string, string> = {
     info: 'border-border bg-muted/40',

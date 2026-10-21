@@ -18,6 +18,7 @@ use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Support\Like;
+use Sunrice\Admin\Support\Say;
 
 /**
  * The activity log page: who changed what, newest first, with filters.
@@ -125,7 +126,7 @@ final class ActivityController
 
         return back()->with('success', $deleted === 0
             ? 'Nothing was older than that.'
-            : "Deleted {$deleted} activity log ".Str::plural('line', $deleted).'.');
+            : ($deleted === 1 ? __('Deleted 1 activity log line.') : __('Deleted :count activity log lines.', ['count' => $deleted])));
     }
 
     /** The config's `activity.keep_days`, the dialog's suggestion (null: kept forever). */
@@ -167,7 +168,7 @@ final class ActivityController
     {
         $resource = $this->panel->getResources()[$type] ?? null;
 
-        return $resource !== null ? $resource->class::singularLabel() : Str::ucfirst($type);
+        return Say::it($resource !== null ? $resource->class::singularLabel() : Str::ucfirst($type));
     }
 
     private function subjectUrl(Activity $activity): ?string

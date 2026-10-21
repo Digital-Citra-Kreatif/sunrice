@@ -1,13 +1,13 @@
-Security alert · {{ $brand }}
+{{ __('Security alert') }} · {{ $brand }}
 
-{{ $headline }}
+{{ $saidHeadline }}
 
-{{ $what }}
+{{ $saidWhat }}
 
-What to do: {{ $advice }}
+{{ __('What to do:') }} {{ $saidAdvice }}
 
-@foreach ($details as $label => $value)
+@foreach ($saidDetails as $label => $value)
 {{ $label }}: {{ $value }}
 @endforeach
 
-The security events in the activity log: {{ $logUrl }}
+{{ __('The security events in the activity log:') }} {{ $logUrl }}

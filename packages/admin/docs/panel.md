@@ -76,7 +76,7 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 
 ## Navigation
 
-`NavigationItem::make($key)` takes a label, a `url` relative to the panel path, an `icon` (a lucide name), a `group`, a `parent` (another item's key, for a submenu), a `sort` (lower first, 100 by default) and a `permission`. An item without a permission is shown to everyone who can open the panel. Hiding a parent hides its submenu.
+`NavigationItem::make($key)` takes a label, a `url` relative to the panel path, an `icon` (a lucide name), a `group`, a `parent` (another item's key, for a submenu), a `sort` (lower first, 100 by default) and a `permission`. An item without a permission is shown to everyone who can open the panel. Hiding a parent hides its submenu. Labels and groups are said in the panel's language ([panel languages](languages.md)); `->verbatim()` shows a label that is data (a collection's title) as written.
 
 Items made from data (one per record) come from `navigationUsing()`, worked out on each page rather than at boot, so new and renamed records show at once. Keep the closure cheap (it runs on every page; cache what it reads), and give each item its own `permission()` or `visible()`. The CMS lists its collections and taxonomies this way.
 

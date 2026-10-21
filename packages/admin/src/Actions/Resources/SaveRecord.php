@@ -11,6 +11,7 @@ use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Resources\Forms\Field;
 use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Resources\RegisteredResource;
+use Sunrice\Admin\Support\Say;
 
 /**
  * Validates a resource's form input and writes it to the record: only the
@@ -39,10 +40,10 @@ final class SaveRecord
         $attributes = [];
         foreach ($fields as $field) {
             $rules[$field->name] = $field->validationRules($record);
-            $attributes[$field->name] = $field->getLabel();
+            $attributes[$field->name] = Say::it($field->getLabel());
             foreach ($field->nestedRules() as $path => $nested) {
                 $rules[$path] = $nested;
-                $attributes[$path] = $field->getLabel();
+                $attributes[$path] = Say::it($field->getLabel());
             }
         }
         /** @var array<string, mixed> $validated */

@@ -50,7 +50,7 @@ final class SecuritySettings extends Settings
                 Textarea::make('alertEmails')->label('And to these addresses')->rows(3)->maxLength(2000)->placeholder('security@example.com')
                     ->rules([function (string $attribute, mixed $value, \Closure $fail): void {
                         if (is_string($value) && count(self::emails($value)) !== count(array_filter(preg_split('/[\s,;]+/', $value) ?: []))) {
-                            $fail('Write one email address per line.');
+                            $fail(__('Write one email address per line.'));
                         }
                     }])
                     ->help('One per line.'),

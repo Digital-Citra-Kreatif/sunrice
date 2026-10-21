@@ -55,13 +55,21 @@ final class PanelLocale
         return is_string($code) && isset(self::available()[$code]);
     }
 
+    /** Where a user's pick is kept in the session. */
+    public static function sessionKey(Authenticatable $user): string
+    {
+        $id = $user->getAuthIdentifier();
+
+        return self::SESSION.'.'.(is_scalar($id) ? (string) $id : '');
+    }
+
     /** The language for this request. */
     public function resolve(Request $request): string
     {
         $user = $request->user();
         if ($user instanceof Authenticatable) {
             // Read once per session, not on every page (SetPanelLanguage keeps it in step).
-            $key = self::SESSION.'.'.$user->getAuthIdentifier();
+            $key = self::sessionKey($user);
             $picked = $request->hasSession() ? $request->session()->get($key) : null;
             if (! is_string($picked)) {
                 $picked = $this->preferences->get($user, self::PREFERENCE);
@@ -70,7 +78,7 @@ final class PanelLocale
                     $request->session()->put($key, $picked);
                 }
             }
-            if (self::valid($picked)) {
+            if (isset(self::available()[$picked])) {
                 return $picked;
             }
         }

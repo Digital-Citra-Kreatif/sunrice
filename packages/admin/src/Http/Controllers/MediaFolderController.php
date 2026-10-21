@@ -27,7 +27,7 @@ final class MediaFolderController
         $parent = MediaFolder::query()->find($request->integer('parent_id') ?: null);
         $folder = $save->handle($request->string('name')->toString(), $parent);
 
-        return back()->with('success', "Folder \"{$folder->name}\" created.");
+        return back()->with('success', __('Folder ":name" created.', ['name' => $folder->name]));
     }
 
     public function update(Request $request, int $folder, SaveMediaFolder $save): RedirectResponse
@@ -46,7 +46,7 @@ final class MediaFolderController
         $delete->handle($model);
 
         return redirect()->route('sunrice.admin.media.index', array_filter(['folder' => $model->parent_id]))
-            ->with('success', "Folder \"{$model->name}\" deleted. What was in it moved up.");
+            ->with('success', __('Folder ":name" deleted. What was in it moved up.', ['name' => $model->name]));
     }
 
     private function authorize(Request $request): void

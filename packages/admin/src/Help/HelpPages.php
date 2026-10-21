@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Help;
 
+use Sunrice\Admin\Support\Say;
+
 /**
  * The Markdown pages of the Docs or the Guide: the directories the panel
  * and its plugins registered (Panel::docs(), Panel::guide()), each a
@@ -73,7 +75,7 @@ final class HelpPages
                 }
             }
             if ($list !== []) {
-                $sections[] = ['key' => $key, 'title' => $this->sections[$key]['title'], 'pages' => $list];
+                $sections[] = ['key' => $key, 'title' => Say::it($this->sections[$key]['title']), 'pages' => $list];
             }
         }
 

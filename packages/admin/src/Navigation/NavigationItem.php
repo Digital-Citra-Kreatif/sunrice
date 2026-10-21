@@ -34,6 +34,9 @@ final class NavigationItem
 
     private int $sort = 100;
 
+    /** Its label is data (a collection's title), shown as written, not translated. */
+    private bool $verbatim = false;
+
     private ?string $permission = null;
 
     /** @var (Closure(Authorizable): bool)|null */
@@ -58,6 +61,22 @@ final class NavigationItem
         $this->label = $label;
 
         return $this;
+    }
+
+    /**
+     * Shows the label as written instead of in the panel's language: for
+     * labels that are data, like a collection's title.
+     */
+    public function verbatim(bool $verbatim = true): self
+    {
+        $this->verbatim = $verbatim;
+
+        return $this;
+    }
+
+    public function isVerbatim(): bool
+    {
+        return $this->verbatim;
     }
 
     public function url(string $url): self

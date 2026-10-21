@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Inertia\Testing\AssertableInertia;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Preferences\Preferences;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
@@ -62,4 +64,18 @@ it('edits entries and terms under their collection and taxonomy, and redirects t
     // Opening one under a collection someone may see doesn't let them into another's.
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.pages.view'));
     get("/admin/cms/collections/pages/entries/{$entry}/edit")->assertForbidden();
+});
+
+it('shows collection and taxonomy titles as written, whatever the panel\'s language', function () {
+    Collection::query()->create(['handle' => 'pages_x', 'title' => 'Pages']);
+    $dir = sys_get_temp_dir().'/sunrice-lang-'.uniqid();
+    mkdir($dir);
+    file_put_contents("{$dir}/id.json", json_encode(['Pages' => 'Halaman', 'Content' => 'Konten']));
+    app('translator')->getLoader()->addJsonPath($dir);
+    $user = adminUser(Panel::ACCESS, 'cms.entries.view');
+    app(Preferences::class)->set($user, 'locale', 'id');
+    actingAs($user);
+
+    get('/admin')->assertInertia(fn (AssertableInertia $page) => $page->where('navigation', fn ($groups) => collect($groups)->contains(fn ($group) => $group['group'] === 'Konten'
+        && collect($group['items'])->contains('label', 'Pages'))));
 });

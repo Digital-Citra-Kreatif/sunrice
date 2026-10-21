@@ -9,6 +9,7 @@ use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Resources\Forms\Field;
 use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Settings\RegisteredSettings;
+use Sunrice\Admin\Support\Say;
 
 /**
  * Validates a settings section's form input and saves it (SaveSettings):
@@ -42,10 +43,10 @@ final class UpdateSettings
                 $fieldRules = array_map(fn (string|object $rule) => $rule === 'required' ? 'nullable' : $rule, $fieldRules);
             }
             $rules[$field->name] = $fieldRules;
-            $attributes[$field->name] = $field->getLabel();
+            $attributes[$field->name] = Say::it($field->getLabel());
             foreach ($field->nestedRules() as $path => $nested) {
                 $rules[$path] = $nested;
-                $attributes[$path] = $field->getLabel();
+                $attributes[$path] = Say::it($field->getLabel());
             }
         }
         /** @var array<string, mixed> $validated */

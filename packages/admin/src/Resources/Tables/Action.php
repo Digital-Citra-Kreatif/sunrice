@@ -287,10 +287,10 @@ final class Action
         $attributes = [];
         foreach ($this->fields as $field) {
             $rules[$field->name] = $field->validationRules(null);
-            $attributes[$field->name] = $field->getLabel();
+            $attributes[$field->name] = Say::it($field->getLabel());
             foreach ($field->nestedRules() as $path => $nested) {
                 $rules[$path] = $nested;
-                $attributes[$path] = $field->getLabel();
+                $attributes[$path] = Say::it($field->getLabel());
             }
         }
         /** @var array<string, mixed> $validated */

@@ -27,3 +27,8 @@ export function t(text: string, replace: Replacements = {}): string {
 
     return out;
 }
+
+/** The panel's language for dates and numbers (the page's lang), or the browser's outside the panel. */
+export function panelLocale(): string | undefined {
+    return typeof document !== 'undefined' && document.documentElement.lang !== '' ? document.documentElement.lang : undefined;
+}

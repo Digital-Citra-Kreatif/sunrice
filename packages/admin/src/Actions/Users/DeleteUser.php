@@ -86,7 +86,7 @@ final class DeleteUser
             throw new InvalidArgumentException("DeleteUser: the mode is reassign, keep or delete, not \"{$mode}\".");
         }
         if ($mode === self::REASSIGN && ($heir === null || $heir->is($user))) {
-            throw new ActionFailed('Choose another user to give their content to.');
+            throw new ActionFailed(__('Choose another user to give their content to.'));
         }
         $heir = $mode === self::REASSIGN ? $heir : null;
         $counts = $this->counts($user);

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { adminUrl } from '@/lib/admin-url';
 import { fetchJson } from '@/lib/fetch-json';
-import { t } from '@/lib/i18n';
+import { panelLocale, t } from '@/lib/i18n';
 
 export interface KeptEdit { id: number; by: string | null; taken_by: string | null; at: string | null }
 
@@ -141,7 +141,7 @@ export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveT
         setKept((k) => k.filter((e) => e.id !== keptId));
     };
 
-    const since = state.status === 'locked' && state.since > 0 ? new Date(state.since * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
+    const since = state.status === 'locked' && state.since > 0 ? new Date(state.since * 1000).toLocaleTimeString(panelLocale(), { hour: '2-digit', minute: '2-digit' }) : '';
     const language = locale ? ` (${locale.toUpperCase()})` : '';
     const thing = noun ?? t('item');
 
@@ -225,7 +225,7 @@ export function KeptEditsNotice({ kept, onLoad, onDiscard, disabled }: {
                     <span className="flex-1">
                         {unsavedOf[0]}<strong>{k.by ?? t('another editor')}</strong>{unsavedOf[1] ?? ''}
                         {k.taken_by ? t(', kept when :name took over', { name: k.taken_by }) : ''}
-                        {k.at ? ` (${new Date(k.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })})` : ''}.
+                        {k.at ? ` (${new Date(k.at).toLocaleString(panelLocale(), { dateStyle: 'medium', timeStyle: 'short' })})` : ''}.
                     </span>
                     <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => onLoad(k.id)}>{t('Load into the form')}</Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => onDiscard(k.id)}>{t('Discard')}</Button>

@@ -31,7 +31,7 @@ final class PreferencesController
         $request->validate(['value' => ['present']]);
         $value = $request->input('value');
         if (strlen((string) json_encode($value)) > Preferences::MAX_BYTES) {
-            throw ValidationException::withMessages(['value' => 'That is too much to keep as a preference.']);
+            throw ValidationException::withMessages(['value' => __('That is too much to keep as a preference.')]);
         }
         $this->preferences->set(self::user($request), $key, $value);
 

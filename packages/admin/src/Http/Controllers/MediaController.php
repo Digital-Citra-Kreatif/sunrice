@@ -263,11 +263,18 @@ final class MediaController
                 ->when(! $request->boolean('force'), fn ($query) => $query->whereDoesntHave('usages'))
                 ->get()->each(fn (Media $m) => $delete->handle($m, true))->count()),
         };
-        $done = ['move' => 'moved', 'trash' => 'moved to the trash', 'restore' => 'restored', 'delete' => 'deleted for good'][$action];
         $kept = $action === 'delete' ? Media::onlyTrashed()->whereKey($ids)->count() : 0;
+        $done = $count === 1
+            ? ['move' => __('1 file moved.'), 'trash' => __('1 file moved to the trash.'), 'restore' => __('1 file restored.'), 'delete' => __('1 file deleted for good.')][$action]
+            : ['move' => __(':count files moved.', ['count' => $count]), 'trash' => __(':count files moved to the trash.', ['count' => $count]),
+                'restore' => __(':count files restored.', ['count' => $count]), 'delete' => __(':count files deleted for good.', ['count' => $count])][$action];
+        $keptNote = match (true) {
+            $kept === 0 => '',
+            $kept === 1 => ' '.__('1 in use was kept: open it to see where, and delete it from there.'),
+            default => ' '.__(':count in use were kept: open each to see where, and delete it from there.', ['count' => $kept]),
+        };
 
-        return back()->with('success', "{$count} ".($count === 1 ? 'file' : 'files')." {$done}."
-            .($kept > 0 ? " {$kept} in use ".($kept === 1 ? 'was' : 'were').' kept: open '.($kept === 1 ? 'it' : 'each').' to see where, and delete it from there.' : ''));
+        return back()->with('success', $done.$keptNote);
     }
 
     /** @return array<string, mixed> */

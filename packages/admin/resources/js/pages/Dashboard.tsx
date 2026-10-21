@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { adminUrl } from '@/lib/admin-url';
-import { t } from '@/lib/i18n';
+import { panelLocale, t } from '@/lib/i18n';
 import {
     formatStat, greeting, isExternal, quickLinks, relativeTime, spanClass, widgetHref,
     type CardsData, type ListData, type ListRow, type StatData, type Tone, type WidgetDefinition, type WidgetResult,
@@ -39,7 +39,7 @@ export default function Dashboard({ widgets }: Props) {
                         <div className="sunrice-orb right-56 bottom-6 size-7! opacity-80" />
                     </div>
                     <p className="text-xs font-medium tracking-[0.14em] uppercase opacity-60">
-                        {sunrice.brand} · <time dateTime={now.toISOString()}>{now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</time>
+                        {sunrice.brand} · <time dateTime={now.toISOString()}>{now.toLocaleDateString(panelLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</time>
                     </p>
                     <h1 className="sunrice-page-title mt-2">{t(greeting(now))}{name ? `, ${name}` : ''}</h1>
                     <p className="mt-1 max-w-xl text-sm leading-relaxed opacity-70">{t('Here\'s what\'s happening.')}</p>

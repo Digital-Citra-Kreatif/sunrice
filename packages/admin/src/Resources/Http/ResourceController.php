@@ -94,8 +94,8 @@ final class ResourceController
             'rowActions' => array_map(fn (Action $action) => $action->toArray(), $rowActions),
             'bulkActions' => [
                 ...($resource->allows($user, 'delete') ? [$resource->softDeletes()
-                    ? ['key' => 'delete', 'label' => 'Move to trash', 'confirm' => 'Move the selected records to the trash? You can restore them.', 'destructive' => true]
-                    : ['key' => 'delete', 'label' => 'Delete', 'confirm' => 'Delete the selected records? This can\'t be undone.', 'destructive' => true]] : []),
+                    ? ['key' => 'delete', 'label' => __('Move to trash'), 'confirm' => __('Move the selected records to the trash? You can restore them.'), 'destructive' => true]
+                    : ['key' => 'delete', 'label' => __('Delete'), 'confirm' => __('Delete the selected records? This can\'t be undone.'), 'destructive' => true]] : []),
                 ...array_map(fn (Action $action) => $action->toArray(), $bulkActions),
             ],
             'can' => [
@@ -139,7 +139,7 @@ final class ResourceController
         $this->activity->record('created', $resource->key(), $record, $resource->class::title($record));
 
         return redirect()->route($resource->routeName('edit'), $resource->recordKeyOf($record))
-            ->with('success', $resource->class::singularLabel().' created.');
+            ->with('success', __(':label created.', ['label' => Say::it($resource->class::singularLabel())]));
     }
 
     public function edit(Request $request, string $record): Response|RedirectResponse
@@ -167,7 +167,7 @@ final class ResourceController
         $changed = app(SaveRecord::class)->handle($resource, $model, $request->all(), 'edit');
         $this->activity->updated($resource->key(), $model, $resource->class::title($model), $changed);
 
-        return back()->with('success', $resource->class::singularLabel().' saved.');
+        return back()->with('success', __(':label saved.', ['label' => Say::it($resource->class::singularLabel())]));
     }
 
     public function destroy(Request $request, string $record): RedirectResponse
@@ -184,7 +184,7 @@ final class ResourceController
         $this->activity->record('deleted', $resource->key(), $model, $resource->class::title($model));
 
         return redirect()->route($resource->routeName('index'))
-            ->with('success', $resource->class::title($model).' deleted.');
+            ->with('success', __(':title deleted.', ['title' => $resource->class::title($model)]));
     }
 
     public function action(Request $request, string $record, string $action): RedirectResponse
@@ -235,7 +235,7 @@ final class ResourceController
             }
             $records->each(fn (Model $record) => $this->activity->record('deleted', $resource->key(), $record, $resource->class::title($record)));
 
-            return back()->with('success', $records->count().' deleted.');
+            return back()->with('success', __(':count deleted.', ['count' => $records->count()]));
         }
 
         return $this->run(function () use ($definition, $records, $resource, $request): ?string {
@@ -259,7 +259,7 @@ final class ResourceController
             $resource->class::restoreRecord($model);
             $this->activity->record('restored', $resource->key(), $model, $resource->class::title($model));
 
-            return $resource->class::title($model).' restored.';
+            return __(':title restored.', ['title' => $resource->class::title($model)]);
         });
     }
 
@@ -276,7 +276,7 @@ final class ResourceController
             DB::transaction(fn () => $records->each(fn (Model $record) => $resource->class::restoreRecord($record)));
             $records->each(fn (Model $record) => $this->activity->record('restored', $resource->key(), $record, $resource->class::title($record)));
 
-            return $records->count().' restored.';
+            return __(':count restored.', ['count' => $records->count()]);
         });
     }
 

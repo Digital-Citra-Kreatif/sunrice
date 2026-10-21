@@ -33,6 +33,7 @@ use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Support\Card;
+use Sunrice\Admin\Support\Say;
 
 /**
  * The panel's Users screen: the users of the panel's guard, their
@@ -133,14 +134,22 @@ class UserResource extends Resource
                     ->handle(function (Model $user): string {
                         $deleted = app(AccountGuard::class)->signOutEverywhere($user);
 
-                        return 'Signed out everywhere'.($deleted === null ? '.' : " ({$deleted} ".($deleted === 1 ? 'session' : 'sessions').' ended).');
+                        return match (true) {
+                            $deleted === null => __('Signed out everywhere.'),
+                            $deleted === 1 => __('Signed out everywhere (1 session ended).'),
+                            default => __('Signed out everywhere (:count sessions ended).', ['count' => $deleted]),
+                        };
                     }),
                 Action::make('revoke-tokens')->label('Revoke AI tokens')
                     ->confirm('Revoke all of this user\'s AI access tokens? AI agents using them stop working at once.')
                     ->handle(function (Model $user): string {
                         $count = app(RevokeAiTokens::class)->all($user);
 
-                        return $count === 0 ? 'This user had no AI access tokens.' : "{$count} AI access ".($count === 1 ? 'token' : 'tokens').' revoked.';
+                        return match ($count) {
+                            0 => __('This user had no AI access tokens.'),
+                            1 => __('1 AI access token revoked.'),
+                            default => __(':count AI access tokens revoked.', ['count' => $count]),
+                        };
                     }),
                 Action::make('lock')->label('Lock account')->destructive()
                     ->confirm('Lock this account? They are signed out everywhere and can\'t log in until someone unlocks it. Nothing is deleted.')
@@ -148,18 +157,18 @@ class UserResource extends Resource
                     ->visible(fn (Model $user) => ! app(AccountGuard::class)->isLocked($user) && ! static::isCurrentUser($user))
                     ->handle(function (Model $user, array $input): string {
                         if (static::isCurrentUser($user)) {
-                            throw new ActionFailed('You can\'t lock your own account.');
+                            throw new ActionFailed(__('You can\'t lock your own account.'));
                         }
                         app(AccountGuard::class)->lock($user, is_string($input['reason'] ?? null) ? $input['reason'] : null);
 
-                        return 'Account locked.';
+                        return __('Account locked.');
                     }),
                 Action::make('unlock')->label('Unlock account')
                     ->visible(fn (Model $user) => app(AccountGuard::class)->isLocked($user))
                     ->handle(function (Model $user): string {
                         app(AccountGuard::class)->unlock($user);
 
-                        return 'Account unlocked.';
+                        return __('Account unlocked.');
                     }),
                 static::deleteAction(),
             ])
@@ -185,27 +194,35 @@ class UserResource extends Resource
         $card = Card::make('Security')->description('If this account may be in the wrong hands: sign it out everywhere, revoke its AI tokens or lock it from the users list.');
         if ($state?->locked_at !== null) {
             $card->notice(
-                'Locked '.$state->locked_at->toDayDateTimeString().($state->locked_by === null ? '' : ' by '.$state->locked_by),
+                $state->locked_by === null
+                    ? __('Locked :date', ['date' => $state->locked_at->toDayDateTimeString()])
+                    : __('Locked :date by :name', ['date' => $state->locked_at->toDayDateTimeString(), 'name' => $state->locked_by]),
                 Card::DANGER,
-                trim(($state->locked_reason === null ? '' : $state->locked_reason.' · ').'This account can\'t log in, open the panel or use its AI tokens until it\'s unlocked.'),
+                trim(($state->locked_reason === null ? '' : $state->locked_reason.' · ').__('This account can\'t log in, open the panel or use its AI tokens until it\'s unlocked.')),
             );
         } elseif ($passwordLock > 0) {
             $minutes = (int) ceil($passwordLock / 60);
-            $card->notice('Locked after too many wrong passwords', Card::WARNING, "It unlocks by itself in {$minutes} ".Str::plural('minute', $minutes).'.');
+            $card->notice('Locked after too many wrong passwords', Card::WARNING, $minutes === 1
+                ? __('It unlocks by itself in 1 minute.')
+                : __('It unlocks by itself in :count minutes.', ['count' => $minutes]));
         }
 
         $card->rows([
-            'Last login' => $lastLogin === null ? 'No login recorded' : ($lastLogin->created_at?->toDayDateTimeString() ?? '').($lastLogin->ip_address === null ? '' : ' from '.$lastLogin->ip_address),
+            'Last login' => match (true) {
+                $lastLogin === null => __('No login recorded'),
+                $lastLogin->ip_address === null => $lastLogin->created_at?->toDayDateTimeString() ?? '',
+                default => __(':date from :ip', ['date' => $lastLogin->created_at?->toDayDateTimeString() ?? '', 'ip' => $lastLogin->ip_address]),
+            },
             'AI access tokens' => AiToken::query()->where('user_id', $id)->count(),
             'Signed out everywhere' => $state?->signed_out_at,
         ]);
         $card->list('Latest security events', $events->map(fn (Activity $event) => [
-            'label' => Str::ucfirst($event->action),
+            'label' => Say::it(Str::ucfirst($event->action)),
             'meta' => implode(' · ', array_filter([
                 is_string($event->properties['note'] ?? null) ? $event->properties['note'] : null,
-                $event->user_id !== null && $event->user_id !== $id && $event->user_name !== null ? 'by '.$event->user_name : null,
+                $event->user_id !== null && $event->user_id !== $id && $event->user_name !== null ? __('by :name', ['name' => $event->user_name]) : null,
                 $event->ip_address === null ? null : 'IP '.$event->ip_address,
-            ])) ?: null,
+            ], fn (mixed $part): bool => is_string($part) && $part !== '')) ?: null,
             'at' => $event->created_at,
         ]));
         // The list's row actions, which check the right to update this user again.
@@ -225,7 +242,8 @@ class UserResource extends Resource
         $owned = app(DeleteUser::class)->labels();
 
         return Action::make('delete')->label('Delete…')->ability('delete')->destructive()
-            ->confirm('Delete this user? This can\'t be undone.'.($owned === [] ? '' : ' Choose what happens to their '.self::list($owned).'.'))
+            ->confirm($owned === [] ? 'Delete this user? This can\'t be undone.'
+                : __('Delete this user? This can\'t be undone. Choose what happens to their :content.', ['content' => self::list(array_map(Say::it(...), $owned))]))
             ->form(
                 Select::make('content')->label('Their content')->required()->default(DeleteUser::KEEP)->options([
                     DeleteUser::REASSIGN => 'Give it to another user',
@@ -239,14 +257,16 @@ class UserResource extends Resource
                 $heir = isset($input['heir']) && is_scalar($input['heir']) ? static::model()::query()->find($input['heir']) : null;
                 $mode = is_string($input['content'] ?? null) ? $input['content'] : DeleteUser::KEEP;
                 $counts = app(DeleteUser::class)->handle($user, $mode, $heir);
-                $what = self::list(array_map(fn (int $count, string $label) => $count.' '.($count === 1 ? Str::singular($label) : $label), $counts, array_keys($counts)));
+                $what = self::list(array_map(fn (int $count, string $label) => $count.' '.Say::it($count === 1 ? Str::singular($label) : $label), $counts, array_keys($counts)));
                 $heirName = $heir instanceof Model ? static::title($heir) : '';
+                $replace = ['title' => static::title($user), 'content' => $what, 'heir' => $heirName];
 
-                return static::title($user).' deleted.'.match (true) {
-                    $what === '' => '',
-                    $mode === DeleteUser::REASSIGN => " Their {$what} went to {$heirName}.",
-                    $mode === DeleteUser::DELETE => " Their {$what} got deleted".(isset($counts['uploads']) ? ', apart from uploads, which stay without an uploader.' : '.'),
-                    default => " Their {$what} have no owner now.",
+                return match (true) {
+                    $what === '' => __(':title deleted.', $replace),
+                    $mode === DeleteUser::REASSIGN => __(':title deleted. Their :content went to :heir.', $replace),
+                    $mode === DeleteUser::DELETE && isset($counts['uploads']) => __(':title deleted. Their :content got deleted, apart from uploads, which stay without an uploader.', $replace),
+                    $mode === DeleteUser::DELETE => __(':title deleted. Their :content got deleted.', $replace),
+                    default => __(':title deleted. Their :content have no owner now.', $replace),
                 };
             });
     }
@@ -324,7 +344,7 @@ class UserResource extends Resource
                         $permissions = [...$permissions, ...static::namesOf($role->getRelationValue('permissions'))];
                     }
                     if (! app(PermissionRank::class)->isStrictlyBelow($actor, array_values(array_unique($permissions)))) {
-                        throw ValidationException::withMessages(['roles' => 'Together these roles would give as much access as yours or more. Ask someone with more access.']);
+                        throw ValidationException::withMessages(['roles' => __('Together these roles would give as much access as yours or more. Ask someone with more access.')]);
                     }
                 }
 
@@ -406,6 +426,6 @@ class UserResource extends Resource
     {
         $last = array_pop($items);
 
-        return $last === null ? '' : ($items === [] ? $last : implode(', ', $items).' and '.$last);
+        return $last === null ? '' : ($items === [] ? $last : __(':items and :last', ['items' => implode(', ', $items), 'last' => $last]));
     }
 }
