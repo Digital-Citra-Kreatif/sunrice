@@ -168,8 +168,9 @@ it('edits taxonomies and their terms in the admin', function () {
         ->where('terms.0.entries', 0)
         ->has('terms.0.createdAt')
         ->where('taxonomy.collections', [])
-        // Settings only for those who may change the taxonomy.
-        ->where('taxonomy.settings', null));
+        // Settings only for those who may change the taxonomy, the blueprint for those who may edit blueprints.
+        ->where('taxonomy.settings', null)
+        ->where('taxonomy.blueprint', null));
 
     // To the trash with the term under it, back, and permanently deleted (its child moves up).
     delete("/admin/cms/terms/{$news->id}")->assertSessionHasNoErrors();
@@ -241,4 +242,13 @@ it('creates a term on its own page, then goes to its page or back to the list', 
 
     actingAs(adminUser(Panel::ACCESS));
     get('/admin/cms/taxonomies/categories/terms/create')->assertForbidden();
+});
+
+it('links the terms list to its taxonomy\'s blueprint for those who may edit blueprints', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    Blueprint::query()->create(['handle' => 'topic', 'title' => 'Topic', 'fields' => []]);
+    Taxonomy::query()->where('handle', 'categories')->update(['blueprint' => 'topic']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.blueprints.view', 'cms.blueprints.update'));
+
+    get('/admin/cms/taxonomies/categories/terms')->assertInertia(fn (Assert $page) => $page->where('taxonomy.blueprint', route('sunrice.admin.cms.blueprints.edit', 'topic')));
 });
