@@ -55,7 +55,7 @@ Every admin route needs `sunrice.access` ("Open the admin panel"); give it to th
 | `administrator` | Every permission, without the super admin's bypass of your app's own checks, except letting AI agents run commands (`sunrice.ai.run-commands`) and read the error log (`sunrice.ai.error-log`): those stay with super admins unless you give them on purpose. |
 | `editor` (the CMS) | The panel, media, and all content: entries, terms, globals, menus' links (`cms.menus.view`, `update`: not creating or deleting menus, which templates rely on), comments, reading and exporting form submissions. Not structure, settings, users or roles. |
 | `author` (the CMS) | The panel, viewing and uploading media, viewing and creating entries, editing and trashing their own, and seeing drafts on the site (`cms.entries.view-drafts`). Publishes nothing. |
-| `translator` (the CMS) | The panel, viewing media and entries, and adding and editing entries' other languages. |
+| `translator` (the CMS) | The panel, viewing media and entries, adding and editing entries' other languages, and translating forms, menus, listing titles and the site's description (Content → Translations). |
 
 Every default role with `sunrice.access` also gets `sunrice.guide.view`, the in-panel [guide](panel.md#help-pages). Run it again after adding plugins or collections: it gives these roles the permissions they're missing. It only adds, and never what it gave that role before (it remembers, in `sunrice_settings`): permissions you give these roles in the panel stay, one you take away stays away, and a new one (a new collection's, a new plugin's) is added. So you can change the built-in roles in the panel; updates don't reset them. Plugins and your app add roles, or add to them, while the panel registers:
 
