@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Schema;
+use Sunrice\Admin\Media\Media;
+use Sunrice\Cms\Actions\Collections\SaveListing;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -226,4 +228,27 @@ it('carries conditions of one rule and of several between sites', function () {
     expect(app(StructureImporter::class)->import($structure)->status('blueprint', 'post'))->toBe(ImportReport::CREATED);
     $exported = json_decode(json_encode(app(StructureExporter::class)->export(), JSON_THROW_ON_ERROR), true);
     expect(collect($exported['blueprints'])->firstWhere('handle', 'post')['fields'])->toEqual($structure['blueprints'][0]['fields']);
+});
+
+it('carries a listing page\'s files and SEO between sites, by path', function () {
+    Blueprint::query()->create(['handle' => 'hub', 'title' => 'Hub', 'fields' => [['handle' => 'hero', 'type' => 'media']]]);
+    $articles = Collection::query()->create(['handle' => 'articles', 'title' => 'Articles', 'listing_route' => '/articles', 'listing_blueprint' => 'hub']);
+    $photo = Media::query()->create(['disk' => 'public', 'path' => 'media/abcdefghij-hero.jpg', 'filename' => 'hero.jpg', 'mime_type' => 'image/jpeg', 'size' => 10]);
+    app(SaveListing::class)->handle($articles, ['hero' => $photo->id], seo: ['title' => 'All our articles', 'image' => $photo->id]);
+
+    $exported = json_decode(json_encode(app(StructureExporter::class)->export(), JSON_THROW_ON_ERROR), true);
+    $listing = collect($exported['collections'])->firstWhere('handle', 'articles')['listings']['en'];
+    expect($listing['hero'])->toBe(['media' => 'media/abcdefghij-hero.jpg'])
+        ->and($listing['seo'])->toMatchArray(['title' => 'All our articles', 'image' => ['media' => 'media/abcdefghij-hero.jpg']]);
+
+    // Another site, where the same file has another id.
+    $articles->listings()->delete();
+    $photo->forceDelete();
+    Media::query()->create(['disk' => 'public', 'path' => 'other/x.jpg', 'filename' => 'x.jpg', 'mime_type' => 'image/jpeg', 'size' => 10]);
+    $here = Media::query()->create(['disk' => 'public', 'path' => 'media/abcdefghij-hero.jpg', 'filename' => 'hero.jpg', 'mime_type' => 'image/jpeg', 'size' => 10]);
+    app(StructureImporter::class)->import($exported);
+
+    $data = $articles->listings()->where('locale', 'en')->sole()->data;
+    expect($data['hero'])->toBe($here->id)
+        ->and($data['seo'])->toMatchArray(['title' => 'All our articles', 'image' => $here->id]);
 });
