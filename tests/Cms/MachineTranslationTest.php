@@ -130,6 +130,26 @@ it('finds the text to translate, in rows too, but not the shared fields', functi
         ->and($strings['body'])->toBe(['source' => '<p>Hot <strong>and</strong> black</p>', 'current' => '<p>Hot <strong>and</strong> black</p>', 'rich' => true]);
 });
 
+it('translates link texts, keeping where they go', function () {
+    fakeGemini();
+    Blueprint::query()->create(['handle' => 'promo', 'title' => 'Promo', 'fields' => [
+        ['handle' => 'cta', 'type' => 'link'],
+        ['handle' => 'blocks', 'type' => 'repeater', 'fields' => [['handle' => 'more', 'type' => 'link']]],
+    ]]);
+    $promos = Collection::query()->create(['handle' => 'promos', 'title' => 'Promos', 'blueprint' => 'promo']);
+    $promo = app(CreateEntry::class)->handle($promos, ['title' => 'Sale', 'data' => [
+        'cta' => ['type' => 'url', 'url' => '/shop', 'label' => 'Shop now'],
+        'blocks' => [['_id' => 'b1', 'more' => ['type' => 'url', 'url' => '/more', 'label' => 'Read more']], ['_id' => 'b2', 'more' => ['type' => 'url', 'url' => '/x']]],
+    ]]);
+
+    expect(array_keys(TranslatableStrings::collect($promos->schema(), $promo->draft_data)))->toBe(['cta.label', 'blocks.0.more.label']);
+
+    artisan('sunrice:translate', ['--only' => ['entries'], '--collection' => ['promos']])->assertSuccessful();
+    $id = EntryTranslation::query()->where('entry_id', $promo->entry_id)->where('locale', 'id')->firstOrFail();
+    expect($id->draft_data['cta'])->toMatchArray(['url' => '/shop', 'label' => 'ID: Shop now'])
+        ->and($id->draft_data['blocks'][0]['more'])->toMatchArray(['url' => '/more', 'label' => 'ID: Read more']);
+});
+
 it('translates entries into their drafts, only what isn\'t translated yet', function () {
     fakeGemini();
     artisan('sunrice:translate', ['--dry-run' => true])->assertSuccessful()->expectsOutputToContain('4 texts would be translated');
