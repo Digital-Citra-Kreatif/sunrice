@@ -318,7 +318,63 @@ it('keeps one page whatever other query parameters say', function () {
     get('/blog?page=2&utm_medium=mail')->assertHeader('X-Cache-Status', 'HIT');
     get('/blog?sort=title')->assertHeader('X-Cache-Status', 'MISS');
     get('/blog?sort=title')->assertHeader('X-Cache-Status', 'HIT');
-    expect(PageCacheHasher::query())->toBe(['page', 'q', 'sort']);
+    expect(PageCacheHasher::query())->toBe(['page', 'sort']);
+});
+
+it('keeps no copies for page numbers a page doesn\'t read, nor for made-up ones', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
+    foreach (range(1, 3) as $i) {
+        cachedPost("Post {$i}");
+    }
+    $this->blog->update(['per_page' => 2]);
+
+    // An entry page doesn't paginate: ?page=7771 is rendered, never kept.
+    get('/blog/post-1?page=7771')->assertOk()->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog/post-1?page=7771')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog/post-1')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog/post-1?page=1')->assertHeader('X-Cache-Status', 'HIT'); // page 1 is the page
+    // Not written plainly: neither served from the cache nor kept.
+    get('/blog?page=abc')->assertOk()->assertHeaderMissing('X-Cache-Status');
+    get('/blog?page=02')->assertHeaderMissing('X-Cache-Status');
+    get('/blog?page[]=2')->assertHeaderMissing('X-Cache-Status');
+    get('/blog')->assertHeader('X-Cache-Status', 'MISS');
+    // A listing paginates: page 2 is kept.
+    get('/blog?page=2')->assertHeader('X-Cache-Status', 'MISS');
+    get('/blog?page=2')->assertHeader('X-Cache-Status', 'HIT');
+});
+
+it('never keeps nor serves kept pages for a search or a comment reply', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
+    $this->blog->update(['comments' => true]);
+    cachedPost('Hello');
+    $comment = app(PostComment::class)->handle(EntryTranslation::query()->firstOrFail()->entry, ['body' => 'Hi', 'author_name' => 'Sophie', 'author_email' => 's@example.com'], null, 'en', '127.0.0.1');
+    app(SetCommentStatus::class)->handle($comment, Comment::APPROVED);
+
+    // A reply link opened first: not kept, so the plain page doesn't reply to anyone.
+    get('/blog/hello?reply_to='.$comment->id)->assertOk()->assertHeaderMissing('X-Cache-Status')->assertSee('name="parent_id" value="'.$comment->id.'"', false);
+    get('/blog/hello')->assertHeader('X-Cache-Status', 'MISS')->assertDontSee('name="parent_id" value="'.$comment->id.'"', false);
+    // And once the page is kept, a reply link still shows the reply form.
+    get('/blog/hello?reply_to='.$comment->id)->assertHeaderMissing('X-Cache-Status')->assertSee('name="parent_id" value="'.$comment->id.'"', false);
+    get('/blog/hello?q=villa')->assertOk()->assertHeaderMissing('X-Cache-Status');
+    expect(PageCache::UNKEPT_QUERY)->toBe(['q', 'reply_to']);
+});
+
+it('starts new kept pages when the front end is built again', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
+    cachedPost('Hello');
+    $manifest = public_path('build/manifest.json');
+    @mkdir(dirname($manifest), 0777, true);
+    file_put_contents($manifest, '{"app.css":{"file":"assets/app-A.css"}}');
+
+    try {
+        get('/blog/hello')->assertHeader('X-Cache-Status', 'MISS');
+        get('/blog/hello')->assertHeader('X-Cache-Status', 'HIT');
+        file_put_contents($manifest, '{"app.css":{"file":"assets/app-B.css"}}');
+        get('/blog/hello')->assertHeader('X-Cache-Status', 'MISS');
+    } finally {
+        @unlink($manifest);
+        @rmdir(dirname($manifest));
+    }
 });
 
 it('refuses to keep pages without the CSRF token replacer', function () {

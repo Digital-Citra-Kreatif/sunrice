@@ -46,6 +46,7 @@ What changed in the `Unreleased` version that may need a change in your app, tem
 - **`Globals::get()` reads the current language** when none is given, as `Cms::global()` does: it read the main one before. Pass the main language (`Locales::default()`) where you relied on that.
 - **`SiteCache` keeps a content version per area** (`SiteCache::PAGES`, `ROUTES`, `MENUS`, `SITEMAP`): `remember($key, $make, $area = SiteCache::PAGES, $ttl = null)`, `key($key, $area)`, `version($area)` and `changed($what, ...$areas)`. Code that cached with `remember()` keeps working in the `pages` area; code that bumped the version itself calls `changed()` with the areas it affects. See [Caching](../packages/cms/docs/caching.md).
 - **Page titles now end with the site name** ("About | Acme"), unless *Add the site name to titles* is turned off in Settings → Site. Templates that added the name themselves should stop, or turn the setting off.
+- **The page cache never keeps pages with `?q=` or `?reply_to=`** (`PageCache::UNKEPT_QUERY`), and `PageCacheHasher::QUERY` is `['page']` (was `['page', 'q']`). A template that reads `?q=` for something other than a search shows it uncached; code that read `PageCacheHasher::QUERY` should expect `q` gone. See [Caching](../packages/cms/docs/caching.md#whole-pages).
 
 Also worth checking, though not breaking for most apps:
 

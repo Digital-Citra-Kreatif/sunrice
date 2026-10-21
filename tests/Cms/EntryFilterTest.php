@@ -12,6 +12,7 @@ use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Site\PageCache;
 use Sunrice\Cms\View\Components\EntryFilter;
 
 use function Pest\Laravel\get;
@@ -115,4 +116,22 @@ it('refuses unknown collections, filter types and names', function () {
 
     // Without sorts, the collection's own order; a title ascending one here.
     expect(collect((new EntryFilter('shop'))->entries->items())->pluck('title')->all())->toBe(['Blue lamp', 'Green hose', 'Red kettle']);
+});
+
+it('says a page given values it ignores isn\'t to be kept, so made-up values can\'t fill the page cache', function () {
+    $kept = function (string $query): bool {
+        get('/catalogue?'.$query)->assertOk();
+
+        return app(PageCache::class)->keeps(request(), null);
+    };
+
+    expect($kept('color[]=red&price_min=20&made_from=2026-05-01&sale=1&sort=cheap&topic[]=home'))->toBeTrue()
+        ->and($kept('other=1'))->toBeTrue()
+        ->and($kept('color[]=purple'))->toBeFalse()
+        ->and($kept('color[]=red&color[]=purple'))->toBeFalse()
+        ->and($kept('price_min=abc'))->toBeFalse()
+        ->and($kept('made_from=yesterday'))->toBeFalse()
+        ->and($kept('sale=maybe'))->toBeFalse()
+        ->and($kept('topic[]=nope'))->toBeFalse()
+        ->and($kept('sort=random'))->toBeFalse();
 });

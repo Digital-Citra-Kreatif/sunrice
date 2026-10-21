@@ -24,9 +24,12 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 - `TermsField::toAdmin()` sends `taxonomy` instead of the `terms` options.
 - `SiteCache` keeps a content version per area (`remember()`, `key()`, `version()` and `changed()` take areas).
 - Page titles end with the site name unless turned off in Settings → Site.
+- The page cache never keeps pages with `?q=` or `?reply_to=`; `PageCacheHasher::QUERY` is `['page']`.
 
 ### All changes
 
+- Page cache: **pages with `?q=` or `?reply_to=` are neither served from the cache nor kept** (`PageCache::UNKEPT_QUERY`), so a comment's Reply link works on kept pages and opening one first no longer turns every new comment into a reply for everyone; **`PageCacheHasher::QUERY` is `['page']`** (was `['page', 'q']`). A `?page=` number is kept apart only when a paginator read it (`PageCacheHasher::pageNumber()`; `?page=1` is the page itself; `abc`, `02` or `page[]` skip the cache), and a page whose entry filter ignored a value from the address isn't kept (new `PageCache::dontKeep()`, `@api`), so made-up values no longer fill the cache store.
+- Kept pages are kept under the front end's build too (the hash of Vite's manifest, in `PageCacheProfile::useCacheNameSuffix()`), so `npm run build` no longer leaves kept pages linking deleted CSS and JS; the docs' deploy steps clear kept pages after template changes (`php artisan responsecache:clear`), and say what a kept page still costs (a framework boot and a session per visitor).
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
 - `sunrice:translate --only=lang` translates the app's language files (never without `--only=lang`) (`lang/<from>/*.php` and `lang/<from>.json`), keeping keys already translated (`Translation\LangFileTranslator`).
 - Settings → Security chooses who else gets security alerts: more roles (`SecuritySettings::$alertRoles`) and addresses, one per line (`$alertEmails`), on top of super admins and `security.alerts.roles`/`emails`.
