@@ -32,6 +32,13 @@ test('outdents with the children', () => {
     assert.deepEqual(shape(outdent([item('a', 0)], 0)), ['a']);
 });
 
+test('outdents an item alone, after its parent\'s other children, which stay where they were', () => {
+    const items = [item('p', 0), item('sale', 1), item('rent', 1), item('r1', 2), item('villas', 1), item('team', 0)];
+
+    assert.deepEqual(shape(outdent(items, 2)), ['p', '-sale', '-villas', 'rent', '-r1', 'team']);
+    assert.deepEqual(shape(indent(outdent(items, 2), 3, 3)), ['p', '-sale', '-villas', '-rent', '--r1', 'team']); // and back in, among them
+});
+
 test('moves past siblings, children included', () => {
     const items = [item('a', 0), item('a1', 1), item('b', 0), item('b1', 1), item('c', 0)];
 
