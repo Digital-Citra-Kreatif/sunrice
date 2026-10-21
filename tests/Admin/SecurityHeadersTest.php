@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
+use Inertia\DevTools\DevTools;
 use Sunrice\Admin\Panel;
 
 use function Pest\Laravel\actingAs;
@@ -34,6 +35,6 @@ it('turns Inertia DevTools off unless the app turns them on, so local installs d
     app()->detectEnvironment(fn () => 'local');
 
     expect(config('inertia.devtools.enabled'))->toBeFalse()
-        ->and(Inertia\DevTools\DevTools::enabled())->toBeFalse();
+        ->and(DevTools::enabled())->toBeFalse();
     get('/_inertia/devtools/entries')->assertNotFound();
 });

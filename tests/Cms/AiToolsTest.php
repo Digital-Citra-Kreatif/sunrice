@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
@@ -318,9 +319,9 @@ it('audits the title the page\'s head shows: with the site name, and the homepag
 
 it('renders on APP_URL, keeps developer tools out, and answers errors without file paths', function () {
     config(['app.url' => 'https://lumina.example:8200']);
-    Illuminate\Support\Facades\Route::get('where', fn () => url('/contact'));
-    Illuminate\Support\Facades\Route::get('boom', fn () => throw new RuntimeException('The template broke'));
-    Illuminate\Support\Facades\Route::get('_inertia/devtools/entries', fn () => 'every recorded request');
+    Route::get('where', fn () => url('/contact'));
+    Route::get('boom', fn () => throw new RuntimeException('The template broke'));
+    Route::get('_inertia/devtools/entries', fn () => 'every recorded request');
     $token = cmsAgent(['cms.entries.view'], readOnly: true);
 
     expect(cmsTool($token, 'cms_render_page', ['path' => '/where'])['html'])->toBe('https://lumina.example:8200/contact');
