@@ -278,7 +278,7 @@ it('names a redirect\'s type Permanent (301) or Temporary (302), in the form and
         ->where('sections.0.fields.2.label', 'Type')
         ->where('sections.0.fields.2.options', [['value' => '301', 'label' => 'Permanent (301)'], ['value' => '302', 'label' => 'Temporary (302)']]));
     get('/admin/cms/redirects')->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->where('columns.2.label', 'Type')
+        ->where('columns.3.label', 'Type')
         ->where('rows.data.0.cells.status', 'Temporary (302)'));
 
     put('/admin/language', ['locale' => 'id']);
