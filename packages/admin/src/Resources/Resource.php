@@ -194,6 +194,21 @@ abstract class Resource
         return [];
     }
 
+    /**
+     * Links in the list page's "⋮" menu for `$user` (beside Export): related
+     * pages, settings. `url` is a full address or one under the panel's
+     * path; links with the same `group` sit together under it; `external`
+     * opens another site in a new tab. Nothing by default.
+     *
+     *     return [['label' => 'Submissions', 'url' => 'cms/submissions', 'group' => 'Forms']];
+     *
+     * @return list<array{label: string, url: string, group?: string, external?: bool}>
+     */
+    public static function links(Authorizable $user): array
+    {
+        return [];
+    }
+
     /** A record's name in headings and messages. */
     public static function title(Model $record): string
     {

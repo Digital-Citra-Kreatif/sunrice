@@ -209,6 +209,8 @@ Text is escaped, and times (in rows and list items) are shown in the viewer's ow
 
 Sorting, filtering and searching only ever use what the table declares; anything else in the URL is ignored.
 
+The list's header has the panel's one pattern: **New …** as its button, and a "⋮" menu with **Export CSV** (with the export permission) and the resource's own links from `links(Authorizable $user)`: related pages and settings, `[['label' => 'Submissions', 'url' => 'cms/submissions', 'group' => 'Forms']]` (a `url` under the panel's path or a full address; `external` opens it in a new tab). The search, filters, **Trash** and **Columns** are in the table's toolbar. The CMS's forms list links to their submissions this way.
+
 ## Actions
 
 Edit and delete are built in. Add your own, per row or for the selected rows:

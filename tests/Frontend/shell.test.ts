@@ -6,6 +6,7 @@ import { errorToast } from '../../packages/admin/resources/js/lib/error-toast.ts
 import { copyText, type ClipboardEnv } from '../../packages/admin/resources/js/lib/clipboard.ts';
 import { parseFolded, withFolded } from '../../packages/admin/resources/js/lib/folded-groups.ts';
 import { matchNavigation, navigationCrumbs } from '../../packages/admin/resources/js/lib/nav-match.ts';
+import { menuGroups } from '../../packages/admin/resources/js/lib/page-header-menu.ts';
 
 const navigation = [
     { group: null, items: [{ key: 'media', label: 'Media', url: 'media', icon: 'image', children: [] }] },
@@ -135,4 +136,9 @@ test('closing the tab warns about unsaved edits, but not during or right after a
     guard.start({ method: 'post' });
     guard.finish({ method: 'post', completed: false, cancelled: true });
     assert.equal(guard.shouldWarn(true), true);
+});
+
+test('groups a page header menu\'s items in the order their groups first appear', () => {
+    const groups = menuGroups([{ label: 'Export CSV' }, { label: 'Blog', group: 'Terms' }, { label: 'Settings', group: 'Structure' }, { label: 'Tags', group: 'Terms' }]);
+    assert.deepEqual(groups.map(([group, items]) => [group, items.map((item) => item.label)]), [['', ['Export CSV']], ['Terms', ['Blog', 'Tags']], ['Structure', ['Settings']]]);
 });

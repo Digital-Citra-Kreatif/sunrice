@@ -45,11 +45,13 @@ interface Props {
     perPageOptions: number[];
     /** The user's saved columns and page size for this table. */
     preferences: TablePreferences & { key: string };
+    /** Resource::links(): related pages in the "⋮" menu. */
+    links?: { label: string; url: string; group: string | null; external: boolean }[];
 }
 
 const ALL = '__all';
 
-export default function ResourceIndex({ resource, columns: allColumns, filters, rowActions, bulkActions, can, query, rows, perPageOptions, preferences: initialPreferences }: Props) {
+export default function ResourceIndex({ resource, columns: allColumns, filters, rowActions, bulkActions, can, query, rows, perPageOptions, preferences: initialPreferences, links = [] }: Props) {
     useBreadcrumbs([{ label: resource.label }]);
     const [confirm, confirmDialog] = useConfirm();
     const [search, setSearch] = React.useState(query.search);
@@ -130,25 +132,15 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
 
             <PageHeader
                 title={trashed ? t(':resource — trash', { resource: resource.label }) : resource.label}
-                actions={
-                    <>
-                        {can.trash && (
-                            <Button variant={trashed ? 'secondary' : 'ghost'} onClick={() => visit({ status: trashed ? '' : 'trashed' })}>
-                                {trashed ? t('Back to the list') : <><Trash2 /> {t('Trash')}</>}
-                            </Button>
-                        )}
-                        {can.export && !trashed && (
-                            <Button variant="outline" asChild>
-                                <a href={exportUrl()}><Download /> {t('Export')}</a>
-                            </Button>
-                        )}
-                        {can.create && !trashed && (
-                            <Button asChild>
-                                <Link href={`${base}/create`}><Plus /> {t('New :resource', { resource: resource.singularLabel.toLowerCase() })}</Link>
-                            </Button>
-                        )}
-                    </>
-                }
+                primary={can.create && !trashed && (
+                    <Button asChild>
+                        <Link href={`${base}/create`}><Plus /> {t('New :resource', { resource: resource.singularLabel.toLowerCase() })}</Link>
+                    </Button>
+                )}
+                menu={[
+                    ...(can.export && !trashed ? [{ label: t('Export CSV'), href: exportUrl(), download: true, icon: <Download /> }] : []),
+                    ...links.map((link) => ({ label: link.label, href: link.url, group: link.group ?? undefined, external: link.external })),
+                ]}
             />
 
             <div className="flex flex-wrap items-center gap-2">
@@ -181,10 +173,15 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                         </SelectContent>
                     </Select>
                 ))}
+                {can.trash && (
+                    <Button variant={trashed ? 'secondary' : 'ghost'} className="ml-auto" onClick={() => visit({ status: trashed ? '' : 'trashed' })}>
+                        {trashed ? t('Back to the list') : <><Trash2 /> {t('Trash')}</>}
+                    </Button>
+                )}
                 {allColumns.length > 1 && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="ml-auto"><Columns3 /> {t('Columns')}</Button>
+                            <Button variant="outline" className={can.trash ? undefined : 'ml-auto'}><Columns3 /> {t('Columns')}</Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('Show columns')}</DropdownMenuLabel>

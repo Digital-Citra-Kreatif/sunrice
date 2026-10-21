@@ -143,16 +143,36 @@ export const registerCommandSource = m.registerCommandSource as (
     options?: { minLength?: number },
 ) => () => void;
 
+/** An item of a page header's "⋮" menu: a link (`href`) or an action (`onSelect`). */
+export interface PageHeaderMenuItem {
+    label: ReactNode;
+    /** A panel page (an Inertia visit); with `external` another site in a new tab; with `download` a file. */
+    href?: string;
+    onSelect?: () => void;
+    icon?: ReactNode;
+    external?: boolean;
+    download?: boolean;
+    /** Items with the same group sit together under its heading. */
+    group?: string;
+    destructive?: boolean;
+}
+
 /**
  * The block at the top of a page: the title in the panel's display style,
- * an optional description, a back button, buttons on the right (`actions`),
- * and children beside the title (a badge, a switcher, "Unsaved changes").
+ * an optional description, a back button, children beside the title (a
+ * badge, a switcher, "Unsaved changes"), and its actions: `primary`, the
+ * one prominent button ("New entry"), and `menu`, the secondary actions and
+ * links in a "⋮" menu after it (Export CSV, settings, the blueprint…).
+ * `actions` puts other buttons before them. Table controls (Columns,
+ * filters) belong in the table's toolbar, not here.
  */
 export const PageHeader = m.PageHeader as ComponentType<{
     title: ReactNode;
     description?: ReactNode;
     back?: { href: string; label: string };
     actions?: ReactNode;
+    primary?: ReactNode;
+    menu?: PageHeaderMenuItem[];
     children?: ReactNode;
     className?: string;
 }>;

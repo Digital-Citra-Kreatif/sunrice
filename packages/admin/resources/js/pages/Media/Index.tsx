@@ -131,20 +131,14 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
 
             <PageHeader
                 title={query.trash ? t('Trash') : (folder?.name ?? t('Media'))}
-                actions={
+                primary={canUpload && (
                     <>
-                        {can.update && !query.trash && !query.search && (
-                            <Button variant="outline" onClick={() => setFolderDialog({ folder: null })}><FolderPlus />{t('New folder')}</Button>
-                        )}
-                        {canUpload && (
-                            <>
-                                <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label={t('Files to upload')}
-                                    onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
-                                <Button onClick={() => fileInput.current?.click()}><UploadIcon />{t('Upload')}</Button>
-                            </>
-                        )}
+                        <input ref={fileInput} type="file" multiple accept={upload.accept} className="hidden" aria-label={t('Files to upload')}
+                            onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ''; }} />
+                        <Button onClick={() => fileInput.current?.click()}><UploadIcon />{t('Upload')}</Button>
                     </>
-                }
+                )}
+                menu={can.update && !query.trash && !query.search ? [{ label: t('New folder'), icon: <FolderPlus />, onSelect: () => setFolderDialog({ folder: null }) }] : []}
             />
 
             {storageLinkMissing && (

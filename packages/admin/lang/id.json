@@ -747,5 +747,7 @@
     "Locked out because email stopped working? Turn it off on the server:": "Terkunci karena email berhenti berfungsi? Matikan di server:",
     "Clear the IP filter": "Hapus filter IP",
     "Show only what came from :ip": "Tampilkan hanya yang berasal dari :ip",
-    "Search names, actions or IP…": "Cari nama, tindakan, atau IP…"
+    "Search names, actions or IP…": "Cari nama, tindakan, atau IP…",
+    "More actions": "Aksi lainnya",
+    "Export CSV": "Ekspor CSV"
 }

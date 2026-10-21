@@ -117,6 +117,13 @@ final class ResourceController
                 'prevUrl' => $page->previousPageUrl(),
                 'nextUrl' => $page->nextPageUrl(),
             ],
+            // The "⋮" menu's links (Resource::links()), labels said in the panel's language.
+            'links' => array_map(fn (array $link): array => [
+                'label' => Say::it($link['label']),
+                'url' => preg_match('#^(https?:)?//#', $link['url']) === 1 || str_starts_with($link['url'], '/') ? $link['url'] : '/'.trim($this->panel->getPath(), '/').'/'.ltrim($link['url'], '/'),
+                'group' => isset($link['group']) ? Say::it($link['group']) : null,
+                'external' => $link['external'] ?? false,
+            ], $resource->class::links($user)),
             'perPageOptions' => ListQuery::PER_PAGE,
             'preferences' => ['key' => $preferencesKey, 'columns' => $preferences['columns'], 'perPage' => $preferences['perPage']],
         ]);
