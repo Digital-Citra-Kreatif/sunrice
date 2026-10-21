@@ -101,6 +101,8 @@ test('lets a slug made from the title follow it until the entry is first publish
     assert.equal(followingSlug('villa-arunika-pererenan-copy', 'Villa Arunika, Pererenan (copy)', 'Villa Senja', true), 'villa-senja');
     assert.equal(followingSlug('villa-arunika-pererenan-copy', 'Villa Arunika, Pererenan (copy)', 'Villa Senja', false), 'villa-arunika-pererenan-copy', 'published once');
     assert.equal(followingSlug('my-own', 'Villa', 'Villa Senja', true), 'my-own', 'typed by hand');
+    assert.equal(followingSlug('villa-copy-2', 'Villa (copy)', 'Villa Senja', true), 'villa-senja', 'a second copy');
+    assert.equal(followingSlug('villa-copy-two', 'Villa (copy)', 'Villa Senja', true), 'villa-copy-two', 'not a number after it');
 });
 
 test('notes a new slug only for an address visitors have known: redirected when published, else a 404', async () => {
@@ -129,4 +131,15 @@ test('names languages as the site does, else in the reader\'s language', async (
     assert.equal(localeName('xx'), new Intl.DisplayNames(undefined, { type: 'language' }).of('xx') ?? 'xx');
     setLocaleNames(null);
     assert.equal(localeName('id'), new Intl.DisplayNames(undefined, { type: 'language' }).of('id'));
+});
+
+test('publishes by the picked Publish date from either button: scheduled, back-dated or now', async () => {
+    const { datedPublish } = await import('../../packages/cms/resources/js/lib/entries.ts');
+    const now = new Date('2026-10-21T12:00:00Z').getTime();
+    assert.deepEqual(datedPublish('draft', '', null, now), { action: 'now', at: null });
+    assert.deepEqual(datedPublish('draft', '2026-11-20T11:00:00Z', null, now), { action: 'schedule', at: '2026-11-20T11:00:00.000Z' });
+    assert.deepEqual(datedPublish('draft', '2026-09-01T09:00:00Z', null, now), { action: 'backdate', at: '2026-09-01T09:00:00.000Z' });
+    assert.deepEqual(datedPublish('published', '2026-09-01T09:00:00Z', '2026-09-01T09:00:30Z', now), { action: 'now', at: null }, 'the saved date, to the minute');
+    assert.deepEqual(datedPublish('published', '2026-08-01T09:00:00Z', '2026-09-01T09:00:00Z', now), { action: 'redate', at: '2026-08-01T09:00:00.000Z' });
+    assert.equal(datedPublish('scheduled', '2026-12-01T09:00:00Z', '2026-11-20T11:00:00Z', now).action, 'schedule');
 });

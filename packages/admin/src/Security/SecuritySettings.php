@@ -14,6 +14,7 @@ use Sunrice\Admin\Resources\Forms\Section;
 use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\Settings;
+use Sunrice\Admin\Users\RoleResource;
 
 /**
  * Settings → Security, guarded by sunrice.settings.security. Part of
@@ -53,7 +54,7 @@ final class SecuritySettings extends Settings
             ]),
             Section::make('Security alerts')->schema([
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')
-                    ->options(fn (): array => self::roles())
+                    ->verbatim()->options(fn (): array => self::roles())
                     ->help('Super admins always get them.'),
                 ListInput::make('alertEmails')->label('And to these addresses')->emails()->addLabel('Add address')->max(50)->maxLength(2000)
                     ->placeholder('security@example.com'),
@@ -67,7 +68,7 @@ final class SecuritySettings extends Settings
         $roles = [];
         foreach (Role::query()->where('guard_name', app(Panel::class)->getGuard())->orderBy('name')->pluck('name') as $name) {
             if (is_string($name) && $name !== SyncPermissions::superAdminRole()) {
-                $roles[$name] = $name;
+                $roles[$name] = RoleResource::displayName($name);
             }
         }
 

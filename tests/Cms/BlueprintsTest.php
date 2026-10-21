@@ -146,7 +146,7 @@ it('renames a blueprint and everything that names it', function () {
     $entry = app(CreateEntry::class)->handle($pages, ['title' => 'Villa'])->entry;
     $entry->forceFill(['blueprint' => 'propety'])->save();
 
-    Pest\Laravel\put('/admin/cms/blueprints/propety', ['title' => 'Property', 'handle' => 'property', 'fields' => $blueprint->fields])->assertRedirect()->assertSessionHasNoErrors();
+    Pest\Laravel\put('/admin/cms/blueprints/propety', ['title' => 'Property', 'handle' => 'property', 'fields' => $blueprint->fields])->assertRedirect('/admin/cms/blueprints/property/edit')->assertSessionHasNoErrors();
 
     expect($blueprint->fresh()->handle)->toBe('property')
         ->and($listings->fresh()->only(['blueprint', 'listing_blueprint']))->toBe(['blueprint' => 'property', 'listing_blueprint' => 'property'])

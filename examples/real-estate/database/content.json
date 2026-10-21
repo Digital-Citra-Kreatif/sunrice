@@ -5893,7 +5893,7 @@
                                 "hidden": false,
                                 "values": {
                                     "button": {
-                                        "url": "/properties",
+                                        "url": "/id/properti",
                                         "type": "url",
                                         "label": "Lihat properti",
                                         "new_tab": false
