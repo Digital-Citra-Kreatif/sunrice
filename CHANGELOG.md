@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Fixed: when `sunrice:switch-main-language` (`SwitchMainLanguage`) failed and putting the languages back failed too, that second error hid the one that stopped the switch; the first is rethrown and the second reported.
 - Field conditions: a field shows only when another field on its level equals, doesn't equal, is filled or is empty (`condition` in definitions, **Show** in the blueprint builder, `Field::isShownWith()`, `Field::OPERATORS`); a hidden field isn't required but what it keeps is still checked. See [Fields](packages/cms/docs/fields.md#showing-a-field-only-sometimes).
 - `sunrice:translate --only=lang` translates the app's language files (never without `--only=lang`) (`lang/<from>/*.php` and `lang/<from>.json`), keeping keys already translated (`Translation\LangFileTranslator`).
 - Settings → Security chooses who else gets security alerts: more roles (`SecuritySettings::$alertRoles`) and addresses, one per line (`$alertEmails`), on top of super admins and `security.alerts.roles`/`emails`.

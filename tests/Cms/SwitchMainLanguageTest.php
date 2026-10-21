@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -116,4 +118,20 @@ it('moves the shared values, labels and addresses to the new main language', fun
     get('/en/menu/coffee')->assertOk()->assertSee('Coffee');
     get('/menu/coffee')->assertRedirect('/en/menu/coffee');
     get('/id/menu/kopi')->assertRedirect('/menu/kopi');
+});
+
+it('rethrows what stopped a switch even when putting the languages back fails too', function () {
+    $failed = false;
+    EntryTranslation::saving(function () use (&$failed): void {
+        $failed = true;
+
+        throw new RuntimeException('The switch broke.');
+    });
+    DB::listen(function (QueryExecuted $query) use (&$failed): void {
+        if ($failed && str_contains($query->sql, 'sunrice_settings') && ! str_starts_with(strtolower($query->sql), 'select')) {
+            throw new LogicException('The settings could not be saved.');
+        }
+    });
+
+    expect(fn () => app(SwitchMainLanguage::class)->handle('id'))->toThrow(RuntimeException::class, 'The switch broke.');
 });
