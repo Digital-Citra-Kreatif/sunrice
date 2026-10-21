@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { createUnloadGuard } from '../../packages/admin/resources/js/lib/unload-guard.ts';
 import { flushPrefetchAfterWrites } from '../../packages/admin/resources/js/lib/prefetch-flush.ts';
 import { errorToast } from '../../packages/admin/resources/js/lib/error-toast.ts';
 import { copyText, type ClipboardEnv } from '../../packages/admin/resources/js/lib/clipboard.ts';
@@ -102,4 +103,27 @@ test('a finished write drops the prefetched pages, a read keeps them', () => {
     assert.equal(flushed, 4);
     off();
     assert.equal(listener, undefined);
+});
+
+test('closing the tab warns about unsaved edits, but not during or right after a save the app reloads after', () => {
+    const guard = createUnloadGuard();
+    assert.equal(guard.shouldWarn(true), true);
+    assert.equal(guard.shouldWarn(false), false);
+    guard.start({ method: 'get' });
+    assert.equal(guard.shouldWarn(true), true);
+
+    // Branding's save answers with a full reload: no browser dialog for it.
+    guard.start({ method: 'put' });
+    assert.equal(guard.shouldWarn(true), false);
+    guard.finish({ method: 'put', completed: true });
+    assert.equal(guard.shouldWarn(true), false);
+    // The next page shown, a refused save or a cancelled one: the edits are guarded again.
+    guard.navigate();
+    assert.equal(guard.shouldWarn(true), true);
+    guard.start({ method: 'post' });
+    guard.error();
+    assert.equal(guard.shouldWarn(true), true);
+    guard.start({ method: 'post' });
+    guard.finish({ method: 'post', completed: false, cancelled: true });
+    assert.equal(guard.shouldWarn(true), true);
 });

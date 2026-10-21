@@ -45,6 +45,9 @@ final class BrandingSettings extends Settings
     ];
 
     /** Sign-in page layouts: a side panel next to the form, or the form alone. */
+    /** The settings the page's <head> shows (stylesheet, colours, icon): changing one reloads the page after saving. */
+    public const IN_HEAD = ['name', 'logo', 'favicon', 'font', 'color'];
+
     public const LOGIN_LAYOUTS = ['split' => 'Side panel next to the form', 'centered' => 'Form only, centered'];
 
     /** The sign-in page's built-in wording, used for the texts left empty. */
