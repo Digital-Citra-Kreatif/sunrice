@@ -180,6 +180,21 @@ it('links to a listing page with filters, in each language', function () {
     expect(app(Menus::class)->get('main')[0]['url'])->toBe(url('/pages').'?listing_type=for-sale&city%5B0%5D=jakarta')
         ->and(app(Menus::class)->get('main', 'id')[0])->toMatchArray(['label' => 'Dijual', 'url' => url('/id/pages').'?listing_type=for-sale&city%5B0%5D=jakarta']);
 
+    // Without a label in the language, a filtered link keeps its own meaning (the main language's label), not the
+    // listing's title, which the plain link already shows (NEW2-i18n-2).
+    $this->pages->update(['translations' => ['id' => ['title' => 'Halaman']]]);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'For sale'], 'query' => 'listing_type=for-sale'],
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'All']],
+    ]);
+    app(Menus::class)->flush();
+    expect(array_column(app(Menus::class)->get('main', 'id'), 'label'))->toBe(['For sale', 'Halaman']);
+    app(SaveMenu::class)->handle($this->main, [
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'For sale', 'id' => 'Dijual'], 'query' => '?listing_type=for-sale&city[]=jakarta'],
+        ['collection_id' => $this->pages->id, 'labels' => ['en' => 'All']],
+    ]);
+    app(Menus::class)->flush();
+
     // Shown: the filtered link on the filtered page, the plain one on its trail; the plain one alone on the page without filters.
     $this->app->instance('request', Request::create('/pages', 'GET', ['listing_type' => 'for-sale', 'city' => ['jakarta'], 'page' => '2']));
     app(Menus::class)->flush();
