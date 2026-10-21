@@ -242,3 +242,24 @@ it('creates a term on its own page, then goes to its page or back to the list', 
     actingAs(adminUser(Panel::ACCESS));
     get('/admin/cms/taxonomies/categories/terms/create')->assertForbidden();
 });
+
+it('switches term pages on and off as collections do their pages', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.create', 'cms.taxonomies.update'));
+
+    // On without a URL: the default, with the handle in it.
+    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'pages' => true, 'route' => ''])->assertSessionHasNoErrors();
+    $topics = Taxonomy::query()->where('handle', 'topics')->firstOrFail();
+    expect($topics->route)->toBe('/topics/{slug}');
+    $field = fn (Assert $page, string $name): array => collect($page->toArray()['props']['sections'])->flatMap(fn ($section) => $section['fields'])->firstWhere('name', $name);
+    get('/admin/cms/taxonomies/topics/edit')->assertInertia(fn (Assert $page) => expect($page->toArray()['props']['values']['pages'])->toBeTrue()
+        ->and($field($page, 'route')['showWhen'])->toBe(['field' => 'pages', 'value' => null])
+        ->and($field($page, 'route')['placeholder'])->toBe('/{handle}/{slug}')
+        ->and($field($page, 'template')['showWhen']['field'])->toBe('pages'));
+
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'pages' => true, 'route' => '/themes'])->assertSessionHasErrors('route');
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'pages' => true, 'route' => '/themes/{slug}'])->assertSessionHasNoErrors();
+    expect($topics->fresh()->route)->toBe('/themes/{slug}');
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'pages' => false, 'route' => '/themes/{slug}'])->assertSessionHasNoErrors();
+    expect($topics->fresh()->route)->toBeNull();
+});
