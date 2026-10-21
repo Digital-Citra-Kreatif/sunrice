@@ -40,10 +40,15 @@ final class EditLocksController
         return response()->json(['status' => 'ok']);
     }
 
+    /**
+     * Frees the person's own lock, without asking whether they may still
+     * edit the item: it may just have gone to the trash, been deleted, or
+     * their permission changed, and the lock shouldn't outlive the editor.
+     */
     public function release(Request $request, string $type, string $id): JsonResponse
     {
-        [$key] = $this->item($request, $type, $id);
-        $this->locks->release($key, self::editor($request));
+        [$key] = $this->item($request, $type, $id, checkEdit: false);
+        $this->locks->release($key, self::editor($request), self::userId($request));
 
         return response()->json(['status' => 'released']);
     }
@@ -97,18 +102,18 @@ final class EditLocksController
 
     /**
      * The lock key and language of an item the user may edit; 404 for an
-     * unknown type, 403 when they may not edit it.
+     * unknown type, 403 when they may not edit it (unless !$checkEdit).
      *
      * @return array{0: string, 1: string}
      */
-    private function item(Request $request, string $type, string $id): array
+    private function item(Request $request, string $type, string $id, bool $checkEdit = true): array
     {
         $mayEdit = $this->panel->getLockables()[$type] ?? null;
         abort_if($mayEdit === null || preg_match('/^[A-Za-z0-9_-]{1,64}$/', $id) !== 1, 404);
         $locale = $request->input('locale');
         $locale = is_string($locale) && preg_match('/^[A-Za-z_-]{0,16}$/', $locale) === 1 ? $locale : '';
         $user = $request->user();
-        abort_unless($user instanceof Authorizable && $mayEdit($id, $locale, $user), 403);
+        abort_unless($user instanceof Authorizable && (! $checkEdit || $mayEdit($id, $locale, $user)), 403);
 
         return [EditLocks::key($type, $id, $locale), $locale];
     }

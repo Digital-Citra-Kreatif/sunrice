@@ -102,7 +102,7 @@ it('records settings media on every save, and the upgrade backfills what section
 
     // The backfill migration records every section's.
     MediaUsage::query()->delete();
-    (require dirname(__DIR__, 2).'/packages/admin/database/migrations/2026_01_01_000012_backfill_sunrice_settings_media_usages.php')->up();
+    (require dirname(__DIR__, 2).'/packages/admin/database/migrations/2026_01_01_000013_backfill_sunrice_settings_media_usages.php')->up();
     expect(app(MediaUsages::class)->of($logo))->toBe([['type' => 'sunrice.settings', 'label' => 'Settings: Branding', 'url' => route('sunrice.admin.settings.edit', 'branding')]]);
 });
 

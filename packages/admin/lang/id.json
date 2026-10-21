@@ -365,6 +365,11 @@
     "Login failed": "Gagal masuk",
     "Login refused": "Masuk ditolak",
     "Logo": "Logo",
+    "Your password is set. You can log in now.": "Kata sandi Anda sudah diatur. Anda bisa masuk sekarang.",
+    "Confirm the password": "Konfirmasi kata sandi",
+    "They own :content.": "Mereka memiliki :content.",
+    "Save my password": "Simpan kata sandi saya",
+    "All": "Semua",
     "Mail": "Email",
     "Mail is sent from :from, an example address: replies go nowhere and spam filters may drop it. Set MAIL_FROM_ADDRESS (and MAIL_FROM_NAME) in the app's .env to an address of your own domain.": "Email dikirim dari :from, alamat contoh: balasan tidak sampai ke mana pun dan filter spam bisa membuangnya. Isi MAIL_FROM_ADDRESS (dan MAIL_FROM_NAME) di .env aplikasi dengan alamat di domain Anda sendiri.",
     "Mailer": "Mailer",
@@ -731,5 +736,6 @@
     "Your name, email address and password. Your roles are changed by a site manager.": "Nama, alamat email, dan kata sandi Anda. Peran Anda diubah oleh pengelola situs.",
     "Your new token “:name”": "Token baru Anda “:name”",
     "Your password has been reset. You can log in now.": "Kata sandi Anda telah diatur ulang. Sekarang Anda bisa masuk.",
-    "Users keep this role and its permissions. Code that checks it by name (hasRole(':old'), @role(':old')) needs the new one, and if \":old\" is one of the panel's default roles, sunrice:roles creates it again.": "Pengguna tetap memiliki peran ini beserta izinnya. Kode yang memeriksanya lewat nama (hasRole(':old'), @role(':old')) perlu nama baru, dan jika \":old\" adalah salah satu peran bawaan panel, sunrice:roles akan membuatnya lagi."
+    "Users keep this role and its permissions. Code that checks it by name (hasRole(':old'), @role(':old')) needs the new one, and if \":old\" is one of the panel's default roles, sunrice:roles creates it again.": "Pengguna tetap memiliki peran ini beserta izinnya. Kode yang memeriksanya lewat nama (hasRole(':old'), @role(':old')) perlu nama baru, dan jika \":old\" adalah salah satu peran bawaan panel, sunrice:roles akan membuatnya lagi.",
+    "Type a password, or turn on Email an invitation.": "Ketik kata sandi, atau nyalakan Kirim undangan lewat email."
 }

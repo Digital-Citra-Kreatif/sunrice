@@ -102,7 +102,7 @@ public static function query(): Builder
 | Any field | | `->showWhen('route')` shows it only while another field is filled in (switched on, chosen, typed in), `->showWhen('kind', 'link')` while it holds that value; it's only hidden on screen, what it holds is still sent and checked |
 | `TextInput` | string | `->email()`, `->url()`, `->color()` (`#rrggbb`, with a colour picker), `->maxLength(…)` (255), `->slugFrom('title')` (while creating, filled from that field as it's typed, `main_menu`, or with `'-'` `main-menu`, until someone types in it; what's typed in it is kept to lowercase letters, digits and the separator; check it on the server with a rule too) |
 | `Textarea` | string | `->rows(…)`, `->maxLength(…)` |
-| `Pairs` | string, one `key: value` per line | Edited as rows of two inputs: `->labels('Code', 'Name')`, `->suggest(['en' => 'English'])` (picking a key fills an empty value), `->firstBadge('Main')`, `->addLabel(…)`, `->maxLength(…)` |
+| `Pairs` | string, one `key: value` per line | Edited as rows of two inputs: `->labels('Code', 'Name')`, `->suggest(['en' => 'English'])` (picking a key fills an empty value), `->firstBadge('Main')`, `->addLabel(…)`, `->maxLength(…)`; `->fixed(['id' => 'Bahasa Indonesia'])` gives a labelled input per key instead (nothing to add or remove; other keys' lines are kept) |
 | `NumberInput` | number | `->integer()`, `->min()`, `->max()`, `->step()` |
 | `Toggle` | boolean | |
 | `Select` | one of the options | `->options([value => label])`, or a closure that gets the record being edited (null when creating): `->options(fn (?Model $record) => …)`; other values are refused; `->searchable()` adds a search box over them, for long lists |
@@ -227,6 +227,8 @@ Action::make('reject')->ability('update')
     ->form(Select::make('reason')->options(['stock' => 'Out of stock', 'fraud' => 'Suspected fraud'])->required())
     ->handle(fn (Order $order, array $input) => $order->reject($input['reason'])),
 ```
+
+A `Select` in an action's dialog may leave out the records the action runs on with `->withoutTargets()` (its option values are compared with their keys: a Delete dialog's "Give it to" doesn't offer the users being deleted); refuse one sent anyway in the handler with a `ValidationException` under the field's name, so the dialog stays open with the choices made. `->confirmFor(fn (Model $record) => …)` adds a sentence about the record after the question when the dialog is for one record known up front (the edit page's Delete); rows and bulk actions ask only the question.
 
 For a model with a trash (`SoftDeletes`), `->trashed()` makes an action for records in the trash only, such as a Restore: it finds them though the resource's query leaves them out, and isn't offered (or run) for anything else. List them with a filter:
 

@@ -96,3 +96,12 @@ it('lets editors and authors see drafts by default', function () {
         ->and(Role::findByName('author', 'web')->hasPermissionTo('cms.entries.view-drafts'))->toBeTrue()
         ->and(Role::findByName('translator', 'web')->hasPermissionTo('cms.entries.view-drafts'))->toBeFalse();
 });
+
+it('points out an editor role seeded before menus became content only, without changing it (SEC-10)', function () {
+    artisan('sunrice:roles')->assertSuccessful();
+    // An editor role from before: cms.menus.*.
+    Role::findByName('editor', 'web')->givePermissionTo('cms.menus.create', 'cms.menus.delete');
+
+    artisan('sunrice:roles')->expectsOutputToContain('cms.menus.create, cms.menus.delete')->assertSuccessful();
+    expect(Role::findByName('editor', 'web')->hasPermissionTo('cms.menus.delete'))->toBeTrue();
+});

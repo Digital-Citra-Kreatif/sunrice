@@ -21,6 +21,7 @@ use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\Submission;
 use Sunrice\Cms\Support\Locales;
+use Sunrice\Cms\Support\RoleMembers;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -382,6 +383,10 @@ it('emails the members of the form\'s roles too, once each', function () {
     post('/admin/cms/forms', ['title' => 'Quote', 'handle' => 'quote', 'blueprint' => 'contact', 'notify_roles' => ['sales']])->assertSessionHasNoErrors();
     expect(Form::query()->where('handle', 'quote')->sole()->notify_roles)->toBe(['sales']);
     post('/admin/cms/forms', ['title' => 'Bad', 'handle' => 'bad', 'blueprint' => 'contact', 'notify_roles' => ['nobody']])->assertSessionHasErrors('notify_roles.0');
+
+    // Roles by the names people read, kept by their own.
+    Role::findOrCreate('super-admin', 'web');
+    expect(RoleMembers::options())->toMatchArray(['sales' => 'Sales', 'super-admin' => 'Super admin']);
 });
 
 it('offers to create a form when there are none, to those who may', function () {

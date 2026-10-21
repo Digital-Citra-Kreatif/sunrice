@@ -111,6 +111,26 @@ it('lets translators edit the other languages only', function () {
     get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.update', false));
 });
 
+it('lets translators add another language to an entry, in the collections they may view', function () {
+    $post = scopedDraft($this->blog);
+    $news = scopedDraft($this->news);
+    actingAs($translator = adminUser(Panel::ACCESS, 'cms.entries.blog.view', 'cms.entries.translate'));
+
+    get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.create', false)->where('can.translate', true));
+    post("/admin/cms/entries/{$post->entry_id}/translations", ['locale' => 'en'])->assertForbidden(); // the main language is never theirs
+    post("/admin/cms/entries/{$news->entry_id}/translations", ['locale' => 'id'])->assertForbidden(); // a collection they can't view
+    post("/admin/cms/entries/{$post->entry_id}/translations", ['locale' => 'id'])->assertRedirect(entryEditUrl($post->entry_id, 'id'));
+    expect($post->entry->translations()->where('locale', 'id')->value('status'))->toBe('draft')
+        ->and(Access::entries($translator, 'add-translation', $this->blog, $post->entry, 'id'))->toBeTrue()
+        ->and(Access::entries($translator, 'add-translation', $this->blog, $post->entry, 'en'))->toBeFalse();
+    put("/admin/cms/entries/{$post->entry_id}", ['locale' => 'id', 'title' => 'Halo'])->assertSessionHasNoErrors();
+
+    // Neither create nor translate: no adding.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
+    get(entryEditUrl($post->entry_id))->assertInertia(fn (Assert $page) => $page->where('can.translate', false));
+    post("/admin/cms/entries/{$news->entry_id}/translations", ['locale' => 'id'])->assertForbidden();
+});
+
 it('keeps translators out of what every language shares: parent, comments, template, blueprint and order', function () {
     $parent = scopedDraft($this->blog);
     $post = scopedDraft($this->blog);

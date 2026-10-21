@@ -91,7 +91,7 @@
                 @endif
             </div>
             <dialog id="gallery-viewer" class="viewer" aria-label="{{ __('site.gallery.title', ['title' => $title]) }}"
-                data-items="{{ $gallery->map(fn ($m) => ['src' => $m->url('large'), 'srcset' => $m->srcset(), 'alt' => $m->alt ?? ''])->values()->toJson() }}">
+                data-items="{{ $gallery->map(fn ($m) => ['src' => $m->url('large'), 'srcset' => $m->srcset(), 'alt' => $m->altIn() ?? ''])->values()->toJson() }}">
                 <div class="flex items-center justify-between p-3">
                     <p data-counter class="px-3 text-sm text-white/70"></p>
                     <button type="button" data-close>@include('cms.partials.icon', ['name' => 'close'])<span class="visually-hidden">{{ __('site.gallery.close') }}</span></button>

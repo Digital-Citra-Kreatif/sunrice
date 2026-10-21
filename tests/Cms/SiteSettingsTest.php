@@ -232,6 +232,34 @@ it('offers live pages as the homepage, searchable, and lets editors set it from 
     expect(app(Panel::class)->getDefaultRoles()['editor'] ?? [])->toContain('cms.homepage');
 });
 
+it('offers "Make this the homepage" only on pages at the site\'s root and the homepage\'s own collection (NEW-editor-3)', function () {
+    config(['inertia.testing.ensure_pages_exist' => false]);
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'route' => '/{slug}']);
+    $about = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'About']));
+    $contact = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'Contact']));
+    $post = codePost('A post');
+    $budi = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update');
+    $budi->givePermissionTo(Permission::findOrCreate('cms.homepage', 'web'));
+    actingAs($budi);
+    $offered = fn (EntryTranslation $t) => get(entryEditUrl($t->entry_id))->viewData('page')['props']['homepage'];
+
+    // No homepage yet: pages at the root only, not blog posts.
+    expect($offered($about))->toBe(['is' => false, 'can' => true, 'current' => null])
+        ->and($offered($post)['can'])->toBeFalse();
+    \Pest\Laravel\post("/admin/cms/entries/{$post->entry_id}/homepage")->assertSessionHasErrors(['homepage' => 'Only a page at the root of the site (like /about) can be made the homepage here. To use another, choose it in Settings → Site.']);
+    expect((new SiteSettings)->homepage)->toBeNull();
+
+    // The confirmation names the page it replaces.
+    \Pest\Laravel\post("/admin/cms/entries/{$about->entry_id}/homepage")->assertSessionHasNoErrors();
+    expect($offered($contact))->toBe(['is' => false, 'can' => true, 'current' => 'About'])
+        ->and($offered($about))->toBe(['is' => true, 'can' => false, 'current' => null])
+        ->and($offered($post)['can'])->toBeFalse();
+
+    // A homepage chosen in Settings from another collection: its collection is offered too.
+    saveSite(['homepage' => $post->entry_id]);
+    expect($offered(codePost('Another post'))['can'])->toBeTrue();
+});
+
 it('describes the site in each language', function () {
     config(['sunrice-cms.locales' => ['en', 'id']]);
     $site = app(SiteSettings::class);
@@ -243,4 +271,12 @@ it('describes the site in each language', function () {
         ->and(Seo::forPage(null)['description'])->toBe('Premium homes.');
     app()->setLocale('id');
     expect(Seo::forPage(null)['description'])->toBe('Rumah premium.');
+});
+
+it('edits the description per language with a labelled input for each other language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id', 'fr'], 'sunrice-cms.locale_names' => ['id' => 'Bahasa Indonesia', 'fr' => 'Français']]);
+    $field = collect(SiteSettings::form(new Form)->toSections('edit'))->pluck('fields')->flatten(1)->firstWhere('name', 'descriptions');
+
+    expect($field['type'])->toBe('pairs')
+        ->and($field['fixed'])->toBe([['key' => 'id', 'label' => 'Bahasa Indonesia'], ['key' => 'fr', 'label' => 'Français']]);
 });

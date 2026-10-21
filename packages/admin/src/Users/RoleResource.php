@@ -102,7 +102,9 @@ class RoleResource extends Resource
         return $table
             ->columns([
                 Column::make('name')->searchable()->sortable()->format(fn (string|int|float|bool|null $name): string|int|float|bool|null => is_string($name) ? static::displayName($name) : $name),
-                Column::make('permissions_count')->label('Permissions'),
+                // The super admin role has no permissions of its own: it may do everything.
+                Column::make('permissions_count')->label('Permissions')
+                    ->state(fn (Model $role): string|int => app(PermissionRank::class)->isSuperAdminRole($role) ? (is_string($all = __('All')) ? $all : 'All') : (is_numeric($count = $role->getAttribute('permissions_count')) ? (int) $count : 0)),
             ])
             ->defaultSort('name');
     }

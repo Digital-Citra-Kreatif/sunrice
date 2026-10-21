@@ -103,3 +103,15 @@ it('names settings by their label in errors, and says what to create when there 
     $setting = collect(app(FieldTypes::class)->get('entries')->settings())->firstWhere('handle', 'collections');
     expect($setting->config['empty'])->toContain('Structure → Collections');
 });
+
+it('lets a field be shown only when a sibling with a value of its own is so, not a fieldset include', function () {
+    Fieldset::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'phone', 'type' => 'text']]]);
+    $fields = fn (string $on) => [
+        ['handle' => 'contact_include', 'type' => 'fieldset', 'config' => ['fieldset' => 'contact']],
+        ['handle' => 'show_map', 'type' => 'toggle'],
+        ['handle' => 'map', 'type' => 'text', 'condition' => ['field' => $on, 'operator' => 'equals', 'value' => true]],
+    ];
+
+    expect(definitionErrors($fields('show_map')))->toBe([])
+        ->and(definitionErrors($fields('contact_include')))->toHaveKey('fields.2.condition.field');
+});

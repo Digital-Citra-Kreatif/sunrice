@@ -11,6 +11,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Cms\Actions\Comments\PostComment;
 use Sunrice\Cms\Actions\Comments\SetCommentStatus;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
@@ -332,4 +333,17 @@ it('emails the members of the roles Settings → Comments names too', function (
 
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.comments'));
     get('/admin/settings/comments')->assertOk()->assertSee('reviewers');
+});
+
+it('offers the comments captcha once a captcha service is set up, saying who sets it up, and lists roles by name', function () {
+    Role::findOrCreate('super-admin', 'web');
+    $fields = fn () => collect(CommentSettings::form(new Form)->toSections('edit'))->pluck('fields')->flatten(1)->keyBy('name');
+
+    expect($fields()['captcha']['disabled'])->toBeTrue()
+        ->and($fields()['captcha']['help'])->toContain('set up on the server by a developer')->toContain('For developers: SUNRICE_CAPTCHA_SITE_KEY')
+        ->and(collect($fields()['notifyRoles']['options'])->firstWhere('value', 'super-admin')['label'] ?? null)->toBe('Super admin');
+
+    config(['sunrice-admin.captcha' => ['provider' => 'turnstile', 'site_key' => 'k', 'secret_key' => 's']]);
+    expect($fields()['captcha']['disabled'])->toBeFalse()
+        ->and($fields()['captcha']['help'])->not->toContain('SUNRICE_');
 });

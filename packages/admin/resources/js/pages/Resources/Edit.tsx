@@ -3,7 +3,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { LoaderCircle, Trash2 } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
-import { useConfirm } from '@/components/resources/confirm';
+import { forTargets, useConfirm } from '@/components/resources/confirm';
 import type { FieldValue } from '@/components/resources/fields';
 import { FormSections } from '@/components/resources/form-sections';
 import { InfoCards } from '@/components/resources/info-cards';
@@ -69,7 +69,7 @@ export default function ResourceEdit({ resource, record, sections, values, can, 
         // The dialog stays open until the action is accepted; then the list opens.
         confirm(deleteAction.confirm, (answers) => new Promise<boolean>((resolve) => router.post(`${base}/${record.key}/actions/delete`, answers, {
             onSuccess: () => resolve(true), onError: () => resolve(false),
-        })), true, deleteAction.fields);
+        })), true, forTargets(deleteAction.fields, [record.id]));
     };
 
     const page = (

@@ -51,6 +51,8 @@ How the CMS picks a template: the entry's own (Page settings), the collection's,
    settings it leaves out), commit `database/structure.json` with the templates that use it.
 4. On the server: `php artisan sunrice:import-structure database/structure.json --dry-run`, then without
    `--dry-run`. The import adds and updates, never deletes content; it refuses to drop fields unless `--force`.
+   Menus are content: the live menus keep their links, and only links the file has and they lack are added
+   (the dry run lists them). `--replace-menus` would make them the file's.
 
 ## Templates
 

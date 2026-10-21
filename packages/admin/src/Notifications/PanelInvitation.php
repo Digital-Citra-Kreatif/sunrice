@@ -6,10 +6,12 @@ namespace Sunrice\Admin\Notifications;
 
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
+use Sunrice\Admin\Support\AppUrl;
 
 /**
  * The invitation to a new user (InviteUser): a link to the panel's reset
- * page to choose their own password.
+ * page to choose their own password (`invited=1`: the page says "Choose
+ * your password", not "a new" one).
  *
  * @internal
  */
@@ -41,6 +43,7 @@ final class PanelInvitation extends ResetPassword
 
     protected function resetUrl(mixed $notifiable): string
     {
-        return url(route('sunrice.admin.password.reset', ['token' => $this->token, 'email' => $this->email], false));
+        // From APP_URL, like ResetPanelPassword: never the request's Host.
+        return AppUrl::route('sunrice.admin.password.reset', ['token' => $this->token, 'email' => $this->email, 'invited' => 1]);
     }
 }

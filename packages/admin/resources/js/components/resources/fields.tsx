@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
-import { formatPairs, parsePairs, type Pair } from '@/lib/pairs';
+import { fixedValues, formatPairs, parsePairs, type Pair, withFixedValue } from '@/lib/pairs';
 import { slugInput } from '@/lib/slug';
 import { RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
 import type { FieldInfo } from './types';
@@ -91,6 +91,10 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
             return <RichTextEditor id={id} labelledBy={`${id}-label`} invalid={invalid} disabled={disabled} images={field.images !== false}
                 value={typeof value === 'string' ? value : ''} onChange={onChange} />;
         case 'pairs':
+            if (Array.isArray(field.fixed)) {
+                return <FixedPairsInput id={id} keys={field.fixed as { key: string; label: string }[]} disabled={disabled} invalid={invalid}
+                    value={typeof value === 'string' ? value : ''} onChange={onChange} />;
+            }
             return <PairsInput id={id} field={field} disabled={disabled} invalid={invalid} value={typeof value === 'string' ? value : ''} onChange={onChange} />;
         case 'date':
             return <DatePicker id={id} disabled={disabled} invalid={invalid} required={field.required === true} withTime={field.withTime === true}
@@ -171,6 +175,25 @@ function ColorInput({ common, value, onChange }: {
             {valid && (
                 <span aria-hidden="true" className="flex h-10 shrink-0 items-center rounded-lg px-3 text-sm font-medium shadow-xs" style={{ background: value, color: readableOn(value) }}>Aa</span>
             )}
+        </div>
+    );
+}
+
+/** A labelled input per given key (Pairs with ->fixed()), kept as "key: value" lines. */
+function FixedPairsInput({ id, keys, value, disabled, invalid, onChange }: {
+    id: string; keys: { key: string; label: string }[]; value: string; disabled: boolean; invalid: boolean; onChange: (value: string) => void;
+}) {
+    const values = fixedValues(value, keys.map((each) => each.key));
+
+    return (
+        <div id={id} role="group" aria-invalid={invalid} className="grid gap-3">
+            {keys.map(({ key, label }) => (
+                <div key={key} className="grid gap-1.5">
+                    <Label htmlFor={`${id}-${key}`} className="text-sm font-normal text-muted-foreground">{label}</Label>
+                    <Input id={`${id}-${key}`} disabled={disabled} aria-invalid={invalid} value={values[key] ?? ''}
+                        onChange={(e) => onChange(withFixedValue(value, key, e.target.value))} />
+                </div>
+            ))}
         </div>
     );
 }

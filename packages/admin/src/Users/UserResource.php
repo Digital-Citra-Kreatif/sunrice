@@ -112,7 +112,7 @@ class UserResource extends Resource
                 TextInput::make('email')->email()->required()->unique(),
                 // Creating: a password, or none and an invitation to choose one.
                 Password::make('password')->onlyOnCreate()->confirmed()->span(2)
-                    ->rules(['required_unless:invite,true,1'])
+                    ->rules([new PasswordOrInvitation])
                     ->help('Or leave it empty and email them an invitation to choose their own.'),
                 Toggle::make('invite')->label('Email an invitation')->onlyOnCreate()->span(2)
                     ->help('A link to choose their password, sent to their email address. It works for as long as password reset links do.')
@@ -281,8 +281,10 @@ class UserResource extends Resource
             ->confirm($owned === [] ? 'Delete this user? This can\'t be undone.'
                 : __('Delete this user? This can\'t be undone. Choose what happens to their :content.', ['content' => self::list(array_map(Say::it(...), $owned))]))
             ->form(...static::deleteFields())
+            // On the edit page: what they own.
+            ->confirmFor(fn (Model $user): ?string => static::ownsSentence($user))
             ->handle(function (Model $user, array $input): string {
-                [$mode, $heir] = static::deleteChoice($input);
+                [$mode, $heir] = static::deleteChoice($input, [$user]);
                 $counts = app(DeleteUser::class)->handle($user, $mode, $heir);
 
                 return static::deletedMessage(static::title($user), $counts, $mode, $heir);
@@ -299,7 +301,7 @@ class UserResource extends Resource
                 : __('Delete the selected users? This can\'t be undone. Choose what happens to their :content.', ['content' => self::list(array_map(Say::it(...), $owned))]))
             ->form(...static::deleteFields())
             ->handle(function (SupportCollection $users, array $input): string {
-                [$mode, $heir] = static::deleteChoice($input);
+                [$mode, $heir] = static::deleteChoice($input, array_values($users->all()));
                 $counts = [];
                 DB::transaction(function () use ($users, $mode, $heir, &$counts): void {
                     foreach ($users as $user) {
@@ -323,21 +325,37 @@ class UserResource extends Resource
                 DeleteUser::KEEP => 'Keep it, without an owner',
                 DeleteUser::DELETE => 'Delete it (entries and comments go to the trash; uploads stay)',
             ]),
-            Select::make('heir')->label('Give it to')->verbatim()->options(static fn (): array => static::heirs())
+            Select::make('heir')->label('Give it to')->verbatim()->options(static fn (): array => static::heirs())->withoutTargets()
                 ->help('Only when giving their content to another user.'),
         ];
     }
 
     /**
      * @param  array<string, mixed>  $input
+     * @param  list<Model>  $deleting  the users being deleted: none of them can be the heir
      * @return array{string, ?Model} the mode and, when reassigning, the heir
+     *
+     * @throws ValidationException under "heir", so the dialog stays open with the choices made
      */
-    protected static function deleteChoice(array $input): array
+    protected static function deleteChoice(array $input, array $deleting = []): array
     {
         $heir = isset($input['heir']) && is_scalar($input['heir']) ? static::model()::query()->find($input['heir']) : null;
+        $heir = $heir instanceof Model ? $heir : null;
         $mode = is_string($input['content'] ?? null) ? $input['content'] : DeleteUser::KEEP;
+        if ($mode === DeleteUser::REASSIGN && ($heir === null || array_filter($deleting, fn (Model $user): bool => $user->is($heir)) !== [])) {
+            throw ValidationException::withMessages(['heir' => __('Choose another user to give their content to.')]);
+        }
 
-        return [$mode, $heir instanceof Model ? $heir : null];
+        return [$mode, $heir];
+    }
+
+    /** "They own 3 entries and 1 upload.", or null when they own nothing. */
+    protected static function ownsSentence(Model $user): ?string
+    {
+        $owned = self::owned(app(DeleteUser::class)->counts($user));
+        $said = $owned === '' ? null : __('They own :content.', ['content' => $owned]);
+
+        return is_string($said) ? $said : null;
     }
 
     /**

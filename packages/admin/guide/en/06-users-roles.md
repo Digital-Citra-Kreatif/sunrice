@@ -38,11 +38,11 @@ Each of these is recorded as a security event in the [activity log](guide:panel/
 
 **Delete…** (in the row's menu, the bin button on their page, or for several ticked users at once) asks what happens to what they made (their entries, comments and uploads):
 
-- **Give it to another user**, chosen in **Give it to**.
+- **Give it to another user**, chosen in **Give it to** (the users you're deleting aren't offered).
 - **Keep it, without an owner** (the default).
 - **Delete it**: entries and comments go to the trash; uploads stay, since other pages may use them.
 
-Their roles, AI tokens and lock state go with them. Prefer **Lock account** when you're not sure: it can be undone.
+On a user's page, the question also says what they own. Their roles, AI tokens and lock state go with them. Prefer **Lock account** when you're not sure: it can be undone.
 
 ## Roles
 
@@ -56,7 +56,7 @@ Your site may come with ready-made roles to start from:
 | --- | --- |
 | **administrator** | Everything, for people who run the site. |
 | **editor** | All content: entries, terms, globals, menus, comments, media, and reading and exporting form submissions. Not structure, settings or users. |
-| **author** | Writing entries and editing their own, uploading media and seeing drafts on the site. They can't publish. |
+| **author** | Writing entries in every collection and editing their own, uploading media and seeing drafts on the site. They can't publish. To keep authors to some collections (only the *Journal*, say), untick *View entries* and *Create entries* and tick **View** and **Create** under those collections' *Entries:* groups. |
 | **translator** | Writing the other languages of entries, in every collection they may view. To keep a translator to some collections, give the role **View** under those collections' *Entries:* groups instead of *View entries*. |
 
 Every role that can open the panel can also read this guide.

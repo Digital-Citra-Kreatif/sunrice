@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Schema;
+use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
@@ -119,4 +120,86 @@ it('round-trips "SEO from fields" and the roles a form emails', function () {
     $bad = structureFixture();
     $bad['collections'][1]['seo_image_field'] = 'Not a handle';
     expect(fn () => app(StructureImporter::class)->import($bad))->toThrow(StructureImportFailed::class, 'collection "posts"');
+});
+
+/** @return list<array{0: string, 1: list<array<string, mixed>>}> */
+function importedMenu(string $handle = 'main'): array
+{
+    $flat = [];
+    $walk = function ($items, int $depth) use (&$walk, &$flat): void {
+        foreach ($items as $item) {
+            $flat[] = str_repeat('-', $depth).($item['entry'] ?? $item['term'] ?? $item['collection'] ?? $item['url']);
+            $walk($item['children'], $depth + 1);
+        }
+    };
+    $menu = collect(app(StructureExporter::class)->export()['menus'])->firstWhere('handle', $handle);
+    $walk($menu['items'] ?? [], 0);
+
+    return $flat;
+}
+
+it('keeps the links of a menu that exists: a file with fewer links removes none (NEW-admin-1)', function () {
+    app(StructureImporter::class)->import(structureFixture());
+    $fewer = structureFixture();
+    $fewer['menus'][0]['items'] = [$fewer['menus'][0]['items'][3]]; // only the address
+
+    $dry = app(StructureImporter::class)->import($fewer, dryRun: true);
+    $report = app(StructureImporter::class)->import($fewer);
+
+    expect($dry->status('menu', 'main'))->toBe(ImportReport::UNCHANGED)
+        ->and($report->status('menu', 'main'))->toBe(ImportReport::UNCHANGED)
+        ->and($report->items()[array_search('menu', array_column($report->items(), 'type'), true)]['notes'])->toBe([])
+        ->and(importedMenu())->toBe(['pages/about', '-pages/team', 'posts', 'topics/news', 'https://example.com']);
+});
+
+it('keeps links editors added, and adds the file\'s missing links in the file\'s order, saying which (NEW-admin-1)', function () {
+    $start = structureFixture();
+    $start['menus'][0]['items'] = [$start['menus'][0]['items'][1], $start['menus'][0]['items'][3]]; // posts, the address
+    app(StructureImporter::class)->import($start);
+    $menu = Menu::query()->where('handle', 'main')->first();
+    $items = $menu->items()->orderBy('sort_order')->get();
+    app(SaveMenu::class)->handle($menu, [
+        ...$items->map(fn ($i) => ['collection_id' => $i->collection_id, 'url' => $i->url, 'labels' => $i->labels, 'query' => $i->query_string])->all(),
+        ['url' => 'https://added.example', 'labels' => ['en' => 'Added in the panel']],
+    ]);
+
+    $dry = app(StructureImporter::class)->import(structureFixture(), dryRun: true);
+    $notes = collect($dry->items())->firstWhere('type', 'menu')['notes'];
+    expect($dry->status('menu', 'main'))->toBe(ImportReport::UPDATED)
+        ->and($notes)->toBe(['Adds a link to pages/about.', 'Adds a link to pages/team.', 'Adds a link to topics/news.'])
+        ->and($menu->items()->count())->toBe(3);
+
+    app(StructureImporter::class)->import(structureFixture());
+    expect(importedMenu())->toBe(['pages/about', '-pages/team', 'posts', 'topics/news', 'https://example.com', 'https://added.example']);
+    expect(app(StructureImporter::class)->import(structureFixture())->status('menu', 'main'))->toBe(ImportReport::UNCHANGED);
+});
+
+it('replaces a menu\'s links only when asked, listing the links it removes (NEW-admin-1)', function () {
+    app(StructureImporter::class)->import(structureFixture());
+    $fewer = structureFixture();
+    $fewer['menus'][0]['items'] = [$fewer['menus'][0]['items'][3]];
+    $file = tempnam(sys_get_temp_dir(), 'structure');
+    file_put_contents($file, json_encode($fewer));
+
+    artisan('sunrice:import-structure', ['file' => $file, '--dry-run' => true, '--replace-menus' => true])
+        ->expectsOutputToContain('Removes the link to pages/about.')->assertSuccessful();
+    expect(Menu::query()->where('handle', 'main')->first()->items()->count())->toBe(5);
+
+    $report = app(StructureImporter::class)->import($fewer, replaceMenus: true);
+    expect($report->status('menu', 'main'))->toBe(ImportReport::UPDATED)
+        ->and(collect($report->items())->firstWhere('type', 'menu')['notes'])->toBe([
+            'Removes the link to pages/about.', 'Removes the link to pages/team.', 'Removes the link to posts.', 'Removes the link to topics/news.',
+        ])
+        ->and(importedMenu())->toBe(['https://example.com']);
+    unlink($file);
+});
+
+it('exports links to entries by collection and slug, those in the trash included, and leaves out links to what is gone', function () {
+    app(StructureImporter::class)->import(structureFixture());
+    $team = Entry::query()->whereHas('translations', fn ($q) => $q->where('draft_slug', 'team'))->first();
+    $team->delete(); // in the trash
+    $menu = Menu::query()->where('handle', 'main')->first();
+    $menu->items()->create(['url' => null, 'labels' => [], 'sort_order' => 9]); // its entry deleted for good
+
+    expect(importedMenu())->toBe(['pages/about', '-pages/team', 'posts', 'topics/news', 'https://example.com']);
 });
