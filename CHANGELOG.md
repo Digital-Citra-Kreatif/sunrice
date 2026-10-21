@@ -35,6 +35,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- The term picker (`GET cms/terms/picker`) serves a taxonomy only to those who may view its terms or whose collections' terms fields use it (403 otherwise); it served any taxonomy to anyone with `cms.entries.view`. (F4)
 - The site never reflects a forged `Host` header: its redirects to its own pages (language prefixes, trailing slashes, `/index.php`, editors' redirects to a path) are host-relative (`Location: /about`), and the sitemap's addresses (and its cache key) are on `APP_URL`. The real-estate example's `robots.txt` names the sitemap on `APP_URL`. The security docs explain `TrustHosts`. (F3)
 - Forms and comments send visitors back only to a page on this site: a `Referer` naming another site no longer turns them into an open redirect (forms then go to `/`, comments to the entry). New `SafeUrl::isLocal($url)` and `SafeUrl::previous($fallback)`. (F2)
 - Server-side fetches of URLs people give refuse every non-public address: the new `Sunrice\Admin\Support\PublicAddress` (`@api`, `of($host)`, `isPublic($ip)`, `resolveUsing()` for tests) uses `FILTER_FLAG_GLOBAL_RANGE` and also refuses CGNAT (`100.64.0.0/10`), NAT64 (`64:ff9b::/96`, `64:ff9b:1::/48`), IPv4-mapped and -compatible IPv6, multicast, broadcast and `0.0.0.0/8`, for every address a host resolves to. The AI tool `upload_media` uses it (`UploadMedia::publicAddress()` is gone). (F1)

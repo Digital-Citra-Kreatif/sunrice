@@ -300,13 +300,43 @@ it('sends terms fields their taxonomy and the chosen terms\' titles, and the pic
         ['id' => $news->id, 'label' => 'News', 'depth' => 0], ['id' => $local->id, 'label' => 'Local', 'depth' => 1], ['id' => $sport->id, 'label' => 'Sport', 'depth' => 0],
     ], 'more' => false]);
     $this->getJson('/admin/cms/terms/picker?taxonomy=topics&q=spo')->assertJsonPath('items', [['id' => $sport->id, 'label' => 'Sport', 'depth' => 0]]);
-    $this->getJson("/admin/cms/terms/picker?taxonomy=other&ids[]={$sport->id}")->assertJsonPath('items', []);
+    // A taxonomy no field of theirs uses, and whose terms they may not see.
+    $this->getJson("/admin/cms/terms/picker?taxonomy=other&ids[]={$sport->id}")->assertForbidden();
     $this->getJson("/admin/cms/terms/picker?taxonomy=topics&ids[]={$sport->id}")->assertJsonPath('items.0.label', 'Sport');
     $this->getJson('/admin/cms/terms/picker?taxonomy=nope')->assertNotFound();
     $this->getJson('/admin/cms/terms/picker')->assertUnprocessable();
 
     actingAs(adminUser(Panel::ACCESS));
     $this->getJson('/admin/cms/terms/picker?taxonomy=topics')->assertForbidden();
+});
+
+it('gives the term picker only taxonomies the person may see or their collections\' terms fields use', function () {
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics']);
+    $sport = app(SaveTerm::class)->handle($topics, ['title' => 'Sport']);
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    app(SaveTerm::class)->handle($tags, ['title' => 'Green']);
+    $salaries = Taxonomy::query()->create(['handle' => 'salaries', 'title' => 'Salaries']);
+    $secret = app(SaveTerm::class)->handle($salaries, ['title' => 'Director pay band']);
+    Blueprint::query()->where('handle', 'article')->update(['fields' => json_encode([
+        ['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics']],
+        ['handle' => 'more', 'type' => 'group', 'fields' => [['handle' => 'tags', 'type' => 'terms', 'config' => ['taxonomy' => 'tags']]]],
+    ])]);
+    Blueprint::query()->create(['handle' => 'memo', 'title' => 'Memo', 'fields' => [['handle' => 'band', 'type' => 'terms', 'config' => ['taxonomy' => 'salaries']]]]);
+    Collection::query()->create(['handle' => 'memos', 'title' => 'Memos', 'blueprint' => 'memo']);
+
+    // An author of articles, who may not see terms on their own.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.articles.view', 'cms.entries.articles.create', 'cms.entries.update-own'));
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics')->assertOk()->assertJsonPath('items.0.label', 'Sport');
+    $this->getJson('/admin/cms/terms/picker?taxonomy=tags')->assertOk()->assertJsonPath('items.0.label', 'Green');
+    $this->getJson('/admin/cms/terms/picker?taxonomy=salaries')->assertForbidden();
+    $this->getJson("/admin/cms/terms/picker?taxonomy=salaries&ids[]={$secret->id}")->assertForbidden();
+    $this->getJson("/admin/cms/terms/picker?taxonomy=topics&ids[]={$sport->id}")->assertOk();
+
+    // Allowed to see a taxonomy's terms (all, or that one).
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.articles.view', 'cms.terms.salaries.view'));
+    $this->getJson('/admin/cms/terms/picker?taxonomy=salaries')->assertOk()->assertJsonPath('items.0.label', 'Director pay band');
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.articles.view', 'cms.terms.view'));
+    $this->getJson('/admin/cms/terms/picker?taxonomy=salaries')->assertOk();
 });
 
 it('keeps the editor to a query budget', function () {
