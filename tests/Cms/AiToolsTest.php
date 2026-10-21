@@ -331,6 +331,11 @@ it('renders on APP_URL, keeps developer tools out, and answers errors without fi
     expect($broken['status'])->toBe(500)->and($broken['error'])->toBe('The template broke')->not->toContain('vendor/');
     expect(cmsTool($token, 'cms_render_page', ['path' => '/_inertia/devtools/entries']))->toContain('public pages')
         ->and(cmsTool($token, 'cms_render_page', ['path' => '/telescope/requests']))->toContain('public pages');
+    // Encoded or roundabout spellings of the same paths (NEW-security-2).
+    foreach (['/%5Finertia/devtools/entries', '/%255Finertia/devtools/entries', '/%61dmin', '/%61dmin/users', '/%2561dmin', '/A%64MIN', '/blog/../admin', '/./admin', '/blog/%2E%2E/admin', '/%6Dcp', '/\\admin'] as $path) {
+        expect(cmsTool($token, 'cms_render_page', ['path' => $path]))->toBeString()->toContain('public pages');
+    }
+    expect(cmsTool($token, 'cms_render_page', ['path' => '/wh%65re'])['html'])->toBe('https://lumina.example:8200/contact');
 });
 
 it('renders public pages, not the panel', function () {

@@ -57,6 +57,22 @@ it('gives a role seeded before this was remembered what it is missing, once', fu
         ->and(app(SeedRoles::class)->handle()['cashier'])->toBe([]);
 });
 
+it('reports what default roles have beyond their defaults, and takes nothing away (SEC-10)', function () {
+    app(SeedRoles::class)->handle();
+    expect(app(SeedRoles::class)->extras())->toBe([]);
+    // Left over from an older default, or given on purpose.
+    Role::findByName('administrator', 'web')->givePermissionTo('sunrice.ai.run-commands');
+    Role::findByName('cashier', 'web')->givePermissionTo('sunrice.settings.security');
+
+    expect(app(SeedRoles::class)->extras())->toBe(['administrator' => ['sunrice.ai.run-commands'], 'cashier' => ['sunrice.settings.security']]);
+    artisan('sunrice:roles')
+        ->expectsOutputToContain('permissions their default no longer gives')
+        ->expectsOutputToContain('sunrice.ai.run-commands')
+        ->assertSuccessful();
+    expect(Role::findByName('administrator', 'web')->permissions->pluck('name'))->toContain('sunrice.ai.run-commands')
+        ->and(Role::findByName('cashier', 'web')->permissions->pluck('name'))->toContain('sunrice.settings.security');
+});
+
 it('wants lowercase role names', function () {
     expect(fn () => Panel::make()->defaultRole('Shop Manager', []))->toThrow(PanelMisconfigured::class, 'lowercase');
 });

@@ -128,6 +128,19 @@ it('deletes a collection but keeps its entries', function () {
         ->and(Activity::query()->latest('id')->first()?->only(['action', 'subject_type']))->toBe(['action' => 'deleted', 'subject_type' => 'collections']);
 });
 
+it('says a deleted collection can be restored, and its trash offers Restore (NEW-admin-2)', function () {
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.delete'));
+
+    // The row's Delete says "Move … to the trash? You can restore it." when can.trash.
+    get('/admin/cms/collections')->assertInertia(fn (Assert $page) => $page->where('can.trash', true)
+        ->where('bulkActions.0.label', 'Move to trash')->where('bulkActions.0.confirm', 'Move the selected records to the trash? You can restore them.'));
+    delete('/admin/cms/collections/pages')->assertRedirect();
+    get('/admin/cms/collections?status=trashed')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.key', 'pages')->where('rows.data.0.can.delete', true));
+    post('/admin/cms/collections/pages/restore')->assertRedirect()->assertSessionHas('success', 'Pages restored.');
+    expect($pages->fresh()?->trashed())->toBeFalse();
+});
+
 it('takes the title visitors read in each other language', function () {
     config(['sunrice-cms.locales' => ['en', 'id']]);
     collectionsUser('view', 'create', 'update');

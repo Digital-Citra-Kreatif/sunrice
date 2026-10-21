@@ -112,7 +112,7 @@ class UserResource extends Resource
                 TextInput::make('email')->email()->required()->unique(),
                 // Creating: a password, or none and an invitation to choose one.
                 Password::make('password')->onlyOnCreate()->confirmed()->span(2)
-                    ->rules(['required_unless:invite,true,1'])
+                    ->rules([new PasswordOrInvitation])
                     ->help('Or leave it empty and email them an invitation to choose their own.'),
                 Toggle::make('invite')->label('Email an invitation')->onlyOnCreate()->span(2)
                     ->help('A link to choose their password, sent to their email address. It works for as long as password reset links do.')

@@ -433,7 +433,9 @@ it('creates a user with an invitation to choose their own password, and sends a 
     Notification::fake();
     actingAs($this->super);
 
-    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => false, 'roles' => []])->assertSessionHasErrors('password');
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => false, 'roles' => []])
+        ->assertSessionHasErrors(['password' => 'Type a password, or turn on Email an invitation.']); // NEW-admin-3
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'roles' => []])->assertSessionHasErrors(['password' => 'Type a password, or turn on Email an invitation.']);
     post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => true, 'roles' => []])->assertSessionHasNoErrors();
     $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
     expect($dewi->password)->not->toBe('');
@@ -459,6 +461,26 @@ it('creates a user with an invitation to choose their own password, and sends a 
     Notification::assertSentOnDemandTimes(PanelInvitation::class, 2);
     get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'invite'))->toMatchArray(['type' => 'toggle']));
     get("/admin/users/{$dewi->id}/edit")->assertInertia(fn (Assert $page) => expect(formField($page, 'invite'))->toBeNull());
+});
+
+it('builds the invitation and password links from APP_URL, never from the request\'s Host (NEW-security-1)', function () {
+    config(['app.url' => 'https://cms.example']);
+    Notification::fake();
+    actingAs($this->super);
+
+    post('http://evil.example/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => true, 'roles' => []])->assertSessionHasNoErrors();
+    post("http://evil.example/admin/users/{$this->editor->id}/actions/invite")->assertSessionHas('success');
+
+    $links = [];
+    Notification::assertSentOnDemand(PanelInvitation::class, function ($notification, $channels, $notifiable) use (&$links) {
+        $links[] = $notification->toMail($notifiable)->actionUrl;
+
+        return true;
+    });
+    expect($links)->toHaveCount(2);
+    foreach ($links as $link) {
+        expect($link)->toStartWith('https://cms.example/admin/reset-password/')->not->toContain('evil.example');
+    }
 });
 
 it('lets everyone change their own name, email and password on Your account', function () {
