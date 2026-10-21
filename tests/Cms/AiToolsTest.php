@@ -344,15 +344,21 @@ it('writes templates only for super admins when the site allows it, checked and 
     expect($guide['guide'])->toContain('resources/views/cms')
         ->and($guide['current']['collections']['blog']['entry_page']['uses'])->toBe('sunrice-cms::entry')
         ->and($guide['can_write'])->toBeFalse()
-        ->and(cmsTool($builder, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('super admin')
+        ->and($guide['write_note'])->toContain('super admins')
+        // Not offered to those who can't use it.
+        ->and(cmsTool($builder, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('not found')
         ->and(cmsTool($builder, 'cms_read_template', ['path' => 'entry.blade.php', 'source' => 'default'])['content'])->toContain('x-sunrice-cms::seo');
 
     $role = SyncPermissions::superAdminRole();
     Role::findOrCreate($role, 'web');
     $admin = User::query()->create(['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'x'])->assignRole($role);
     [, $super] = AiToken::issue((string) $admin->id, 'Claude');
-    expect(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('sunrice-cms.ai.templates');
+    $listed = fn () => test()->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'], ['Authorization' => "Bearer {$super}"])->json('result.tools.*.name');
+    // Switched off on this site: not listed, even to a super admin.
+    expect($listed())->not->toContain('cms_write_template')
+        ->and(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('not found');
     config(['sunrice-cms.ai.templates' => true]);
+    expect($listed())->toContain('cms_write_template');
 
     expect(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => '@if($x) <p>']))->toContain('syntax error')
         ->and(cmsTool($super, 'cms_write_template', ['path' => '../evil.blade.php', 'content' => 'x']))->toContain('Give a path')

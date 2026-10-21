@@ -79,6 +79,20 @@ it('creates tokens on the AI access page, shows each once, and revokes them', fu
     get('/admin/ai')->assertForbidden();
 });
 
+it('tells on the AI access page what a full token could do as this person', function () {
+    actingAs($this->rina);
+    get('/admin/ai')->assertInertia(fn (Assert $page) => $page->where('risks', ['superAdmin' => false, 'privileged' => []]));
+
+    $this->rina->givePermissionTo('sunrice.settings.security');
+    $label = app(Panel::class)->getPermissions()['sunrice.settings.security']->label;
+    get('/admin/ai')->assertInertia(fn (Assert $page) => $page->where('risks.privileged', [$label]));
+
+    Role::findOrCreate(SyncPermissions::superAdminRole(), 'web');
+    $this->rina->assignRole(SyncPermissions::superAdminRole());
+    get('/admin/ai')->assertInertia(fn (Assert $page) => $page->where('risks.superAdmin', true)
+        ->where('risks.privileged', fn ($labels) => in_array($label, $labels->all(), true) && count($labels) > 3));
+});
+
 it('lets an agent in with a valid token only, as its owner', function () {
     [$token, $plain] = AiToken::issue((string) $this->rina->id, 'Claude');
 

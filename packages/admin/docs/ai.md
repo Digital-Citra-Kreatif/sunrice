@@ -5,7 +5,7 @@ AI agents such as Claude, ChatGPT or Cursor can work in the panel through its [M
 ## Connecting an agent
 
 1. Give the user's role **Connect AI agents** (`sunrice.ai.connect`). Super admins have it.
-2. **Administration → AI access**: create a token, name it after the agent or computer that uses it, and copy it (it's shown once). Tick **Read-only** for an agent that should only look, and pick when it expires (90 days unless you choose otherwise; **Never** is a choice, not the default).
+2. **Administration → AI access**: create a token, name it after the agent or computer that uses it, and copy it (it's shown once). Tick **Read-only** for an agent that should only look, and pick when it expires (90 days unless you choose otherwise; **Never** is a choice, not the default). For a full token the dialog lists the privileged permissions (`$panel->privilegedPermissions()`) a full token would have as you, or says you're a super admin. Read-only still reads everything you may view, personal data included (users' emails, form submissions), as the page says.
 3. Add the panel to the agent with the settings shown on the page:
 
    ```bash
