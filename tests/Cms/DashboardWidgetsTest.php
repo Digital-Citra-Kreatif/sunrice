@@ -10,13 +10,16 @@ use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\TrashEntry;
+use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Comment;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Form;
+use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Submission;
+use Sunrice\Cms\Settings\SiteSettings;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -153,4 +156,22 @@ it('loads the CMS widgets after the page, in their own request', function () {
         ->loadDeferredProps('widgets-cms', fn (Assert $reload) => $reload
             ->where('widget_cms_collections.data.rows.0.badge', '1 live')
             ->where('widget_cms_recent__edits.data.rows.0.title', 'Hello')));
+});
+
+it('lists what is left to set up for site managers, until it is done', function () {
+    $manager = adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.entries.view');
+    $menu = Menu::query()->create(['handle' => 'legal', 'title' => 'Legal']);
+
+    expect(widgetKeys($manager))->toContain('cms.setup')
+        ->and(widgetKeys(adminUser(Panel::ACCESS, 'cms.entries.view')))->not->toContain('cms.setup')
+        ->and(collect(widgetData('cms.setup', $manager)['rows'])->pluck('title')->all())->toBe(['Write the first entries', 'Choose the homepage', 'Add links to the Legal menu'])
+        ->and(collect(widgetData('cms.setup', $manager)['rows'])->pluck('url')->all())->toBe(['cms/entries', 'settings/site', 'cms/menus/legal']);
+
+    $home = dashPost($this->blog, 'Welcome');
+    app(SiteSettings::class)->fill(['homepage' => $home->entry_id])->save();
+    app(SaveMenu::class)->handle($menu, [['url' => '/privacy', 'labels' => ['en' => 'Privacy']]]);
+
+    expect(widgetKeys($manager))->not->toContain('cms.setup');
+    // And "Recently edited" says it is about entries.
+    expect(app(Panel::class)->getWidgets()['cms.recent-edits']->getTitle())->toBe('Recently edited entries');
 });

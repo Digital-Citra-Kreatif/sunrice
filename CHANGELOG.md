@@ -27,6 +27,7 @@ Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#f
 
 ### All changes
 
+- Dashboard: a **Getting the site ready** widget (`cms.setup`, `cms.settings.site`) lists what's left on a new site (the first entries, the homepage, menus without links) and disappears once done; **Recently edited** is **Recently edited entries**, since it lists entries only; the panel's **Recent activity** leaves security events (logins, refusals, alerts) to the log.
 - Settings → Mail warns while mail is sent from an example address (`hello@example.com`, Laravel's default, or another domain reserved for examples and tests), pointing to `MAIL_FROM_ADDRESS`.
 - Settings → Site → Structured data describes the publisher fully: its own name (`SiteSettings::$publisherName`, else the site name), a more specific schema.org type (`$publisherType`: `LocalBusiness`, `RealEstateAgent` …), phone (`$telephone`), address (`$address`) and profiles elsewhere (`$sameAs`, one URL per line, `profiles()`).
 - Settings → Languages opens with the languages in use (from config) instead of an empty box, and its **Main language** card switches the main language from the panel (`POST admin/cms/languages/{locale}/main`, `sunrice.admin.cms.languages.main`, behind `cms.settings.locales`, through `SwitchMainLanguage`). Generally, an empty setting shows its form field's `->default()`.

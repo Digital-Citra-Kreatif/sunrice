@@ -233,14 +233,11 @@ it('reads like sentences, with what settings changed from and to, and filters by
         ->where('people', [['value' => (string) $this->admin->id, 'label' => 'Rina']]));
     get("/admin/activity?user={$this->admin->id}")->assertInertia(fn (Assert $page) => $page->where('rows.total', 3));
 
-    // The dashboard says it in a sentence, without naming the person twice.
-    expect(PanelWidgets::activity()->resolve($this->admin)['rows'])
-        ->sequence(
-            fn ($row) => $row->title->toBe('Login failed for Dewi'),
-            fn ($row) => $row->title->toBe('Rina was refused a page'),
-            fn ($row) => $row->title->toBe('Rina logged in'),
-            fn ($row) => $row->title->toBe('Rina updated Outbox settings'),
-        );
+    // The dashboard says it in a sentence, and leaves security events to the log.
+    expect(PanelWidgets::activity()->resolve($this->admin)['rows'])->toHaveCount(1)
+        ->and(PanelWidgets::activity()->resolve($this->admin)['rows'][0]['title'])->toBe('Rina updated Outbox settings')
+        ->and(Activity::query()->where('source', 'security')->orderByDesc('id')->get()->map(fn (Activity $line) => $line->sentence())->all())
+        ->toBe(['Login failed for Dewi', 'Rina was refused a page', 'Rina logged in']);
 });
 
 it('names each type once in the filter', function () {

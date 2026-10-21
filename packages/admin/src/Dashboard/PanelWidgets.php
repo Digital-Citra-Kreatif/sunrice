@@ -24,7 +24,8 @@ final class PanelWidgets
         return Widget::list('sunrice.activity')->title('Recent activity')->icon('history')
             ->sort(900)->span(2)->permission('sunrice.activity.view')
             ->link('activity', 'Open the log')->empty('Nothing has happened yet.')
-            ->data(fn (): array => ['rows' => Activity::query()->orderByDesc('id')->limit(self::RECENT)->get()
+            // Changes, not security events (logins, refusals, alerts): those are in the log, and alerts are emailed.
+            ->data(fn (): array => ['rows' => Activity::query()->where('source', '!=', 'security')->orderByDesc('id')->limit(self::RECENT)->get()
                 ->map(fn (Activity $line): array => [
                     'title' => $line->sentence(),
                     'meta' => self::typeLabel($line->subject_type).($line->source === 'ai' && $line->via !== null ? " · via {$line->via}" : ''),
