@@ -32,13 +32,15 @@ interface Props {
     endpoint: string;
     tokens: Token[];
     created: { name: string; token: string } | null;
+    /** What a full token could do as this person. */
+    risks?: { superAdmin: boolean; privileged: string[] };
 }
 
 const NEVER = 'never';
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—');
 
 /** The user's AI access tokens, and how to connect an AI agent. */
-export default function AiIndex({ endpoint, tokens, created }: Props) {
+export default function AiIndex({ endpoint, tokens, created, risks = { superAdmin: false, privileged: [] } }: Props) {
     useBreadcrumbs([{ label: 'AI access' }]);
     const [confirm, confirmDialog] = useConfirm();
     const [creating, setCreating] = React.useState(false);
@@ -120,7 +122,7 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
             <Card>
                 <CardHeader>
                     <CardTitle>Connecting an agent</CardTitle>
-                    <CardDescription>Give the agent the panel's MCP address and a token{created ? '' : ' (create one above)'}. Read-only tokens can look but not change anything.</CardDescription>
+                    <CardDescription>Give the agent the panel's MCP address and a token{created ? '' : ' (create one above)'}. Read-only tokens can look but not change anything; they still read everything you can see, personal data included (people's names and emails, messages sent through forms).</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 text-sm">
                     <div className="grid gap-1.5">
@@ -150,6 +152,18 @@ export default function AiIndex({ endpoint, tokens, created }: Props) {
                             <Checkbox id="token-read-only" checked={form.data.read_only} onCheckedChange={(checked) => form.setData('read_only', checked === true)} />
                             <Label htmlFor="token-read-only" className="font-normal">Read-only: the agent can look, but not change anything</Label>
                         </div>
+                        {!form.data.read_only && (risks.superAdmin || risks.privileged.length > 0) && (
+                            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm" role="note">
+                                <p>{risks.superAdmin
+                                    ? 'You are a super admin: a full token can do everything in the panel, delete included, as you. Among it:'
+                                    : 'A full token can do everything you can, as you. Among it:'}</p>
+                                <ul className="mt-1 list-disc pl-5">
+                                    {risks.privileged.slice(0, 6).map((label) => <li key={label}>{label}</li>)}
+                                    {risks.privileged.length > 6 && <li>and {risks.privileged.length - 6} more</li>}
+                                </ul>
+                                <p className="mt-1 text-muted-foreground">Unless the agent must change things, make it read-only; otherwise give it a short expiry.</p>
+                            </div>
+                        )}
                         <div className="grid gap-2">
                             <Label htmlFor="token-expires">Expires</Label>
                             <Select value={form.data.expires_in_days} onValueChange={(value) => form.setData('expires_in_days', value)}>

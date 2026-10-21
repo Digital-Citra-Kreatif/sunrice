@@ -64,6 +64,12 @@ final class AiTokenCommand extends Command
             return self::SUCCESS;
         }
 
+        // Listing and revoking still work, for tokens made before.
+        if (! $panel->hasAiAccess()) {
+            $this->components->error('AI access is turned off in this panel ($panel->aiAccess(false)): no agent could use a token.');
+
+            return self::FAILURE;
+        }
         $expires = strtolower((string) $this->option('expires'));
         if ($expires !== 'never' && (! ctype_digit($expires) || (int) $expires < 1 || (int) $expires > 3650)) {
             $this->components->error('--expires takes a number of days (1 to 3650) or "never".');

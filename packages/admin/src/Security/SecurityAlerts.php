@@ -16,6 +16,7 @@ use Sunrice\Admin\Events\ActivityRecorded;
 use Sunrice\Admin\Events\SecurityEventRecorded;
 use Sunrice\Admin\Mail\SecurityAlert;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Support\AppUrl;
 use Sunrice\Admin\Users\PermissionRank;
 use Throwable;
 
@@ -45,7 +46,7 @@ use Throwable;
 final class SecurityAlerts
 {
     /** Activity log actions that take things away (the `mass_deletes` rule). */
-    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed', 'unpublished'];
+    public const DESTRUCTIVE_ACTIONS = ['deleted', 'trashed', 'unpublished', 'purged'];
 
     public function __construct(private SecurityLog $log, private PermissionRank $rank, private Panel $panel) {}
 
@@ -114,6 +115,11 @@ final class SecurityAlerts
                         "The address {$e->ip} tried passwords for many accounts and was blocked. The last one was {$account}.",
                         'This is how password-guessing tools work. Nothing to do if every account has a strong password; consider blocking the address in your firewall.', $details);
                 }
+                break;
+            case 'password reset blocked':
+                $this->alert('password-reset-flood', (string) $e->ip, 'One address keeps asking for password resets',
+                    "The address {$e->ip} asked for more password reset emails than allowed and was blocked for a while.",
+                    'Someone may be flooding people with reset emails or probing accounts. Nothing is at risk while passwords stay unchanged; consider blocking the address in your firewall.', $details);
                 break;
             case 'logged in':
                 $this->loggedIn($e, $details);
@@ -285,7 +291,7 @@ final class SecurityAlerts
         }
 
         $mail = new SecurityAlert($headline, $what, $advice, [...$details, 'When' => now()->toDayDateTimeString()],
-            $this->panel->brandName(), route('sunrice.admin.activity.index', ['source' => 'security']));
+            $this->panel->brandName(), AppUrl::route('sunrice.admin.activity.index', ['source' => 'security']));
         // One mail per person, on the queue: sending mustn't slow the request down.
         foreach ($recipients as $email) {
             try {

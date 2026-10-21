@@ -14,6 +14,8 @@ use Inertia\Response;
 use Sunrice\Admin\Actions\Ai\CreateAiToken;
 use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
 use Sunrice\Admin\Ai\AiToken;
+use Sunrice\Admin\Panel;
+use Sunrice\Admin\Users\PermissionRank;
 
 /**
  * The AI access page: a user's own tokens, and how to connect an agent.
@@ -42,7 +44,30 @@ final class AiAccessController
             ])->all(),
             // The new token, once, right after it's created.
             'created' => $request->session()->get('sunrice.ai.created'),
+            // What a full token could do as this person, to choose read-only or a short expiry.
+            'risks' => self::risks($user),
         ]);
+    }
+
+    /**
+     * Whether the user is a super admin, and the labels of the privileged
+     * permissions they have ($panel->privilegedPermissions()).
+     *
+     * @return array{superAdmin: bool, privileged: list<string>}
+     */
+    private static function risks(Model $user): array
+    {
+        $superAdmin = app(PermissionRank::class)->isSuperAdmin($user);
+        $privileged = [];
+        $panel = app(Panel::class);
+        foreach ($panel->getPermissions() as $name => $permission) {
+            // Everyone here may connect agents: not worth saying.
+            if ($name !== 'sunrice.ai.connect' && $panel->isPrivilegedPermission($name) && ($superAdmin || ($user instanceof Authorizable && $user->can($name)))) {
+                $privileged[] = $permission->label;
+            }
+        }
+
+        return ['superAdmin' => $superAdmin, 'privileged' => $privileged];
     }
 
     public function store(Request $request, CreateAiToken $create): RedirectResponse

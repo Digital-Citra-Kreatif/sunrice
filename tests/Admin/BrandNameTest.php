@@ -73,9 +73,14 @@ it('names the panel in the login code email', function () {
     app(SaveSettings::class)->handle(app(SecuritySettings::class), ['twoFactor' => true]);
     post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password'])->assertRedirect('/admin/login/code');
 
+    // Not in the subject, which locked phones show: only in the body, unless the app asks.
     Notification::assertSentTo(new AnonymousNotifiable, LoginCode::class, function (LoginCode $n, array $channels, AnonymousNotifiable $to) {
-        return $n->toMail($to)->subject === "Your Kebun Studio login code: {$n->code}";
+        $mail = $n->toMail($to);
+
+        return $mail->subject === 'Your Kebun Studio login code' && in_array("**{$n->code}**", $mail->introLines, true);
     });
+    config(['sunrice-admin.auth.two_factor_code_in_subject' => true]);
+    Notification::assertSentTo(new AnonymousNotifiable, LoginCode::class, fn (LoginCode $n, array $channels, AnonymousNotifiable $to) => $n->toMail($to)->subject === "Your Kebun Studio login code: {$n->code}");
 });
 
 it('names the panel in security alerts', function () {

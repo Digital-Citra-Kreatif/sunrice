@@ -14,6 +14,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `login blocked` | Too many wrong passwords from one IP, or for one email from one IP: once when the limit is reached, then at most once a minute per email and IP while attempts keep coming (`tried while blocked`), so a sustained attack shows without flooding the log. Also a locked account trying to log in or open a page. |
 | `account locked` | Too many wrong passwords for one account from any IPs: it's locked for `account_lock_seconds`. |
 | `password reset requested`, `password reset` | The "Forgot password?" form (also for emails without an account) and a completed reset. |
+| `password reset blocked` | Too many forgot or reset password requests from one IP (`password_resets_per_minute`, `password_resets_per_hour`), at most once a minute per IP. |
 | `upload blocked` | A script, executable or web page, or an SVG that could run code, uploaded to the media library. |
 | `exported` | A resource's CSV export (exports can carry personal data out of the panel). |
 | `roles changed`, `permissions changed` | A user's roles or a role's permissions changed, with what was added and removed (`added` and `removed` lists in the properties, and a note). |
@@ -49,6 +50,23 @@ SUNRICE_CSP="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'u
 
 Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
 
+## Links in emails
+
+Links in the panel's emails (password reset, security alerts) and the CMS's (moderation, submissions, replies) are built from `APP_URL`, not from the request's `Host` header, which whoever sends the request chooses: otherwise a "forgot password" request sent with `Host: evil.example` would email a reset link that hands the token to that host. So set `APP_URL` to the address people use. Plugins build their mail links the same way with `Sunrice\Admin\Support\AppUrl` (`@api`):
+
+```php
+use Sunrice\Admin\Support\AppUrl;
+
+AppUrl::route('sunrice.admin.shop.orders.show', ['order' => $order->id]); // https://your-app.example/admin/...
+AppUrl::url($entry->url()); // an absolute link moved from the request's host to APP_URL
+```
+
+Also turn on Laravel's `TrustHosts` middleware (`$middleware->trustHosts()` in `bootstrap/app.php`) or have your web server answer only your own host names, so the rest of the app (caches keyed by URL, redirects) never works with a made-up host.
+
+## Developer tools
+
+Inertia's DevTools record every request's page props (the users list with emails, settings) and, with `APP_ENV=local`, serve them at `/_inertia/devtools` to anyone, signed in or not. The panel turns them off unless your app turns them on itself (`INERTIA_DEVTOOLS_ENABLED=true`, or `inertia.devtools.enabled`); do that only on a machine nobody else can reach. Never run a reachable site with `APP_ENV=local` or `APP_DEBUG=true`.
+
 ## Elsewhere too
 
 - **A log file:** set `SUNRICE_SECURITY_LOG_CHANNEL` (`security.log_channel` in `config/sunrice-admin.php`) to a log channel, e.g. `daily`, to also write each event there as a warning, for fail2ban or a log service.
@@ -73,6 +91,7 @@ When something may be a break-in, the panel emails super admins, users with the 
 | A powerful account signed in from a new address | Someone with a privileged permission (or a super admin) signed in from an IP they hadn't used. |
 | An account signed in after a long time | The first login in `dormant_days` (90). |
 | Someone was given privileged access / A role was given privileged access | A user got the super admin role, a privileged permission or a role that has one (read from the event's `added` list). |
+| One address keeps asking for password resets | `password reset blocked` |
 | A dangerous upload was blocked | `upload blocked` |
 | A new AI access token was created | `token created` |
 | An AI access token was used from a new address | `token used from new IP` |
@@ -80,7 +99,7 @@ When something may be a break-in, the panel emails super admins, users with the 
 | The activity log was pruned | `log pruned` |
 | Someone keeps opening pages they may not see | `forbidden` (15) panel pages refused (`page refused`) to one signed-in account within 10 minutes. |
 | Many exports in a short time | `exports` (5) CSV exports by one person within an hour. |
-| Many things deleted in a short time | `mass_deletes` (20) deletes, trashes or unpublishes by one person or AI agent within 10 minutes. |
+| Many things deleted in a short time | `mass_deletes` (20) deletes, trashes, unpublishes or purges (deleted content removed for good, `purged`) by one person or AI agent within 10 minutes (`SecurityAlerts::DESTRUCTIVE_ACTIONS`). |
 
 **Privileged permissions** are the panel's `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.*` (connecting agents, letting them read the error log and run commands) and `sunrice.activity.*`, plus what plugins register with `$panel->privilegedPermissions()` (the CMS: `cms.settings.code` and `cms.blueprints.manage`); `Panel::isPrivilegedPermission()` tells.
 

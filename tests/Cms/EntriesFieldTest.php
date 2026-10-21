@@ -52,6 +52,17 @@ it('accepts only existing entries of the chosen collections', function () {
         ->and($errors(relationSchema(['multiple' => true, 'max' => 1]), ['related' => [$tower->entry_id, $about->entry_id]]))->toContain('data.related', 'data.related.1');
 });
 
+it('clears a single entries field with null or an empty list', function () {
+    $tower = entryIn($this->projects, 'Tower');
+    $errors = fn (array $data) => Validator::make(['data' => $data], relationSchema()->rules($data))->errors()->get('data.related');
+
+    expect($errors(['related' => null]))->toBe([])
+        ->and($errors(['related' => []]))->toBe([])
+        ->and(relationSchema()->normalize(['related' => []]))->toBe(['related' => null])
+        ->and($errors(['related' => 'tower']))->toBe(['The data.related field must be an entry id (a number), or null to clear it.'])
+        ->and($errors(['related' => [$tower->entry_id]]))->not->toBe([]);
+});
+
 it('gives templates the linked entries in the page\'s language, published ones only', function () {
     config(['sunrice-cms.locales' => ['en', 'id']]);
     $tower = entryIn($this->projects, 'Tower');

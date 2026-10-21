@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Events\LoginThrottled;
 use Sunrice\Admin\Notifications\ResetPanelPassword;
 use Sunrice\Admin\Panel;
@@ -24,6 +25,7 @@ use function Pest\Laravel\assertAuthenticatedAs;
 use function Pest\Laravel\assertGuest;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
+use function Pest\Laravel\travel;
 
 beforeEach(function () {
     usePanel(fn (Panel $panel) => $panel->routes(fn () => Route::get('reports', fn () => 'reports')->name('reports')));
@@ -66,8 +68,10 @@ it('refuses a wrong password, and accounts that may not open the panel', functio
     Event::assertDispatched(Failed::class);
 
     User::query()->create(['name' => 'Customer', 'email' => 'buyer@shop.test', 'password' => 'secret-password']);
-    login('buyer@shop.test')->assertSessionHasErrors(['email' => 'This account can\'t use the admin panel.']);
+    // The same answer as a wrong password: it mustn't confirm the account or its password.
+    login('buyer@shop.test')->assertSessionHasErrors(['email' => __('auth.failed')]);
     assertGuest();
+    expect(Activity::query()->where('action', 'login refused')->sole()->properties['note'])->toBe('no access to the panel');
 });
 
 it('checks a password for an unknown email too, so the timing tells nothing', function () {
@@ -141,6 +145,17 @@ it('emails a reset link to the panel without telling who has an account', functi
     Notification::assertCount(1);
 });
 
+it('builds the reset link from APP_URL, never from the request\'s Host header', function () {
+    config(['app.url' => 'https://cms.example']);
+    Notification::fake();
+
+    post('http://evil.example/admin/forgot-password', ['email' => 'rina@example.com'])->assertSessionHas('success');
+
+    Notification::assertSentOnDemand(ResetPanelPassword::class, function (ResetPanelPassword $notification, array $channels, object $notifiable) {
+        return str_starts_with($notification->toMail($notifiable)->actionUrl, 'https://cms.example/admin/reset-password/');
+    });
+});
+
 it('resets the password', function () {
     $token = Password::broker()->createToken($this->admin);
 
@@ -166,4 +181,21 @@ it('limits the password forms per IP', function () {
     post('/admin/forgot-password', ['email' => 'rina@example.com'])->assertRedirect();
     post('/admin/forgot-password', ['email' => 'rina@example.com'])->assertRedirect();
     post('/admin/forgot-password', ['email' => 'rina@example.com'])->assertTooManyRequests();
+});
+
+it('caps password reset requests per IP an hour, and logs reaching a limit', function () {
+    config(['sunrice-admin.auth.throttle' => ['password_resets_per_minute' => 50, 'password_resets_per_hour' => 3]]);
+    Notification::fake();
+
+    foreach (['a@example.com', 'b@example.com', 'c@example.com'] as $email) {
+        post('/admin/forgot-password', ['email' => $email])->assertRedirect();
+    }
+    post('/admin/forgot-password', ['email' => 'd@example.com'])->assertTooManyRequests();
+    post('/admin/forgot-password', ['email' => 'e@example.com'])->assertTooManyRequests();
+    // Another IP still may.
+    test()->withServerVariables(['REMOTE_ADDR' => '10.0.0.7'])->post('/admin/forgot-password', ['email' => 'd@example.com'])->assertRedirect();
+
+    expect(Activity::query()->where('action', 'password reset blocked')->count())->toBe(1);
+    travel(2)->hours();
+    post('/admin/forgot-password', ['email' => 'd@example.com'])->assertRedirect();
 });

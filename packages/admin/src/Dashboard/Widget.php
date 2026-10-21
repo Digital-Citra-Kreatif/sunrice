@@ -22,6 +22,10 @@ use InvalidArgumentException;
  *             'badge' => $order->status, 'tone' => 'success', 'at' => $order->created_at?->toIso8601String(),
  *         ])->all()]);
  *
+ * Every widget says who sees it: `permission()`, `visible()`, or
+ * `everyone()` for one meant for all who open the panel; one that says
+ * nothing is refused when it's registered.
+ *
  * The definition (title, link, span …) goes with the page; `data` runs
  * afterwards, in a deferred request, only for users who may see the widget.
  * What it returns, by type:
@@ -69,6 +73,8 @@ final class Widget
 
     /** @var (Closure(Authorizable): bool)|null */
     private ?Closure $visible = null;
+
+    private bool $everyone = false;
 
     /** @var (Closure(Authorizable): array<string, mixed>)|null */
     private ?Closure $data = null;
@@ -184,6 +190,23 @@ final class Widget
         $this->visible = $check;
 
         return $this;
+    }
+
+    /**
+     * Show it to everyone who opens the panel, on purpose. A widget must
+     * say who sees it: a permission, a visibility check, or this.
+     */
+    public function everyone(): self
+    {
+        $this->everyone = true;
+
+        return $this;
+    }
+
+    /** Whether it says who may see it (permission(), visible() or everyone()). */
+    public function isGuarded(): bool
+    {
+        return $this->permission !== null || $this->visible !== null || $this->everyone;
     }
 
     /**

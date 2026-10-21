@@ -277,6 +277,19 @@ it('edits and organises media: folders, moving, trash, usage rules', function ()
     expect(Activity::query()->where('source', 'ai')->pluck('action')->all())->toContain('updated', 'created', 'moved', 'trashed', 'restored', 'deleted');
 });
 
+it('refuses to create a token from the console when AI access is off, but still lists and revokes', function () {
+    [$old] = AiToken::issue((string) $this->rina->id, 'Before');
+    $count = AiToken::query()->count();
+    $off = Panel::make()->aiAccess(false);
+    $off->boot();
+    app()->instance(Panel::class, $off);
+
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com'])->expectsOutputToContain('AI access is turned off')->assertFailed();
+    expect(AiToken::query()->count())->toBe($count);
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--list' => true])->expectsOutputToContain('Before')->assertSuccessful();
+    $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--revoke' => (string) $old->id])->assertSuccessful();
+});
+
 it('creates, lists and revokes tokens from the console', function () {
     $this->artisan('sunrice:ai-token', ['email' => 'nobody@example.com'])->assertFailed();
     $this->artisan('sunrice:ai-token', ['email' => 'rina@example.com', '--name' => 'Cursor', '--read-only' => true, '--expires' => '30'])

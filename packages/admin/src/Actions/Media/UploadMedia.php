@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Media\FileContent;
 use Sunrice\Admin\Media\Jobs\GenerateImageSizes;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaConfig;
@@ -93,6 +94,17 @@ final class UploadMedia
             self::blocked($file, "the content is {$detected}");
 
             throw ValidationException::withMessages(['file' => 'This file contains a web page or a script, so it can\'t be uploaded.']);
+        }
+        // An image must be one, and one with PHP code in it (a polyglot) is an attack. (PHP files show as text/x-php above.)
+        if (in_array($extension, FileContent::IMAGE_EXTENSIONS, true)) {
+            if (FileContent::containsPhp($file)) {
+                self::blocked($file, 'an image with PHP code in it');
+
+                throw ValidationException::withMessages(['file' => 'This image contains PHP code, so it can\'t be uploaded.']);
+            }
+            if (! FileContent::matchesExtension($file)) {
+                throw ValidationException::withMessages(['file' => "This isn't a valid image: the file's content doesn't match .{$extension}. Save it again as an image, or upload it under its real extension."]);
+            }
         }
         if ($extension === 'svg' || str_contains($detected, 'svg')) {
             if ($extension !== 'svg' || ! SafeSvg::isSafe((string) $file->getContent())) {

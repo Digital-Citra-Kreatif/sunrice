@@ -172,6 +172,16 @@ it('limits comments per visitor', function () {
     postJson("/comments/{$this->post->entry_id}", guest())->assertStatus(429);
 });
 
+it('links moderators to APP_URL, not the Host header the visitor sent', function () {
+    config(['app.url' => 'https://cms.example']);
+    commentSettings(['notifyEmails' => 'editor@example.com']);
+
+    postJson("http://evil.example/comments/{$this->post->entry_id}", guest())->assertCreated();
+
+    $html = Mail::queued(CommentPosted::class)->first()->render();
+    expect($html)->toContain('https://cms.example/admin/cms/comments')->toContain('https://cms.example/blog/hello')->not->toContain('evil.example');
+});
+
 it('emails moderators, and commenters about replies once, with a way to stop', function () {
     app(SyncPermissions::class)->handle();
     $moderator = adminUser(Panel::ACCESS, 'cms.comments.moderate');

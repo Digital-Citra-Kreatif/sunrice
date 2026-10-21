@@ -70,7 +70,7 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 | Plugin ids are unique, lowercase, and not `sunrice` (the panel's own prefix). | `PanelMisconfigured` when the plugin is added. |
 | Every plugin in `requires()` is on the panel, with no circular requirements. | `PanelMisconfigured` at boot, naming the missing plugin or the circle. |
 | A plugin's permissions start with its id (`shop.…`); the app may not use a plugin's prefix. | `PanelMisconfigured` at boot. |
-| A plugin's widget keys start with its id (`shop.…`); the app's may not use a plugin's id; every widget has `data`. | `PanelMisconfigured` when it's registered. |
+| A plugin's widget keys start with its id (`shop.…`); the app's may not use a plugin's id; every widget has `data` and says who sees it (`permission()`, `visible()` or `everyone()`). | `PanelMisconfigured` when it's registered. |
 | Navigation keys, widget keys, permission names, shared data keys and bundle ids are unique; the panel's own shared data keys (`sunrice`, `auth`, `navigation`, `flash`, `errors`) are reserved. | `PanelMisconfigured`, naming the plugin that registered the duplicate. |
 | Submenu items point to an existing parent, one level deep. | `PanelMisconfigured` at boot. |
 
@@ -100,12 +100,12 @@ $panel->widgets(
             'badge' => $order->status_label, 'tone' => $order->paid ? 'success' : 'warning',
             'at' => $order->created_at?->toIso8601String(),
         ])->all()]),
-    Widget::cards('shop.help')->title('Getting started')
+    Widget::cards('shop.help')->title('Getting started')->everyone()
         ->data(fn (): array => ['cards' => [['title' => 'Add a product', 'text' => 'Name, price and photos.', 'url' => 'shop/products/create', 'icon' => 'package']]]),
 );
 ```
 
-Each takes a `title`, a `description` (a line under it), an `icon` (a lucide name, as navigation takes), a `link` (the stat itself, or a list's "See all", with an optional label), `empty` (what a list or cards widget says with nothing in it), `sort` (lower first, 100 by default), `span` (1, 2 or 3 columns on wide screens), and `permission` and/or `visible(fn (Authorizable $user): bool)`, as navigation items do. A plugin's keys start with its id and a dot.
+Each takes a `title`, a `description` (a line under it), an `icon` (a lucide name, as navigation takes), a `link` (the stat itself, or a list's "See all", with an optional label), `empty` (what a list or cards widget says with nothing in it), `sort` (lower first, 100 by default), `span` (1, 2 or 3 columns on wide screens), and `permission` and/or `visible(fn (Authorizable $user): bool)`, as navigation items do. Every widget must say who sees it: one with neither is refused when it's registered (`PanelMisconfigured`), and `everyone()` shows one to everybody who opens the panel on purpose. A plugin's keys start with its id and a dot.
 
 `data` returns, by kind:
 

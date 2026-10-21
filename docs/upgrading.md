@@ -31,6 +31,7 @@ Until 1.0, APIs may change between versions; every change is recorded in `CHANGE
 What changed in the `Unreleased` version that may need a change in your app, templates or plugins:
 
 - **PHP 8.4 or newer** is required.
+- **Dashboard widgets must say who sees them**: a `Widget` without `->permission()` or `->visible()` now throws `PanelMisconfigured` when registered. Add `->everyone()` to one meant for everybody who opens the panel. See [Dashboard widgets](../packages/admin/docs/panel.md#dashboard-widgets).
 - **Plugin bundles**: `SDK_VERSION` is 2. Rebuild your plugin's admin bundle with the matching `@sunrice/admin-sdk`; the panel refuses bundles built for another version. See [Admin pages in React](../packages/admin/docs/frontend.md#compatibility).
 - **Role rank is strict** (`PermissionRank`): a user or role someone manages, gives out, creates or edits must be strictly below them (all its permissions are theirs, and at least one of theirs is missing). Managers who could manage people with exactly their own access no longer can; give them a higher role if they need to. See [Users and roles](../packages/admin/docs/users.md#who-may-manage-whom).
 - **`SecurityAlerts::PRIVILEGED_PERMISSIONS` is gone.** Mark your own powerful permissions with `$panel->privilegedPermissions()` (see [The panel and plugins](../packages/admin/docs/panel.md#privileged-permissions)); the alerts are now called *Someone / A role was given privileged access*.
@@ -49,6 +50,8 @@ What changed in the `Unreleased` version that may need a change in your app, tem
 
 Also worth checking, though not breaking for most apps:
 
+- **The default `administrator` role is no longer given `sunrice.ai.run-commands` and `sunrice.ai.error-log`** by `sunrice:roles`. Roles seeded before keep them: take them away in Roles if administrators' AI agents shouldn't run commands or read the error log. See [Default roles](../packages/admin/docs/permissions.md#default-roles).
+- **The login code email's subject no longer has the code** ("Your … login code"); set `SUNRICE_LOGIN_CODE_IN_SUBJECT=true` (`auth.two_factor_code_in_subject`) to keep it there. See [Signing in](../packages/admin/docs/auth.md#two-factor-login).
 - The settings keys `security` and `mail` belong to the panel's own sections: give your own settings sections other keys.
 - The CMS requires `spatie/laravel-honeypot`, and its whole-page cache (`sunrice-cms.cache.pages`) needs `spatie/laravel-responsecache`; the `X-Sunrice-Cache` header is gone. See [Caching](../packages/cms/docs/caching.md).
 - Every default role with `sunrice.access` now also gets `sunrice.guide.view` when `sunrice:roles` runs.

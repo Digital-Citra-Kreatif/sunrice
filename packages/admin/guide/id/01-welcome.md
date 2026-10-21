@@ -14,7 +14,7 @@ Buka alamat panel di peramban. Alamatnya adalah alamat situs Anda ditambah **/ad
 2. Centang **Remember me** di komputer Anda sendiri agar tetap masuk.
 3. Klik **Log in**.
 
-Jika panel menampilkan *This account can't use the admin panel*, akun Anda ada tetapi belum diberi akses. Tanyakan kepada pengelola situs.
+Jika panel mengatakan email atau kata sandi Anda tidak cocok padahal Anda yakin keduanya benar, akun Anda mungkin belum diberi akses ke panel (panel tidak menyebutkan yang mana, agar tidak ada yang bisa memakainya untuk menguji kata sandi). Tanyakan kepada pengelola situs.
 
 Setelah beberapa kali salah kata sandi, panel meminta Anda menunggu sebelum mencoba lagi. Ini melindungi akun Anda dari orang yang menebak-nebak kata sandi.
 

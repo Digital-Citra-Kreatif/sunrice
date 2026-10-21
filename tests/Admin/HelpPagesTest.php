@@ -61,7 +61,7 @@ it('gives every default role that opens the panel the guide', function () {
 
     expect($roles['clerk'])->toBe([Panel::ACCESS, 'shop.orders.view', 'sunrice.guide.view'])
         ->and($roles['robot'])->toBe(['shop.orders.view'])
-        ->and($roles['administrator'])->toBe(['*']);
+        ->and($roles['administrator'])->toBe(['*', '!sunrice.ai.run-commands', '!sunrice.ai.error-log']);
 
     app(SeedRoles::class)->handle();
     expect(Role::findByName('clerk', 'web')->hasPermissionTo('sunrice.guide.view'))->toBeTrue();
