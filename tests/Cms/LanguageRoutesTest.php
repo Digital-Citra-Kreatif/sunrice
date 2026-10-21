@@ -24,6 +24,10 @@ use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Site\Site;
+use Sunrice\Cms\Structure\ImportReport;
+use Sunrice\Cms\Structure\StructureExporter;
+use Sunrice\Cms\Structure\StructureImporter;
+use Sunrice\Cms\Structure\StructureImportFailed;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -301,6 +305,36 @@ it('saves a language\'s own patterns from the form, checking them', function () 
     $edit(['route_id' => '', 'listing_route_id' => ''])->assertSessionHasNoErrors();
     expect(Collection::query()->find($this->books->id)?->routes)->toBeNull();
     get('/id/buku/halo')->assertRedirect(url('/id/books/halo'));
+});
+
+it('exports and imports the languages\' own patterns, checking them', function () {
+    buku();
+    $this->topics->setOwnRoute('id', '/topik/{slug}')->save();
+    $this->books->refresh()->setOwnRoute('id', '/kitab/{slug}')->save(); // a previous one: this site's history, not carried
+
+    $exported = app(StructureExporter::class)->export();
+    $books = collect($exported['collections'])->firstWhere('handle', 'books');
+    expect($books['routes'])->toBe(['id' => ['route' => '/kitab/{slug}', 'listing_route' => '/buku']])
+        ->and($books)->not->toHaveKey('previous_routes')
+        ->and(collect($exported['taxonomies'])->firstWhere('handle', 'topics')['routes'])->toBe(['id' => ['route' => '/topik/{slug}']]);
+
+    // Into a site without them: the same patterns.
+    $this->books->forceFill(['routes' => null, 'previous_routes' => null])->save();
+    $this->topics->forceFill(['routes' => null])->save();
+    app(StructureImporter::class)->import($exported);
+    expect(Collection::query()->find($this->books->id)?->routes)->toBe(['id' => ['route' => '/kitab/{slug}', 'listing_route' => '/buku']])
+        ->and(Taxonomy::query()->find($this->topics->id)?->routes)->toBe(['id' => ['route' => '/topik/{slug}']]);
+    expect(array_unique(array_column(app(StructureImporter::class)->import($exported, dryRun: true)->items(), 'status')))->toBe([ImportReport::UNCHANGED]);
+
+    // Checked like the admin's: the pattern, and no other collection at that address in the language.
+    $bad = $exported;
+    $bad['collections'][array_search('books', array_column($bad['collections'], 'handle'), true)]['routes'] = ['id' => ['route' => '/kitab']];
+    expect(fn () => app(StructureImporter::class)->import($bad))->toThrow(StructureImportFailed::class);
+    Collection::query()->create(['handle' => 'news', 'title' => 'News', 'route' => '/berita/{slug}']);
+    $bad['collections'][array_search('books', array_column($bad['collections'], 'handle'), true)]['routes'] = ['id' => ['route' => '/berita/{slug}']];
+    expect(fn () => app(StructureImporter::class)->import($bad))->toThrow(StructureImportFailed::class);
+    $bad['collections'][array_search('books', array_column($bad['collections'], 'handle'), true)]['routes'] = ['id' => ['slug' => '/x/{slug}']];
+    expect(fn () => app(StructureImporter::class)->import($bad))->toThrow(StructureImportFailed::class);
 });
 
 it('keeps every address when the main language switches: the patterns swap', function () {
