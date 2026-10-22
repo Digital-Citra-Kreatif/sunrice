@@ -275,7 +275,7 @@ it('offers each other language\'s URL fields in the collection and taxonomy form
     });
     get('/admin/cms/taxonomies/topics/edit')->assertOk()->assertInertia(function (Assert $page) use ($fields) {
         $all = $fields($page->toArray()['props']['sections']);
-        expect($all['route_id'])->toMatchArray(['label' => 'Term page URL in '.Locales::name('id')])
+        expect($all['route_id'])->toMatchArray(['label' => 'Shared term page URL in '.Locales::name('id')])
             ->and($all['route_id']['links'][0])->toMatchArray(['label' => 'View a term page', 'url' => url('/id/topics/berita')]);
     });
 });

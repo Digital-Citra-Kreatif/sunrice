@@ -98,6 +98,7 @@ it('links the terms it lists without a query per term', function () {
     };
     $news = app(SaveTerm::class)->handle($this->topics, ['title' => 'News']);
     app(SaveTerm::class)->handle($this->topics, ['title' => 'Tips', 'parent_id' => $news->id]);
+    $queries(); // the site's URL patterns, read once per request
     $two = $queries();
     foreach (['Food', 'Travel', 'Money', 'Homes'] as $title) {
         app(SaveTerm::class)->handle($this->topics, ['title' => $title]);

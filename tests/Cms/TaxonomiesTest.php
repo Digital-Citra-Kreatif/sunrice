@@ -299,7 +299,7 @@ it('switches term pages on and off as collections do their pages', function () {
     get('/admin/cms/taxonomies/topics/edit')->assertInertia(fn (Assert $page) => expect($page->toArray()['props']['values']['pages'])->toBeTrue()
         ->and($field($page, 'route')['showWhen'])->toBe(['field' => 'pages', 'value' => null])
         ->and($field($page, 'route')['placeholder'])->toBe('/{handle}/{slug}')
-        ->and($field($page, 'template')['showWhen']['field'])->toBe('pages'));
+        ->and($field($page, 'template')['showWhen'])->toBeNull());
 
     put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'pages' => true, 'route' => '/themes'])->assertSessionHasErrors('route');
     put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'pages' => true, 'route' => '/themes/{slug}'])->assertSessionHasNoErrors();
@@ -342,7 +342,7 @@ it('gives an attached collection\'s blueprints a terms field for the taxonomy, a
 it('links the term pages card to a term\'s page on the site', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.update'));
-    $links = fn (Assert $page) => collect($page->toArray()['props']['sections'])->firstWhere('title', 'Term pages')['links'] ?? null;
+    $links = fn (Assert $page) => collect($page->toArray()['props']['sections'])->firstWhere('title', 'Shared term pages')['links'] ?? null;
 
     get('/admin/cms/taxonomies/categories/edit')->assertInertia(fn (Assert $page) => expect($links($page))->toBeNull());
     $this->categories->forceFill(['route' => '/categories/{slug}'])->save();
