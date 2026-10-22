@@ -59,8 +59,25 @@ bundle is loaded only when one of its pages is opened.
 ## Repository and releases
 
 The packages live in this repository and are released together with the
-same version number. CI publishes each package folder to its own read-only
-repository for Packagist.
+same version number. CI (`.github/workflows/split.yml`) publishes each
+package folder to its own read-only repository, where Packagist reads it:
+
+| Folder | Package | Read-only repository |
+| --- | --- | --- |
+| `packages/admin` | `sunrice/admin` | `Digital-Citra-Kreatif/sunrice-admin` |
+| `packages/cms` | `sunrice/cms` | `Digital-Citra-Kreatif/sunrice-cms` |
+| `packages/starter-kit` | `sunrice/starter-kit` | `Digital-Citra-Kreatif/sunrice-starter-kit` |
+
+Every push to `main` updates each repository's `main` (`dev-main` on
+Packagist), and a `v*` tag pushed here (`git tag v0.1.0 && git push origin
+v0.1.0`) is pushed to all of them, so every package gets the release. The
+packages require each other at `self.version`, which only works because
+they're tagged together (`tests/Arch/SplitTest.php` checks both). Changes
+and pull requests go to this repository, never to the read-only copies,
+whose history is rewritten from here. The workflow needs the `SPLIT_TOKEN`
+secret, a token that can push to the three repositories; without it, it
+does nothing. A new Composer package in `packages/` needs a row in the
+workflow and here. `packages/admin-sdk` is an npm package and isn't split.
 
 The starter kit (`packages/starter-kit`, `sunrice/starter-kit`) is a
 third package beside the CMS, not a plugin the site needs: it installs

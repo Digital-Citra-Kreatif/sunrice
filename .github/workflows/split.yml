@@ -1,0 +1,55 @@
+name: split
+
+# Publishes each package folder to its own read-only repository, where
+# Packagist reads it: main to main, and every v* tag to the same tag, so
+# the packages share one version number (their `self.version` requirements
+# on each other rely on it). Needs the SPLIT_TOKEN secret: a token that can
+# push to the repositories below.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+concurrency:
+  group: split-${{ github.ref }}
+
+jobs:
+  split:
+    name: split ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: admin
+            repository: Digital-Citra-Kreatif/sunrice-admin
+          - package: cms
+            repository: Digital-Citra-Kreatif/sunrice-cms
+          - package: starter-kit
+            repository: Digital-Citra-Kreatif/sunrice-starter-kit
+    env:
+      SPLIT_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+    steps:
+      - name: Skip without a token
+        if: env.SPLIT_TOKEN == ''
+        run: echo "::notice::SPLIT_TOKEN isn't set, so packages/${{ matrix.package }} wasn't published."
+
+      - uses: actions/checkout@v4
+        if: env.SPLIT_TOKEN != ''
+        with:
+          fetch-depth: 0
+
+      - name: Split packages/${{ matrix.package }}
+        if: env.SPLIT_TOKEN != ''
+        run: git subtree split --prefix=packages/${{ matrix.package }} -b split
+
+      - name: Push to ${{ matrix.repository }}
+        if: env.SPLIT_TOKEN != ''
+        run: |
+          remote="https://x-access-token:${SPLIT_TOKEN}@github.com/${{ matrix.repository }}.git"
+          if [ "${GITHUB_REF_TYPE}" = tag ]; then
+            git push "$remote" "split:refs/tags/${GITHUB_REF_NAME}"
+          else
+            git push --force "$remote" split:refs/heads/main
+          fi
