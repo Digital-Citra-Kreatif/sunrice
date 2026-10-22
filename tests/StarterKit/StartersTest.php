@@ -84,19 +84,19 @@ it('installs a whole site: structure, content with its dates, media with alt tex
 it('adds only what\'s missing when run again, keeping files changed since unless forced', function () {
     $install = app(InstallStarter::class);
     $install->handle(blogStarter());
-    file_put_contents(resource_path('views/cms/entry.blade.php'), 'mine');
+    file_put_contents(resource_path('views/cms/collections/show.blade.php'), 'mine');
 
     $again = $install->handle(blogStarter());
-    expect($again->files(Installation::KEPT))->toBe(['resources/views/cms/entry.blade.php'])
+    expect($again->files(Installation::KEPT))->toBe(['resources/views/cms/collections/show.blade.php'])
         ->and($again->files(Installation::COPIED))->toBe([])
         ->and($again->uploaded)->toBe([])->and($again->reused)->toBe(['evening.jpg', 'morning.jpg'])
         ->and(Media::query()->count())->toBe(2)
         ->and(Entry::query()->count())->toBe(5)
-        ->and(file_get_contents(resource_path('views/cms/entry.blade.php')))->toBe('mine');
+        ->and(file_get_contents(resource_path('views/cms/collections/show.blade.php')))->toBe('mine');
 
     $forced = $install->handle(blogStarter(), force: true);
-    expect($forced->files(Installation::COPIED))->toBe(['resources/views/cms/entry.blade.php'])
-        ->and(file_get_contents(resource_path('views/cms/entry.blade.php')))->not->toBe('mine');
+    expect($forced->files(Installation::COPIED))->toBe(['resources/views/cms/collections/show.blade.php'])
+        ->and(file_get_contents(resource_path('views/cms/collections/show.blade.php')))->not->toBe('mine');
 });
 
 it('installs the structure alone, without its entries, terms and global values', function () {

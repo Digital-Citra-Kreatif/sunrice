@@ -47,12 +47,14 @@ beforeEach(function () {
     $card = '[{{ $p->title }}|{{ $p->url() }}|@php($v = $p->values()){{ $v[\'photo\']?->url() }}|{{ $v[\'agent\']?->title }}|{{ $v[\'agent\']?->values()[\'photo\']?->url() }}'
         .'|@foreach ($v[\'tags\'] as $t){{ $t->title() }} {{ $t->url() }} {{ $t->parent?->title() }}@endforeach|{{ $v[\'area\']?->title() }}]';
     $views = sys_get_temp_dir().'/sunrice-hydration-'.uniqid();
-    mkdir("{$views}/cms", recursive: true);
-    file_put_contents("{$views}/cms/properties-listing.blade.php", '@foreach ($entries as $p)'.$card.'@endforeach');
-    file_put_contents("{$views}/cms/taxonomy-tags.blade.php", '@foreach ($entries as $p)'.$card.'@endforeach');
+    foreach (['collections/pages', 'collections/properties', 'taxonomies/tags'] as $folder) {
+        mkdir("{$views}/cms/{$folder}", recursive: true);
+    }
+    file_put_contents("{$views}/cms/collections/properties/index.blade.php", '@foreach ($entries as $p)'.$card.'@endforeach');
+    file_put_contents("{$views}/cms/taxonomies/tags/show.blade.php", '@foreach ($entries as $p)'.$card.'@endforeach');
     file_put_contents("{$views}/cms/search.blade.php", '@foreach ($results as $p)'.$card.'@endforeach');
-    file_put_contents("{$views}/cms/pages.blade.php", '@foreach ($values[\'featured\'] as $p)'.$card.'@endforeach');
-    file_put_contents("{$views}/cms/properties.blade.php", str_replace('$p->values()', '$entry->values()', str_replace('$p->', '$entry->', $card))
+    file_put_contents("{$views}/cms/collections/pages/show.blade.php", '@foreach ($values[\'featured\'] as $p)'.$card.'@endforeach');
+    file_put_contents("{$views}/cms/collections/properties/show.blade.php", str_replace('$p->values()', '$entry->values()', str_replace('$p->', '$entry->', $card))
         .'@foreach ([...$values[\'related\'], ...$values[\'others\']] as $p)'.$card.'@endforeach');
     View::addLocation($views);
 });

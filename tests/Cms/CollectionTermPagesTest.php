@@ -77,9 +77,9 @@ it('switches a collection\'s term pages off, and takes its own URLs per language
 });
 
 it('tries the collection\'s term template first', function () {
-    $dir = resource_path('views/cms/books');
+    $dir = resource_path('views/cms/collections/books/tags');
     File::ensureDirectoryExists($dir);
-    File::put("{$dir}/tags.blade.php", 'Books tagged {{ $term->title }} in {{ $collection->handle }}');
+    File::put("{$dir}/show.blade.php", 'Books tagged {{ $term->title }} in {{ $collection->handle }}');
     try {
         get('/books/tags/featured')->assertOk()->assertSee('Books tagged Featured in books');
         get('/films/tags/featured')->assertOk()->assertDontSee('Books tagged');

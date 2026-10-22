@@ -102,9 +102,9 @@ it('leaves the app\'s own routes first', function () {
 
 it('renders with the app\'s templates when there are', function () {
     $views = sys_get_temp_dir().'/sunrice-views-'.uniqid();
-    mkdir("{$views}/cms", recursive: true);
-    file_put_contents("{$views}/cms/blog.blade.php", 'Blog template: {{ $title }} / {{ $values[\'intro\'] }} / {{ $entry->url() }}');
-    file_put_contents("{$views}/cms/entry.blade.php", 'Any entry: {{ $title }}');
+    mkdir("{$views}/cms/collections/blog", recursive: true);
+    file_put_contents("{$views}/cms/collections/blog/show.blade.php", 'Blog template: {{ $title }} / {{ $values[\'intro\'] }} / {{ $entry->url() }}');
+    file_put_contents("{$views}/cms/collections/show.blade.php", 'Any entry: {{ $title }}');
     View::addLocation($views);
     sitePost($this->blog, 'Hello', ['intro' => 'Hi']);
     sitePost($this->pages, 'About');

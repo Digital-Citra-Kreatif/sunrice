@@ -450,7 +450,7 @@ it('writes templates only for super admins when the site allows it, checked and 
         ->and($guide['can_write'])->toBeFalse()
         ->and($guide['write_note'])->toContain('super admins')
         // Not offered to those who can't use it.
-        ->and(cmsTool($builder, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('not found')
+        ->and(cmsTool($builder, 'cms_write_template', ['path' => 'collections/blog/show.blade.php', 'content' => 'x']))->toContain('not found')
         ->and(cmsTool($builder, 'cms_read_template', ['path' => 'entry.blade.php', 'source' => 'default'])['content'])->toContain('x-sunrice-cms::seo');
 
     $role = SyncPermissions::superAdminRole();
@@ -460,24 +460,24 @@ it('writes templates only for super admins when the site allows it, checked and 
     $listed = fn () => test()->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list'], ['Authorization' => "Bearer {$super}"])->json('result.tools.*.name');
     // Switched off on this site: not listed, even to a super admin.
     expect($listed())->not->toContain('cms_write_template')
-        ->and(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => 'x']))->toContain('not found');
+        ->and(cmsTool($super, 'cms_write_template', ['path' => 'collections/blog/show.blade.php', 'content' => 'x']))->toContain('not found');
     config(['sunrice-cms.ai.templates' => true]);
     expect($listed())->toContain('cms_write_template');
 
-    expect(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => '@if($x) <p>']))->toContain('syntax error')
+    expect(cmsTool($super, 'cms_write_template', ['path' => 'collections/blog/show.blade.php', 'content' => '@if($x) <p>']))->toContain('syntax error')
         ->and(cmsTool($super, 'cms_write_template', ['path' => '../evil.blade.php', 'content' => 'x']))->toContain('Give a path')
         ->and(cmsTool($super, 'cms_write_template', ['path' => 'blog.php', 'content' => 'x']))->toContain('Give a path')
         ->and(cmsTool($super, 'cms_read_template', ['path' => 'a/../../x.blade.php']))->toContain('Give a path')
-        ->and(File::exists($views.'/cms/blog.blade.php'))->toBeFalse();
+        ->and(File::exists($views.'/cms/collections/blog/show.blade.php'))->toBeFalse();
 
-    expect(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => '<h1 class="post">{{ $title }}</h1>']))->toMatchArray(['saved' => true, 'created' => true, 'view' => 'cms.blog', 'backup' => null])
+    expect(cmsTool($super, 'cms_write_template', ['path' => 'collections/blog/show.blade.php', 'content' => '<h1 class="post">{{ $title }}</h1>']))->toMatchArray(['saved' => true, 'created' => true, 'view' => 'cms.collections.blog.show', 'backup' => null])
         ->and(cmsTool($super, 'cms_render_page', ['path' => '/blog/hello'])['html'])->toBe('<h1 class="post">Hello</h1>');
-    $replaced = cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'content' => '<h2>{{ $title }}</h2>']);
+    $replaced = cmsTool($super, 'cms_write_template', ['path' => 'collections/blog/show.blade.php', 'content' => '<h2>{{ $title }}</h2>']);
     expect($replaced['created'])->toBeFalse()
         ->and(File::get(base_path($replaced['backup'])))->toBe('<h1 class="post">{{ $title }}</h1>')
-        ->and(cmsTool($super, 'cms_read_template', ['path' => 'blog.blade.php'])['content'])->toBe('<h2>{{ $title }}</h2>')
-        ->and(cmsTool($super, 'cms_get_template_guide')['templates'][0])->toMatchArray(['path' => 'blog.blade.php', 'view' => 'cms.blog'])
-        ->and(cmsTool($super, 'cms_write_template', ['path' => 'blog.blade.php', 'delete' => true]))->toMatchArray(['deleted' => true])
+        ->and(cmsTool($super, 'cms_read_template', ['path' => 'collections/blog/show.blade.php'])['content'])->toBe('<h2>{{ $title }}</h2>')
+        ->and(cmsTool($super, 'cms_get_template_guide')['templates'][0])->toMatchArray(['path' => 'collections/blog/show.blade.php', 'view' => 'cms.collections.blog.show'])
+        ->and(cmsTool($super, 'cms_write_template', ['path' => 'collections/blog/show.blade.php', 'delete' => true]))->toMatchArray(['deleted' => true])
         ->and(Activity::query()->where('subject_type', 'template')->pluck('action')->all())->toBe(['created', 'updated', 'deleted'])
         ->and(Activity::query()->where('action', 'template changed')->count())->toBe(3);
     File::deleteDirectory($views);

@@ -203,10 +203,10 @@ it('lists each term with its entry count, and the taxonomy\'s collections and se
 });
 
 it('explains a template setting with the files tried in order when it is empty', function () {
-    expect(TemplateHelp::files(['cms.taxonomy-{handle}', 'cms.term'], 'cms.topic'))->toBe(implode("\n", [
+    expect(TemplateHelp::files(['cms.taxonomies.{handle}.show', 'cms.taxonomies.show'], 'cms.topic'))->toBe(implode("\n", [
         'The first that exists, under resources/views:',
-        '1. `cms/taxonomy-{handle}.blade.php`',
-        '2. `cms/term.blade.php`',
+        '1. `cms/taxonomies/{handle}/show.blade.php`',
+        '2. `cms/taxonomies/show.blade.php`',
         '3. the built-in template',
         'A view name is a file there: `cms.topic` is `cms/topic.blade.php`.',
     ]));

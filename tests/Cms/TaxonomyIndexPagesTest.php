@@ -128,14 +128,15 @@ it('gives templates the page\'s values and tries the most specific template firs
     get('/id/tags')->assertOk()->assertSee('Semua label');
 
     $dir = resource_path('views/cms');
-    File::ensureDirectoryExists("{$dir}/books");
+    File::ensureDirectoryExists("{$dir}/collections/books/tags");
+    File::ensureDirectoryExists("{$dir}/taxonomies/tags");
     try {
-        File::put("{$dir}/taxonomy-index.blade.php", 'Any index of {{ $taxonomy->handle }}');
+        File::put("{$dir}/taxonomies/index.blade.php", 'Any index of {{ $taxonomy->handle }}');
         get('/tags')->assertOk()->assertSee('Any index of tags');
-        File::put("{$dir}/taxonomy-tags-index.blade.php", 'Tags index: {{ $values[\'intro\'] }} {!! $values[\'body\'] !!} @foreach ($terms as $term){{ $term->title() }}={{ $term->entries_count }};@endforeach {{ implode(\',\', $richText) }} {{ $collection?->handle }}');
+        File::put("{$dir}/taxonomies/tags/index.blade.php", 'Tags index: {{ $values[\'intro\'] }} {!! $values[\'body\'] !!} @foreach ($terms as $term){{ $term->title() }}={{ $term->entries_count }};@endforeach {{ implode(\',\', $richText) }} {{ $collection?->handle }}');
         get('/tags')->assertOk()->assertSee('Tags index: Every tag <p>All <strong>of them</strong></p> Featured=2;Sci-fi=1; body', false);
         get('/books/tags')->assertOk()->assertSee('Tags index: Tags of books', false)->assertSee('Featured=1; body books', false);
-        File::put("{$dir}/books/tags-index.blade.php", 'Books tags index');
+        File::put("{$dir}/collections/books/tags/index.blade.php", 'Books tags index');
         get('/books/tags')->assertOk()->assertSee('Books tags index');
         get('/films/tags')->assertOk()->assertSee('Tags index:');
     } finally {
