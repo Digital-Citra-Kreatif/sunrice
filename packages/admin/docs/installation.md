@@ -21,22 +21,19 @@ Or the CMS, which brings the panel with it:
 composer require sunrice/cms
 ```
 
-### 1. The user model
+### The install command
 
-The panel uses [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) for roles: give your user model its trait.
-
-```php
-use Spatie\Permission\Traits\HasRoles;
-
-class User extends Authenticatable
-{
-    use HasRoles;
-}
+```bash
+php artisan sunrice:install --roles
 ```
 
-### 2. The panel provider
+It sets everything up, and it's safe to run again:
 
-Create `app/Providers/AdminPanelProvider.php` and add it to `bootstrap/providers.php`:
+- **The panel provider.** When the app has none, it writes `app/Providers/AdminPanelProvider.php` (the panel at `/admin`, named after `APP_NAME`, with every installed plugin, such as the CMS) and adds it to `bootstrap/providers.php`. Edit it afterwards to change the path or the name, or to add your own resources and settings: see [The panel and plugins](panel.md). An app has one panel; an existing provider is left as it is.
+- **The user model.** The panel uses [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) for roles, so it offers to add the `HasRoles` trait to your user model (`App\Models\User`). If it can't (a model it doesn't recognise), it says so: add `use Spatie\Permission\Traits\HasRoles;` and `use HasRoles;` to the class yourself.
+- **The rest.** It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the migrations, publishes the admin's assets (the panel's, and the plugins' through the `laravel-assets` tag), links `public/storage` for the media library, syncs the permissions, creates the [default roles](permissions.md#default-roles) (`--roles`), and offers to create a super admin (`--no-user` skips it; `php artisan sunrice:make-admin` does it later). When it has just added `HasRoles`, run `sunrice:make-admin` next.
+
+The provider it writes, for an app named Acme with the CMS:
 
 ```php
 <?php
@@ -54,22 +51,12 @@ final class AdminPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->path('admin')            // https://example.com/admin
-            ->brand('Acme')            // the name in the sidebar and emails (Settings → Branding can change it)
-            ->plugin(CmsPlugin::make());   // leave out without the CMS
+            ->path('admin')
+            ->brand('Acme')
+            ->plugin(CmsPlugin::make());
     }
 }
 ```
-
-An app has one panel. Everything else it can do (another guard, extra middleware, turning off the media library or AI access, your own resources and settings) is in [The panel and plugins](panel.md).
-
-### 3. The install command
-
-```bash
-php artisan sunrice:install --roles
-```
-
-It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the migrations, publishes the admin's assets (the panel's, and the plugins' through the `laravel-assets` tag), links `public/storage` for the media library, syncs the permissions, creates the [default roles](permissions.md#default-roles) (`--roles`), and offers to create a super admin (`--no-user` skips it; `php artisan sunrice:make-admin` does it later). It's safe to run again.
 
 Sign in at `/admin`.
 

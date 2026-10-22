@@ -19,25 +19,11 @@ PHP 8.4 or newer (with GD or Imagick), Laravel 13, and MySQL, MariaDB, PostgreSQ
 composer require sunrice/cms          # or sunrice/admin for the panel alone
 ```
 
-Give your user model `Spatie\Permission\Traits\HasRoles`, then add a panel provider to `bootstrap/providers.php`:
-
-```php
-use Sunrice\Admin\Panel;
-use Sunrice\Admin\PanelProvider;
-use Sunrice\Cms\CmsPlugin;
-
-final class AdminPanelProvider extends PanelProvider
-{
-    public function panel(Panel $panel): Panel
-    {
-        return $panel->path('admin')->brand('Acme')->plugin(CmsPlugin::make());
-    }
-}
-```
-
 ```bash
-php artisan sunrice:install --roles   # config, migrations, assets, storage link, permissions, roles, a super admin
+php artisan sunrice:install --roles   # the panel provider, HasRoles on your user model, config, migrations, assets, permissions, roles, a super admin
 ```
+
+It writes `app/Providers/AdminPanelProvider.php` with the installed plugins (the CMS) and registers it; edit it to change the path, the name or what the panel shows.
 
 Sign in at `/admin`. Run the scheduler and a queue worker on the server: see [Installation](packages/admin/docs/installation.md).
 

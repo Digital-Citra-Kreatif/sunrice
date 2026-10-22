@@ -20,6 +20,9 @@
         "laravel": {
             "providers": [
                 "Sunrice\\StarterKit\\StarterKitServiceProvider"
+            ],
+            "sunrice-plugins": [
+                "Sunrice\\StarterKit\\StarterKitPlugin"
             ]
         }
     },

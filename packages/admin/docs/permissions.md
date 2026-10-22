@@ -1,6 +1,6 @@
 # Roles and permissions
 
-The panel uses [spatie/laravel-permission](https://spatie.be/docs/laravel-permission). Its tables come with the panel's migrations (skipped if your app already has them), and your user model needs its trait:
+The panel uses [spatie/laravel-permission](https://spatie.be/docs/laravel-permission). Its tables come with the panel's migrations (skipped if your app already has them), and your user model needs its trait (`sunrice:install` offers to add it):
 
 ```php
 use Spatie\Permission\Traits\HasRoles;
@@ -17,7 +17,7 @@ class User extends Authenticatable
 php artisan sunrice:install --roles
 ```
 
-It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the migrations, publishes the admin's assets (and the plugins', tagged `laravel-assets`), links `public/storage` for the media library, syncs the permissions, creates the [default roles](#default-roles) with `--roles`, and offers to create a super admin (`--no-user` skips it). It's safe to run again. Your user model needs the `HasRoles` trait first; the command says so when it's missing.
+It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the migrations, publishes the admin's assets (and the plugins', tagged `laravel-assets`), links `public/storage` for the media library, syncs the permissions, creates the [default roles](#default-roles) with `--roles`, and offers to create a super admin (`--no-user` skips it). It's safe to run again. When the app has no panel yet, it first writes the panel provider, and when the user model lacks `HasRoles` it offers to add it (see [Installation](installation.md#the-install-command)).
 
 ## The first admin
 

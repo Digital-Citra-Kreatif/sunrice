@@ -22,7 +22,16 @@ shop/
 └─ tests/
 ```
 
-`composer.json` states the panel version it needs (`"sunrice/admin": "^1.0"`): plugins never check for features at runtime.
+`composer.json` states the panel version it needs (`"sunrice/admin": "^1.0"`): plugins never check for features at runtime. It also names the plugin class, so `sunrice:install` adds it to the panel provider it writes for a new app:
+
+```json
+"extra": {
+    "laravel": {
+        "providers": ["Acme\\Shop\\ShopServiceProvider"],
+        "sunrice-plugins": ["Acme\\Shop\\ShopPlugin"]
+    }
+}
+```
 
 ## The plugin
 
