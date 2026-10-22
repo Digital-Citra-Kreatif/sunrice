@@ -3,8 +3,5 @@
     "rules": {
         "declare_strict_types": true,
         "final_class": false
-    },
-    "exclude": [
-        "examples"
-    ]
+    }
 }

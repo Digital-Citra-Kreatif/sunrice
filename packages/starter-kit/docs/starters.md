@@ -2,7 +2,7 @@
 
 A **starter** is a whole site to begin from: its structure (blueprints, fieldsets, collections, taxonomies, global sets, forms, menus, redirects), sample content (entries, terms, global values), the media files that content uses, its Blade templates, its CSS, fonts and images, and its own words. One command installs it on a fresh Sunrice app; everything it brings is then the site's to edit.
 
-The starter kit (`sunrice/starter-kit`) installs starters, makes them from a site, and comes with a small **Blog** starter to try and to copy from. It's a separate package: add it when you build or install starters, and leave it out otherwise.
+The starter kit (`sunrice/starter-kit`) installs starters, makes them from a site, and comes with a small **Blog** starter to try and to copy from. It's a separate package: add it when you build or install starters, and leave it out otherwise. Ready-made starters (each a package of its own, like `sunrice/starter-real-estate`) are developed in [Digital-Citra-Kreatif/sunrice-starters](https://github.com/Digital-Citra-Kreatif/sunrice-starters).
 
 ```bash
 composer require sunrice/starter-kit
