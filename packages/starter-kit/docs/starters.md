@@ -29,7 +29,8 @@ my-starter/
 ├── media/                the media library's files the content uses
 │   └── hero.jpg
 ├── views/                copied into resources/views
-│   ├── cms/              the site's templates: layout, entry, listing, term, search, partials, blocks
+│   ├── cms/              the site's templates: layout, collections/ and taxonomies/ (see the CMS's templates),
+│   │                     search, partials, blocks
 │   └── errors/           error pages
 ├── public/               copied into public (CSS, fonts, images the templates use)
 │   └── cms/site.css
@@ -103,7 +104,7 @@ A folder that isn't empty is refused unless `--force`, which replaces its conten
 
 - **Templates only use what the starter defines.** Name menus, globals and collections by the handles in `site.json` (`cms_menu('main')`, `cms_global('footer')`). Where something may be missing (a menu an editor deleted), render nothing rather than fail: `@if (($menu = cms_menu('main')) !== [])`.
 - **Templates need nothing but the CMS.** A starter copies views, not PHP: a template that calls your app's own classes (`App\Support\…`) or routes breaks on another app. Use the CMS's helpers and components, or ship that code in the starter's Composer package (registered by its service provider).
-- **Start from the CMS's templates.** `php artisan vendor:publish --tag=sunrice-cms-templates` gives a layout, entry, listing, term and search templates and partials that handle untranslated pages, SEO, menus and pagination. The Blog starter is exactly these, plus one block view.
+- **Start from the CMS's templates.** `php artisan vendor:publish --tag=sunrice-cms-templates` gives a layout, the entry, listing, term and index page templates (`cms/collections/show`, `cms/collections/index`, `cms/taxonomies/show`, `cms/taxonomies/index`), a search template and partials that handle untranslated pages, SEO, menus and pagination. The Blog starter is these (but the index page), plus one block view. A collection or taxonomy of the starter's own design goes in its folder (`cms/collections/properties/show.blade.php`, `cms/taxonomies/cities/show.blade.php`), and one page of its own by its main-language slug (`cms/collections/pages/about.blade.php`): see [templates](../../cms/docs/site.md#templates).
 - **A view per kind of block.** A flexible field's block of fieldset `quote` renders `cms/blocks/quote.blade.php` with `$block` when there is one (the Blog starter's `views/cms/blocks/quote.blade.php`), else its fields.
 - **Assets under a folder of your own**, `public/<starter>/…` or `public/cms/…`, referenced with `asset()`. A starter that needs a build (Vite, Tailwind) ships the built files, and its sources in a folder of its own for those who want to change them.
 - **Sample content that teaches.** Short texts that say what each field is for and where to change it ("Choose this page as the homepage in Settings → Site"), a draft to show drafts, and images light enough to keep the package small (JPEG around 70% quality, 1200 px wide is plenty).

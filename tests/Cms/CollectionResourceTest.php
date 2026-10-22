@@ -104,7 +104,7 @@ it('warns on the edit form, not when creating, what a new handle breaks and what
     actingAs(adminUser(Panel::ACCESS, ...collect(['collections', 'taxonomies', 'forms', 'globals', 'menus'])->crossJoin(['view', 'create', 'update'])->map(fn ($p) => "cms.{$p[0]}.{$p[1]}")->all()));
     $handle = fn (Assert $page): array => collect($page->toArray()['props']['sections'])->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'handle');
 
-    foreach (['collections/news' => ['cms/:old.blade.php', 'renames the collection\'s permissions'], 'taxonomies/topics' => ['whereTerm(\':old\'', 'renames the taxonomy\'s permissions'],
+    foreach (['collections/news' => ['cms/collections/:old/', 'renames the collection\'s permissions'], 'taxonomies/topics' => ['whereTerm(\':old\'', 'renames the taxonomy\'s permissions'],
         'forms/enquiry' => ['<x-sunrice-cms::form handle=":old" />', 'keeps its submissions'], 'globals/company' => ['cms_global(\':old\')', 'keeps the set\'s values'],
         'menus/main' => ['cms_menu(\':old\')', 'keeps the menu\'s links']] as $path => $says) {
         get("/admin/cms/{$path}/edit")->assertOk()->assertInertia(fn (Assert $page) => expect($handle($page)['warnWhenChanged'])->toContain(...$says));
@@ -230,12 +230,31 @@ it('links the collection form\'s cards to the site and the entries, once saved',
                 ['label' => 'View on site', 'url' => url('/news'), 'newTab' => true, 'showWhen' => ['field' => 'listing', 'value' => null, 'not' => false]],
                 ['label' => 'Edit listing page', 'url' => '/admin/cms/collections/news/listing/edit', 'newTab' => false, 'showWhen' => ['field' => 'listing_blueprint', 'value' => null, 'not' => false]],
             ]);
-        // The listing URL's help: one line, the files in a "Which file?" disclosure.
-        $route = collect($section($page, 'Listing page')['fields'])->firstWhere('name', 'listing_route');
-        expect($route['help'])->toBe('Like /blog. Empty: /{handle}.')
-            ->and($route['helpDetails']['summary'])->toBe('Which file?')
-            ->and($route['helpDetails']['text'])->toContain('1. `cms/{handle}-listing.blade.php`');
+        // The listing template's help: one line, the files in a "Which file?" disclosure.
+        $template = collect($section($page, 'Listing page')['fields'])->firstWhere('name', 'listing_template');
+        expect($template['label'])->toBe('Listing page template')
+            ->and($template['help'])->toBe('Empty: the first template that exists.')
+            ->and($template['helpDetails']['summary'])->toBe('Which file?')
+            ->and($template['helpDetails']['text'])->toContain("1. `cms/collections/{handle}/index.blade.php`\n2. `cms/collections/index.blade.php`");
     });
     get('/admin/cms/collections/create')->assertInertia(fn (Assert $page) => expect($section($page, 'Entry pages'))->not->toHaveKey('links')
         ->and($section($page, 'Listing page'))->not->toHaveKey('links'));
+});
+
+it('saves a collection\'s listing page template and a taxonomy\'s index page template, as view names', function () {
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'listing_route' => '/blog']);
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.update', 'cms.taxonomies.update'));
+
+    put('/admin/cms/collections/blog', ['title' => 'Blog', 'listing_template' => '../evil'])->assertSessionHasErrors('listing_template');
+    put('/admin/cms/collections/blog', ['title' => 'Blog', 'listing_template' => 'cms.blog-home'])->assertSessionHasNoErrors();
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'index_template' => 'cms tags'])->assertSessionHasErrors('index_template');
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'index_template' => 'cms.tag-cloud'])->assertSessionHasNoErrors();
+
+    expect($blog->fresh()?->listing_template)->toBe('cms.blog-home')
+        ->and($tags->fresh()?->index_template)->toBe('cms.tag-cloud');
+    get('/admin/cms/taxonomies/tags/edit')->assertInertia(fn (Assert $page) => expect(collect($page->toArray()['props']['sections'])->pluck('fields')->flatten(1)->firstWhere('name', 'index_template'))
+        ->toMatchArray(['label' => 'Index page template'])
+        ->and(collect($page->toArray()['props']['sections'])->pluck('fields')->flatten(1)->firstWhere('name', 'index_template')['helpDetails']['text'])
+        ->toContain('1. `cms/taxonomies/{handle}/index.blade.php`')->toContain('`cms/collections/{collection}/{handle}/index.blade.php`'));
 });

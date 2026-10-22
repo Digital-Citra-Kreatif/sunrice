@@ -168,8 +168,8 @@ it('ignores other query parameters, or skips the cache for them, but never for t
     config(['sunrice-cms.cache.pages' => true, 'sunrice-cms.cache.query' => ['sort']]);
     cachePage($this->blog, 'Hello');
     $views = sys_get_temp_dir().'/sunrice-cache-settings-'.uniqid();
-    mkdir("{$views}/cms", recursive: true);
-    file_put_contents("{$views}/cms/blog.blade.php", '@php(app(\Sunrice\Cms\Site\PageCache::class)->read("tab"))tab={{ request("tab") }}');
+    mkdir("{$views}/cms/collections/blog", recursive: true);
+    file_put_contents("{$views}/cms/collections/blog/show.blade.php", '@php(app(\Sunrice\Cms\Site\PageCache::class)->read("tab"))tab={{ request("tab") }}');
     View::addLocation($views);
 
     // Ignored: the same kept page.

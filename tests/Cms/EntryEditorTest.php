@@ -448,10 +448,12 @@ it('tells the editor which template files are tried for the page, and which exis
 
     get("/admin/cms/collections/articles/entries/{$translation->entry_id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('templates.own', ['view' => 'cms.special', 'exists' => false])
+        // Its slug's view (the main language's slug) before the collection's template.
         ->where('templates.fallbacks', [
+            ['view' => 'cms.collections.articles.hello', 'exists' => false],
             ['view' => 'sunrice-cms::components.seo', 'exists' => true],
-            ['view' => 'cms.articles', 'exists' => false],
-            ['view' => 'cms.entry', 'exists' => false],
+            ['view' => 'cms.collections.articles.show', 'exists' => false],
+            ['view' => 'cms.collections.show', 'exists' => false],
         ]));
 });
 

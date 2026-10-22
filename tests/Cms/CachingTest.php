@@ -340,13 +340,13 @@ it('keeps no copies for pages past the last, for query parameters a page didn\'t
     }
     $this->blog->update(['per_page' => 2]);
     $views = sys_get_temp_dir().'/sunrice-read-'.uniqid();
-    mkdir("{$views}/cms", recursive: true);
+    mkdir("{$views}/cms/collections/blog", recursive: true);
     // The listing: an entry filter with a range offering steps, a sort, and a tab of the template's own.
-    file_put_contents("{$views}/cms/blog-listing.blade.php", '@php(app(\Sunrice\Cms\Site\PageCache::class)->read("tab"))'
+    file_put_contents("{$views}/cms/collections/blog/index.blade.php", '@php(app(\Sunrice\Cms\Site\PageCache::class)->read("tab"))'
         .'<x-sunrice-cms::entry-filter collection="blog" :per-page="2" :filters="[\'price\' => [\'type\' => \'range\', \'options\' => [10, 20]]]" :sorts="[\'new\' => \'latest\', \'cheap\' => \'price\']">'
         .'@foreach ($component->entries as $e){{ $e->title }};@endforeach</x-sunrice-cms::entry-filter>');
     // A post lists other posts under a page name of its own.
-    file_put_contents("{$views}/cms/blog.blade.php", '{{ $title }}|@foreach (Cms::entries("blog")->paginate(1, "listings") as $e){{ $e->title }};@endforeach');
+    file_put_contents("{$views}/cms/collections/blog/show.blade.php", '{{ $title }}|@foreach (Cms::entries("blog")->paginate(1, "listings") as $e){{ $e->title }};@endforeach');
     View::addLocation($views);
     $twice = function (string $url, string $second): void {
         get($url)->assertOk()->assertHeader('X-Cache-Status', 'MISS');
@@ -384,8 +384,8 @@ it('never keeps a filtered page under the address without its filter, when the f
         app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => "Post {$i}", 'data' => ['price' => $i * 10]]));
     }
     $views = sys_get_temp_dir().'/sunrice-unlisted-'.uniqid();
-    mkdir("{$views}/cms", recursive: true);
-    file_put_contents("{$views}/cms/blog-listing.blade.php", '<x-sunrice-cms::entry-filter collection="blog" :filters="[\'price\' => [\'type\' => \'range\', \'options\' => [10, 20, 30]]]">'
+    mkdir("{$views}/cms/collections/blog", recursive: true);
+    file_put_contents("{$views}/cms/collections/blog/index.blade.php", '<x-sunrice-cms::entry-filter collection="blog" :filters="[\'price\' => [\'type\' => \'range\', \'options\' => [10, 20, 30]]]">'
         .'@foreach ($component->entries as $e){{ $e->title }};@endforeach</x-sunrice-cms::entry-filter>');
     View::addLocation($views);
 
@@ -473,8 +473,8 @@ it('reads global sets, fieldsets and forms from the site cache until they change
     app(SaveGlobals::class)->handle($contact, ['phone' => '+62 1', 'fax' => '+62 2']);
     Form::query()->create(['handle' => 'newsletter', 'title' => 'Newsletter', 'blueprint' => 'newsletter']);
     $views = sys_get_temp_dir().'/sunrice-globals-'.uniqid();
-    mkdir("{$views}/cms", recursive: true);
-    file_put_contents("{$views}/cms/blog.blade.php", '{{ $title }}|{{ Cms::global("contact")["phone"] }}|{{ Cms::global("contact")["fax"] }}|<x-sunrice-cms::form handle="newsletter" />');
+    mkdir("{$views}/cms/collections/blog", recursive: true);
+    file_put_contents("{$views}/cms/collections/blog/show.blade.php", '{{ $title }}|{{ Cms::global("contact")["phone"] }}|{{ Cms::global("contact")["fax"] }}|<x-sunrice-cms::form handle="newsletter" />');
     View::addLocation($views);
     cachedPost('Hello');
 
@@ -500,9 +500,11 @@ it('runs a listing\'s and a term page\'s entries query only when the template us
         app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => "Post {$i}", 'data' => ['places' => $i === 1 ? $bali->id : $canggu->id]]));
     }
     $views = sys_get_temp_dir().'/sunrice-lazy-'.uniqid();
-    mkdir("{$views}/cms", recursive: true);
-    file_put_contents("{$views}/cms/blog-listing.blade.php", 'Own list @if (request("list")) @foreach ($entries as $e){{ $e->title }};@endforeach @endif');
-    file_put_contents("{$views}/cms/taxonomy-places.blade.php", '@foreach ($entries as $e){{ $e->title }};@endforeach');
+    foreach (['collections/blog', 'taxonomies/places'] as $folder) {
+        mkdir("{$views}/cms/{$folder}", recursive: true);
+    }
+    file_put_contents("{$views}/cms/collections/blog/index.blade.php", 'Own list @if (request("list")) @foreach ($entries as $e){{ $e->title }};@endforeach @endif');
+    file_put_contents("{$views}/cms/taxonomies/places/show.blade.php", '@foreach ($entries as $e){{ $e->title }};@endforeach');
     View::addLocation($views);
     get('/blog')->assertOk();
     $own = withQueries(fn () => get('/blog')->assertOk()->assertSee('Own list'))[1];

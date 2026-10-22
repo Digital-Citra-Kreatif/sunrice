@@ -72,7 +72,7 @@ it('publishes the starter templates, and the site renders with them', function (
     auth()->logout();
 
     artisan('vendor:publish', ['--tag' => 'sunrice-cms-templates'])->assertSuccessful();
-    foreach (['layout', 'entry', 'listing', 'term', 'search', 'comment-unsubscribe', 'partials/card', 'partials/pagination', 'partials/language-switcher', 'partials/menu', 'partials/blocks', 'partials/block', 'partials/fields'] as $view) {
+    foreach (['layout', 'collections/show', 'collections/index', 'taxonomies/show', 'taxonomies/index', 'search', 'comment-unsubscribe', 'partials/card', 'partials/pagination', 'partials/language-switcher', 'partials/menu', 'partials/blocks', 'partials/block', 'partials/fields'] as $view) {
         expect(resource_path("views/cms/{$view}.blade.php"))->toBeFile();
     }
     expect(resource_path('views/errors/404.blade.php'))->toBeFile()
@@ -80,7 +80,7 @@ it('publishes the starter templates, and the site renders with them', function (
         ->and(public_path('cms/site.css'))->toBeFile();
 
     get('/blog/hello')->assertOk()
-        ->assertViewIs('cms.entry')
+        ->assertViewIs('cms.collections.show')
         ->assertSee('<title>Hello &lt;world&gt; | Acme</title>', false)
         ->assertSee('<h1>Hello &lt;world&gt;</h1>', false)
         ->assertSee('<strong>body</strong>', false)
@@ -95,8 +95,8 @@ it('publishes the starter templates, and the site renders with them', function (
         ->assertSee('href="'.url('/id/blog/halo').'" hreflang="id" lang="id"', false)
         ->assertDontSee('<script>', false);
 
-    get('/blog')->assertOk()->assertViewIs('cms.listing')->assertSee('<li class="card">', false)->assertSee('A first post');
-    get('/topics/news')->assertOk()->assertViewIs('cms.term')->assertSee('<p class="eyebrow">Topics</p>', false)->assertSee('Hello &lt;world&gt;', false);
+    get('/blog')->assertOk()->assertViewIs('cms.collections.index')->assertSee('<li class="card">', false)->assertSee('A first post');
+    get('/topics/news')->assertOk()->assertViewIs('cms.taxonomies.show')->assertSee('<p class="eyebrow">Topics</p>', false)->assertSee('Hello &lt;world&gt;', false);
     commitForFullText();
     get('/search?q=hello')->assertOk()->assertViewIs('cms.search')->assertSee('1 result for “hello”')->assertSee(url('/blog/hello'));
     // Not translated: a note, in the main language's content.
