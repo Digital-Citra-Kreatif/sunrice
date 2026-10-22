@@ -441,6 +441,8 @@ it('tells the editor whether the collection has pages, so Preview shows only whe
 });
 
 it('tells the editor which template files are tried for the page, and which exist', function () {
+    // A package's views, under the site's template prefixes.
+    config(['sunrice-cms.site.template_prefixes' => ['cms.', 'sunrice-cms::components.']]);
     $this->articles->update(['template' => 'sunrice-cms::components.seo']);
     $translation = draft();
     $translation->entry->update(['template' => 'cms.special']);

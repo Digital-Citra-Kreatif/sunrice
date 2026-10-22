@@ -249,6 +249,11 @@ it('saves a collection\'s listing page template and a taxonomy\'s index page tem
     put('/admin/cms/collections/blog', ['title' => 'Blog', 'listing_template' => '../evil'])->assertSessionHasErrors('listing_template');
     put('/admin/cms/collections/blog', ['title' => 'Blog', 'listing_template' => 'cms.blog-home'])->assertSessionHasNoErrors();
     put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'index_template' => 'cms tags'])->assertSessionHasErrors('index_template');
+    // Only views under the site's template prefixes: never another view of the app.
+    put('/admin/cms/collections/blog', ['title' => 'Blog', 'listing_template' => 'layouts.app'])->assertSessionHasErrors('listing_template');
+    put('/admin/cms/collections/blog', ['title' => 'Blog', 'pages' => true, 'template' => 'layouts.app'])->assertSessionHasErrors('template');
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'index_template' => 'layouts.app'])->assertSessionHasErrors('index_template');
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'template' => 'layouts.app'])->assertSessionHasErrors('template');
     put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'index_template' => 'cms.tag-cloud'])->assertSessionHasNoErrors();
 
     expect($blog->fresh()?->listing_template)->toBe('cms.blog-home')

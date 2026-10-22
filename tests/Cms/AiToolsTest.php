@@ -31,6 +31,7 @@ use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Site\Site;
+use Sunrice\Cms\Support\Templates;
 use Workbench\App\Models\User;
 
 beforeEach(function () {
@@ -509,4 +510,15 @@ it('builds and renders addresses with a language\'s own URL pattern, and saves o
     $page = cmsTool($token, 'cms_render_page', ['path' => '/id/artikel/halo']);
     expect($page['status'])->toBe(200)->and($page['html'])->toContain('Halo');
     expect(cmsTool($token, 'cms_render_page', ['path' => '/id/blog/halo'])['status'])->toBe(301);
+});
+
+it('lists in the template guide the term pages of taxonomies whose terms have pages only in collections', function () {
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    Taxonomy::query()->create(['handle' => 'labels', 'title' => 'Labels']);
+    $tags->collections()->attach($this->blog->id);
+
+    expect(array_keys(Templates::map()['taxonomies']))->toBe(['tags'])
+        ->and(Templates::map()['taxonomies']['tags']['uses'])->toBe('sunrice-cms::term');
+    $tags->collections()->updateExistingPivot($this->blog->id, ['term_pages' => false]);
+    expect(Templates::map()['taxonomies'])->toBe([]);
 });

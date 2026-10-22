@@ -182,6 +182,8 @@ it('keeps whole pages for visitors, each with their own CSRF token and none of t
     Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text']]]);
     Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
     View::addNamespace('cached', __DIR__.'/Fixtures/views');
+    // A package's views, under the site's template prefixes.
+    config(['sunrice-cms.site.template_prefixes' => ['cms.', 'cached::']]);
     $this->blog->update(['template' => 'cached::cms.with-form']);
     cachedPost('Hello');
 
@@ -525,6 +527,8 @@ it('gives each visitor of a kept page their own honeypot fields, so a too-fast s
     Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text']]]);
     Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
     View::addNamespace('cached', __DIR__.'/Fixtures/views');
+    // A package's views, under the site's template prefixes.
+    config(['sunrice-cms.site.template_prefixes' => ['cms.', 'cached::']]);
     $this->blog->update(['template' => 'cached::cms.with-form']);
     cachedPost('Hello');
     $fields = function (TestResponse $response): array {

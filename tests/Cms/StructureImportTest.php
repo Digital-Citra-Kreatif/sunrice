@@ -93,6 +93,14 @@ it('validates definitions and imports nothing when one is invalid', function () 
     expect(Collection::query()->count())->toBe(0)->and(Blueprint::query()->count())->toBe(0);
 
     expect(fn () => app(StructureImporter::class)->import(['widgets' => []]))->toThrow(StructureImportFailed::class, 'Unknown sections');
+
+    // Templates only under the site's template prefixes: never another view of the app.
+    foreach ([['collections', 1, 'template'], ['collections', 1, 'listing_template'], ['taxonomies', 0, 'template'], ['taxonomies', 0, 'index_template']] as [$section, $i, $key]) {
+        $bad = structureFixture();
+        $bad[$section][$i][$key] = 'layouts.app';
+        expect(fn () => app(StructureImporter::class)->import($bad))->toThrow(StructureImportFailed::class);
+    }
+    expect(Collection::query()->count())->toBe(0);
 });
 
 it('exports and imports from the commands', function () {
