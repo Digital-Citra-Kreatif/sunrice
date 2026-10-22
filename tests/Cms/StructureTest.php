@@ -124,7 +124,13 @@ it('serves listing pages with their fields, paginated, in each language', functi
     put('/admin/cms/collections/articles/listing', ['locale' => 'id', 'data' => ['intro' => 'Semua berita']])->assertSessionHasNoErrors();
     get('/admin/cms/collections/articles/listing/edit?locale=id')->assertInertia(fn (Assert $page) => $page->where('translated', ['en', 'id']));
     get('/id/articles')->assertSee('Semua berita');
-    get('/admin/cms/collections/pages/listing/edit')->assertNotFound();
+    // No listing page: to the collection's entries, saying who can switch it on (not a bare 404).
+    get('/admin/cms/collections/pages/listing/edit')
+        ->assertRedirect(route('sunrice.admin.cms.collections.entries.index', 'pages'))->assertSessionHas('error', 'This collection has no listing page. An administrator can switch it on in its settings.');
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'cms.collections.update'));
+    get('/admin/cms/collections/pages/listing/edit')
+        ->assertRedirect(route('sunrice.admin.cms.collections.edit', 'pages'))->assertSessionHas('error', 'This collection has no listing page. Switch it on in its settings: Has a listing page.');
+    put('/admin/cms/collections/pages/listing', ['data' => []])->assertNotFound();
 
     // A save over someone else's newer one is refused.
     get('/admin/cms/collections/articles/listing/edit?locale=id')->assertInertia(fn (Assert $page) => $page->where('version', 1));

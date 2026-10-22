@@ -266,3 +266,20 @@ it('clears pages from responsecache\'s own store when it holds nothing else', fu
     post('/admin/cms/cache/clear-pages')->assertRedirect();
     expect(Cache::store('pages')->get('other'))->toBeNull();
 });
+
+it('warns on Settings → Cache while other query parameters are ignored, as sites set up before skipping was the default may still be', function () {
+    config(['sunrice-cms.cache.pages' => true]);
+    actingAs($user = adminUser(Panel::ACCESS, 'cms.settings.cache'));
+    $notices = fn (): string => collect(CacheSettings::cards($user)[0]->toArray()['blocks'])->where('type', 'notice')->pluck('text')->implode(' ');
+
+    expect((new CacheSettings)->otherQuery)->toBe(CacheSettings::SKIP)
+        ->and($notices())->not->toContain('Any other parameter');
+
+    (new CacheSettings)->fill(['otherQuery' => CacheSettings::IGNORE])->save();
+    app()->forgetInstance(CacheSettings::class);
+    expect($notices())->toContain('Any other parameter');
+
+    // Not while whole pages aren't kept.
+    config(['sunrice-cms.cache.pages' => false]);
+    expect($notices())->not->toContain('Any other parameter');
+});

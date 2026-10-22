@@ -123,8 +123,10 @@ php artisan migrate               # new tables and columns; also syncs the permi
 php artisan sunrice:assets        # the panel's assets (and laravel-assets, if composer didn't)
 php artisan sunrice:roles         # optional: give the default roles new permissions
 php artisan view:clear            # compiled views of components that changed
+php artisan cache:clear           # with the CMS: also its caches and pages kept with the old templates
 php artisan queue:restart         # workers pick up the new code
-php artisan responsecache:clear   # with the CMS's page cache on (SUNRICE_PAGE_CACHE): pages kept with the old templates
 ```
+
+In production, `migrate` needs `--force`; [Upgrading](../../../docs/upgrading.md) has the steps for a production deploy.
 
 Then read [Upgrading](../../../docs/upgrading.md) for the changes that need something from you, and the `CHANGELOG.md` for everything else. Run `migrate` after every update: new versions add migrations, and the permission sync that follows it creates the permissions new features need.

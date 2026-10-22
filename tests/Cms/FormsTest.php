@@ -457,6 +457,25 @@ it('shows and checks a form in the visitor\'s language', function () {
         ->assertSessionHasErrorsIn('contact', ['name' => 'The Your name field is required.']);
 });
 
+it('asks for a consent box with a short message of its own, not its whole sentence, in the visitor\'s language', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $blueprint = Blueprint::query()->where('handle', 'contact')->firstOrFail();
+    $sentence = 'I agree to the privacy policy and to being contacted about my request';
+    $blueprint->update(['fields' => [...$blueprint->fields, ['handle' => 'consent', 'type' => 'toggle', 'label' => $sentence, 'required' => true]]]);
+    $this->form->update(['per_minute' => 100]);
+
+    // Unticked: the hidden 0, or nothing at all.
+    from('/contact-page')->post('/forms/contact', contactInput(['consent' => '0']))
+        ->assertSessionHasErrorsIn('contact', ['consent' => 'Please tick this box to continue.']);
+    from('/contact-page')->post('/forms/contact', contactInput())
+        ->assertSessionHasErrorsIn('contact', ['consent' => 'Please tick this box to continue.']);
+    postJson('/forms/contact', [...contactInput(['consent' => '0']), 'locale' => 'id'])
+        ->assertJsonValidationErrors(['consent' => 'Centang kotak ini untuk melanjutkan.']);
+    // Other fields keep naming themselves.
+    postJson('/forms/contact', [...contactInput(['consent' => '1', 'name' => '']), 'locale' => 'en'])->assertJsonValidationErrors(['name' => 'The Your name field is required.'])
+        ->assertJsonMissingValidationErrors(['consent']);
+});
+
 it('gives a select\'s option labels in a language', function () {
     $field = Field::fromArray(['handle' => 'status', 'type' => 'select', 'config' => ['options' => [['value' => 'under_offer', 'label' => 'Under offer'], ['value' => 'sold']]],
         'translations' => ['id' => ['label' => 'Status', 'options' => ['under_offer' => 'Dalam penawaran']]]]);
