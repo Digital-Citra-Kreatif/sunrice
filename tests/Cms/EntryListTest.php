@@ -10,6 +10,7 @@ use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
+use Sunrice\Cms\Admin\EntryList;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -475,4 +476,33 @@ it('says how many entries are in the trash, outside it', function () {
 
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page->where('trashedCount', 1));
     get('/admin/cms/collections/products/entries?status=trashed')->assertInertia(fn (Assert $page) => $page->where('trashedCount', 0));
+});
+
+it('lists entries with a fixed number of queries, however many rows', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $author = lister('cms.entries.view');
+    app(Preferences::class)->set($author, 'table.cms.entries.products', ['columns' => [...array_keys(EntryList::COLUMNS), 'field.tagline', 'field.kind', 'field.related']]);
+    $count = function (): int {
+        get('/admin/cms/collections/products/entries?per_page=100')->assertOk(); // warms the caches
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        get('/admin/cms/collections/products/entries?per_page=100')->assertOk();
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $queries;
+    };
+    $first = null;
+    $add = function (int $from, int $to) use ($author, &$first): void {
+        foreach (range($from, $to) as $i) {
+            $tea = listProduct("Tea {$i}", ['tagline' => 'Green', 'kind' => 'tea'] + ($first !== null ? ['related' => [$first]] : []), $author, publish: $i % 2 === 0);
+            $first ??= $tea->entry_id;
+            app(CreateTranslation::class)->handle($tea->entry, 'id');
+        }
+    };
+    $add(1, 5);
+    $few = $count();
+    $add(6, 15);
+
+    expect($count())->toBe($few);
 });

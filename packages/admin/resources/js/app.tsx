@@ -2,17 +2,14 @@ import '../css/admin.css';
 import type * as React from 'react';
 import { config, createInertiaApp, router } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
-import AppLayout from '@/layouts/AppLayout';
 import { initializeAppearance } from '@/hooks/use-appearance';
 import { pageTitle } from '@/lib/branding';
 import { trackPanelPath } from '@/lib/admin-url';
 import { pluginPage, type PageComponent } from '@/lib/page-registry';
-import { installRuntime } from '@/runtime';
 import { flushPrefetchAfterWrites } from '@/lib/prefetch-flush';
 import type { SharedProps } from '@/types';
 
 initializeAppearance();
-installRuntime();
 // After a save, links don't show pages prefetched before it.
 flushPrefetchAfterWrites(router);
 
@@ -21,8 +18,10 @@ flushPrefetchAfterWrites(router);
 const viewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 config.set('visitOptions', (_href, options) => (viewTransitions && !options.preserveState && (options.method ?? 'get') === 'get' ? { viewTransition: true } : {}));
 
-// The panel's own pages, each in its own chunk.
+// The panel's own pages, each in its own chunk; the layout (sidebar, menus, command palette) in its
+// own too, loaded with the first page that has it, so the main script stays small (a sign-in page needs neither).
 const corePages = import.meta.glob<{ default: PageComponent }>('./pages/**/*.tsx');
+const appLayout = () => import('@/layouts/AppLayout').then((module) => module.default);
 
 let brand = 'Admin';
 
@@ -33,9 +32,11 @@ createInertiaApp({
         brand = props?.sunrice?.brand ?? brand;
 
         const core = corePages[`./pages/${name}.tsx`];
+        const layout = appLayout(); // alongside the page, not after it
         const component = core ? (await core()).default : await pluginPage(name, props?.sunrice?.bundles ?? []);
 
         if (!component.bare && component.layout === undefined) {
+            const AppLayout = await layout;
             component.layout = (child: React.ReactNode) => <AppLayout>{child}</AppLayout>;
         }
 

@@ -446,7 +446,7 @@ it('creates a user with an invitation to choose their own password, and sends a 
     post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'roles' => []])->assertSessionHasErrors(['password' => 'Type a password, or turn on Email an invitation.']);
     post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'invite' => true, 'roles' => []])->assertSessionHasNoErrors();
     $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
-    expect($dewi->password)->not->toBe('');
+    expect($dewi->password)->not->toBe('')->and(Hash::isHashed($dewi->password))->toBeTrue(); // unguessable until she chooses one
 
     $link = null;
     Notification::assertSentOnDemand(PanelInvitation::class, function ($notification, $channels, $notifiable) use (&$link) {
@@ -530,4 +530,16 @@ it('shows role names as people read them', function () {
 
     actingAs($this->super);
     get("/admin/users/{$this->editor->id}/edit")->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'roles')['options'])->firstWhere('value', 'super-admin')['label'])->toBe('Super admin'));
+});
+
+it('lists users without hashing a password for each row', function () {
+    foreach (range(1, 5) as $i) {
+        person("Extra{$i}", 'editor');
+    }
+    actingAs($this->manager);
+    Hash::spy();
+
+    get('/admin/users')->assertOk()->assertInertia(fn (Assert $page) => $page->has('rows.data', 9));
+
+    Hash::shouldNotHaveReceived('make');
 });

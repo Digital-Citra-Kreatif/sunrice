@@ -137,7 +137,7 @@ it('picks black or white text for the brand colour by contrast', function () {
 
 it('prints the font and the brand colour for light and dark mode', function () {
     get('/admin/login')->assertOk()
-        ->assertSee('https://fonts.bunny.net/css?family=instrument-sans:400,500,600&amp;display=swap', false)
+        ->assertDontSee('fonts.bunny.net')
         ->assertDontSee('--primary:', false);
 
     brand(['font' => 'manrope', 'color' => '#1E66F5']);
@@ -153,6 +153,12 @@ it('prints the font and the brand colour for light and dark mode', function () {
     get('/admin/login')->assertOk()
         ->assertDontSee('fonts.bunny.net')
         ->assertSee('--sunrice-font:'.Branding::SYSTEM_FONT, false);
+
+    // Instrument Sans is built in: chosen, it loads nothing either.
+    brand(['font' => 'instrument-sans']);
+    get('/admin/login')->assertOk()
+        ->assertDontSee('fonts.bunny.net')
+        ->assertSee('html:root{--sunrice-font:"Instrument Sans";}', false);
 });
 
 it('keeps the font config as the fallback', function () {
@@ -175,7 +181,7 @@ it('never prints stored values that are not a known font or a colour', function 
     get('/admin/login')->assertOk()
         ->assertDontSee('<script>alert(1)</script>', false)
         ->assertDontSee('--primary:', false)
-        ->assertSee('family=instrument-sans', false);
+        ->assertDontSee('--sunrice-font', false); // the default font
 
     brand(['name' => '</title><script>alert(1)</script>']);
     get('/admin/login')->assertOk()
@@ -235,7 +241,7 @@ it('shares the branding with every page, with the panel\'s defaults for what is 
 
 it('says where the fonts come from, and that System loads nothing', function () {
     $font = collect(BrandingSettings::form(new Form)->fields('edit'))->firstWhere('name', 'font');
-    expect($font->toArray()['help'])->toContain('fonts.bunny.net')->toContain('System')
+    expect($font->toArray()['help'])->toContain('fonts.bunny.net')->toContain('System')->toContain('Instrument Sans is built in')
         ->and(BrandingSettings::FONTS['system'][1])->toBeNull();
 });
 

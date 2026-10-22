@@ -24,18 +24,20 @@ When the chosen icon or the square logo is a raster image (PNG, JPEG, WebP…), 
 
 ## Fonts
 
-The font list (`BrandingSettings::FONTS`) is Inter, Instrument Sans, Manrope, DM Sans, Plus Jakarta Sans, Figtree, Outfit, IBM Plex Sans, Source Sans 3 and Nunito Sans, loaded from Bunny Fonts (400, 500, 600), and **System**, which loads nothing and uses the operating system's typeface. Leaving the font empty keeps what `config/sunrice-admin.php` says:
+The panel's font is **Instrument Sans**, built into its assets (`resources/fonts`, SIL Open Font License): one variable file per script, weights 400 to 600, served with the panel's CSS from your own domain, so by default no page asks a font service. A browser loads only the latin file (30 kB) for most text, and the latin-ext one (11 kB) when a page needs it.
+
+The font list (`BrandingSettings::FONTS`) is Inter, Instrument Sans (built in), Manrope, DM Sans, Plus Jakarta Sans, Figtree, Outfit, IBM Plex Sans, Source Sans 3 and Nunito Sans, the others loaded from Bunny Fonts (400, 500, 600), and **System**, which loads nothing and uses the operating system's typeface. Leaving the font empty keeps what `config/sunrice-admin.php` says:
 
 ```php
 'font' => [
-    'stylesheet' => 'https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap',
-    'family' => null,   // e.g. 'Brand Sans', the --sunrice-font
+    'stylesheet' => null,   // a web font's stylesheet, loaded on every admin page
+    'family' => null,       // e.g. 'Brand Sans', the --sunrice-font (null: Instrument Sans)
 ],
 ```
 
-Use the config for a font that isn't on the list (self-hosted, say). A strict `Content-Security-Policy` needs `fonts.bunny.net` in `style-src` and `font-src` for the listed fonts.
+Use the config for a font that isn't on the list (self-hosted, say). A strict `Content-Security-Policy` needs `fonts.bunny.net` in `style-src` and `font-src` for the listed fonts other than Instrument Sans and System.
 
-**Privacy and offline installs.** Every listed font except System, and the default Instrument Sans, is a request from each admin's browser to `fonts.bunny.net`, a third party (Bunny Fonts doesn't log IP addresses, but your privacy policy may still need to mention it). When that request is blocked (an intranet, a firewall, a server without internet), the panel quietly falls back to the system font, so a chosen font seems to do nothing. For these installs choose **System**, or self-host the font and point the config at it:
+**Privacy and offline installs.** Every listed font except Instrument Sans and System is a request from each admin's browser to `fonts.bunny.net`, a third party (Bunny Fonts doesn't log IP addresses, but your privacy policy may still need to mention it). When that request is blocked (an intranet, a firewall, a server without internet), the panel quietly falls back to the system font, so a chosen font seems to do nothing. For these installs keep the default or choose **System**, or self-host the font and point the config at it:
 
 ```php
 'font' => [

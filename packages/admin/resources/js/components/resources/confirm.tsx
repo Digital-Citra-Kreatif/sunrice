@@ -6,9 +6,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { FieldInput, type FieldValue } from './fields';
+import { deferred } from '@/components/app/deferred';
+import type { FieldValue } from './fields';
 import type { FieldInfo } from './types';
 import { t } from '@/lib/i18n';
+
+// The fields (with the date and media pickers) load when a confirmation asks for some, not with every list.
+const FieldInput = deferred(() => import('./fields'), 'FieldInput');
 
 /** What a dialog with fields runs: resolves to whether it succeeded (the dialog stays open otherwise). */
 export type ConfirmRun = (values: Record<string, FieldValue>) => void | Promise<boolean>;

@@ -18,12 +18,12 @@ return [
     // `php artisan sunrice:sync-permissions`; give it with `sunrice:make-admin`.
     'super_admin_role' => 'super-admin',
 
-    // The panel's typeface. `stylesheet` is loaded on every admin page
-    // (null loads none); `family` names the font the panel uses instead of
-    // Instrument Sans (the CSS variable --sunrice-font). Set both to use another web
-    // font, or family alone for a system font.
+    // The panel's typeface: Instrument Sans, built into the panel's assets.
+    // `stylesheet` is loaded on every admin page (null loads none); `family`
+    // names the font the panel uses instead (the CSS variable --sunrice-font).
+    // Set both to use another web font, or family alone for a system font.
     'font' => [
-        'stylesheet' => 'https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap',
+        'stylesheet' => null,
         'family' => null,
     ],
 

@@ -589,3 +589,27 @@ it('clears the site\'s caches and the kept pages\' own store with php artisan ca
     Schema::drop('sunrice_activity');
     artisan('cache:clear')->assertSuccessful();
 });
+
+it('reads a value from the cache store once per request, and the next version after a change', function () {
+    config(['cache.default' => 'database', 'cache.stores.database.connection' => null]);
+    app('cache')->forgetDriver('database');
+    $cache = app(SiteCache::class);
+    $made = 0;
+    $make = function () use (&$made) {
+        return ++$made;
+    };
+    $cache->remember('x', $make); // made and kept
+
+    app()->forgetScopedInstances(); // the next request
+    $cache = app(SiteCache::class);
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $values = [$cache->remember('x', $make), $cache->remember('x', $make), $cache->remember('x', $make)];
+    $reads = array_column(array_filter(DB::getQueryLog(), fn (array $query): bool => str_starts_with(str_replace(['"', '`'], '', $query['query']), 'select * from cache ')), 'bindings');
+    DB::disableQueryLog();
+    expect($values)->toBe([1, 1, 1])->and($made)->toBe(1)
+        ->and(array_values(array_filter($reads, fn (array $keys): bool => in_array(config('cache.prefix').$cache->key('x'), $keys, true))))->toHaveCount(1);
+
+    $cache->changed('test');
+    expect($cache->remember('x', $make))->toBe(2)->and($made)->toBe(2);
+});

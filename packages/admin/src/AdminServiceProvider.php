@@ -11,6 +11,7 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Database\Events\NoPendingMigrations;
+use Illuminate\Foundation\Events\VendorTagPublished;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Ai\TokenScope;
 use Sunrice\Admin\Assets\AdminAssets;
+use Sunrice\Admin\Assets\Precompress;
 use Sunrice\Admin\Console\AiTokenCommand;
 use Sunrice\Admin\Console\InstallCommand;
 use Sunrice\Admin\Console\MakeAdminCommand;
@@ -198,6 +200,8 @@ final class AdminServiceProvider extends ServiceProvider
             $this->commands([AiTokenCommand::class, InstallCommand::class, SeedRolesCommand::class, PublishAssetsCommand::class, SyncPermissionsCommand::class, MakeAdminCommand::class, MediaSizesCommand::class, PruneActivityCommand::class, UnlockCommand::class, TwoFactorCommand::class, OptimizeImagesCommand::class]);
             $this->publishes([dirname(__DIR__).'/config/sunrice-admin.php' => config_path('sunrice-admin.php')], 'sunrice-admin-config');
             $this->publishes([AdminAssets::distPath() => public_path(AdminAssets::BUILD_DIRECTORY)], 'sunrice-admin-assets');
+            // Compressed copies of what vendor:publish copies into the panel's or a plugin bundle's folder.
+            Event::listen(VendorTagPublished::class, [Precompress::class, 'published']);
         }
     }
 }

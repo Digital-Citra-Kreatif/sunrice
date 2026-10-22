@@ -195,3 +195,5 @@ php artisan sunrice:assets
 ```
 
 Until they are published, admin pages show a notice saying so. When the published copy differs from the package's build (an update that didn't publish them), super admins see a warning at the top of every page they load naming what's stale (`Sunrice`, and the plugins whose bundles say where they're published from), until `sunrice:assets` and `vendor:publish --tag=laravel-assets --force` have run.
+
+The panel's main script carries only what every page needs. Its own pages, the admin layout, and the runtime plugins use (`window.Sunrice`, installed before the first plugin bundle loads) are chunks loaded when needed; `DatePicker`, `MediaPickerInput`, `SortableList` and `SortableHandle` load their code (date-fns, the media library, dnd-kit) the first time one shows, with a placeholder for a moment, so a plugin page uses them as always. The fonts are built in too ([Branding](branding.md#fonts)), and publishing writes compressed copies of the scripts and stylesheets for the web server ([Installation](installation.md#compression-and-caching)).

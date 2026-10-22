@@ -61,7 +61,7 @@ final class Branding
         return array_key_exists($this->settings->font, BrandingSettings::FONTS) ? $this->settings->font : null;
     }
 
-    /** The web font's stylesheet: the chosen font's, else the config's. */
+    /** The web font's stylesheet: the chosen font's (none for the built-in Instrument Sans or System), else the config's. */
     public function fontStylesheet(): ?string
     {
         $font = $this->font();
@@ -70,7 +70,7 @@ final class Branding
         }
         $slug = BrandingSettings::FONTS[$font][1];
 
-        return $slug === null ? null : "https://fonts.bunny.net/css?family={$slug}:400,500,600&display=swap";
+        return $slug === null || $font === BrandingSettings::BUILT_IN_FONT ? null : "https://fonts.bunny.net/css?family={$slug}:400,500,600&display=swap";
     }
 
     /** The stylesheet's origin, to connect to early. */

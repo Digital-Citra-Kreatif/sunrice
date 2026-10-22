@@ -360,7 +360,7 @@ final class ResourceController
         $search = $request->query('q');
 
         return response()->json(['options' => $definition->search(
-            $resource->class::newRecord(),
+            $resource->blankModel(),
             is_string($search) ? mb_substr(trim($search), 0, 100) : '',
         )]);
     }
