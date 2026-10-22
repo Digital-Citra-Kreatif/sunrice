@@ -52,7 +52,7 @@ is an error, not a silent no-op.
 ## Frontend
 
 The panel ships the admin shell (React, Inertia and the UI kit). Plugins
-build their pages with `@sunrice/admin-sdk`, which makes their bundle use
+build their pages with `@imajiner/admin-sdk`, which makes their bundle use
 the panel's single copy of React, Inertia and the components. A plugin's
 bundle is loaded only when one of its pages is opened.
 

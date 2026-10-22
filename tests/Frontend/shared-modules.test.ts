@@ -25,5 +25,5 @@ test('the UI list matches what the runtime provides', () => {
     const block = /const ui = \{([\s\S]*?)\};/.exec(source)?.[1] ?? '';
     const keys = block.split(',').map((key) => key.trim()).filter(Boolean).sort();
 
-    assert.deepEqual([...SHARED_MODULES['@sunrice/admin-sdk/ui']].sort(), keys);
+    assert.deepEqual([...SHARED_MODULES['@imajiner/admin-sdk/ui']].sort(), keys);
 });

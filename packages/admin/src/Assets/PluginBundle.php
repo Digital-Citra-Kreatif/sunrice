@@ -9,7 +9,7 @@ use InvalidArgumentException;
 /**
  * A plugin's admin JavaScript: an ES module, built with
  *
- * @sunrice/admin-sdk, that registers the plugin's React pages. The panel
+ * @imajiner/admin-sdk, that registers the plugin's React pages. The panel
  * loads it only when a page under one of its prefixes is opened.
  *
  *     PluginBundle::make('shop')

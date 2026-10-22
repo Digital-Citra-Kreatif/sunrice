@@ -43,7 +43,7 @@ Multiple panels in one app, multi-tenancy, a headless/REST API, frontend search 
 - Config: `config/sunrice-admin.php` (key `sunrice-admin`) and `config/sunrice-cms.php` (key `sunrice-cms`). Views: `sunrice-admin::` and `sunrice-cms::`. Tables are prefixed `sunrice_`.
 - Permission names `sunrice.<area>.<action>` (panel) and `cms.<area>.<action>` (CMS); plugins use their own prefix. Admin route names `sunrice.admin.<area>.<action>`.
 - Tests live in `tests/Admin` (panel alone), `tests/Cms` (panel + CMS), `tests/StarterKit` (panel + CMS + starter kit), `tests/Arch` and `tests/Frontend` (node:test).
-- `packages/admin-sdk` is the npm package `@sunrice/admin-sdk` for plugin bundles; keep `SHARED_MODULES` in step with the runtime (`tests/Frontend` checks).
+- `packages/admin-sdk` is the npm package `@imajiner/admin-sdk` for plugin bundles; keep `SHARED_MODULES` in step with the runtime (`tests/Frontend` checks).
 
 ## Commands
 

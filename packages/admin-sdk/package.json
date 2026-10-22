@@ -1,5 +1,5 @@
 {
-    "name": "@sunrice/admin-sdk",
+    "name": "@imajiner/admin-sdk",
     "version": "0.1.0",
     "description": "Build admin pages for Sunrice panel plugins: shares the panel's React, Inertia and UI components.",
     "license": "MIT",

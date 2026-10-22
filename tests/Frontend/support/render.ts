@@ -39,7 +39,7 @@ export async function loadAdminModule<T = Record<string, unknown>>(path: string)
 
 /**
  * Loads a module of the CMS's admin pages by its path under resources/js.
- * Its `@sunrice/admin-sdk/ui` imports read the panel's runtime, so this
+ * Its `@imajiner/admin-sdk/ui` imports read the panel's runtime, so this
  * installs it (window.Sunrice) first.
  */
 export async function loadCmsModule<T = Record<string, unknown>>(path: string): Promise<T> {

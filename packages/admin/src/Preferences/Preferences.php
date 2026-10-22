@@ -17,7 +17,7 @@ use InvalidArgumentException;
  *     $preferences->table($user, 'table.shop.orders');   // ['columns' => [...]|null, 'perPage' => 50|null]
  *
  * The browser reads and writes them through `GET`/`PUT admin/preferences/{key}`
- * (`useTablePreferences()` in `@sunrice/admin-sdk/ui`). Keys are letters,
+ * (`useTablePreferences()` in `@imajiner/admin-sdk/ui`). Keys are letters,
  * digits, dots, dashes and underscores (`KEY_PATTERN`); prefix yours with
  * your plugin's id. A value is at most `MAX_BYTES` of JSON.
  *

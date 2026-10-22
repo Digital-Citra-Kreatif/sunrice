@@ -23,7 +23,7 @@ function isShared(id: string): id is SharedModuleName {
  *
  *     // vite.config.ts
  *     import react from '@vitejs/plugin-react';
- *     import { sunrice } from '@sunrice/admin-sdk/vite';
+ *     import { sunrice } from '@imajiner/admin-sdk/vite';
  *
  *     export default { plugins: [react(), sunrice({ entry: 'resources/js/admin.tsx' })] };
  */
