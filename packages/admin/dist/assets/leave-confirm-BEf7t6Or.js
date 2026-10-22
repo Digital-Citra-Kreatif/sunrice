@@ -1,0 +1,1 @@
+let e=null;const s=new Set,t=()=>s.forEach(n=>n());function a(n){e=n,t()}function o(){return e!==null}function l(n){return s.add(n),()=>s.delete(n)}function u(){const n=e;e=null,t(),n?.()}function i(){e=null,t()}export{i as a,a as b,o as i,u as l,l as s};

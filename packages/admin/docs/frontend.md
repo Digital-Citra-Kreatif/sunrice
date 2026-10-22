@@ -1,4 +1,6 @@
-# Admin pages in React
+
+
+The panel's main script carries only what every page needs. Its own pages, the admin layout, and the runtime plugins use (`window.Sunrice`, installed before the first plugin bundle loads) are chunks loaded when needed; `DatePicker`, `MediaPickerInput`, `SortableList` and `SortableHandle` load their code (date-fns, the media library, dnd-kit) the first time one shows, with a placeholder for a moment, so a plugin page uses them as always. The fonts are built in too ([Branding](branding.md#fonts)), and every script and stylesheet has `.gz` and `.br` copies for the web server ([Installation](installation.md#compression-and-caching)).# Admin pages in React
 
 The panel's frontend is React 19 with Inertia. A plugin (or your app) adds its own admin pages: a Laravel route renders an Inertia page, and a small JavaScript bundle provides the React component.
 

@@ -30,6 +30,9 @@ final class BrandingSettings extends Settings
      *
      * @var array<string, array{0: string, 1: string|null}>
      */
+    /** The font built into the panel's assets (the default): no stylesheet to load. */
+    public const BUILT_IN_FONT = 'instrument-sans';
+
     public const FONTS = [
         'inter' => ['Inter', 'inter'],
         'instrument-sans' => ['Instrument Sans', 'instrument-sans'],
@@ -115,7 +118,7 @@ final class BrandingSettings extends Settings
                 MediaPicker::make('logo')->images()
                     ->help('SVG or PNG. A square logo sits beside the name; a wide one (a wordmark) replaces it. Empty: the name\'s first letter.'),
                 Select::make('font')->options($fonts)->placeholder('Default')
-                    ->help('Empty: the default. Every font but System is loaded from Bunny Fonts (fonts.bunny.net) by each browser: choose System for an intranet, a server without internet access or to keep browsers from contacting another company.'),
+                    ->help('Empty: the default, Instrument Sans. Instrument Sans is built in and System uses the computer\'s own; every other font is loaded from Bunny Fonts (fonts.bunny.net) by each browser, so for an intranet, a server without internet access or to keep browsers from contacting another company choose one of those two.'),
                 TextInput::make('color')->label('Brand colour')->color()->placeholder('#1e66f5')
                     ->help('Buttons, the active menu item and focus rings. Empty: neutral.'),
                 MediaPicker::make('favicon')->label('Browser icon')->images()

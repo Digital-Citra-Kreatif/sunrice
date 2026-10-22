@@ -23,6 +23,8 @@ final class RegisteredResource
 
     private ?Table $table = null;
 
+    private ?string $recordKey = null;
+
     /**
      * @param  class-string<\Sunrice\Admin\Resources\Resource>  $class
      * @param  string|null  $path  its address under the panel: a plugin's under the plugin's id ("cms/forms"), the app's at its key
@@ -55,7 +57,17 @@ final class RegisteredResource
     /** The attribute in its records' addresses: Resource::recordKey(), else the primary key. */
     public function recordKey(): string
     {
-        return $this->class::recordKey() ?? $this->class::newRecord()->getKeyName();
+        // A plain instance, not newRecord(): that prepares a record to create
+        // (a new user's random password is hashed there), and this runs per row.
+        return $this->recordKey ??= $this->class::recordKey() ?? $this->blankModel()->getKeyName();
+    }
+
+    /** An unsaved instance of its model, as the model makes it: for its key name or relations, never to save. */
+    public function blankModel(): Model
+    {
+        $model = $this->class::model();
+
+        return new $model;
     }
 
     /** A record's value in its addresses. */

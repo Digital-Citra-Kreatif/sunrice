@@ -213,10 +213,17 @@ it('warns super admins when production runs with debug on or on http', function 
 it('loads the panel font, or the one configured instead', function () {
     usePanel();
 
+    // Instrument Sans is built into the panel's CSS: no font service by default.
+    get('/admin/login')->assertOk()
+        ->assertDontSee('fonts.bunny.net')
+        ->assertDontSee('rel="preconnect"', false)
+        ->assertDontSee('--sunrice-font');
+    expect(file_get_contents(dirname(__DIR__, 2).'/packages/admin/resources/css/admin.css'))->toContain('@font-face')->toContain('../fonts/instrument-sans-latin.woff2');
+
+    config(['sunrice-admin.font' => ['stylesheet' => 'https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap', 'family' => null]]);
     get('/admin/login')->assertOk()
         ->assertSee('<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>', false)
-        ->assertSee('https://fonts.bunny.net/css?family=instrument-sans:400,500,600&amp;display=swap', false)
-        ->assertDontSee('--sunrice-font');
+        ->assertSee('https://fonts.bunny.net/css?family=instrument-sans:400,500,600&amp;display=swap', false);
 
     config(['sunrice-admin.font' => ['stylesheet' => null, 'family' => 'Instrument "Sans"']]);
     get('/admin/login')->assertOk()

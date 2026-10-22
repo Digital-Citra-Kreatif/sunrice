@@ -27,14 +27,40 @@ function loadStyle(href: string): void {
     document.head.appendChild(link);
 }
 
-/** Load a bundle's module (once) and its styles. */
+function preloadModule(href: string): void {
+    if (document.querySelector(`link[rel="modulepreload"][href="${CSS.escape(href)}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = href;
+    document.head.appendChild(link);
+}
+
+let runtime: Promise<void> | null = null;
+
+/**
+ * window.Sunrice, which plugin bundles read as they load: installed with
+ * the first plugin page, so the panel's own pages don't load what only
+ * plugins use.
+ */
+function installRuntime(): Promise<void> {
+    runtime ??= import('@/runtime').then((module) => module.installRuntime());
+    runtime.catch(() => (runtime = null));
+
+    return runtime;
+}
+
+/** Load a bundle's module (once, after the runtime it needs, while fetching both) and its styles. */
 function load(bundle: BundleInfo): Promise<void> {
     let promise = loading.get(bundle.id);
     if (!promise) {
         bundle.styles.forEach(loadStyle);
-        promise = bundle.module === null
+        const module = bundle.module;
+        if (module !== null) {
+            preloadModule(module);
+        }
+        promise = module === null
             ? Promise.resolve()
-            : import(/* @vite-ignore */ bundle.module).then(() => undefined);
+            : installRuntime().then(() => import(/* @vite-ignore */ module)).then(() => undefined);
         // A failed load can be retried on the next visit.
         promise.catch(() => loading.delete(bundle.id));
         loading.set(bundle.id, promise);

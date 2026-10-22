@@ -1,0 +1,1 @@
+import{c as e}from"./i18n-Bu2dDTJC.js";const o={name:"chevrons-up-down",size:24,node:[["path",{d:"m7 15 5 5 5-5",key:"1hf1tw"}],["path",{d:"m7 9 5-5 5 5",key:"sgt6xg"}]]};o.node;const t=e(o);export{t as C};

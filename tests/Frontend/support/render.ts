@@ -45,6 +45,8 @@ export async function loadAdminModule<T = Record<string, unknown>>(path: string)
 export async function loadCmsModule<T = Record<string, unknown>>(path: string): Promise<T> {
     if (!(globalThis as { Sunrice?: unknown }).Sunrice) {
         (await loadAdminModule<{ installRuntime: () => void }>('runtime.ts')).installRuntime();
+        // The runtime's deferred components (date picker, media picker, sortable list), loaded, so they render here.
+        await (await loadAdminModule<{ preloadDeferred: () => Promise<unknown> }>('components/app/deferred.tsx')).preloadDeferred();
     }
 
     return (await (await vite('cms')).ssrLoadModule(`/resources/js/${path}`)) as T;

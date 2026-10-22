@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
@@ -142,4 +143,23 @@ it('says what\'s wrong with a starter it can\'t install', function () {
 
     expect(fn () => (new Starters)->register(blogStarter()->path)->register(blogStarter()->path.'/')->all())->not->toThrow(InvalidArgumentException::class)
         ->and(Collection::query()->count())->toBe(0);
+});
+
+it('reads the database cache store a few times per page of the site', function () {
+    config(['cache.default' => 'database', 'cache.stores.database.connection' => null]);
+    app('cache')->forgetDriver('database');
+    artisan('sunrice:starter', ['name' => 'blog'])->assertSuccessful();
+
+    foreach (['/blog' => 4, '/blog/hello-world' => 6, '/about' => 5] as $path => $budget) {
+        get($path)->assertOk(); // warms the cache
+        app()->forgetScopedInstances(); // a new request, as in production
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        get($path)->assertOk();
+        $reads = array_filter(DB::getQueryLog(), fn (array $query): bool => str_contains(str_replace(['"', '`'], '', $query['query']).' ', ' cache '));
+        DB::disableQueryLog();
+
+        // The panel's settings, the content versions, what every page reads, then the page's own (its address, share image, the menus).
+        expect(count($reads))->toBeLessThanOrEqual($budget, $path);
+    }
 });
