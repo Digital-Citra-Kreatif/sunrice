@@ -245,16 +245,6 @@ final class Widget
         return $this->sort;
     }
 
-    public function getSpan(): int
-    {
-        return $this->span;
-    }
-
-    public function getPermission(): ?string
-    {
-        return $this->permission;
-    }
-
     /**
      * The deferred group its data loads in: one request per plugin (and
      * one for the panel's and the app's). Set by the panel.

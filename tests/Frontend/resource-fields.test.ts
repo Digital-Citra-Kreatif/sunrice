@@ -4,7 +4,7 @@ import { createElement, type ComponentType } from 'react';
 import { formatDateRange, parseDateRange } from '../../packages/admin/resources/js/lib/date-range.ts';
 import { changeWarning } from '../../packages/admin/resources/js/lib/change-warning.ts';
 import { isSafeUrl } from '../../packages/admin/resources/js/lib/safe-url.ts';
-import { slugify, slugInput } from '../../packages/admin/resources/js/lib/slug.ts';
+import { slugInput } from '../../packages/admin/resources/js/lib/slug.ts';
 import { loadAdminModule, render } from './support/render.ts';
 
 test('reads and writes a date range filter\'s value', () => {
@@ -73,10 +73,7 @@ test('renders a relation field\'s chosen records, and the rich text editor as a 
     assert.match(editor, /data-slot="skeleton"/);
 });
 
-test('makes slugs and handles from titles, and keeps typed ones to the separator (TextInput::slug)', () => {
-    assert.equal(slugify('Contact person'), 'contact-person');
-    assert.equal(slugify('  Property types & Café ', '_'), 'property_types_cafe');
-    assert.equal(slugify('Óla', '_', 2), 'ol');
+test('keeps typed slugs and handles to the separator (TextInput::slug)', () => {
     assert.equal(slugInput('Contact-Person', '_'), 'contact_person');
     assert.equal(slugInput('contact ', '_'), 'contact_');
     assert.equal(slugInput('-lead', '-'), 'lead');

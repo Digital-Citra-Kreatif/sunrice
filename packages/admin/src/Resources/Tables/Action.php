@@ -268,12 +268,6 @@ final class Action
         return $this->ability;
     }
 
-    /** @return list<Field> */
-    public function getFields(): array
-    {
-        return $this->fields;
-    }
-
     /**
      * Run it; returns the message to show, if any.
      *

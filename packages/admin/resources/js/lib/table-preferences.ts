@@ -28,8 +28,3 @@ export function toggleColumn(visible: readonly string[], key: string, all: reado
 
     return all.filter((column) => next.has(column));
 }
-
-/** Whether a preference key is one the server accepts: letters, digits, dots, dashes and underscores. */
-export function isPreferenceKey(key: string): boolean {
-    return /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(key);
-}

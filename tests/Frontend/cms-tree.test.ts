@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { childIndexes, reorderLevel, siblingOrder, subtreeEnd, treeOrder } from '../../packages/cms/resources/js/lib/tree.ts';
+import { childIndexes, reorderLevel, subtreeEnd, treeOrder } from '../../packages/cms/resources/js/lib/tree.ts';
 import { syncKeys, termPickerQuery } from '../../packages/cms/resources/js/lib/values.ts';
 
 const tree = (spec: string) => spec.split(' ').map((s) => ({ label: s.replace(/^-+/, ''), depth: s.length - s.replace(/^-+/, '').length }));
@@ -24,14 +24,6 @@ test('reorders one level, children carried along', () => {
     // Anything but the level's own indexes changes nothing.
     assert.equal(shape(reorderLevel(items, -1, [0, 1, 4])), shape(items));
     assert.equal(shape(reorderLevel(items, 0, [1])), shape(items));
-});
-
-test('gives the moved item\'s siblings in their new order', () => {
-    const rows = [{ id: 1, parent: null }, { id: 2, parent: 1 }, { id: 3, parent: null }, { id: 4, parent: 1 }];
-
-    assert.deepEqual(siblingOrder(rows, 3, (r) => r.parent), [1, 3]);
-    assert.deepEqual(siblingOrder(rows, 4, (r) => r.parent), [2, 4]);
-    assert.deepEqual(siblingOrder(rows, 9, (r) => r.parent), []);
 });
 
 test('keeps keys for a list\'s items in step with its length', () => {

@@ -203,9 +203,4 @@ final class NavigationItem
     {
         return $this->sort;
     }
-
-    public function getPermission(): ?string
-    {
-        return $this->permission;
-    }
 }

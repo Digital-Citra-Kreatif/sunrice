@@ -10,7 +10,7 @@ import {
 import type { SharedProps } from '@/types';
 import { t } from '@/lib/i18n';
 
-export { registerCommandSource, type CommandItem, type CommandSource } from '@/lib/command-sources';
+export { registerCommandSource } from '@/lib/command-sources';
 
 /* The palette's open state, so the header's button and the shortcut share it. */
 let isOpen = false;
