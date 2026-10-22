@@ -7,3 +7,5 @@ composer.lock
 *.sqlite
 packages/admin-sdk/dist/
 packages/admin/dist/hot
+packages/*/dist/**/*.gz
+packages/*/dist/**/*.br

@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Foundation\Events\VendorTagPublished;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Assets\PluginBundle;
+use Sunrice\Admin\Assets\Precompress;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Http\Middleware\Authenticate;
 use Sunrice\Admin\Http\Middleware\EnsureCanAccessPanel;
@@ -143,6 +145,42 @@ it('tells you when the assets are not published, and publishes them', function (
         ->assertSee('/vendor/sunrice-admin/assets/app-', false);
 
     (new Filesystem)->deleteDirectory($public);
+});
+
+it('writes compressed copies of the published scripts and stylesheets, the panel\'s and the plugin bundles\'', function () {
+    $public = sys_get_temp_dir().'/sunrice-public-'.uniqid();
+    $dist = sys_get_temp_dir().'/sunrice-dist-'.uniqid();
+    mkdir($public);
+    mkdir($dist);
+    file_put_contents($dist.'/admin.js', str_repeat('console.log("shop");', 50));
+    file_put_contents($dist.'/admin.json', '{}');
+    app()->usePublicPath($public);
+    usePanel(fn (Panel $panel) => $panel->bundle(PluginBundle::make('shop')->module('/vendor/shop/admin.js')->pages('Shop/')->publishedFrom($dist, $public.'/vendor/shop')));
+
+    artisan('sunrice:assets')->assertSuccessful();
+    $script = glob($public.'/vendor/sunrice-admin/assets/app-*.js')[0];
+    $style = glob($public.'/vendor/sunrice-admin/assets/app-*.css')[0];
+    expect(gzdecode((string) file_get_contents($script.'.gz')))->toBe(file_get_contents($script))
+        ->and(is_file($style.'.gz'))->toBeTrue()
+        ->and(is_file($public.'/vendor/sunrice-admin/manifest.json.gz'))->toBeFalse();
+    if (function_exists('brotli_uncompress')) {
+        expect(brotli_uncompress((string) file_get_contents($script.'.br')))->toBe(file_get_contents($script));
+    }
+
+    // A plugin bundle's, as vendor:publish copies it (and then says so).
+    (new Filesystem)->copyDirectory($dist, $public.'/vendor/shop');
+    event(new VendorTagPublished('laravel-assets', [$dist => $public.'/vendor/shop']));
+    expect(gzdecode((string) file_get_contents($public.'/vendor/shop/admin.js.gz')))->toBe(file_get_contents($dist.'/admin.js'))
+        ->and(is_file($public.'/vendor/shop/admin.json.gz'))->toBeFalse();
+
+    // A copy newer than its file is kept.
+    file_put_contents($public.'/vendor/shop/admin.js.gz', 'kept');
+    touch($public.'/vendor/shop/admin.js.gz', time() + 60);
+    Precompress::directory($public.'/vendor/shop');
+    expect(file_get_contents($public.'/vendor/shop/admin.js.gz'))->toBe('kept');
+
+    (new Filesystem)->deleteDirectory($public);
+    (new Filesystem)->deleteDirectory($dist);
 });
 
 it('warns super admins when the published assets are older than the installed packages', function () {

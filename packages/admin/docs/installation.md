@@ -103,7 +103,7 @@ Until the panel's are published, admin pages show only a notice saying so. After
 
 #### Compression and caching
 
-The web server serves these files, not PHP. Every script and stylesheet ships with a gzip (`.gz`) and a Brotli (`.br`) copy next to it, so the server can send them compressed without compressing on each request: the panel's main script is 368 kB, 118 kB gzipped and 101 kB with Brotli. The files under `vendor/sunrice-admin/assets/` have a hash in their name that changes with their content, so browsers may keep them for a year. With nginx:
+The web server serves these files, not PHP. When they're published, `sunrice:assets` (for the panel's, and the plugin bundles' already there) and `vendor:publish` (for the CMS's and other plugin bundles' that say where they're published, `PluginBundle::publishedFrom()`) write a gzip copy (`.gz`, level 9) next to every script and stylesheet, and a Brotli one (`.br`) when PHP has the `brotli` extension, so the server can send them compressed without compressing on each request: the panel's main script is 368 kB, 118 kB gzipped and 101 kB with Brotli. A copy newer than its file is left as it is. The files under `vendor/sunrice-admin/assets/` have a hash in their name that changes with their content, so browsers may keep them for a year. With nginx:
 
 ```nginx
 location /vendor/ {

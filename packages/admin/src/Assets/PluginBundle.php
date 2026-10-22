@@ -107,6 +107,12 @@ final class PluginBundle
         return $this;
     }
 
+    /** The folder it's published to (publishedFrom()), if it said. */
+    public function publishedPath(): ?string
+    {
+        return $this->published;
+    }
+
     /** Whether the published files differ from the package's build (one missing or changed). */
     public function outdated(): bool
     {
