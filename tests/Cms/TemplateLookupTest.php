@@ -170,3 +170,20 @@ it('looks for each view once', function () {
     expect($lookup->exists('cms.nope'))->toBeFalse()
         ->and((new TemplateLookup)->exists('cms.nope'))->toBeTrue();
 });
+
+it('ignores a collection\'s or taxonomy\'s stored template outside the site\'s template prefixes', function () {
+    ($this->template)('cms.collections.show');
+    ($this->template)('cms.collections.index');
+    ($this->template)('cms.taxonomies.show');
+    ($this->template)('cms.taxonomies.index');
+    ($this->template)('layouts.app');
+    $this->blog->forceFill(['template' => 'layouts.app', 'listing_template' => 'layouts.app'])->save();
+    $this->tags->forceFill(['template' => 'layouts.app', 'index_template' => 'layouts.app'])->save();
+
+    expect(renderedWith('/blog/hello'))->toBe('cms.collections.show')
+        ->and(renderedWith('/blog'))->toBe('cms.collections.index')
+        ->and(renderedWith('/tags/news'))->toBe('cms.taxonomies.show')
+        ->and(renderedWith('/blog/tags/news'))->toBe('cms.taxonomies.show')
+        ->and(renderedWith('/tags'))->toBe('cms.taxonomies.index')
+        ->and(renderedWith('/blog/tags'))->toBe('cms.taxonomies.index');
+});

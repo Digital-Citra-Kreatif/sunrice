@@ -395,3 +395,19 @@ it('switches index pages off for attachments made before them', function () {
     $this->tags->collections()->attach($other->id);
     expect((bool) DB::table('sunrice_collection_taxonomy')->where('collection_id', $other->id)->value('index_page'))->toBeTrue();
 });
+
+it('counts a collection\'s terms from its live translations, not entry by entry', function () {
+    $publish = fn (Collection $c, string $title, array $terms) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($c, ['title' => $title, 'data' => ['tags' => $terms]]));
+    $publish($this->books, 'Solaris', [$this->featured->id, $this->scifi->id]);
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    get('/books/tags')->assertOk()
+        ->assertViewHas('terms', fn ($terms) => $terms->pluck('entries_count', 'id')->all() === [$this->featured->id => 2, $this->scifi->id => 1]);
+    $sitemap = get('/sitemap.xml')->assertOk();
+    DB::disableQueryLog();
+    $sitemap->assertSee(url('/books/tags/sci-fi'))->assertSee(url('/films/tags/sci-fi'));
+
+    // The collection is picked in the translations' subquery (by its index), never on each entry of each term.
+    expect(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $sql): bool => str_contains($sql, 'sunrice_entry_term')
+        && preg_match('/"sunrice_entries"\."collection_id" = \?|"sunrice_entry_term"\."term_id" and "collection_id" = \?/', $sql) === 1)->all())->toBe([]);
+});

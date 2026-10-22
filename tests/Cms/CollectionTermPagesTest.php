@@ -7,9 +7,12 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Collections\PurgeDeleted;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
+use Sunrice\Cms\Actions\Taxonomies\AttachCollections;
+use Sunrice\Cms\Actions\Terms\DeleteTerm;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Menus;
@@ -20,6 +23,7 @@ use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Site\RouteConflicts;
 use Sunrice\Cms\Structure\StructureExporter;
 use Sunrice\Cms\Structure\StructureImporter;
+use Sunrice\Cms\Structure\StructureImportFailed;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -162,4 +166,146 @@ it('carries each collection\'s term pages in the structure', function () {
     app(StructureImporter::class)->import(json_decode((string) json_encode($structure), true));
     expect(DB::table('sunrice_collection_taxonomy')->where('collection_id', $this->books->id)->value('term_route'))->toBe('/reading/{slug}')
         ->and((bool) DB::table('sunrice_collection_taxonomy')->where('collection_id', $this->films->id)->value('term_pages'))->toBeFalse();
+
+    // Term pages at an address another collection's have: refused.
+    $clash = json_decode((string) json_encode($structure), true);
+    $tags = array_search('tags', array_column($clash['taxonomies'], 'handle'), true);
+    $clash['taxonomies'][$tags]['collection_pages']['films'] = ['pages' => true, 'route' => '/reading/{slug}', 'index' => true];
+    expect(fn () => app(StructureImporter::class)->import($clash))->toThrow(StructureImportFailed::class, 'has the address /reading/{slug} in en already');
+    expect((bool) DB::table('sunrice_collection_taxonomy')->where('collection_id', $this->films->id)->value('term_pages'))->toBeFalse();
+});
+
+it('refuses an entry URL a collection\'s term pages have, on a site with one language', function () {
+    config(['sunrice-cms.locales' => ['en']]);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update'));
+
+    put('/admin/cms/collections/films', ['title' => 'Films', 'pages' => true, 'route' => '/books/tags/{slug}'])->assertSessionHasErrors('route');
+    expect($this->films->fresh()->route)->toBe('/films/{slug}');
+    // Its own URL is no clash with itself.
+    put('/admin/cms/collections/films', ['title' => 'Films', 'pages' => true, 'route' => '/films/{slug}'])->assertSessionHasNoErrors();
+    get('/books/tags/featured')->assertOk();
+});
+
+it('refuses ticking a collection or switching its term pages on where their default URL clashes', function () {
+    $cinema = Collection::query()->create(['handle' => 'cinema', 'title' => 'Cinema', 'blueprint' => 'post', 'route' => '/cinema/{slug}', 'listing_route' => '/films']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.update'));
+    [$books, $films, $c] = [(string) $this->books->id, (string) $this->films->id, (string) $cinema->id];
+
+    // Cinema's default, /films/tags/{slug}, is Films' too.
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'collections' => [$books, $films, $c], "term_pages_{$books}" => true, "term_pages_{$films}" => true, "term_pages_{$c}" => true, "index_page_{$books}" => true, "index_page_{$films}" => true, "index_page_{$c}" => false])
+        ->assertSessionHasErrors("term_route_{$c}");
+    expect($this->tags->collections()->pluck('sunrice_collections.id')->all())->not->toContain($cinema->id);
+    // Index pages too: /films/tags.
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'collections' => [$books, $films, $c], "term_pages_{$books}" => true, "term_pages_{$films}" => true, "term_pages_{$c}" => false, "index_page_{$books}" => true, "index_page_{$films}" => true, "index_page_{$c}" => true])
+        ->assertSessionHasErrors("index_route_{$c}");
+    // Ticked with its term pages elsewhere: saved.
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'collections' => [$books, $films, $c], "term_pages_{$books}" => true, "term_pages_{$films}" => true, "term_pages_{$c}" => true, "term_route_{$c}" => '/cinema/tags/{slug}', "index_page_{$books}" => true, "index_page_{$films}" => true, "index_page_{$c}" => false])
+        ->assertSessionHasNoErrors();
+    // Switching Films' off, then Cinema's back to the default, then Films' on again.
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'collections' => [$books, $films, $c], "term_pages_{$books}" => true, "term_pages_{$films}" => false, "term_pages_{$c}" => true, "term_route_{$c}" => '', "index_page_{$books}" => true, "index_page_{$films}" => true, "index_page_{$c}" => false])
+        ->assertSessionHasNoErrors();
+    put('/admin/cms/taxonomies/tags', ['title' => 'Tags', 'collections' => [$books, $films, $c], "term_pages_{$books}" => true, "term_pages_{$films}" => true, "term_pages_{$c}" => true, "index_page_{$books}" => true, "index_page_{$films}" => true, "index_page_{$c}" => false])
+        ->assertSessionHasErrors("term_route_{$films}");
+
+    // Attached in code: refused too, naming the clash.
+    $this->tags->collections()->detach($cinema->id);
+    expect(fn () => app(AttachCollections::class)->handle($this->tags, [$this->books->id, $this->films->id, $cinema->id]))
+        ->toThrow(ValidationException::class, 'Films · Tags');
+    expect($this->tags->collections()->pluck('sunrice_collections.id')->all())->not->toContain($cinema->id);
+});
+
+it('reads the attachments once for the taxonomy\'s form, and writes none when nothing changed', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.update'));
+    $attach = function (int $count): void {
+        foreach (range(1, $count) as $i) {
+            $this->tags->collections()->attach(Collection::query()->create(['handle' => 'more_'.Collection::query()->count(), 'title' => 'More '.Collection::query()->count()])->id);
+        }
+    };
+    $queries = function (callable $request): array {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $request();
+        DB::disableQueryLog();
+
+        return array_column(DB::getQueryLog(), 'query');
+    };
+    $attach(4);
+    $edit = $queries(fn () => get('/admin/cms/taxonomies/tags/edit')->assertOk());
+    // The attachments read once, not per field, language or collection, and the collections once however often the form is built.
+    expect(array_filter($edit, fn (string $sql): bool => str_contains($sql, 'sunrice_collection_taxonomy')))->toHaveCount(1)
+        ->and(array_filter($edit, fn (string $sql): bool => str_starts_with($sql, 'select * from "sunrice_collections"')))->toHaveCount(1);
+
+    // Saved as it was: no attachment written.
+    $values = [];
+    get('/admin/cms/taxonomies/tags/edit')->assertInertia(function (Assert $page) use (&$values) {
+        $values = $page->toArray()['props']['values'];
+    });
+    $saved = $queries(fn () => put('/admin/cms/taxonomies/tags', $values)->assertSessionHasNoErrors());
+    expect(array_filter($saved, fn (string $sql): bool => str_starts_with(strtolower($sql), 'update') && str_contains($sql, 'sunrice_collection_taxonomy')))->toBe([]);
+
+    // One change in another language: one write, the other languages' URLs kept.
+    $books = $this->books->id;
+    $this->tags->collections()->updateExistingPivot($books, ['term_routes' => ['id' => '/buku/tag/{slug}']]);
+    $values["term_route_{$books}_id"] = '/buku/label/{slug}';
+    $values["index_route_{$books}_id"] = '/buku/label';
+    $saved = $queries(fn () => put('/admin/cms/taxonomies/tags', $values)->assertSessionHasNoErrors());
+    expect(array_filter($saved, fn (string $sql): bool => str_starts_with(strtolower($sql), 'update') && str_contains($sql, 'sunrice_collection_taxonomy')))->toHaveCount(1);
+    $pivot = DB::table('sunrice_collection_taxonomy')->where('collection_id', $books)->first();
+    expect(json_decode((string) $pivot->term_routes, true))->toBe(['id' => '/buku/label/{slug}'])
+        ->and(json_decode((string) $pivot->index_routes, true))->toBe(['id' => '/buku/label']);
+});
+
+it('redirects an old address of a collection\'s term page to that collection\'s', function () {
+    $this->tags->collections()->updateExistingPivot($this->films->id, ['term_routes' => ['id' => '/film/tag/{slug}']]);
+
+    get('/id/films/tags/featured')->assertMovedPermanently()->assertRedirect('/id/film/tag/featured');
+    get('/id/film/tag/featured')->assertOk()->assertSee('Alien')->assertDontSee('Dune');
+});
+
+it('leaves out a menu\'s term link in a collection in the trash, and shows it as not on the site', function () {
+    $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    app(SaveMenu::class)->handle($menu, [['term_id' => $this->featured->id, 'collection_id' => $this->films->id], ['term_id' => $this->featured->id]]);
+    $this->films->delete();
+    app(Menus::class)->flush();
+
+    // Not Books' page instead.
+    expect(array_column(app(Menus::class)->get('main'), 'url'))->toBe([url('/books/tags/featured')]);
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
+    get('/admin/cms/menus/main/links')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('items.0.target.live', false)
+        ->where('items.1.target.live', true));
+});
+
+it('leaves out menu links to a term, taxonomy or collection deleted permanently, never another page instead', function () {
+    $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    app(SaveMenu::class)->handle($menu, [
+        ['term_id' => $this->featured->id, 'collection_id' => $this->books->id],
+        ['taxonomy_id' => $this->tags->id, 'collection_id' => $this->books->id],
+        ['term_id' => $this->featured->id, 'collection_id' => $this->films->id],
+        ['taxonomy_id' => $this->tags->id, 'collection_id' => $this->films->id],
+    ]);
+    $urls = function (): array {
+        app(Menus::class)->flush();
+
+        return array_column(app(Menus::class)->get('main'), 'url');
+    };
+    expect($urls())->toBe([url('/books/tags/featured'), url('/books/tags'), url('/films/tags/featured'), url('/films/tags')]);
+    $targets = fn (): array => DB::table('sunrice_menu_items')->where('menu_id', $menu->id)->orderBy('sort_order')->get(['term_id', 'taxonomy_id', 'collection_id'])->map(fn ($row) => array_values((array) $row))->all();
+
+    // A collection: its term and index links go, not to the shared pages or another collection's.
+    $this->films->delete();
+    app(PurgeDeleted::class)->collection($this->films);
+    expect($urls())->toBe([url('/books/tags/featured'), url('/books/tags')])
+        ->and(array_slice($targets(), 2))->toBe([[null, null, null], [null, null, null]]);
+
+    // A term: not its collection's listing page instead.
+    app(DeleteTerm::class)->handle($this->featured, force: true);
+    expect($urls())->toBe([url('/books/tags')])
+        ->and($targets()[0])->toBe([null, null, null]);
+
+    // A taxonomy: likewise.
+    $this->tags->delete();
+    app(PurgeDeleted::class)->taxonomy($this->tags);
+    expect($urls())->toBe([])
+        ->and($targets()[1])->toBe([null, null, null]);
 });

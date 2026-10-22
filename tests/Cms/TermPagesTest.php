@@ -149,3 +149,21 @@ it('gives terms of a taxonomy without a blueprint a description', function () {
         ->and(array_map(fn ($field) => $field->handle, $this->topics->schema()->fields()))->toBe(['about']);
     get('/tags/coffee')->assertOk()->assertSee('<p>All about coffee.</p>', false);
 });
+
+it('knows a term has a page when only its collections give it one', function () {
+    $this->topics->forceFill(['route' => null])->save();
+    $this->topics->collections()->attach($this->blog->id);
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.update'));
+    $edit = "/admin/cms/taxonomies/topics/terms/{$this->news->id}/edit";
+
+    get($edit)->assertOk()->assertInertia(fn (Assert $page) => $page->where('term.hasPage', true)->where('hasPages', true)
+        // The collection's files come first in "Which file?".
+        ->where('templates.fallbacks', fn ($views) => collect($views)->pluck('view')->all() === ['cms.collections.blog.topics.news', 'cms.collections.blog.topics.show', 'cms.taxonomies.topics.news', 'cms.taxonomies.topics.show', 'cms.taxonomies.show']));
+    get('/admin/cms/taxonomies/topics/terms')->assertOk()->assertInertia(fn (Assert $page) => $page->where('terms.0.url', url('/blog/topics/news')));
+
+    $this->topics->collections()->updateExistingPivot($this->blog->id, ['term_pages' => false]);
+    get($edit)->assertInertia(fn (Assert $page) => $page->where('term.hasPage', false)->where('hasPages', false)
+        ->where('templates.fallbacks', fn ($views) => collect($views)->pluck('view')->all() === ['cms.taxonomies.topics.news', 'cms.taxonomies.topics.show', 'cms.taxonomies.show']));
+    get('/admin/cms/taxonomies/topics/terms')->assertInertia(fn (Assert $page) => $page->where('terms.0.url', null));
+    expect($this->topics->fresh()->hasTermPages())->toBeFalse();
+});

@@ -160,6 +160,8 @@ it('gives the page in each language for a switcher', function () {
     app(SaveDraft::class)->handle($halo, ['title' => 'Halo', 'slug' => 'halo']);
     app(PublishEntry::class)->handle($halo);
     View::addNamespace('switch', __DIR__.'/Fixtures/views');
+    // A package's views, under the site's template prefixes.
+    config(['sunrice-cms.site.template_prefixes' => ['cms.', 'switch::']]);
     $this->blog->update(['template' => 'switch::cms.switcher']);
 
     expect(json_decode((string) get('/id/blog/halo')->getContent(), true))->toBe(['en' => url('/blog/hello'), 'id' => url('/id/blog/halo')]);
