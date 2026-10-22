@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-Nothing yet.
+### All changes
+
+- **Content → Translations on a site in one language**: the editor (`sunrice.admin.cms.translations.edit`) sends those with `cms.settings.locales` to Settings → Languages ("Add a second language in Settings → Languages to translate the site's texts.") and others to the dashboard ("Translations need a second language. An administrator can add one in Settings → Languages."), instead of a 404. Its menu item stays hidden there, as before.
+- **CDNs and reverse proxies**: the CMS's caching docs say what the site's headers and cookies are (`Cache-Control: no-cache, private` and the session cookie on site pages, `private, no-store` for draft views and previews) and how to put a CDN or caching proxy in front: leave HTML to the origin, or bypass the cache for the session and "remember me" cookies and never cache the panel, `?draft`, `/cms-preview/*`, search, signed links, form posts or pages with forms; keep hashed assets for a year. The installation docs point there.
+- **Workbench**: the first `vendor/bin/testbench workbench:build` on a fresh database no longer fails with "no such table: cache": `testbench.yaml` sets `DB_CACHE_CONNECTION=sqlite`, so the database cache store uses the workbench's SQLite file rather than the in-memory connection Testbench boots on before the file exists. Apps aren't affected: Laravel runs their `0001_01_01_000001_create_cache_table` before the packages' migrations.
 
 ## 0.1.0 (2026-10-22)
 

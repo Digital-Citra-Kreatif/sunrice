@@ -132,9 +132,21 @@ it('refuses the main language, unknown languages and long texts', function () {
     put('/admin/cms/translations', ['locale' => 'id', 'texts' => ["collection|{$this->agents->id}|title" => str_repeat('a', 3001)]])->assertSessionHasErrors("texts.collection|{$this->agents->id}|title");
     expect($this->agents->fresh()->translations)->toBeNull();
 
-    // A site in one language has nothing to translate.
+});
+
+it('sends to Settings → Languages, or the dashboard, on a site in one language (not a bare 404)', function () {
     config(['sunrice-cms.locales' => ['en']]);
-    get('/admin/cms/translations')->assertNotFound();
+    // Nothing to translate: the menu item hides.
+    expect(collect(app(Panel::class)->navigationFor($this->translator))->pluck('items')->flatten(1)->pluck('key'))->not->toContain('cms-translations');
+
+    actingAs($this->translator);
+    get('/admin/cms/translations')->assertRedirect(route('sunrice.admin.dashboard'))
+        ->assertSessionHas('error', 'Translations need a second language. An administrator can add one in Settings → Languages.');
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate', 'cms.settings.locales'));
+    get('/admin/cms/translations')->assertRedirect(route('sunrice.admin.settings.edit', 'locales'))
+        ->assertSessionHas('error', 'Add a second language in Settings → Languages to translate the site\'s texts.');
+    get(route('sunrice.admin.settings.edit', 'locales'))->assertOk();
 });
 
 it('lists a menu\'s links as the menu shows them, telling filtered links apart (NEW2-i18n-3)', function () {

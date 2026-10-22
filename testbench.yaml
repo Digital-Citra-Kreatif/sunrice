@@ -16,6 +16,11 @@ env:
   - AUTH_MODEL=Workbench\App\Models\User
   - APP_URL=http://127.0.0.1:8000
   - SUNRICE_LOCALES=en,id
+  # The database cache store on the workbench's SQLite file by name: on a first build the file
+  # doesn't exist yet when the app boots, so Testbench boots on its in-memory `testing` connection
+  # and the cache store (resolved at boot by RateLimiter::for) would stay on it, without the
+  # cache table the migrations create in the file ("no such table: cache").
+  - DB_CACHE_CONNECTION=sqlite
 
 workbench:
   start: /admin
