@@ -6,6 +6,7 @@
 
 ### All changes
 
+- **MIT license**: `LICENSE` (copyright Digital Citra Kreatif) at the root and in every package, so each read-only repository and Packagist carry it (`tests/Arch/SplitTest.php` checks).
 - **Read-only package repositories**: on every push to `main` and every `v*` tag, CI (`.github/workflows/split.yml`) publishes `packages/admin`, `packages/cms` and `packages/starter-kit` to `sunrice-admin`, `sunrice-cms` and `sunrice-starter-kit` for Packagist, with the same tag for all (they require each other at `self.version`; `tests/Arch/SplitTest.php` checks both). It needs the `SPLIT_TOKEN` secret. See `docs/architecture.md`.
 - **Removed what nothing uses any more**: the gap analysis against the old sunrice-cms (`docs/gap-analysis.md`), the upgrade notes from the unreleased development snapshot (and this changelog's list of breaking changes against it), 54 Indonesian lines no screen shows, unused imports in the admin's pages, and `LazyEntries::loaded()`.
 - **The Lumina Estates example moved** from `examples/real-estate` to its own repository, [Digital-Citra-Kreatif/sunrice-starters](https://github.com/Digital-Citra-Kreatif/sunrice-starters), as the starter `sunrice/starter-real-estate` (`php artisan sunrice:starter real-estate`), with its site tests and its script's test. Its QA reports stay in this repository's history.
