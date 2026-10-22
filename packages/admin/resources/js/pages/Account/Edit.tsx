@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
