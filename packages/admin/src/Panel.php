@@ -1169,7 +1169,7 @@ final class Panel
      * in the order registered, with the pages put among them
      * (NavigationItem::inSettings()) after the section each names. For a
      * page of a plugin's own to show the same menu as the Settings pages
-     * (with `SettingsNav` from `@sunrice/admin-sdk/ui`).
+     * (with `SettingsNav` from `@imajiner/admin-sdk/ui`).
      *
      * @return list<array{key: string, label: string, url: string}>
      */

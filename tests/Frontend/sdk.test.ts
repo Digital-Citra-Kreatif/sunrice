@@ -30,7 +30,7 @@ function fakeRuntime(version: number) {
     const stub = new Proxy({}, { get: (_, key) => (key === 'then' ? undefined : () => null) });
     globalThis.Sunrice = {
         version,
-        modules: { react: stub, 'react/jsx-runtime': stub, '@inertiajs/react': stub, '@sunrice/admin-sdk/ui': stub } as never,
+        modules: { react: stub, 'react/jsx-runtime': stub, '@inertiajs/react': stub, '@imajiner/admin-sdk/ui': stub } as never,
         registerPage: (name: string, component: unknown) => { registered[name] = component; },
         adminUrl: (path = '') => `/admin/${path}`,
         t: (text: string) => text,

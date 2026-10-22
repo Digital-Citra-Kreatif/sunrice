@@ -9,7 +9,7 @@ Developed in [Digital-Citra-Kreatif/sunrice](https://github.com/Digital-Citra-Kr
 - **Signing in**: login, two-factor login by emailed code, password reset, three-way brute-force protection; only accounts with `sunrice.access` get in.
 - **Users and roles** on spatie/laravel-permission, with permissions declared in code, default roles, and nobody granting more than they have.
 - **Resources**: list and form screens for Eloquent models (search, filters, sorting, row and bulk actions, CSV export, relation and rich text fields), guarded by policies or permissions.
-- **Your own pages** in React 19 with Inertia, built with `@sunrice/admin-sdk` on the panel's components and design language.
+- **Your own pages** in React 19 with Inertia, built with `@imajiner/admin-sdk` on the panel's components and design language.
 - **Settings** sections with typed properties and encrypted secrets; **Branding** (name, logo, font, colour, sign-in page) and **Mail** (with a test email) built in.
 - **Dashboard widgets**, a **command palette**, per-user table preferences, **edit locks**.
 - **Media library**: folders, uploads checked for scripts, image sizes, usage tracking, optimizing images.

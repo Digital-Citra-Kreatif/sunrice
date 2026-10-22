@@ -70,7 +70,7 @@ function editorId(): string {
  * The edit lock of an editor page (Sunrice\Admin\Locks\EditLocks): holds it
  * while the page is open, says when someone else is editing (go back, view
  * only or take over), and hands over cleanly when taken over, keeping the
- * unsaved changes. Shared with plugins as `useEditLock` in @sunrice/admin-sdk/ui.
+ * unsaved changes. Shared with plugins as `useEditLock` in @imajiner/admin-sdk/ui.
  */
 export function useEditLock({ type, id, locale = '', enabled, getUnsaved, leaveTo, noun }: EditLockOptions): EditLock {
     const [state, setState] = React.useState<LockState>({ status: 'starting' });

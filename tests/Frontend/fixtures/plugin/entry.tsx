@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
-import { definePlugin } from '@sunrice/admin-sdk';
-import { Button } from '@sunrice/admin-sdk/ui';
+import { definePlugin } from '@imajiner/admin-sdk';
+import { Button } from '@imajiner/admin-sdk/ui';
 
 function OrdersIndex() {
     const [count, setCount] = useState(0);

@@ -18,7 +18,7 @@ export interface TablePreferencesState {
  * the server per user (`admin/preferences/{key}`). Pass what the page's
  * props already say as `initial` (the server reads the same preference);
  * without it the hook fetches it. Shared with plugins as
- * `useTablePreferences` in @sunrice/admin-sdk/ui.
+ * `useTablePreferences` in @imajiner/admin-sdk/ui.
  */
 export function useTablePreferences(key: string, initial?: Partial<TablePreferences> | null): TablePreferencesState {
     const [preferences, setPreferences] = React.useState<TablePreferences>(() => normalizeTablePreferences(initial));

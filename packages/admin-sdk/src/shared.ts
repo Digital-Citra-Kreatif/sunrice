@@ -31,7 +31,7 @@ export const SHARED_MODULES = {
         'http', 'progress', 'resetLayoutProps', 'router', 'setLayoutProps', 'useForm', 'useFormContext', 'useHttp', 'usePage',
         'usePoll', 'usePrefetch', 'useRemember',
     ],
-    '@sunrice/admin-sdk/ui': [
+    '@imajiner/admin-sdk/ui': [
         'Badge', 'Button', 'Card', 'CardContent', 'CardDescription', 'CardFooter', 'CardHeader', 'CardTitle', 'Checkbox', 'CollapsibleCard',
         'Command', 'CommandEmpty', 'CommandGroup', 'CommandInput', 'CommandItem', 'CommandList', 'CommandSeparator', 'DatePicker', 'DeveloperHelp',
         'Dialog', 'DialogContent', 'DialogDescription', 'DialogFooter', 'DialogHeader', 'DialogTitle', 'DialogTrigger',

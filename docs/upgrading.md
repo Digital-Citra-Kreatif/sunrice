@@ -22,6 +22,6 @@
    ```
 
 4. Optionally, `php artisan sunrice:roles` gives the [default roles](../packages/admin/docs/permissions.md#default-roles) the permissions new features added.
-5. If you build plugin bundles with `@sunrice/admin-sdk`, update it to the version matching the panel and rebuild them.
+5. If you build plugin bundles with `@imajiner/admin-sdk`, update it to the version matching the panel and rebuild them.
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.

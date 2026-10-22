@@ -22,17 +22,17 @@ Routes added with `$panel->routes()` live under the panel's path (`/admin/shop/o
 
 ## 2. The bundle
 
-Build the page with `@sunrice/admin-sdk`. Its Vite plugin makes your bundle use the panel's React, Inertia and UI components instead of its own copies (a second React would break hooks, and the bundle stays a few kilobytes):
+Build the page with `@imajiner/admin-sdk`. Its Vite plugin makes your bundle use the panel's React, Inertia and UI components instead of its own copies (a second React would break hooks, and the bundle stays a few kilobytes):
 
 ```bash
-npm install --save-dev @sunrice/admin-sdk vite @vitejs/plugin-react react @types/react
+npm install --save-dev @imajiner/admin-sdk vite @vitejs/plugin-react react @types/react
 ```
 
 ```ts
 // vite.config.ts
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import { sunrice } from '@sunrice/admin-sdk/vite';
+import { sunrice } from '@imajiner/admin-sdk/vite';
 
 export default defineConfig({
     plugins: [react(), sunrice({ entry: 'resources/js/admin.tsx' })], // → dist/admin.js
@@ -42,8 +42,8 @@ export default defineConfig({
 ```tsx
 // resources/js/admin.tsx
 import { usePage } from '@inertiajs/react';
-import { definePlugin, adminUrl } from '@sunrice/admin-sdk';
-import { Button, Card, CardContent, useBreadcrumbs } from '@sunrice/admin-sdk/ui';
+import { definePlugin, adminUrl } from '@imajiner/admin-sdk';
+import { Button, Card, CardContent, useBreadcrumbs } from '@imajiner/admin-sdk/ui';
 
 function OrdersIndex({ orders }: { orders: { data: { id: number; number: string }[] } }) {
     useBreadcrumbs([{ label: 'Orders' }]);
@@ -116,7 +116,7 @@ Your bundle can split: a dynamic `import()` (or `React.lazy`) becomes a chunk ne
 
 ## UI components
 
-`@sunrice/admin-sdk/ui` gives the panel's own components: `PageHeader` (the title block at the top of every page: `title`, `description`, `back={{ href, label }}`, children beside the title, and its actions in the panel's one pattern: `primary`, the page's one prominent button ("New entry"), and `menu`, the secondary actions and links in a "⋮" menu after it, `[{ label, href | onSelect, icon?, external?, download?, group?, destructive? }]` (Export CSV, settings, the blueprint…; items with a `group` sit together under it); `actions` puts other buttons before them; table controls such as Columns, filters and the trash belong in the table's toolbar, not the header), buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, in the panel's own *Leave without saving?* dialog for links and the browser's for closing the tab, and saves on Ctrl/Cmd+S, as the panel's own forms do), `useEditLock`, `KeptEditsNotice` and `ViewingNotice` ([edit locks](locks.md)), `useTablePreferences(key, initial)` (a table's saved columns and page size, per user: see [preferences](preferences.md)), `DropdownMenuCheckboxItem` (for a Columns menu), `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file), and `RichTextEditor` (the editor of the panel's `RichText` field: `id`, `value`, `onChange(html | null)`, `invalid`, `labelledBy`, `images`, `disabled`; TipTap loads in its own chunk when the first editor shows, so neither the panel's main script nor a plugin bundle carries it; sanitise the HTML on the server, as `RichText::sanitize()` does).
+`@imajiner/admin-sdk/ui` gives the panel's own components: `PageHeader` (the title block at the top of every page: `title`, `description`, `back={{ href, label }}`, children beside the title, and its actions in the panel's one pattern: `primary`, the page's one prominent button ("New entry"), and `menu`, the secondary actions and links in a "⋮" menu after it, `[{ label, href | onSelect, icon?, external?, download?, group?, destructive? }]` (Export CSV, settings, the blueprint…; items with a `group` sit together under it); `actions` puts other buttons before them; table controls such as Columns, filters and the trash belong in the table's toolbar, not the header), buttons, cards, dialogs, dropdown menus, inputs, selects, switches, tables, tabs, tooltips, toasts, `useBreadcrumbs`, `useUnsavedChanges(dirty, onSave)` (asks before leaving a form with unsaved edits, in the panel's own *Leave without saving?* dialog for links and the browser's for closing the tab, and saves on Ctrl/Cmd+S, as the panel's own forms do), `useEditLock`, `KeptEditsNotice` and `ViewingNotice` ([edit locks](locks.md)), `useTablePreferences(key, initial)` (a table's saved columns and page size, per user: see [preferences](preferences.md)), `DropdownMenuCheckboxItem` (for a Columns menu), `MediaPickerInput` (the media library picker of the panel's `MediaPicker` field: one id or an ordered list, limited to kinds of file), and `RichTextEditor` (the editor of the panel's `RichText` field: `id`, `value`, `onChange(html | null)`, `invalid`, `labelledBy`, `images`, `disabled`; TipTap loads in its own chunk when the first editor shows, so neither the panel's main script nor a plugin bundle carries it; sanitise the HTML on the server, as `RichText::sanitize()` does).
 
 ## Design language
 
@@ -184,7 +184,7 @@ Checking pages in a browser: the repository's `tests/Browser/smoke.mjs` visits e
 
 ## Compatibility
 
-`definePlugin()` checks the panel's runtime version and refuses to load a bundle built for another major version, with an error that says to rebuild it. The modules shared with plugins are listed in `@sunrice/admin-sdk/shared`.
+`definePlugin()` checks the panel's runtime version and refuses to load a bundle built for another major version, with an error that says to rebuild it. The modules shared with plugins are listed in `@imajiner/admin-sdk/shared`.
 
 ## The panel's own assets
 

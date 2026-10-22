@@ -4,8 +4,8 @@ import * as ReactDOM from 'react-dom';
 import * as ReactDOMClient from 'react-dom/client';
 import * as Inertia from '@inertiajs/react';
 import { toast } from 'sonner';
-import { SDK_VERSION, type SharedModuleName } from '@sunrice/admin-sdk/shared';
-import type { SunriceRuntime } from '@sunrice/admin-sdk';
+import { SDK_VERSION, type SharedModuleName } from '@imajiner/admin-sdk/shared';
+import type { SunriceRuntime } from '@imajiner/admin-sdk';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { CollapsibleCard } from '@/components/app/collapsible-card';
 import { registerCommandSource } from '@/components/app/command-palette';
@@ -43,7 +43,7 @@ import { registerPage } from '@/lib/page-registry';
 import { useTablePreferences } from '@/lib/use-table-preferences';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
-/** What `@sunrice/admin-sdk/ui` gives plugins. Keep in step with SHARED_MODULES (a test checks). */
+/** What `@imajiner/admin-sdk/ui` gives plugins. Keep in step with SHARED_MODULES (a test checks). */
 const ui = {
     Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, CollapsibleCard,
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker, DeveloperHelp,
@@ -61,11 +61,11 @@ const modules: Record<SharedModuleName, Record<string, unknown>> = {
     'react-dom': ReactDOM,
     'react-dom/client': ReactDOMClient,
     '@inertiajs/react': Inertia,
-    '@sunrice/admin-sdk/ui': ui,
+    '@imajiner/admin-sdk/ui': ui,
 };
 
 /**
- * window.Sunrice, which plugin bundles use through @sunrice/admin-sdk.
+ * window.Sunrice, which plugin bundles use through @imajiner/admin-sdk.
  * Installed before the first page renders.
  */
 export function installRuntime(): void {

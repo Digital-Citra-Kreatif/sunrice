@@ -8,9 +8,9 @@
         "packages/cms"
     ],
     "scripts": {
-        "build": "npm run build -w @sunrice/admin-sdk && npm run build -w @sunrice/admin-app && npm run build -w @sunrice/cms-app",
-        "typecheck": "npm run build -w @sunrice/admin-sdk && npm run typecheck -w @sunrice/admin-app && npm run typecheck -w @sunrice/cms-app",
-        "test:frontend": "npm run build -w @sunrice/admin-sdk && node --experimental-strip-types --no-warnings --test tests/Frontend/*.test.ts",
+        "build": "npm run build -w @imajiner/admin-sdk && npm run build -w @sunrice/admin-app && npm run build -w @sunrice/cms-app",
+        "typecheck": "npm run build -w @imajiner/admin-sdk && npm run typecheck -w @sunrice/admin-app && npm run typecheck -w @sunrice/cms-app",
+        "test:frontend": "npm run build -w @imajiner/admin-sdk && node --experimental-strip-types --no-warnings --test tests/Frontend/*.test.ts",
         "dev": "npm run dev -w @sunrice/admin-app"
     }
 }

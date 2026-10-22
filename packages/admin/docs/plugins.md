@@ -155,7 +155,7 @@ Read them anywhere with `app(ShopSettings::class)->currency`. See [Settings](set
 
 ## The page
 
-The controller renders an Inertia page; the bundle provides it, built with `@sunrice/admin-sdk` so it uses the panel's React and components (see [Admin pages in React](frontend.md)):
+The controller renders an Inertia page; the bundle provides it, built with `@imajiner/admin-sdk` so it uses the panel's React and components (see [Admin pages in React](frontend.md)):
 
 ```php
 final class OrdersController
@@ -171,8 +171,8 @@ final class OrdersController
 
 ```tsx
 // resources/js/admin.tsx
-import { definePlugin } from '@sunrice/admin-sdk';
-import { Card, CardContent, PageHeader, useBreadcrumbs } from '@sunrice/admin-sdk/ui';
+import { definePlugin } from '@imajiner/admin-sdk';
+import { Card, CardContent, PageHeader, useBreadcrumbs } from '@imajiner/admin-sdk/ui';
 
 function OrdersIndex({ orders }: { orders: { data: { id: number; number: string; total: string }[] } }) {
     useBreadcrumbs([{ label: 'Orders' }]);

@@ -142,7 +142,7 @@ Toggle::make('captcha')->label('Require a captcha')->disabled()
     ->developerHelp("Set these in the app's .env:", code: Captcha::ENV_EXAMPLE),
 ```
 
-React pages get the same disclosure as `DeveloperHelp` from `@sunrice/admin-sdk/ui`.
+React pages get the same disclosure as `DeveloperHelp` from `@imajiner/admin-sdk/ui`.
 
 ```php
 Section::make('Listing page')->links(fn (?Model $record) => $record ? [Link::make('View on site', $record->listingUrl())->newTab()] : []),
@@ -182,7 +182,7 @@ BelongsToManySelect::make('tags')->orderColumn('sort_order')
 
 ### Rich text
 
-`RichText::make('description')` is the panel's rich text editor: headings, lists, quotes, code, links and images from the media library (`->images(false)` to leave them out). The HTML is **sanitised on the server when it's saved**, with `symfony/html-sanitizer`: only that formatting is kept, links may be `http(s)`, `mailto:`, `tel:` or relative and get `rel="noopener noreferrer"`, and no script, style or event handler is stored. Empty text is stored as null. `RichText::sanitize($html)` cleans HTML the same way elsewhere. The editor's code (TipTap) loads when an editor first shows, never with the panel's main script; plugins use the same editor as `RichTextEditor` from `@sunrice/admin-sdk/ui` (see [Frontend](frontend.md)).
+`RichText::make('description')` is the panel's rich text editor: headings, lists, quotes, code, links and images from the media library (`->images(false)` to leave them out). The HTML is **sanitised on the server when it's saved**, with `symfony/html-sanitizer`: only that formatting is kept, links may be `http(s)`, `mailto:`, `tel:` or relative and get `rel="noopener noreferrer"`, and no script, style or event handler is stored. Empty text is stored as null. `RichText::sanitize($html)` cleans HTML the same way elsewhere. The editor's code (TipTap) loads when an editor first shows, never with the panel's main script; plugins use the same editor as `RichTextEditor` from `@imajiner/admin-sdk/ui` (see [Frontend](frontend.md)).
 
 Fields may turn the validated value into what they store with `dehydrate()` (that's where `RichText` sanitises); it runs for resource forms, action dialogs and settings alike.
 

@@ -24,7 +24,7 @@ $panel->lockable('shop.product', fn (string $id, string $locale, Authorizable $u
 Then, in the page:
 
 ```tsx
-import { KeptEditsNotice, useEditLock, useUnsavedChanges, ViewingNotice } from '@sunrice/admin-sdk/ui';
+import { KeptEditsNotice, useEditLock, useUnsavedChanges, ViewingNotice } from '@imajiner/admin-sdk/ui';
 
 const lock = useEditLock({
     type: 'shop.product', id: product.id, enabled: can.update, noun: 'product', leaveTo: adminUrl('shop/products'),

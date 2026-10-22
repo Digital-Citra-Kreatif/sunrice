@@ -37,7 +37,7 @@ export interface PluginDefinition {
 /**
  * The entry point of a plugin bundle:
  *
- *     import { definePlugin } from '@sunrice/admin-sdk';
+ *     import { definePlugin } from '@imajiner/admin-sdk';
  *     import OrdersIndex from './pages/Orders/Index';
  *
  *     definePlugin({ pages: { 'Shop/Orders/Index': OrdersIndex } });
@@ -48,7 +48,7 @@ export interface PluginDefinition {
 export function definePlugin(definition: PluginDefinition): void {
     const sunrice = runtime();
     if (sunrice.version !== SDK_VERSION) {
-        throw new Error(`[sunrice] This plugin was built for admin runtime ${SDK_VERSION}, but the panel runs ${sunrice.version}. Rebuild it with a matching @sunrice/admin-sdk.`);
+        throw new Error(`[sunrice] This plugin was built for admin runtime ${SDK_VERSION}, but the panel runs ${sunrice.version}. Rebuild it with a matching @imajiner/admin-sdk.`);
     }
     for (const [name, component] of Object.entries(definition.pages ?? {})) {
         sunrice.registerPage(name, component);

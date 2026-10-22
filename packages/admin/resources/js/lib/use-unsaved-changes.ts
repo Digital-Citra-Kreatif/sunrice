@@ -7,7 +7,7 @@ import { createUnloadGuard } from '@/lib/unload-guard';
  * Guards a form with unsaved edits: asks before leaving the page (links and
  * the back button in the panel's own dialog, closing the tab in the
  * browser's) and saves on Ctrl/Cmd+S. Shared with
- * plugins as `useUnsavedChanges` in @sunrice/admin-sdk/ui.
+ * plugins as `useUnsavedChanges` in @imajiner/admin-sdk/ui.
  */
 export function useUnsavedChanges(dirty: boolean, onSave?: () => void): void {
     const dirtyRef = React.useRef(dirty);

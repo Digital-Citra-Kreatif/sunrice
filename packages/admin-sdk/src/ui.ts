@@ -1,7 +1,7 @@
 /**
  * The panel's UI components, so plugin pages match the admin's look:
  *
- *     import { Button, Card, toast } from '@sunrice/admin-sdk/ui';
+ *     import { Button, Card, toast } from '@imajiner/admin-sdk/ui';
  *
  * In a bundle built with the Vite plugin these come straight from the
  * panel; this module is the fallback for other bundlers.
@@ -13,10 +13,10 @@ type AnyComponent = ComponentType<any>;
 function ui(): Record<string, unknown> {
     const modules = globalThis.Sunrice?.modules;
     if (!modules) {
-        throw new Error('[sunrice] @sunrice/admin-sdk/ui needs the Sunrice admin panel (window.Sunrice is missing).');
+        throw new Error('[sunrice] @imajiner/admin-sdk/ui needs the Sunrice admin panel (window.Sunrice is missing).');
     }
 
-    return modules['@sunrice/admin-sdk/ui'] ?? {};
+    return modules['@imajiner/admin-sdk/ui'] ?? {};
 }
 
 const m = ui();

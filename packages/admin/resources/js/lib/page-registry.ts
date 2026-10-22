@@ -11,7 +11,7 @@ export type PageComponent = React.ComponentType<any> & {
 const pages = new Map<string, PageComponent>();
 const loading = new Map<string, Promise<void>>();
 
-/** Called by plugin bundles (through @sunrice/admin-sdk). */
+/** Called by plugin bundles (through @imajiner/admin-sdk). */
 export function registerPage(name: string, component: PageComponent): void {
     if (pages.has(name)) {
         console.warn(`[sunrice] The page "${name}" was registered twice; the second registration wins.`);

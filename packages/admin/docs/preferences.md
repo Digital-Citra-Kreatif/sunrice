@@ -24,10 +24,10 @@ Tables keep `{"columns": [...], "perPage": 25}` (`table()` reads it, with null f
 
 The panel answers `GET admin/preferences/{key}` with `{"key": …, "value": …}` and keeps `PUT admin/preferences/{key}` with a body `{"value": …}` (null forgets it). Both need sign-in and panel access, and only ever touch the signed-in user's own.
 
-For a table, `useTablePreferences` from `@sunrice/admin-sdk/ui` does it for you:
+For a table, `useTablePreferences` from `@imajiner/admin-sdk/ui` does it for you:
 
 ```tsx
-import { useTablePreferences } from '@sunrice/admin-sdk/ui';
+import { useTablePreferences } from '@imajiner/admin-sdk/ui';
 
 // `initial`: what the page's props already hold (the server read it); leave it out to fetch it.
 const { preferences, setColumns, setPerPage } = useTablePreferences('table.shop.orders', props.preferences);
