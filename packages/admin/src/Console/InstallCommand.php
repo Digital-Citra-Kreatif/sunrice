@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Console;
 
 use Illuminate\Console\Command;
-use Spatie\Permission\Traits\HasRoles;
 use Sunrice\Admin\Actions\Install\AddHasRoles;
 use Sunrice\Admin\Actions\Install\CreatePanelProvider;
 use Sunrice\Admin\Media\MediaHtaccess;
@@ -33,6 +32,10 @@ final class InstallCommand extends Command
     public function handle(): int
     {
         if (! $this->laravel->bound(Panel::class)) {
+            // Before the panel boots (it needs HasRoles) and before anything loads the user model.
+            if (! $this->userModelHasRoles()) {
+                return self::FAILURE;
+            }
             $file = app_path('Providers/AdminPanelProvider.php');
             $registered = app(CreatePanelProvider::class)->handle($file);
             $this->components->twoColumnDetail('Panel provider', $file);
@@ -44,7 +47,6 @@ final class InstallCommand extends Command
             }
             $this->laravel->register(CreatePanelProvider::CLASS_NAME);
         }
-        $panel = $this->laravel->make(Panel::class);
 
         $this->components->task('Config', fn () => $this->callSilently('vendor:publish', ['--tag' => 'sunrice-admin-config']) === 0);
         $this->components->task('Migrations', fn () => $this->call('migrate', ['--force' => true]) === 0);
@@ -61,22 +63,39 @@ final class InstallCommand extends Command
             $this->call('sunrice:roles');
         }
 
-        $model = $panel->getUserModel();
-        if (! in_array(HasRoles::class, class_uses_recursive($model), true)) {
-            if ($this->confirm("Add the HasRoles trait (spatie/laravel-permission) to {$model}?", true) && app(AddHasRoles::class)->handle($model)) {
-                $this->components->info("Added HasRoles to {$model}. Now create the first admin: php artisan sunrice:make-admin.");
-
-                return self::SUCCESS;
-            }
-            $this->components->warn("Add the Spatie\\Permission\\Traits\\HasRoles trait to {$model}, then run sunrice:make-admin to create the first admin.");
-
-            return self::SUCCESS;
-        }
         if ($this->option('no-user') !== true && $this->input->isInteractive() && $this->confirm('Create a super admin now?', true)) {
             return $this->call('sunrice:make-admin');
         }
         $this->components->info('Done. Create the first admin with php artisan sunrice:make-admin.');
 
         return self::SUCCESS;
+    }
+
+    /** The user model of the panel this command sets up (on the default "web" guard), with HasRoles. */
+    private function userModelHasRoles(): bool
+    {
+        $provider = config('auth.guards.web.provider');
+        $model = is_string($provider) ? config("auth.providers.{$provider}.model") : null;
+        if (! is_string($model)) {
+            $this->components->error('The "web" guard has no user model in config/auth.php.');
+
+            return false;
+        }
+        $roles = app(AddHasRoles::class);
+        if ($roles->missing($model)) {
+            if (! $this->confirm("Add the HasRoles trait (spatie/laravel-permission) to {$model}?", true) || ! $roles->handle($model)) {
+                $this->components->warn("Add the Spatie\\Permission\\Traits\\HasRoles trait to {$model}, then run sunrice:install again.");
+
+                return false;
+            }
+            $this->components->twoColumnDetail('HasRoles', $model);
+        }
+        if (! $roles->ready($model)) {
+            $this->components->warn("{$model} doesn't have the Spatie\\Permission\\Traits\\HasRoles trait yet: add it, then run sunrice:install again.");
+
+            return false;
+        }
+
+        return true;
     }
 }
