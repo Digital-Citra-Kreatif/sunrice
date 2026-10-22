@@ -45,6 +45,12 @@ Until 1.0, APIs may change between versions; every change is recorded in `CHANGE
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.1.0
+
+From a development snapshot (`dev-main`) to 0.1.0. Require the release instead of `dev-main` (`composer require sunrice/admin:^0.1 sunrice/cms:^0.1`, and `sunrice/starter-kit:^0.1` if you use it), then:
+
 - **The migrations are consolidated**: each table has one create migration with its final schema, and the migrations that added to it, changed it or filled in data are gone (the list is in `CHANGELOG.md`). A database made from the earlier migrations must be rebuilt: `php artisan migrate:fresh` (it deletes all data: export what you want to keep first, or start again from a starter site). Until 1.0 this can happen again; from 1.0 on, released migrations are never changed.
 - **Settings → Cache → Any other parameter** now defaults to **Skip the cache**. A site that saved its Cache settings before keeps **Ignore it** (stored with the rest; it can't be told apart from a deliberate choice, so it isn't changed for you). Settings → Cache warns while it's set to **Ignore it** and whole pages are kept: unless you chose it on purpose (no template reads a parameter that isn't listed), set it to **Skip the cache**.
 - `php artisan cache:clear` now also clears the CMS's caches and the whole-page cache's own store (see above): a deploy script that clears the cache before it migrates still works, and the CMS logs a warning instead of failing.

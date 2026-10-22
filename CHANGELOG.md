@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+Nothing yet.
+
+## 0.1.0 (2026-10-22)
+
+The first release. Until 1.0, APIs may still change between versions; every change is recorded here.
+
 **Highlights.** The panel (`sunrice/admin`) and the CMS (`sunrice/cms`) are rebuilt as two packages: a panel framework for any Laravel app, and the CMS as a plugin that uses only the panel's public (`@api`) API. The panel brings sign-in with two-factor login, users and roles with strict rank, resources, React pages through `@imajiner/admin-sdk`, settings, branding, a dashboard with widgets, a media library, an activity log with security events and email alerts, edit locks, AI access over MCP, and Help pages with the developer docs and a user guide in English and Indonesian. The CMS brings collections and entries with drafts, scheduling, revisions and per-entry blueprints, blueprints and fieldsets, taxonomies with term pages, globals, menus, forms, comments, multilingual content with outdated-translation badges and machine translation, and the site side: URLs, templates and components, SEO and structured data, sitemaps, redirects, search and caching. See `docs/README.md`.
 
 ### All changes
