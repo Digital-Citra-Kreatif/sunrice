@@ -6,6 +6,8 @@ declare(strict_types=1);
  * Every Composer package in packages/ is published to its own read-only
  * repository by .github/workflows/split.yml, and the packages require each
  * other at `self.version`, since they're tagged together.
+ * Each package also carries the repository's MIT license, which its read-only
+ * copy and Packagist show.
  */
 
 /** @return array<string, string> package folder => its composer.json name */
@@ -44,4 +46,18 @@ it('requires the other packages at the same version', function () {
     }
 
     expect($loose)->toBe([]);
+});
+
+it('ships the MIT license with every package', function () {
+    $root = dirname(__DIR__, 2);
+    $license = (string) file_get_contents("{$root}/LICENSE");
+    $missing = [];
+    foreach (glob("{$root}/packages/*", GLOB_ONLYDIR) ?: [] as $package) {
+        if (! is_file("{$package}/LICENSE") || file_get_contents("{$package}/LICENSE") !== $license) {
+            $missing[] = basename($package);
+        }
+    }
+
+    expect($license)->toStartWith("MIT License\n\nCopyright (c) 2026 Digital Citra Kreatif")
+        ->and($missing)->toBe([]);
 });
