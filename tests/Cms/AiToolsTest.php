@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -17,6 +18,7 @@ use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Forms\SubmitForm;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
+use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Menus;
 use Sunrice\Cms\Models\Blueprint;
@@ -92,7 +94,7 @@ it('writes drafts and publishes them, as the editor does', function () {
     expect($tag)->toContain('taxonomy');
     Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     $tag = cmsTool($token, 'cms_save_term', ['taxonomy' => 'tags', 'title' => 'News']);
-    expect(cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags'])['terms'][0])->toMatchArray(['id' => $tag['id'], 'translations' => ['en' => ['title' => 'News', 'slug' => 'news']]]);
+    expect(cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags'])['terms'][0])->toMatchArray(['id' => $tag['id'], 'translations' => ['en' => ['title' => 'News', 'slug' => 'news', 'url' => null, 'collection_urls' => []]]]);
 
     $created = cmsTool($token, 'cms_save_entry', ['collection' => 'blog', 'title' => 'From the agent', 'data' => ['intro' => 'Written by AI', 'tags' => [$tag['id']]], 'seo' => ['description' => 'Short']]);
     expect($created)->toMatchArray(['saved' => true, 'title' => 'From the agent', 'slug' => 'from-the-agent', 'status' => 'draft']);
@@ -226,13 +228,77 @@ it('reads and saves listing pages', function () {
         ->and(cmsTool(cmsAgent(['cms.entries.view']), 'cms_save_listing', ['collection' => 'blog', 'data' => []]))->toContain('permission to edit the listing page');
 });
 
+it('reads and saves taxonomy index pages, shared and a collection\'s', function () {
+    Blueprint::query()->create(['handle' => 'tag-index', 'title' => 'Tag index', 'fields' => [['handle' => 'heading', 'type' => 'text'], ['handle' => 'count', 'type' => 'number', 'translatable' => false]]]);
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'index_blueprint' => 'tag-index']);
+    $tags->collections()->attach($this->blog->id);
+    $token = cmsAgent(['cms.terms.view', 'cms.terms.update']);
+
+    expect(cmsTool($token, 'cms_get_listing', ['taxonomy' => 'tags']))->toContain('no shared index page')
+        ->and(cmsTool($token, 'cms_get_listing', ['taxonomy' => 'nope']))->toContain('No such taxonomy')
+        ->and(cmsTool($token, 'cms_get_listing', ['taxonomy' => 'tags', 'collection' => 'nope']))->toContain('doesn\'t group')
+        ->and(cmsTool(cmsAgent(['cms.entries.view']), 'cms_get_listing', ['taxonomy' => 'tags', 'collection' => 'blog']))->toContain('permission to view terms of Tags');
+
+    $index = cmsTool($token, 'cms_get_listing', ['taxonomy' => 'tags', 'collection' => 'blog']);
+    expect($index)->toMatchArray(['taxonomy' => 'tags', 'collection' => 'blog', 'url' => url('/blog/tags'), 'index_blueprint' => 'tag-index', 'seo' => null, 'version' => null])
+        ->and(array_column($index['fields'], 'handle'))->toBe(['heading', 'count']);
+    $saved = cmsTool($token, 'cms_save_listing', ['taxonomy' => 'tags', 'collection' => 'blog', 'data' => ['heading' => 'Blog tags', 'count' => 3], 'seo' => ['title' => 'All the tags']]);
+    expect($saved)->toMatchArray(['saved' => true, 'values' => ['heading' => 'Blog tags', 'count' => 3]])
+        ->and($saved['seo'])->toMatchArray(['title' => 'All the tags'])
+        ->and(cmsTool($token, 'cms_save_listing', ['taxonomy' => 'tags', 'collection' => 'blog', 'locale' => 'id', 'data' => ['heading' => 'Tag blog']])['values'])->toBe(['heading' => 'Tag blog', 'count' => 3])
+        ->and(cmsTool($token, 'cms_save_listing', ['taxonomy' => 'tags', 'collection' => 'blog', 'data' => ['heading' => 'Old'], 'version' => $saved['version'] - 1]))->toContain('Someone else saved this')
+        ->and(cmsTool(cmsAgent(['cms.terms.view']), 'cms_save_listing', ['taxonomy' => 'tags', 'collection' => 'blog', 'data' => []]))->toContain('permission to edit the index pages of Tags')
+        ->and(cmsTool($token, 'cms_save_listing', ['data' => []]))->toContain('collection');
+
+    // The shared index page, once on, has values of its own.
+    $tags->update(['index_route' => '/tags']);
+    expect(cmsTool($token, 'cms_get_listing', ['taxonomy' => 'tags']))->toMatchArray(['collection' => null, 'url' => url('/tags'), 'values' => ['heading' => null, 'count' => null]])
+        ->and(cmsTool($token, 'cms_save_listing', ['taxonomy' => 'tags', 'data' => ['heading' => 'Every tag']])['values']['heading'])->toBe('Every tag')
+        ->and(cmsTool($token, 'cms_get_listing', ['taxonomy' => 'tags', 'collection' => 'blog'])['values']['heading'])->toBe('Blog tags');
+
+    $tags->collections()->updateExistingPivot($this->blog->id, ['index_page' => false]);
+    expect(cmsTool($token, 'cms_get_listing', ['taxonomy' => 'tags', 'collection' => 'blog']))->toContain('switched off')
+        ->and(cmsTool($token, 'cms_save_listing', ['taxonomy' => 'tags', 'collection' => 'blog', 'data' => []]))->toContain('switched off');
+});
+
+it('lists taxonomies\' pages, and each term\'s URLs without a query per term', function () {
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/topics/{slug}']);
+    $tags->collections()->attach($this->blog->id);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    $token = cmsAgent(['cms.terms.view']);
+
+    expect(cmsTool($token, 'cms_list_terms')['taxonomies'][0])->toMatchArray([
+        'id' => $tags->id, 'handle' => 'tags', 'shared_term_pages' => '/topics/{slug}', 'shared_index_page' => null,
+        'collections' => [['id' => $this->blog->id, 'handle' => 'blog', 'term_pages' => '/blog/tags/{slug}', 'index_page' => '/blog/tags']],
+    ]);
+    $count = function () use ($token): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags']);
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+    expect(cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags'])['terms'][0]['translations']['en'])->toBe([
+        'title' => 'News', 'slug' => 'news', 'url' => url('/topics/news'), 'collection_urls' => ['blog' => url('/blog/tags/news')],
+    ]);
+    $one = $count();
+    foreach (['Sport', 'Arts', 'Food'] as $title) {
+        app(SaveTerm::class)->handle($tags, ['title' => $title]);
+    }
+    expect($count())->toBe($one);
+});
+
 it('reads and saves blueprints and fieldsets, with the field types', function () {
     expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_get_blueprint'))->toContain('permission to manage blueprints');
     $token = cmsAgent(['cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.view', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete']);
 
     expect(array_column(cmsTool($token, 'cms_field_types')['fieldTypes'], 'type'))->toContain('text', 'rich_text', 'media', 'terms')
-        ->and(cmsTool($token, 'cms_get_blueprint')['blueprints'][0])->toBe(['handle' => 'post', 'title' => 'Post', 'fields' => 2, 'collections' => ['blog']])
+        ->and(cmsTool($token, 'cms_get_blueprint')['blueprints'][0])->toBe(['handle' => 'post', 'title' => 'Post', 'fields' => 2, 'collections' => ['blog'], 'listing_pages' => [], 'taxonomies' => [], 'index_pages' => []])
         ->and(cmsTool($token, 'cms_get_blueprint', ['handle' => 'post'])['fields'][0])->toMatchArray(['handle' => 'intro', 'type' => 'text']);
+    $this->blog->update(['listing_route' => '/blog', 'listing_blueprint' => 'post']);
+    Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'blueprint' => 'post', 'index_blueprint' => 'post']);
+    expect(cmsTool($token, 'cms_get_blueprint')['blueprints'][0])->toMatchArray(['collections' => ['blog'], 'listing_pages' => ['blog'], 'taxonomies' => ['tags'], 'index_pages' => ['tags']]);
 
     $saved = cmsTool($token, 'cms_save_blueprint', ['handle' => 'event', 'title' => 'Event', 'fields' => [['handle' => 'starts', 'type' => 'date', 'required' => true]]]);
     expect($saved)->toMatchArray(['saved' => true, 'created' => true, 'handle' => 'event'])
@@ -261,6 +327,20 @@ it('reads and saves menus', function () {
         ->and(cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => [['url' => '/x']]]))->toContain('required')
         ->and(cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => [['url' => 'javascript:alert(1)', 'labels' => ['en' => 'X']]]]))->toContain('Use a web address')
         ->and(cmsTool($token, 'cms_get_menu')['menus'])->toBe([['handle' => 'main', 'title' => 'Main']]);
+
+    // A taxonomy's index pages (shared, a collection's) and a term's page in a collection.
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'index_route' => '/tags']);
+    $tags->collections()->attach($this->blog->id);
+    $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
+    $saved = cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => [
+        ['taxonomy_id' => $tags->id], ['taxonomy_id' => $tags->id, 'collection_id' => $this->blog->id], ['term_id' => $news->id, 'collection_id' => $this->blog->id],
+    ]]);
+    expect($saved['items'][0])->toMatchArray(['taxonomy_id' => $tags->id])->not->toHaveKey('collection_id')
+        ->and($saved['items'][1])->toMatchArray(['taxonomy_id' => $tags->id, 'collection_id' => $this->blog->id])
+        ->and($saved['items'][2])->toMatchArray(['term_id' => $news->id, 'collection_id' => $this->blog->id])
+        ->and(array_column(cmsTool($token, 'cms_get_menu', ['handle' => 'main'])['site'], 'url'))->toBe([url('/tags'), url('/blog/tags'), url('/blog/tags/news')]);
+    $tags->update(['index_route' => null]);
+    expect(cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => [['taxonomy_id' => $tags->id]]]))->toContain('switched off');
 });
 
 it('deletes form submissions with their permission', function () {
