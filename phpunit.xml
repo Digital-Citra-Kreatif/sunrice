@@ -14,11 +14,15 @@
         <testsuite name="Cms">
             <directory>tests/Cms</directory>
         </testsuite>
+        <testsuite name="StarterKit">
+            <directory>tests/StarterKit</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
             <directory>packages/admin/src</directory>
             <directory>packages/cms/src</directory>
+            <directory>packages/starter-kit/src</directory>
         </include>
     </source>
     <php>

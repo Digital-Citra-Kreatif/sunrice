@@ -1,0 +1,6 @@
+{
+    "name": "blog",
+    "title": "Blog",
+    "description": "A small blog: pages, posts with topics and a quote block, a main menu and a footer, with the CMS's own templates.",
+    "locales": ["en"]
+}

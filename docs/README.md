@@ -1,6 +1,6 @@
 # Sunrice documentation
 
-Developer documentation for `sunrice/admin` (the panel) and `sunrice/cms` (the CMS, a plugin for the panel). Each package ships its own pages in its `docs` folder (`packages/admin/docs`, `packages/cms/docs`); this folder holds the index and what spans both. Inside the panel, the same pages are on **Help → Developer docs**; the user guide for editors is on **Help → Guide** (its files are in `packages/admin/guide` and `packages/cms/guide`).
+Developer documentation for `sunrice/admin` (the panel), `sunrice/cms` (the CMS, a plugin for the panel) and `sunrice/starter-kit` (starter sites for the CMS). Each package ships its own pages in its `docs` folder (`packages/admin/docs`, `packages/cms/docs`, `packages/starter-kit/docs`); this folder holds the index and what spans both. Inside the panel, the same pages are on **Help → Developer docs**; the user guide for editors is on **Help → Guide** (its files are in `packages/admin/guide` and `packages/cms/guide`).
 
 ## Start here
 
@@ -51,3 +51,9 @@ Developer documentation for `sunrice/admin` (the panel) and `sunrice/cms` (the C
 | [AI tools for content](../packages/cms/docs/ai.md) | The CMS's tools for AI agents. |
 | [Configuration](../packages/cms/docs/configuration.md) | Every key of `config/sunrice-cms.php`. |
 | [Commands](../packages/cms/docs/commands.md) | Every CMS Artisan command. |
+
+## Starter sites (`sunrice/starter-kit`)
+
+| Page | |
+| --- | --- |
+| [Starter sites](../packages/starter-kit/docs/starters.md) | What a starter is, installing one, making one from a site, writing a good one, shipping and testing it. |

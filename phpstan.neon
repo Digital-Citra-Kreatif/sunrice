@@ -6,6 +6,7 @@ parameters:
     paths:
         - packages/admin/src
         - packages/cms/src
+        - packages/starter-kit/src
     ignoreErrors:
         # PHPStan types filter_var() with FILTER_FLAG_GLOBAL_RANGE as never returning false, but it does for
         # every non-global address (tests/Admin/PublicAddressTest.php), which is what this check relies on.

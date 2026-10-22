@@ -1,0 +1,63 @@
+{
+    "sunrice": 1,
+    "locales": ["en"],
+    "fieldsets": [
+        {"handle": "quote", "title": "Quote", "fields": [
+            {"handle": "text", "type": "textarea", "label": "Quote", "required": true},
+            {"handle": "author", "type": "text", "label": "Who said it"}
+        ]}
+    ],
+    "blueprints": [
+        {"handle": "page", "title": "Page", "fields": [
+            {"handle": "intro", "type": "textarea", "label": "Intro"},
+            {"handle": "image", "type": "media", "label": "Image", "config": {"types": ["image"]}},
+            {"handle": "body", "type": "rich_text", "label": "Text"}
+        ]},
+        {"handle": "post", "title": "Post", "fields": [
+            {"handle": "excerpt", "type": "textarea", "label": "Excerpt", "instructions": "One or two sentences for lists and search results."},
+            {"handle": "image", "type": "media", "label": "Image", "config": {"types": ["image"]}},
+            {"handle": "body", "type": "rich_text", "label": "Text"},
+            {"handle": "sections", "type": "flexible", "label": "More", "config": {"blocks": ["quote"]}},
+            {"handle": "topics", "type": "terms", "label": "Topics", "config": {"taxonomy": "topics", "multiple": true}}
+        ]},
+        {"handle": "listing", "title": "Listing page", "fields": [
+            {"handle": "intro", "type": "textarea", "label": "Intro"}
+        ]},
+        {"handle": "footer", "title": "Footer", "fields": [
+            {"handle": "text", "type": "textarea", "label": "Footer text"}
+        ]}
+    ],
+    "collections": [
+        {"handle": "pages", "title": "Pages", "blueprint": "page", "dated": false, "translatable": true, "ordered": true, "hierarchical": true, "route": "/{slug}", "listing_route": null, "listing_blueprint": null, "per_page": 10, "comments": false, "schema_type": null, "template": null, "seo_title_field": null, "seo_description_field": "intro", "seo_image_field": "image", "listings": {}},
+        {"handle": "posts", "title": "Posts", "blueprint": "post", "dated": true, "translatable": true, "ordered": false, "hierarchical": false, "route": "/blog/{slug}", "listing_route": "/blog", "listing_blueprint": "listing", "per_page": 6, "comments": true, "schema_type": "BlogPosting", "template": null, "seo_title_field": null, "seo_description_field": "excerpt", "seo_image_field": "image", "listings": {"en": {"intro": "Notes, news and how-tos."}}}
+    ],
+    "taxonomies": [
+        {"handle": "topics", "title": "Topics", "hierarchical": false, "route": "/topics/{slug}", "blueprint": null, "template": null, "collections": ["posts"]}
+    ],
+    "globals": [
+        {"handle": "footer", "title": "Footer", "blueprint": "footer", "values": {"en": {"text": "Made with Sunrice."}}}
+    ],
+    "forms": [],
+    "menus": [
+        {"handle": "main", "title": "Main menu", "items": [
+            {"entry": "pages/home", "labels": {"en": "Home"}, "new_tab": false, "children": []},
+            {"collection": "posts", "labels": {"en": "Blog"}, "new_tab": false, "children": []},
+            {"entry": "pages/about", "labels": {}, "new_tab": false, "children": []}
+        ]},
+        {"handle": "footer", "title": "Footer menu", "items": [
+            {"entry": "pages/about", "labels": {}, "new_tab": false, "children": []}
+        ]}
+    ],
+    "redirects": [],
+    "terms": [
+        {"taxonomy": "topics", "slug": "news", "parent": null, "template": null, "translations": {"en": {"title": "News", "slug": "news", "data": null}}},
+        {"taxonomy": "topics", "slug": "guides", "parent": null, "template": null, "translations": {"en": {"title": "Guides", "slug": "guides", "data": null}}}
+    ],
+    "entries": [
+        {"collection": "pages", "slug": "home", "parent": null, "template": null, "translations": {"en": {"title": "Welcome", "slug": "home", "data": {"intro": "This is a starter site. Change this page under Content → Pages, and choose it as the homepage in Settings → Site.", "image": {"media": "morning.jpg"}, "body": "<p>Everything here is sample content: edit it, or delete it once you have your own.</p>"}, "published": true, "published_at": "2026-01-05T09:00:00+00:00"}}},
+        {"collection": "pages", "slug": "about", "parent": null, "template": null, "translations": {"en": {"title": "About", "slug": "about", "data": {"intro": "Who writes here, and why.", "image": null, "body": "<p>Tell visitors about yourself or your team.</p>"}, "published": true, "published_at": "2026-01-05T09:00:00+00:00"}}},
+        {"collection": "posts", "slug": "hello-world", "parent": null, "template": null, "translations": {"en": {"title": "Hello, world", "slug": "hello-world", "data": {"excerpt": "The first post on this blog.", "image": {"media": "morning.jpg"}, "body": "<p>Posts have an excerpt, an image, text and topics.</p>", "sections": [{"id": "q1", "type": "quote", "values": {"text": "Start where you are.", "author": "A friend"}}], "topics": [{"term": "topics/news"}]}, "published": true, "published_at": "2026-01-10T09:00:00+00:00"}}},
+        {"collection": "posts", "slug": "writing-a-post", "parent": null, "template": null, "translations": {"en": {"title": "Writing a post", "slug": "writing-a-post", "data": {"excerpt": "How the editor works, in a few steps.", "image": {"media": "evening.jpg"}, "body": "<p>Write a draft, preview it, then publish it now or on a date.</p>", "sections": [], "topics": [{"term": "topics/guides"}]}, "published": true, "published_at": "2026-01-12T09:00:00+00:00"}}},
+        {"collection": "posts", "slug": "a-draft", "parent": null, "template": null, "translations": {"en": {"title": "A draft", "slug": "a-draft", "data": {"excerpt": "Drafts aren't on the site until they're published.", "image": null, "body": "<p>Only editors see this one.</p>", "sections": [], "topics": []}, "published": false}}}
+    ]
+}

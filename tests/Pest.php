@@ -13,20 +13,22 @@ use Sunrice\Cms\Models\Term;
 use Sunrice\Tests\Admin\AdminTestCase;
 use Sunrice\Tests\Admin\Fixtures\TestPanelProvider;
 use Sunrice\Tests\Cms\CmsTestCase;
+use Sunrice\Tests\StarterKit\StarterKitTestCase;
 use Workbench\App\Models\User;
 
 /*
  * Each package's tests run against its own Testbench app: admin tests
  * load the panel alone (proving it works without the CMS), CMS tests
- * load both. Architecture tests need no app.
+ * load both, starter kit tests all three. Architecture tests need no app.
  */
 uses(AdminTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('admin'))->in('Admin');
 uses(CmsTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('cms'))->afterEach(fn () => emptyTablesAfterFullTextCommit())->in('Cms');
+uses(StarterKitTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('starter-kit'))->in('StarterKit');
 
 /**
  * RefreshDatabase migrates once and then wraps each test in a
- * transaction. The two suites have different migrations, so the first
- * test file of the other suite migrates afresh.
+ * transaction. The suites have different migrations, so the first
+ * test file of another suite migrates afresh.
  *
  * @internal
  */

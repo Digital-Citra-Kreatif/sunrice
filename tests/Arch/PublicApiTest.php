@@ -27,3 +27,23 @@ it('lets the CMS use only the panel\'s public API', function () {
 
     expect($offenders)->toBe([]);
 });
+
+it('lets the starter kit use only the panel\'s and the CMS\'s public API', function () {
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/packages/starter-kit/src'));
+    $offenders = [];
+
+    foreach ($files as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+        preg_match_all('/^use\s+(Sunrice\\\\(?:Admin|Cms)\\\\[A-Za-z0-9_\\\\]+)/m', (string) file_get_contents($file->getPathname()), $matches);
+        foreach ($matches[1] as $class) {
+            $doc = (new ReflectionClass($class))->getDocComment();
+            if ($doc === false || ! str_contains($doc, '@api')) {
+                $offenders[] = basename($file->getPathname()).' uses '.$class;
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
