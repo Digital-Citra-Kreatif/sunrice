@@ -239,6 +239,8 @@
     "Empty: the title.": "Jika kosong, memakai Judul.",
     "Entries": "Entri",
     "entries": "entri",
+    "Permanently delete :title": "Hapus permanen :title",
+    "Restore :title": "Pulihkan :title",
     "terms": "term",
     "Entries can have a version in each language. Off: the main language only.": "Entri bisa punya versi di setiap bahasa. Mati: hanya bahasa utama.",
     "Entries can sit under a parent entry, like pages under pages.": "Entri bisa berada di bawah entri induk, seperti halaman di bawah halaman.",
