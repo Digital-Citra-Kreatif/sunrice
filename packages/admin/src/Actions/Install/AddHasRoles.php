@@ -4,40 +4,53 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Actions\Install;
 
-use ReflectionClass;
+use Composer\Autoload\ClassLoader;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
  * Gives the app's user model spatie/laravel-permission's HasRoles trait,
  * which the panel needs for roles: imports it and adds `use HasRoles;` as
- * the first line of the class. Used by `sunrice:install`.
+ * the first line of the class. Used by `sunrice:install`, before anything
+ * loads the model (PHP can't reload a class it has loaded).
  *
- *     app(AddHasRoles::class)->handle(App\Models\User::class);
- *
- * Returns whether the file was changed: false when the model already has
- * the trait, and when its file doesn't look like a class it can edit
- * (then add the trait by hand).
+ *     $roles = app(AddHasRoles::class);
+ *     if ($roles->missing($model)) $roles->handle($model);
+ *     $roles->ready($model);   // loads it
  *
  * @internal
  */
 final class AddHasRoles
 {
-    /** @param class-string $model */
+    /** Whether the model lacks the trait. Doesn't load a model that isn't loaded yet: its file is read. */
+    public function missing(string $model): bool
+    {
+        if (class_exists($model, false)) {
+            return ! $this->ready($model);
+        }
+        $file = $this->fileOf($model);
+
+        return $file !== null && ! str_contains((string) file_get_contents($file), 'HasRoles');
+    }
+
+    /**
+     * Adds the trait to the model's file. False when the model is loaded
+     * already, or its file isn't one it can edit (then add it by hand).
+     */
     public function handle(string $model): bool
     {
-        if (in_array(HasRoles::class, class_uses_recursive($model), true)) {
-            return false;
-        }
-        $file = (new ReflectionClass($model))->getFileName();
-        if ($file === false || ! is_writable($file)) {
+        $file = class_exists($model, false) ? null : $this->fileOf($model);
+        if ($file === null || ! is_writable($file)) {
             return false;
         }
         $code = $this->edit((string) file_get_contents($file), class_basename($model));
-        if ($code === null) {
-            return false;
-        }
 
-        return file_put_contents($file, $code) !== false;
+        return $code !== null && file_put_contents($file, $code) !== false;
+    }
+
+    /** Whether the model, as PHP loads it, has the trait. Loads it. */
+    public function ready(string $model): bool
+    {
+        return class_exists($model) && in_array(HasRoles::class, class_uses_recursive($model), true);
     }
 
     /** The code with the trait added, or null when the class isn't found. */
@@ -68,5 +81,18 @@ final class AddHasRoles
         }
 
         return substr($code, 0, $at).'use '.HasRoles::class.";\n".substr($code, $at);
+    }
+
+    /** Where Composer would load the class from, without loading it. */
+    private function fileOf(string $class): ?string
+    {
+        foreach (ClassLoader::getRegisteredLoaders() as $loader) {
+            $file = $loader->findFile($class);
+            if (is_string($file)) {
+                return realpath($file) ?: $file;
+            }
+        }
+
+        return null;
     }
 }

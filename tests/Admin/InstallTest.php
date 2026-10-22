@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Composer\Autoload\ClassLoader;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\PackageManifest;
 use Illuminate\Support\Facades\Storage;
@@ -144,4 +145,41 @@ it('sets the panel up when the app has none, then installs', function () {
     expect(app()->bound(Panel::class))->toBeTrue()
         ->and(app(Panel::class)->getPath())->toBe('admin')
         ->and(file_get_contents("{$this->dir}/bootstrap/providers.php"))->toContain('App\Providers\AdminPanelProvider::class');
+});
+
+it('adds HasRoles to the user model before setting the panel up, when nothing has loaded the model yet', function () {
+    Storage::fake('public');
+    $class = 'InstallTestApp'.uniqid();
+    mkdir("{$this->dir}/models");
+    file_put_contents("{$this->dir}/models/User.php", "<?php\n\nnamespace {$class};\n\nuse Illuminate\\Foundation\\Auth\\User as Authenticatable;\n\nclass User extends Authenticatable\n{\n    protected \$table = 'users';\n}\n");
+    ClassLoader::getRegisteredLoaders()[array_key_first(ClassLoader::getRegisteredLoaders())]->addPsr4("{$class}\\", "{$this->dir}/models");
+    config(['auth.providers.users.model' => "{$class}\\User"]);
+    app()->useAppPath("{$this->dir}/app");
+    app()->useBootstrapPath("{$this->dir}/bootstrap");
+    mkdir("{$this->dir}/bootstrap");
+    file_put_contents("{$this->dir}/bootstrap/providers.php", "<?php\n\nreturn [];\n");
+    app()->instance(PackageManifest::class, packagesOffering($this->dir, []));
+    expect(app(AddHasRoles::class)->missing("{$class}\\User"))->toBeTrue()
+        ->and(class_exists("{$class}\\User", false))->toBeFalse();
+
+    artisan('sunrice:install', ['--no-user' => true])
+        ->expectsConfirmation("Add the HasRoles trait (spatie/laravel-permission) to {$class}\\User?", 'yes')
+        ->assertSuccessful();
+
+    expect(file_get_contents("{$this->dir}/models/User.php"))->toContain('use Spatie\\Permission\\Traits\\HasRoles;', '    use HasRoles;')
+        ->and(app(AddHasRoles::class)->ready("{$class}\\User"))->toBeTrue()
+        ->and(app()->bound(Panel::class))->toBeTrue();
+});
+
+it('stops before setting the panel up when the user model can\'t get HasRoles', function () {
+    app()->useAppPath("{$this->dir}/app");
+    config(['auth.providers.users.model' => 'Missing\\User']);
+    expect(app(AddHasRoles::class)->missing('Missing\\User'))->toBeFalse();
+
+    artisan('sunrice:install', ['--no-user' => true])
+        ->expectsOutputToContain('run sunrice:install again')
+        ->assertFailed();
+
+    expect(file_exists("{$this->dir}/app/Providers/AdminPanelProvider.php"))->toBeFalse()
+        ->and(app()->bound(Panel::class))->toBeFalse();
 });

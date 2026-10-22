@@ -29,9 +29,9 @@ php artisan sunrice:install --roles
 
 It sets everything up, and it's safe to run again:
 
+- **The user model.** The panel uses [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) for roles, so first it offers to add the `HasRoles` trait to your user model (`App\Models\User`), before anything loads it. If it can't (a model it doesn't recognise), it stops and says so: add `use Spatie\Permission\Traits\HasRoles;` and `use HasRoles;` to the class yourself, then run the command again.
 - **The panel provider.** When the app has none, it writes `app/Providers/AdminPanelProvider.php` (the panel at `/admin`, named after `APP_NAME`, with every installed plugin, such as the CMS) and adds it to `bootstrap/providers.php`. Edit it afterwards to change the path or the name, or to add your own resources and settings: see [The panel and plugins](panel.md). An app has one panel; an existing provider is left as it is.
-- **The user model.** The panel uses [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) for roles, so it offers to add the `HasRoles` trait to your user model (`App\Models\User`). If it can't (a model it doesn't recognise), it says so: add `use Spatie\Permission\Traits\HasRoles;` and `use HasRoles;` to the class yourself.
-- **The rest.** It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the migrations, publishes the admin's assets (the panel's, and the plugins' through the `laravel-assets` tag), links `public/storage` for the media library, syncs the permissions, creates the [default roles](permissions.md#default-roles) (`--roles`), and offers to create a super admin (`--no-user` skips it; `php artisan sunrice:make-admin` does it later). When it has just added `HasRoles`, run `sunrice:make-admin` next.
+- **The rest.** It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the migrations, publishes the admin's assets (the panel's, and the plugins' through the `laravel-assets` tag), links `public/storage` for the media library, syncs the permissions, creates the [default roles](permissions.md#default-roles) (`--roles`), and offers to create a super admin (`--no-user` skips it; `php artisan sunrice:make-admin` does it later).
 
 The provider it writes, for an app named Acme with the CMS:
 
