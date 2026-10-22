@@ -187,11 +187,19 @@ it('edits an index page\'s values per page and language in the admin', function 
     // Only pages that are on.
     $this->tags->collections()->updateExistingPivot($this->films->id, ['index_page' => false]);
     indexPagesChanged();
-    get('/admin/cms/taxonomies/tags/index-page/edit?collection=films')->assertNotFound();
+    // One that's off: to the taxonomy's settings, where it's switched on, saying so (not a bare 404).
+    get('/admin/cms/taxonomies/tags/index-page/edit?collection=films')
+        ->assertRedirect(route('sunrice.admin.cms.taxonomies.edit', 'tags'))->assertSessionHas('error', 'This index page is off. Switch it on in the taxonomy\'s settings: Index page in Films.');
     put('/admin/cms/taxonomies/tags/index-page', ['collection' => 'films', 'data' => []])->assertNotFound();
     get('/admin/cms/taxonomies/tags/index-page/edit?collection=nothing')->assertNotFound();
     $this->tags->update(['index_route' => null]);
-    get('/admin/cms/taxonomies/tags/index-page/edit')->assertNotFound();
+    get('/admin/cms/taxonomies/tags/index-page/edit')
+        ->assertRedirect(route('sunrice.admin.cms.taxonomies.edit', 'tags'))->assertSessionHas('error', 'This index page is off. Switch it on in the taxonomy\'s settings: Shared index page.');
+    // Those who can't change the taxonomy go to its terms, told who can.
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view'));
+    get('/admin/cms/taxonomies/tags/index-page/edit')
+        ->assertRedirect(route('sunrice.admin.cms.taxonomies.terms.index', 'tags'))->assertSessionHas('error', 'This index page is off. An administrator can switch it on in the taxonomy\'s settings.');
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.update', 'cms.taxonomies.update'));
     expect(fn () => app(SaveIndexPage::class)->handle($this->tags, null, []))->toThrow(ValidationException::class);
 
     // The terms list links to each.

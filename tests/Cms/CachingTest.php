@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
@@ -553,4 +554,38 @@ it('gives each visitor of a kept page their own honeypot fields, so a too-fast s
     travelTo(now()->addSeconds(5));
     $send($second)->assertRedirect();
     expect(Submission::query()->count())->toBe(1);
+});
+
+it('clears the site\'s caches and the kept pages\' own store with php artisan cache:clear, whatever store they\'re in', function () {
+    config([
+        'cache.stores.site' => ['driver' => 'array'],
+        'cache.stores.pages' => ['driver' => 'array'],
+        'sunrice-cms.cache.store' => 'site',
+        'responsecache.cache.store' => 'pages',
+        'responsecache.cache.tag' => '',
+    ]);
+    $cache = app(SiteCache::class);
+    $cache->changed('start');
+    $was = array_map(fn (string $area) => $cache->version($area), SiteCache::AREAS);
+    cache()->store('pages')->put('kept-page', 'html');
+
+    artisan('cache:clear')->assertSuccessful();
+
+    foreach (SiteCache::AREAS as $i => $area) {
+        expect($cache->version($area))->toBe($was[$i] + 1);
+    }
+    expect(cache()->store('pages')->get('kept-page'))->toBeNull();
+
+    // Clearing only some tags leaves them.
+    $was = $cache->version(SiteCache::PAGES);
+    cache()->store('pages')->put('kept-page', 'html');
+    artisan('cache:clear', ['--tags' => 'other'])->assertSuccessful();
+    expect($cache->version(SiteCache::PAGES))->toBe($was)
+        ->and(cache()->store('pages')->get('kept-page'))->toBe('html');
+
+    // Before the site's tables exist (a deploy that clears, then migrates): the command still succeeds.
+    app()->forgetInstance(CacheSettings::class);
+    Schema::drop('sunrice_settings');
+    Schema::drop('sunrice_activity');
+    artisan('cache:clear')->assertSuccessful();
 });
