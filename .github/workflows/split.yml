@@ -41,6 +41,8 @@ jobs:
         if: env.SPLIT_TOKEN != ''
         with:
           fetch-depth: 0
+          # Otherwise git keeps sending this run's own token, which can't push elsewhere.
+          persist-credentials: false
 
       - name: Split packages/${{ matrix.package }}
         if: env.SPLIT_TOKEN != ''
