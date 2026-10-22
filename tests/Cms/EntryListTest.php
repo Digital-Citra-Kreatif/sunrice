@@ -492,9 +492,11 @@ it('lists entries with a fixed number of queries, however many rows', function (
 
         return $queries;
     };
-    $add = function (int $from, int $to) use ($author): void {
+    $first = null;
+    $add = function (int $from, int $to) use ($author, &$first): void {
         foreach (range($from, $to) as $i) {
-            $tea = listProduct("Tea {$i}", ['tagline' => 'Green', 'kind' => 'tea'] + ($i > 1 ? ['related' => [1]] : []), $author, publish: $i % 2 === 0);
+            $tea = listProduct("Tea {$i}", ['tagline' => 'Green', 'kind' => 'tea'] + ($first !== null ? ['related' => [$first]] : []), $author, publish: $i % 2 === 0);
+            $first ??= $tea->entry_id;
             app(CreateTranslation::class)->handle($tea->entry, 'id');
         }
     };
