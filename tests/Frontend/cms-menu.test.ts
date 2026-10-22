@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flatten, indent, labelFallback, moveItem, newItem, outdent, removeItem, toTree, type FlatItem } from '../../packages/cms/resources/js/lib/menu.ts';
+import { flatten, indent, labelFallback, newItem, outdent, removeItem, toTree, type FlatItem } from '../../packages/cms/resources/js/lib/menu.ts';
 
 const item = (label: string, depth: number) => newItem({ url: `/${label}`, labels: { en: label }, depth });
 const shape = (items: FlatItem[]) => items.map((i) => `${'-'.repeat(i.depth)}${i.labels.en}`);
@@ -37,16 +37,6 @@ test('outdents an item alone, after its parent\'s other children, which stay whe
 
     assert.deepEqual(shape(outdent(items, 2)), ['p', '-sale', '-villas', 'rent', '-r1', 'team']);
     assert.deepEqual(shape(indent(outdent(items, 2), 3, 3)), ['p', '-sale', '-villas', '-rent', '--r1', 'team']); // and back in, among them
-});
-
-test('moves past siblings, children included', () => {
-    const items = [item('a', 0), item('a1', 1), item('b', 0), item('b1', 1), item('c', 0)];
-
-    assert.deepEqual(shape(moveItem(items, 2, -1)), ['b', '-b1', 'a', '-a1', 'c']);
-    assert.deepEqual(shape(moveItem(items, 0, 1)), ['b', '-b1', 'a', '-a1', 'c']);
-    assert.deepEqual(shape(moveItem(items, 4, 1)), shape(items)); // last
-    assert.deepEqual(shape(moveItem(items, 1, -1)), shape(items)); // first child
-    assert.deepEqual(shape(moveItem(items, 3, 1)), shape(items)); // last child: doesn't leave its parent
 });
 
 test('removes an item with its children', () => {

@@ -3,8 +3,6 @@ import { adminUrl } from '@/lib/admin-url';
 import { fetchJson } from '@/lib/fetch-json';
 import { normalizeTablePreferences, type TablePreferences } from '@/lib/table-preferences';
 
-export type { TablePreferences } from '@/lib/table-preferences';
-
 export interface TablePreferencesState {
     preferences: TablePreferences;
     /** Saves the visible columns (null: the table's default). */

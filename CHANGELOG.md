@@ -6,6 +6,7 @@
 
 ### All changes
 
+- **Removed more code nothing uses**: `ResourceGate::ABILITIES`, `Widget::getSpan()` and `getPermission()`, `NavigationItem::getPermission()`, `Tables\Action::getFields()`, `Collection::blueprintModel()` and `Items::hasKey()`; in the admin scripts `handleInput` and `move` (CMS builder), `siblingOrder` (CMS tree), the CMS's copy of `moveItem` (pages use the panel's), the panel's `slugify` and `isPreferenceKey`, and a few exports and a prop nothing read; nine Indonesian lines no screen shows; and the rich text editor's styles, which were written twice (one block, the same look).
 - **The plugin SDK is `@imajiner/admin-sdk`** (was `@sunrice/admin-sdk`, a name taken on npm): install it and import from it (`@imajiner/admin-sdk`, `/ui`, `/vite`, `/shared`) under the new name. It's also the name the panel's runtime shares its components under, so plugin bundles need rebuilding with it.
 - **MIT license**: `LICENSE` (copyright Digital Citra Kreatif) at the root and in every package, so each read-only repository and Packagist carry it (`tests/Arch/SplitTest.php` checks).
 - **Read-only package repositories**: on every push to `main` and every `v*` tag, CI (`.github/workflows/split.yml`) publishes `packages/admin`, `packages/cms` and `packages/starter-kit` to `sunrice-admin`, `sunrice-cms` and `sunrice-starter-kit` for Packagist, with the same tag for all (they require each other at `self.version`; `tests/Arch/SplitTest.php` checks both). It needs the `SPLIT_TOKEN` secret. See `docs/architecture.md`.

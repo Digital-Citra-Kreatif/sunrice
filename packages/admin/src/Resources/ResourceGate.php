@@ -18,8 +18,6 @@ use Illuminate\Support\Facades\Gate;
  */
 final class ResourceGate
 {
-    public const ABILITIES = ['view', 'create', 'update', 'delete', 'export'];
-
     /** @param class-string<\Sunrice\Admin\Resources\Resource> $resource */
     public function __construct(private string $resource, private string $permissionPrefix) {}
 

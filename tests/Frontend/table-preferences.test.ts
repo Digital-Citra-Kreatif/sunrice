@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isPreferenceKey, normalizeTablePreferences, toggleColumn } from '../../packages/admin/resources/js/lib/table-preferences.ts';
+import { normalizeTablePreferences, toggleColumn } from '../../packages/admin/resources/js/lib/table-preferences.ts';
 import {
     activeFilters, type EntryListQuery, entryListParams, entryListQueryString, nextSort, sortDirection,
 } from '../../packages/cms/resources/js/lib/entry-list.ts';
@@ -17,13 +17,6 @@ test('shows and hides a column, keeping the table\'s order', () => {
     assert.deepEqual(toggleColumn(['updated_at', 'title'], 'status', all), ['title', 'status', 'updated_at']);
     assert.deepEqual(toggleColumn(['title', 'status'], 'status', all), ['title']);
     assert.deepEqual(toggleColumn(['title'], 'gone', all), ['title']);
-});
-
-test('accepts the preference keys the server accepts', () => {
-    assert.equal(isPreferenceKey('table.cms.entries.blog'), true);
-    assert.equal(isPreferenceKey('../etc'), false);
-    assert.equal(isPreferenceKey(''), false);
-    assert.equal(isPreferenceKey('a'.repeat(101)), false);
 });
 
 const query: EntryListQuery = { search: '', status: '', author: '', terms: {}, locale: 'en', sort: '', perPage: 25, columns: ['status'] };

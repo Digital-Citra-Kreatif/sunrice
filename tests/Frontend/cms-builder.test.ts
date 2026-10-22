@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    cleanHandle, copyHandle, duplicateField, errorKeysAt, errorsAt, errorsUnder, fromDefinitions, isTranslatable, setTranslatable, handleFromLabel, handleInput, handleWarning, hasErrors, markSaved, move, newField, relabel, renamedFrom, toDefinitions, uniqueHandle,
+    cleanHandle, copyHandle, duplicateField, errorKeysAt, errorsAt, errorsUnder, fromDefinitions, isTranslatable, setTranslatable, handleFromLabel, handleWarning, hasErrors, markSaved, newField, relabel, renamedFrom, toDefinitions, uniqueHandle,
 } from '../../packages/cms/resources/js/lib/builder.ts';
 
 const children = (type: string) => ['group', 'repeater'].includes(type);
@@ -32,14 +32,6 @@ test('changes the handle with the label until one is typed', () => {
 test('doesn\'t count the field itself as a sibling when relabelling', () => {
     const field = newField('text', 'Title', []);
     assert.equal(relabel(field, 'Title', [field]).handle, 'title');
-});
-
-test('moves fields up and down, ignoring moves off the ends', () => {
-    assert.deepEqual(move(['a', 'b', 'c'], 0, 1), ['b', 'a', 'c']);
-    assert.deepEqual(move(['a', 'b', 'c'], 2, -1), ['a', 'c', 'b']);
-    const items = ['a', 'b'];
-    assert.equal(move(items, 0, -1), items);
-    assert.equal(move(items, 1, 1), items);
 });
 
 test('round-trips definitions, dropping the builder\'s keys and stray children', () => {
@@ -94,13 +86,6 @@ test('gives a value its own error and those under it', () => {
 
     assert.deepEqual(errorsAt(errors, 'config.options'), { '': 'Required.', '0.value': 'Too long.' });
     assert.deepEqual(errorsAt(errors, 'config.max'), {});
-});
-
-test('keeps a typed handle to lowercase letters, digits and underscores', () => {
-    assert.equal(handleInput('contact-person'), 'contact_person');
-    assert.equal(handleInput('Contact Person'), 'contact_person');
-    assert.equal(handleInput('phone_'), 'phone_');
-    assert.equal(handleInput('2nd-try'), 'nd_try');
 });
 
 test('warns about a reserved or taken handle as it is typed', () => {
