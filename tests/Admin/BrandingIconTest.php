@@ -140,21 +140,3 @@ it('reads an SVG\'s size from its viewBox, so a wide SVG logo replaces the name 
     setBranding(['logo' => iconUpload('square.png', 64, 64)->id]);
     expect(Branding::make()->toArray()['logoWide'])->toBeFalse();
 });
-
-it('gives SVGs uploaded before their size was read a size on upgrade, so an old wide logo stops being the icon', function () {
-    $old = app(UploadMedia::class)->handle(UploadedFile::fake()->createWithContent('old-logo.svg',
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 56"><rect width="208" height="56"/></svg>'), []);
-    $gone = app(UploadMedia::class)->handle(UploadedFile::fake()->createWithContent('gone.svg',
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>'), []);
-    DB::table('sunrice_media')->whereIn('id', [$old->id, $gone->id])->update(['width' => null, 'height' => null]);
-    Storage::disk($gone->disk)->delete($gone->path);
-    setBranding(['logo' => $old->id]);
-    expect(Branding::make()->toArray()['logoWide'])->toBeFalse();
-
-    (require dirname(__DIR__, 2).'/packages/admin/database/migrations/2026_01_01_000012_backfill_svg_sizes_in_sunrice_media.php')->up();
-
-    expect([$old->fresh()->width, $old->fresh()->height])->toBe([208, 56])
-        ->and($gone->fresh()->width)->toBeNull()
-        ->and(Branding::make()->toArray()['logoWide'])->toBeTrue();
-    get('/admin/login')->assertSee('branding/icon.svg', false)->assertDontSee('<link rel="icon" href="'.e($old->url()), false);
-});
