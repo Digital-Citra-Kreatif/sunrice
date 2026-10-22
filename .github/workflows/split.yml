@@ -4,12 +4,14 @@ name: split
 # Packagist reads it: main to main, and every v* tag to the same tag, so
 # the packages share one version number (their `self.version` requirements
 # on each other rely on it). Needs the SPLIT_TOKEN secret: a token that can
-# push to the repositories below.
+# push to the repositories below. Run it by hand from the Actions tab
+# (Run workflow) to publish main again.
 
 on:
   push:
     branches: [main]
     tags: ['v*']
+  workflow_dispatch:
 
 concurrency:
   group: split-${{ github.ref }}
@@ -50,6 +52,8 @@ jobs:
           remote="https://x-access-token:${SPLIT_TOKEN}@github.com/${{ matrix.repository }}.git"
           if [ "${GITHUB_REF_TYPE}" = tag ]; then
             git push "$remote" "split:refs/tags/${GITHUB_REF_NAME}"
+          elif [ "${GITHUB_REF}" != refs/heads/main ]; then
+            echo "::error::Only main and v* tags are published, not ${GITHUB_REF_NAME}."; exit 1
           else
             git push --force "$remote" split:refs/heads/main
           fi
