@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Deferred, Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { CalendarClock, Check, ChevronDown, Copy, ExternalLink, Eye, Languages, LayoutTemplate, LoaderCircle, MoreHorizontal, Plus, RotateCcw, Send, Trash2, Undo2 } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, ChevronDown, Copy, ExternalLink, Eye, Languages, LayoutTemplate, LoaderCircle, MoreHorizontal, Plus, RotateCcw, Send, Trash2, Undo2 } from 'lucide-react';
 import { adminUrl, t } from '@sunrice/admin-sdk';
 import {
     Badge, Button, Card, CardContent, CollapsibleCard, DatePicker, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -56,6 +56,8 @@ interface Props {
     } | null;
     /** Where to add a redirect by hand, for those who may. */
     redirectsUrl?: string | null;
+    /** Plugins' links for the ⋮ menu (Cms::entryLinksUsing()): a page of theirs about this entry. */
+    links?: { label: string; href: string }[];
     /** The views tried for its page, in order, and which exist. */
     templates?: TemplateLookup | null;
     values: { title: string; slug: string; data: FieldValues; seo: FieldValues | null };
@@ -114,7 +116,7 @@ export default function EntryEditorPage(props: Props) {
     return <EntryEditor key={entry ? `${entry.id}:${entry.locale}:${entry.version}:${entry.status}:${entry.trashed}:${entry.publishedAt}` : 'new'} {...props} />;
 }
 
-function EntryEditor({ collection, fields, locales = [], shared = [], sharedValues = {}, entry, values, revisions, comments, termLabels, usedBy = [], undoRestore = null, machineTranslate = null, machineTranslateMissing = false, settings, blueprints = [], blueprintUrl = null, homepage, redirectsUrl = null, templates = null, can }: Props) {
+function EntryEditor({ collection, fields, locales = [], shared = [], sharedValues = {}, entry, values, revisions, comments, termLabels, usedBy = [], undoRestore = null, machineTranslate = null, machineTranslateMissing = false, settings, blueprints = [], blueprintUrl = null, homepage, redirectsUrl = null, templates = null, links = [], can }: Props) {
     const list = adminUrl(`cms/collections/${collection.handle}/entries`);
     const url = entry ? adminUrl(`cms/entries/${entry.id}`) : list;
     const heading = entry ? values.title : t('New entry');
@@ -237,7 +239,7 @@ function EntryEditor({ collection, fields, locales = [], shared = [], sharedValu
                                 <Trash2 /> {t('Permanently delete')}
                             </Button>
                         )}
-                        {entry && !entry.trashed && (can.create || (can.delete && !lock.readOnly) || (writable && machineTranslate !== null) || blueprintUrl) && (
+                        {entry && !entry.trashed && (can.create || (can.delete && !lock.readOnly) || (writable && machineTranslate !== null) || blueprintUrl || links.length > 0) && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button type="button" variant="outline" size="icon" aria-label={t('More actions')}><MoreHorizontal /></Button>
@@ -251,6 +253,9 @@ function EntryEditor({ collection, fields, locales = [], shared = [], sharedValu
                                     )}
                                     {can.create && <DropdownMenuItem title={t('Copy every language as a new draft')} onSelect={() => router.post(`${url}/duplicate`)}><Copy /> {t('Duplicate')}</DropdownMenuItem>}
                                     {blueprintUrl && <DropdownMenuItem asChild><Link href={blueprintUrl}><LayoutTemplate /> {t('Edit blueprint')}</Link></DropdownMenuItem>}
+                                    {links.map((link) => (
+                                        <DropdownMenuItem key={link.href} asChild><Link href={link.href}><ArrowRight /> {link.label}</Link></DropdownMenuItem>
+                                    ))}
                                     {can.delete && !lock.readOnly && (
                                         <>
                                             <DropdownMenuSeparator />
