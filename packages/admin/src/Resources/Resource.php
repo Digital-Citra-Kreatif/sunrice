@@ -152,6 +152,17 @@ abstract class Resource
         }
     }
 
+    /**
+     * Deletes a record in the trash for good (models with SoftDeletes):
+     * the trash's Permanently delete, once the user may delete it.
+     * Override it to remove what belongs to the record too, or throw
+     * `Sunrice\Admin\Resources\Tables\ActionFailed` to refuse with a message.
+     */
+    public static function forceDeleteRecord(Model $record): void
+    {
+        $record->forceDelete();
+    }
+
     /** The new record the create form fills. */
     public static function newRecord(): Model
     {

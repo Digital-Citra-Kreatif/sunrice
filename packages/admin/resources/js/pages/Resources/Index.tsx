@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, D
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
 import { TrashHint } from '@/components/app/trash-hint';
+import { TrashBanner, TrashTitle } from '@/components/app/trash-view';
 import { Cell } from '@/components/resources/cell';
 import { forTargets, useConfirm } from '@/components/resources/confirm';
 import { DateRangeFilter } from '@/components/resources/date-range-filter';
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { relativeTime } from '@/lib/dashboard';
 import { t } from '@/lib/i18n';
 import { toggleColumn, type TablePreferences } from '@/lib/table-preferences';
 import { useTablePreferences } from '@/lib/use-table-preferences';
@@ -70,6 +72,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
 
     /** Reload the list with changed query parameters (back to page 1). */
     const trashed = query.status === 'trashed';
+    const now = new Date();
     const visit = (changes: Partial<{ search: string; filters: Record<string, string>; sort: string; per_page: number; status: string }>) => {
         const params = { search: query.search, filters: query.filters, sort: query.sort, per_page: rows.perPage, status: query.status ?? '', ...changes };
         router.get(base, {
@@ -106,15 +109,21 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
         confirm(can.trash ? t('Move :title to the trash? You can restore it.', { title: row.title }) : t('Delete :title? This can\'t be undone.', { title: row.title }),
             () => router.delete(`${base}/${row.key}`, { preserveScroll: true }), true);
     const restoreRow = (row: Row) => router.post(`${base}/${row.key}/restore`, {}, { preserveScroll: true });
+    const forceDeleteRow = (row: Row) =>
+        confirm(t('Permanently delete :title? This can\'t be undone.', { title: row.title }),
+            () => router.delete(`${base}/${row.key}/force`, { preserveScroll: true }), true);
     const runBulk = (action: ActionInfo) =>
         confirm(action.confirm, (values) => action.fields.length === 0
             ? router.post(`${base}/bulk`, { action: action.key, ids: selected }, { preserveScroll: true })
             : new Promise<boolean>((resolve) => router.post(`${base}/bulk`, { ...values, action: action.key, ids: selected }, {
                 preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
             })), action.destructive, forTargets(action.fields, selected));
-    // In the trash: only Restore, for the selected rows too.
+    // In the trash: Restore and Permanently delete, for the selected rows too.
     const shownBulkActions: ActionInfo[] = trashed
-        ? [{ key: 'restore', label: t('Restore'), confirm: null, destructive: false, url: false, newTab: false, fields: [] }]
+        ? [
+            { key: 'restore', label: t('Restore'), confirm: null, destructive: false, url: false, newTab: false, fields: [] },
+            { key: 'force-delete', label: t('Permanently delete'), confirm: t('Permanently delete the selected records? This can\'t be undone.'), destructive: true, url: false, newTab: false, fields: [] },
+        ]
         : bulkActions;
 
     const exportUrl = () => {
@@ -134,7 +143,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
             {confirmDialog}
 
             <PageHeader
-                title={trashed ? t(':resource — trash', { resource: resource.label }) : resource.label}
+                title={trashed ? <TrashTitle>{resource.label}</TrashTitle> : resource.label}
                 primary={can.create && !trashed && (
                     <Button asChild>
                         <Link href={`${base}/create`}><Plus /> {t('New :resource', { resource: resource.singularLabel.toLowerCase() })}</Link>
@@ -145,6 +154,8 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                     ...links.map((link) => ({ label: link.label, href: link.url, group: link.group ?? undefined, external: link.external })),
                 ]}
             />
+
+            {trashed && <TrashBanner items={resource.label.toLowerCase()} onBack={() => visit({ status: '' })} />}
 
             <div className="flex flex-wrap items-center gap-2">
                 <div className="relative w-full max-w-xs">
@@ -176,15 +187,13 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                         </SelectContent>
                     </Select>
                 ))}
-                {can.trash && (
-                    <Button variant={trashed ? 'secondary' : 'ghost'} className="ml-auto" onClick={() => visit({ status: trashed ? '' : 'trashed' })}>
-                        {trashed ? t('Back to the list') : <><Trash2 /> {t('Trash')}</>}
-                    </Button>
+                {can.trash && !trashed && (
+                    <Button variant="ghost" className="ml-auto" onClick={() => visit({ status: 'trashed' })}><Trash2 /> {t('Trash')}</Button>
                 )}
                 {allColumns.length > 1 && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className={can.trash ? undefined : 'ml-auto'}><Columns3 /> {t('Columns')}</Button>
+                            <Button variant="outline" className={can.trash && !trashed ? undefined : 'ml-auto'}><Columns3 /> {t('Columns')}</Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('Show columns')}</DropdownMenuLabel>
@@ -231,6 +240,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                     ) : column.label}
                                 </TableHead>
                             ))}
+                            {trashed && <TableHead>{t('Deleted')}</TableHead>}
                             {hasRowMenu && <TableHead className="w-px"><span className="sr-only">{t('Actions')}</span></TableHead>}
                         </TableRow>
                     </TableHeader>
@@ -239,11 +249,12 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                             <TableRow key={`skeleton-${i}`} className="sunrice-row-in hover:bg-transparent" style={{ '--i': i } as React.CSSProperties} aria-hidden="true">
                                 {shownBulkActions.length > 0 && <TableCell><Skeleton className="size-4" /></TableCell>}
                                 {columns.map((column) => <TableCell key={column.name}><Skeleton className="h-4 w-[60%] max-w-48" /></TableCell>)}
+                                {trashed && <TableCell><Skeleton className="h-4 w-20" /></TableCell>}
                                 {hasRowMenu && <TableCell />}
                             </TableRow>
                         ))}
                         {!loading && rows.data.map((row, i) => (
-                            <TableRow key={row.id} className="sunrice-row-in" style={{ '--i': i } as React.CSSProperties} data-state={selected.includes(row.id) ? 'selected' : undefined}>
+                            <TableRow key={row.id} className={trashed ? 'sunrice-row-in text-muted-foreground' : 'sunrice-row-in'} style={{ '--i': i } as React.CSSProperties} data-state={selected.includes(row.id) ? 'selected' : undefined}>
                                 {shownBulkActions.length > 0 && (
                                     <TableCell>
                                         <Checkbox aria-label={t('Select :title', { title: row.title })} checked={selected.includes(row.id)}
@@ -261,10 +272,20 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                         </div>
                                     </TableCell>
                                 ))}
+                                {trashed && (
+                                    <TableCell className="whitespace-nowrap" title={row.deletedAt ? new Date(row.deletedAt).toLocaleString() : undefined}>
+                                        {relativeTime(row.deletedAt ?? null, now) || '—'}
+                                    </TableCell>
+                                )}
                                 {hasRowMenu && (
                                     <TableCell className="w-px text-right">
                                         {trashed ? (
-                                            row.can.delete && <Button variant="outline" size="sm" onClick={() => restoreRow(row)}><RotateCcw /> {t('Restore')}</Button>
+                                            row.can.delete && (
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => restoreRow(row)}><RotateCcw /> {t('Restore')}</Button>
+                                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => forceDeleteRow(row)}><Trash2 /> {t('Permanently delete')}</Button>
+                                                </div>
+                                            )
                                         ) : (row.can.update || row.can.delete || row.actions.length > 0) && (
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -297,7 +318,7 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                         ))}
                         {!loading && rows.data.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={columns.length + 2} className="h-24 text-center text-muted-foreground">
+                                <TableCell colSpan={columns.length + (trashed ? 3 : 2)} className="h-24 text-center text-muted-foreground">
                                     <span className="flex flex-col items-center gap-1">
                                         {query.search || Object.keys(query.filters).length ? t('Nothing matches.') : trashed ? t('The trash is empty.') : t('No :resource yet.', { resource: resource.label.toLowerCase() })}
                                         <TrashHint count={trashedCount} onShow={() => visit({ status: 'trashed' })} />

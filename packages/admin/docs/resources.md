@@ -56,6 +56,7 @@ That adds a sidebar item, the routes and four permissions, five when the table i
 | `.create`, `.store` | `GET …/create`, `POST …` | |
 | `.edit`, `.update`, `.destroy` | `GET …/{key}/edit`, `PUT …/{key}`, `DELETE …/{key}` | |
 | `.restore` | `POST …/{key}/restore` | back from the trash (models with `SoftDeletes`) |
+| `.force-delete` | `DELETE …/{key}/force` | deleted for good, from the trash (models with `SoftDeletes`) |
 | `.bulk` | `POST …/bulk` | `action` (`delete`, `restore` or a bulk action's key) and `ids` |
 | `.action` | `POST …/{key}/actions/{action}` | a row action |
 | `.export` | `GET …/export` | CSV, for an `->exportable()` table |
@@ -63,7 +64,7 @@ That adds a sidebar item, the routes and four permissions, five when the table i
 
 **Addresses name records by `recordKey()`**: the primary key unless you return an attribute that's unique and rarely changes (the CMS's collections, taxonomies, forms, menus and globals use their handle: `/admin/cms/collections/blog/edit`). An address with the numeric id still works for the edit page: it redirects to the record's own. **`recordUrl($record)`** sends the list's title link elsewhere than the edit page (a menu's links, say); the row's menu then has **Open** and **Settings**.
 
-**A model with `SoftDeletes` gets a trash**: Delete becomes **Move to trash**, the list has a **Trash** button (`?status=trashed`, for those who may delete) whose rows have **Restore**, one or selected. Override **`restoreRecord($record)`** to restore through an action of your own (throw `ActionFailed` to refuse with a message), as `deleteRecord()` does for deleting.
+**A model with `SoftDeletes` gets a trash**: Delete becomes **Move to trash**, the list has a **Trash** button (`?status=trashed`, for those who may delete) shows it plainly (a red **Trash** badge by the title, a banner saying its records are deleted and show nowhere until restored, rows dimmed with a **Deleted** column saying when), and its rows have **Restore** and **Permanently delete** (asked first), one or selected, for those who may delete (bulk: `action` `restore` or `force-delete`). Both are recorded in the activity log. Override **`restoreRecord($record)`** to restore through an action of your own, and **`forceDeleteRecord($record)`** to remove what belongs to the record too (the CMS's collections take their entries with them); throw `ActionFailed` in either to refuse with a message, as `deleteRecord()` does for deleting.
 
 The names come from the model: `label()` ("Products", the page title and the permissions' group), `singularLabel()` ("Product") and `navigationLabel()` (the sidebar item, `label()` unless you override it). Override them as static methods, like `navigationGroup()`, `navigationIcon()` (a lucide name) and `navigationSort()`.
 

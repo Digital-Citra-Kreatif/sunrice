@@ -50,6 +50,8 @@ export interface Row {
     actions: string[];
     /** The addresses of the row's url actions, by key. */
     urls: Record<string, string>;
+    /** In the trash: when it was deleted (ISO 8601). */
+    deletedAt?: string | null;
 }
 
 export interface FieldInfo {

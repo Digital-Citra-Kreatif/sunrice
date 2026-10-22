@@ -77,6 +77,7 @@ final class PanelRoutes
             ];
             if ($resource->softDeletes()) {
                 $routes[] = Route::post('{record}/restore', [ResourceController::class, 'restore'])->name('restore');
+                $routes[] = Route::delete('{record}/force', [ResourceController::class, 'forceDelete'])->name('force-delete');
             }
             foreach ($routes as $route) {
                 $route->defaults('resource', $key);

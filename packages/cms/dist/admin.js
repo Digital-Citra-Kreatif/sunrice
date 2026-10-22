@@ -3639,7 +3639,7 @@ function yl({
     /* @__PURE__ */ e.jsx(
       n.PageHeader,
       {
-        title: s.title,
+        title: M ? /* @__PURE__ */ e.jsx(n.TrashTitle, { children: s.title }) : s.title,
         primary: p?.create && !M && /* @__PURE__ */ e.jsx(n.Button, { asChild: !0, children: /* @__PURE__ */ e.jsxs(C.Link, { href: `${u}/create`, children: [
           /* @__PURE__ */ e.jsx(G, {}),
           " ",
@@ -3655,6 +3655,7 @@ function yl({
         ] })
       }
     ),
+    M && /* @__PURE__ */ e.jsx(n.TrashBanner, { items: t("entries"), onBack: () => L({ status: "" }) }),
     /* @__PURE__ */ e.jsxs("div", { className: "cms:flex cms:flex-wrap cms:items-center cms:gap-2", children: [
       /* @__PURE__ */ e.jsxs("div", { className: "cms:relative cms:w-full cms:max-w-xs", children: [
         /* @__PURE__ */ e.jsx(ye, { className: "cms:pointer-events-none cms:absolute cms:top-1/2 cms:left-3 cms:size-4 cms:-translate-y-1/2 cms:text-muted-foreground" }),
@@ -5171,7 +5172,7 @@ function Ql({ taxonomy: s, taxonomies: a, terms: l, locales: c, locale: i, trash
     /* @__PURE__ */ e.jsx(
       n.PageHeader,
       {
-        title: r ? t(":title — trash", { title: s.title }) : s.title,
+        title: r ? /* @__PURE__ */ e.jsx(n.TrashTitle, { children: s.title }) : s.title,
         primary: !r && /* @__PURE__ */ e.jsx(n.Button, { asChild: !0, children: /* @__PURE__ */ e.jsxs(C.Link, { href: `${v}/create?locale=${encodeURIComponent(i)}`, children: [
           /* @__PURE__ */ e.jsx(G, {}),
           " ",
@@ -5188,6 +5189,7 @@ function Ql({ taxonomy: s, taxonomies: a, terms: l, locales: c, locale: i, trash
         ] })
       }
     ),
+    r && /* @__PURE__ */ e.jsx(n.TrashBanner, { items: t("terms"), onBack: () => C.router.get(v, { locale: i }), backLabel: t("Back to terms") }),
     /* @__PURE__ */ e.jsxs("div", { className: "cms:flex cms:flex-wrap cms:items-center cms:gap-3", children: [
       /* @__PURE__ */ e.jsxs("div", { className: "cms:relative cms:w-full cms:max-w-xs", children: [
         /* @__PURE__ */ e.jsx(ye, { className: "cms:pointer-events-none cms:absolute cms:top-1/2 cms:left-3 cms:size-4 cms:-translate-y-1/2 cms:text-muted-foreground" }),
@@ -5206,19 +5208,11 @@ function Ql({ taxonomy: s, taxonomies: a, terms: l, locales: c, locale: i, trash
         /* @__PURE__ */ e.jsx(n.SelectTrigger, { className: "cms:w-40", "aria-label": t("Language"), children: /* @__PURE__ */ e.jsx(n.SelectValue, {}) }),
         /* @__PURE__ */ e.jsx(n.SelectContent, { children: c.map((w) => /* @__PURE__ */ e.jsx(n.SelectItem, { value: w, children: O(w) }, w)) })
       ] }),
-      /* @__PURE__ */ e.jsx(
-        n.Button,
-        {
-          variant: r ? "secondary" : "ghost",
-          className: "cms:ml-auto cms:order-last",
-          onClick: () => C.router.get(v, r ? { locale: i } : { locale: i, status: "trashed" }),
-          children: r ? t("Back to terms") : /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
-            /* @__PURE__ */ e.jsx(K, {}),
-            " ",
-            t("Trash")
-          ] })
-        }
-      ),
+      !r && /* @__PURE__ */ e.jsxs(n.Button, { variant: "ghost", className: "cms:ml-auto cms:order-last", onClick: () => C.router.get(v, { locale: i, status: "trashed" }), children: [
+        /* @__PURE__ */ e.jsx(K, {}),
+        " ",
+        t("Trash")
+      ] }),
       !r && p.length > 1 && !$ && /* @__PURE__ */ e.jsx("p", { className: "cms:text-sm cms:text-muted-foreground", children: s.hierarchical ? t("Drag terms to set their order; a term's parent is set in its editor (Under).") : t("Drag terms to set their order.") })
     ] }),
     /* @__PURE__ */ e.jsxs(n.Card, { className: "cms:gap-0 cms:overflow-hidden cms:py-0", children: [

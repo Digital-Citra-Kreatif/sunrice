@@ -9,7 +9,7 @@ import { adminUrl, t } from '@imajiner/admin-sdk';
 import {
     Badge, Button, Card, Checkbox, DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel,
     DropdownMenuSeparator, DropdownMenuTrigger, Input, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Table,
-    TableBody, TableCell, TableHead, TableHeader, TableRow, TrashHint, useBreadcrumbs, useTablePreferences,
+    TableBody, TableCell, TableHead, TableHeader, TableRow, TrashBanner, TrashHint, TrashTitle, useBreadcrumbs, useTablePreferences,
 } from '@imajiner/admin-sdk/ui';
 import { type EntryLocale, type EntryStatus, formatDate, localeName, statusLabel } from '@/lib/entries.ts';
 import {
@@ -172,7 +172,7 @@ function EntryList({
             <Head title={collection.title} />
             {confirmDialog}
             <PageHeader
-                title={collection.title}
+                title={trashed ? <TrashTitle>{collection.title}</TrashTitle> : collection.title}
                 primary={can?.create && !trashed && <Button asChild><Link href={`${base}/create`}><Plus /> {t('New entry')}</Link></Button>}
                 menu={[
                     ...(entries.total > 0 && can?.export
@@ -190,6 +190,7 @@ function EntryList({
                     </Select>
                 )}
             </PageHeader>
+            {trashed && <TrashBanner items={t('entries')} onBack={() => visit({ status: '' })} />}
 
             <div className="cms:flex cms:flex-wrap cms:items-center cms:gap-2">
                 <div className="cms:relative cms:w-full cms:max-w-xs">

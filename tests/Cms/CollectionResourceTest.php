@@ -10,6 +10,7 @@ use Sunrice\Cms\Admin\HandleField;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\Form;
 use Sunrice\Cms\Models\GlobalSet;
 use Sunrice\Cms\Models\Menu;
@@ -139,6 +140,24 @@ it('says a deleted collection can be restored, and its trash offers Restore (NEW
     get('/admin/cms/collections?status=trashed')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.key', 'pages')->where('rows.data.0.can.delete', true));
     post('/admin/cms/collections/pages/restore')->assertRedirect()->assertSessionHas('success', 'Pages restored.');
     expect($pages->fresh()?->trashed())->toBeFalse();
+});
+
+it('deletes a collection in the trash permanently with its entries, freeing its handle', function () {
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages']);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.delete', 'cms.taxonomies.view', 'cms.taxonomies.delete'));
+    $entry = app(CreateEntry::class)->handle($pages, ['title' => 'About']);
+    delete('/admin/cms/collections/pages')->assertRedirect();
+    delete('/admin/cms/taxonomies/topics')->assertRedirect();
+
+    delete('/admin/cms/collections/pages/force')->assertSessionHas('success', 'Pages permanently deleted.');
+    post('/admin/cms/taxonomies/bulk', ['action' => 'force-delete', 'ids' => [$topics->id]])->assertSessionHas('success', '1 permanently deleted.');
+
+    expect(Collection::withTrashed()->find($pages->id))->toBeNull()
+        ->and(Taxonomy::withTrashed()->find($topics->id))->toBeNull()
+        ->and(Entry::withTrashed()->find($entry->id))->toBeNull();
+    collectionsUser('view', 'create');
+    post('/admin/cms/collections', ['title' => 'Pages', 'handle' => 'pages', 'per_page' => 10])->assertSessionHasNoErrors();
 });
 
 it('takes the title visitors read in each other language', function () {
