@@ -4,38 +4,9 @@
 
 **Highlights.** The panel (`sunrice/admin`) and the CMS (`sunrice/cms`) are rebuilt as two packages: a panel framework for any Laravel app, and the CMS as a plugin that uses only the panel's public (`@api`) API. The panel brings sign-in with two-factor login, users and roles with strict rank, resources, React pages through `@sunrice/admin-sdk`, settings, branding, a dashboard with widgets, a media library, an activity log with security events and email alerts, edit locks, AI access over MCP, and Help pages with the developer docs and a user guide in English and Indonesian. The CMS brings collections and entries with drafts, scheduling, revisions and per-entry blueprints, blueprints and fieldsets, taxonomies with term pages, globals, menus, forms, comments, multilingual content with outdated-translation badges and machine translation, and the site side: URLs, templates and components, SEO and structured data, sitemaps, redirects, search and caching. See `docs/README.md`.
 
-### Breaking changes
-
-Each is explained, with what to do, in [`docs/upgrading.md`](docs/upgrading.md#from-the-previous-development-snapshot).
-
-- `route('sunrice.admin.cms.entries.edit')` and `…terms.edit` need the collection's or taxonomy's handle as well.
-- A plugin's resources are under the plugin's id (`/admin/shop/products`, `/admin/cms/collections`).
-- PHP 8.4 or newer is required.
-- `SDK_VERSION` is 3: rebuild plugin bundles with the matching `@sunrice/admin-sdk`.
-- Role rank is strict: users and roles one manages must be strictly below them.
-- `SecurityAlerts::PRIVILEGED_PERMISSIONS` is gone: use `$panel->privilegedPermissions()`.
-- Exports need their own permission (`<prefix>.export`, `cms.entries.export`, `cms.submissions.export`).
-- `docs`, `guide` and `resources` are reserved resource keys.
-- Run `php artisan view:clear` after updating: `<x-sunrice-cms::form>` is a class component.
-- `ForceDeleteEntry` and `DeleteTerm` refuse a referenced entry or term unless `force`.
-- The site's words are `sunrice-cms::site.*` translation keys, no longer JSON strings.
-- Shared fields inside translated groups, repeater rows and flexible blocks are shared row by row.
-- Untranslated pages show the main language (`sunrice-cms.site.fallback`, on by default).
-- Hydrated `link` fields and menu links have two new keys each.
-- `Globals::get()` reads the current language when none is given.
-- `TermsField::toAdmin()` sends `taxonomy` instead of the `terms` options.
-- `SiteCache` keeps a content version per area (`remember()`, `key()`, `version()` and `changed()` take areas).
-- Page titles end with the site name unless turned off in Settings → Site.
-- The page cache never keeps pages with `?q=` or `?reply_to=`; `PageCacheHasher::QUERY` is `['page']`.
-- Listing and term pages' `$entries` is a lazy `LengthAwarePaginator` contract, and a term page's includes the terms under it in a hierarchy.
-- The comment unsubscribe page asks first and is `sunrice-cms::comment-unsubscribe` (or the site's `cms.comment-unsubscribe`).
-- The `sunrice-forms` and `sunrice-comments` rate limiters are gone: form and comment send limits count only what was kept.
-- The page cache keeps a page under a `cache.query` parameter only when the page read it (`PageCache::read()`; the entry filter and paginators do), and an entry filter's range, date range, search or option-less select values aren't kept; a site page's `?page=` past a paginator's last page is a 404.
-- Forms send visitors back to `#form-{handle}-errors` or `#form-{handle}-status` (was `#form-{handle}`), the replaced thank-you message's id is `form-{handle}-status`, and a slot's markup gets the error summary unless it has its own.
-- `sunrice:import-structure` stops, importing nothing, when the file has texts in a language the site doesn't have (it saved what it could and failed on listing pages): add the language, or pass `--skip-other-languages`.
-
 ### All changes
 
+- **Removed what nothing uses any more**: the gap analysis against the old sunrice-cms (`docs/gap-analysis.md`), the upgrade notes from the unreleased development snapshot (and this changelog's list of breaking changes against it), 54 Indonesian lines no screen shows, unused imports in the admin's pages, and `LazyEntries::loaded()`.
 - **The Lumina Estates example moved** from `examples/real-estate` to its own repository, [Digital-Citra-Kreatif/sunrice-starters](https://github.com/Digital-Citra-Kreatif/sunrice-starters), as the starter `sunrice/starter-real-estate` (`php artisan sunrice:starter real-estate`), with its site tests and its script's test. Its QA reports stay in this repository's history.
 - **New package `sunrice/starter-kit`** (`packages/starter-kit`): starter sites for the CMS. A starter is a folder with `starter.json`, `site.json` (structure and sample content, sunrice:export-structure's format), `media/` with `media.json`, and `views/`, `public/` and `lang/` to copy into the app. `sunrice:starters` lists them, `sunrice:starter <name>` installs one (checked first as a whole, media uploaded through the panel's upload, content imported through `StructureImporter`, the app's changed files kept unless `--force`; `--dry-run`, `--no-content`, `--skip-other-languages`), and `sunrice:make-starter <name>` makes one from the site. Packages register their own with `Starters::register($folder)`. It comes with a **Blog** starter and a guide (`packages/starter-kit/docs/starters.md`, on Help → Docs with `StarterKitPlugin`). `@api`: `Starter`, `Starters`, `Installation`, `Actions\InstallStarter`, `Actions\MakeStarter`, `StarterKitPlugin`.
 - **Garuda Const audit fixes**: the CMS installs and runs without the optional `spatie/laravel-responsecache` again (the cache parameters moved to the new `Site\PageCacheQuery`, `@api`; `PageCacheHasher`'s statics now call it; a test guards it). Publishing another language validates with the main language's shared values in blocks and rows, as saving its draft does, so a required shared field there no longer blocks it. The whole-page cache never keeps a page under an address it read a parameter from without that parameter keying it (an entry filter not listed in Settings → Cache could serve its filtered listing to everyone), and Settings → Cache's **Any other parameter** now defaults to **Skip the cache** (tracking parameters are still ignored). A required toggle must be on (`accepted`), so it works as a form's consent box, and the form component marks it `required`. The default **editor** role no longer reads or exports form submissions: give them per form. Super admins get "Waiting for your review" emails. Structure export and import carry each published translation's `published_at`.
