@@ -27,7 +27,7 @@ composer require sunrice/admin
 php artisan sunrice:install --roles
 ```
 
-Your user model needs `Spatie\Permission\Traits\HasRoles`, and your app a panel provider (`Sunrice\Admin\PanelProvider`). The full steps: [Installation](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/installation.md).
+The command writes your panel provider (`app/Providers/AdminPanelProvider.php`) and adds `Spatie\Permission\Traits\HasRoles` to your user model. The full steps: [Installation](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/installation.md).
 
 ## Assets
 
