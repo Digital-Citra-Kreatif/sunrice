@@ -88,6 +88,24 @@ it('tries the collection\'s term template first', function () {
     }
 });
 
+it('offers a menu the listing page, the shared term page and each collection\'s term page', function () {
+    $this->tags->update(['route' => '/tags/{slug}']);
+    $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    app(SaveMenu::class)->handle($menu, [
+        ['collection_id' => $this->books->id],
+        ['term_id' => $this->featured->id],
+        ['term_id' => $this->featured->id, 'collection_id' => $this->books->id],
+    ]);
+    expect(array_column(app(Menus::class)->get('main'), 'url'))->toBe([url('/books'), url('/tags/featured'), url('/books/tags/featured')]);
+
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
+    get('/admin/cms/menus/main/links')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('terms.0.pages', [['collection' => null, 'title' => 'Shared page (all collections)'], ['collection' => $this->books->id, 'title' => 'Books'], ['collection' => $this->films->id, 'title' => 'Films']])
+        ->where('items.1.target.kind', 'Tags · Shared page')
+        ->where('items.2.target.kind', 'Tags · Books')
+        ->where('listings.0.title', 'Books'));
+});
+
 it('links a menu item to a term\'s page in one collection', function () {
     $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
     app(SaveMenu::class)->handle($menu, [['term_id' => $this->featured->id, 'collection_id' => $this->films->id]]);

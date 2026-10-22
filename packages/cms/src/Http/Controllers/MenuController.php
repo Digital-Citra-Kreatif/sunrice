@@ -27,7 +27,7 @@ final class MenuController
 {
     public function edit(Request $request, Menu $menu): Response
     {
-        $menu->load('items.entry.translations', 'items.entry.collection', 'items.term.translations', 'items.term.taxonomy', 'items.collection');
+        $menu->load('items.entry.translations', 'items.entry.collection', 'items.term.translations', 'items.term.taxonomy.collections', 'items.collection');
 
         return Inertia::render('Cms/Menus/Edit', [
             'menu' => ['handle' => $menu->handle, 'title' => $menu->title],
@@ -63,7 +63,7 @@ final class MenuController
     private static function termPages(Term $term): array
     {
         $taxonomy = $term->taxonomy;
-        $pages = $taxonomy->route !== null ? [['collection' => null, 'title' => __('All collections')]] : [];
+        $pages = $taxonomy->route !== null ? [['collection' => null, 'title' => __('Shared page (all collections)')]] : [];
         foreach ($taxonomy->collections as $collection) {
             $pivot = $collection->getRelation('pivot');
             if ($pivot instanceof CollectionTaxonomy && $pivot->term_pages) {
@@ -84,10 +84,12 @@ final class MenuController
         }
         if ($item->term !== null) {
             $in = $item->collection;
-            $pages = $in === null ? $item->term->taxonomy->route !== null || $item->term->taxonomy->collections()->wherePivot('term_pages', true)->exists()
-                : $item->term->taxonomy->collections()->wherePivot('term_pages', true)->whereKey($in->id)->exists();
+            $taxonomy = $item->term->taxonomy;
+            $withPages = $taxonomy->collections->filter(fn (Collection $c): bool => $c->getRelation('pivot') instanceof CollectionTaxonomy && $c->getRelation('pivot')->term_pages);
+            $pages = $in === null ? $taxonomy->route !== null || $withPages->isNotEmpty() : $withPages->contains('id', $in->id);
+            $kind = $in !== null ? $taxonomy->title.' · '.$in->title : ($taxonomy->route !== null ? __(':taxonomy · Shared page', ['taxonomy' => $taxonomy->title]) : $taxonomy->title);
 
-            return ['title' => $item->term->title(), 'kind' => $item->term->taxonomy->title.($in !== null ? ' · '.$in->title : ''), 'live' => ! $item->term->trashed() && $pages];
+            return ['title' => $item->term->title(), 'kind' => $kind, 'live' => ! $item->term->trashed() && $pages];
         }
         if ($item->collection !== null) {
             return ['title' => $item->collection->title, 'kind' => __('Listing page'), 'live' => ! $item->collection->trashed() && $item->collection->listing_route !== null];

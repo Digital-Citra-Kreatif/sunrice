@@ -190,7 +190,8 @@ function AddDialog({ kind, terms, listings, onClose, onAdd, main }: {
         } else if (kind === 'term' && choice !== '') {
             const term = terms.find((each) => String(each.id) === choice);
             const collection = termPage?.collection ?? null;
-            onAdd(newItem({ term_id: Number(choice), collection_id: collection, target: term ? { title: term.title, kind: collection === null ? term.taxonomy : `${term.taxonomy} · ${termPage?.title ?? ''}`, live: true } : null, labels }));
+            const page = collection === null ? t('Shared page') : (termPage?.title ?? '');
+            onAdd(newItem({ term_id: Number(choice), collection_id: collection, target: term ? { title: term.title, kind: `${term.taxonomy} · ${page}`, live: true } : null, labels }));
         } else if (kind === 'listing' && choice !== '') {
             const listing = listings.find((l) => String(l.id) === choice);
             onAdd(newItem({ collection_id: Number(choice), target: listing ? { title: listing.title, kind: t('Listing page'), live: true } : null, labels, query: query.trim().replace(/^\?/, '') || null }));
@@ -225,16 +226,16 @@ function AddDialog({ kind, terms, listings, onClose, onAdd, main }: {
                             </Select>
                         </div>
                     )}
-                    {chosenTerm && chosenTerm.pages.length > 1 && (
+                    {chosenTerm && chosenTerm.pages.length > 0 && (
                         <div className="cms:flex cms:flex-col cms:gap-2">
                             <Label htmlFor="menu-term-page">{t('Page')}</Label>
                             <Select value={String(termPage?.collection ?? '') || '__all'} onValueChange={(value: string) => setPage(value === '__all' ? '' : value)}>
                                 <SelectTrigger id="menu-term-page"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    {chosenTerm.pages.map((each) => <SelectItem key={each.collection ?? '__all'} value={each.collection === null ? '__all' : String(each.collection)}>{each.title}</SelectItem>)}
+                                    {chosenTerm.pages.map((each) => <SelectItem key={each.collection ?? '__all'} value={each.collection === null ? '__all' : String(each.collection)}>{each.collection === null ? each.title : t(':collection only', { collection: each.title })}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            <p className="cms:text-sm cms:text-muted-foreground">{t('All collections lists the term\'s entries from every collection; a collection\'s page only its own.')}</p>
+                            <p className="cms:text-sm cms:text-muted-foreground">{t('The shared page lists the term\'s entries from every collection; a collection\'s page only its own.')}</p>
                         </div>
                     )}
                     {kind === 'listing' && (
