@@ -154,8 +154,8 @@ it('carries each collection\'s term pages in the structure', function () {
     $structure = app(StructureExporter::class)->export();
     $tags = collect($structure['taxonomies'])->firstWhere('handle', 'tags');
     expect(json_decode((string) json_encode($tags['collection_pages']), true))->toBe([
-        'books' => ['pages' => true, 'route' => '/reading/{slug}', 'routes' => ['id' => '/bacaan/{slug}']],
-        'films' => ['pages' => false],
+        'books' => ['pages' => true, 'route' => '/reading/{slug}', 'routes' => ['id' => '/bacaan/{slug}'], 'index' => true],
+        'films' => ['pages' => false, 'index' => true],
     ]);
 
     DB::table('sunrice_collection_taxonomy')->update(['term_pages' => true, 'term_route' => null, 'term_routes' => null]);

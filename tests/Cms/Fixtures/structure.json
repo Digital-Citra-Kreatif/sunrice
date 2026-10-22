@@ -22,7 +22,7 @@
         {"handle": "posts", "title": "Posts", "blueprint": "page", "dated": true, "translatable": true, "ordered": false, "hierarchical": false, "route": "/blog/{slug}", "listing_route": "/blog", "listing_blueprint": "page", "per_page": 5, "comments": true, "schema_type": "BlogPosting", "template": "cms.post", "seo_title_field": null, "seo_description_field": "intro", "seo_image_field": null, "listings": {"en": {"intro": "All our posts", "sections": [], "topics": []}}, "translations": {"id": {"title": "Tulisan"}}}
     ],
     "taxonomies": [
-        {"handle": "topics", "title": "Topics", "hierarchical": true, "route": "/topics/{slug}", "blueprint": null, "template": null, "seo_title_field": null, "seo_description_field": "intro", "seo_image_field": null, "collections": ["pages", "posts"], "collection_pages": {"pages": {"pages": false}, "posts": {"pages": true, "route": "/blog/topics/{slug}"}}}
+        {"handle": "topics", "title": "Topics", "hierarchical": true, "route": "/topics/{slug}", "index_route": "/topics", "blueprint": null, "index_blueprint": "page", "template": null, "seo_title_field": null, "seo_description_field": "intro", "seo_image_field": null, "listings": {"en": {"intro": "Every topic", "sections": [], "topics": []}}, "collections": ["pages", "posts"], "collection_pages": {"pages": {"pages": false, "index": false}, "posts": {"pages": true, "route": "/blog/topics/{slug}", "index": true, "index_route": "/blog/all-topics", "listings": {"en": {"intro": "Topics on the blog", "sections": [], "topics": []}}}}}
     ],
     "globals": [
         {"handle": "contact", "title": "Contact", "blueprint": "contact", "values": {"en": {"email": "hello@example.com"}}}

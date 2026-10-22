@@ -9,12 +9,13 @@ use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\get;
 
 /*
  * The docs' tables of what templates get name every variable the CMS
- * gives entry and listing views, so a template author can rely on them.
+ * gives entry, listing and taxonomy index views, so a template author can rely on them.
  */
 
 beforeEach(fn () => usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make())));
@@ -51,5 +52,16 @@ it('documents every variable entry and listing views get', function () {
     $listing = documentedVariables('site.md', '## Listing pages');
     foreach (viewVariables('sunrice-cms::listing', '/blog') as $variable) {
         expect($listing)->toContain("`\${$variable}`");
+    }
+});
+
+it('documents every variable taxonomy index views get', function () {
+    $books = Collection::query()->create(['handle' => 'books', 'title' => 'Books', 'route' => '/books/{slug}']);
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'index_route' => '/tags']);
+    $tags->collections()->attach($books->id);
+
+    $index = documentedVariables('site.md', '## Taxonomy index pages');
+    foreach ([...viewVariables('sunrice-cms::taxonomy-index', '/tags'), ...viewVariables('sunrice-cms::taxonomy-index', '/books/tags')] as $variable) {
+        expect($index)->toContain("`\${$variable}`");
     }
 });
