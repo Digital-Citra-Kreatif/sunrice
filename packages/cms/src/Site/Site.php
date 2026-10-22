@@ -642,12 +642,12 @@ final class Site
      * Collections' and taxonomies' patterns in every language, read once
      * (and cached until one changes).
      *
-     * @return list<array{type: 'collection'|'taxonomy'|'collection-terms', id: int, route: string|null, listing: string|null, own: array<string, array<string, string>>, previous: array<string, array<string, list<string>>>}>
+     * @return list<array{type: 'collection'|'taxonomy'|'collection-terms', id: int, collection: int|null, route: string|null, listing: string|null, own: array<string, array<string, string>>, previous: array<string, array<string, list<string>>>}>
      */
     private function routes(): array
     {
         if ($this->routes === null) {
-            /** @var list<array{type: 'collection'|'taxonomy'|'collection-terms', id: int, route: string|null, listing: string|null, own: array<string, array<string, string>>, previous: array<string, array<string, list<string>>>}> $routes */
+            /** @var list<array{type: 'collection'|'taxonomy'|'collection-terms', id: int, collection: int|null, route: string|null, listing: string|null, own: array<string, array<string, string>>, previous: array<string, array<string, list<string>>>}> $routes */
             $routes = app(SiteCache::class)->remember('language-routes', function (): array {
                 $routes = [];
                 $columns = ['id', 'route', 'routes', 'previous_routes'];

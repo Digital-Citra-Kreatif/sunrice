@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
+use Sunrice\Admin\Resources\Forms\Field;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Link;
 use Sunrice\Admin\Resources\Forms\Section;
@@ -142,15 +143,18 @@ final class TaxonomyResource extends Resource
      * taxonomy's terms have pages in it, and their URL (and each other
      * language's), stored on the attachment (CollectionTaxonomy).
      *
-     * @return list<\Sunrice\Admin\Resources\Forms\Field>
+     * @return list<Field>
      */
     private static function collectionTermFields(): array
     {
         $fields = [];
         foreach (Collection::query()->orderBy('title')->get() as $collection) {
             $id = (string) $collection->id;
-            $pivot = fn (Model $taxonomy): ?CollectionTaxonomy => $taxonomy instanceof Taxonomy && $taxonomy->exists
-                ? ($taxonomy->collections()->whereKey($collection->id)->first()?->getRelation('pivot') ?? null) : null;
+            $pivot = function (Model $taxonomy) use ($collection): ?CollectionTaxonomy {
+                $p = $taxonomy instanceof Taxonomy && $taxonomy->exists ? $taxonomy->collections()->whereKey($collection->id)->first()?->getRelation('pivot') : null;
+
+                return $p instanceof CollectionTaxonomy ? $p : null;
+            };
             $fields[] = Toggle::make("term_pages_{$id}")->label(__('Term pages in :collection', ['collection' => $collection->title]))->span(2)->showWhen('collections', $id)
                 ->help(__('A page per term with only :collection\'s entries, like :url.', ['collection' => $collection->title, 'url' => str_replace('{slug}', 'featured', CollectionTaxonomy::defaultPattern($collection, new Taxonomy(['handle' => '{handle}'])))]))
                 ->loadUsing(fn (Model $taxonomy): bool => ($p = $pivot($taxonomy)) instanceof CollectionTaxonomy ? $p->term_pages : true)

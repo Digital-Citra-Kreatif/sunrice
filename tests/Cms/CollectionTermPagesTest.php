@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
@@ -94,8 +95,8 @@ it('links a menu item to a term\'s page in one collection', function () {
 
     // Not where its terms have no pages, and no filters on a term page.
     $this->tags->collections()->updateExistingPivot($this->films->id, ['term_pages' => false]);
-    expect(fn () => app(SaveMenu::class)->handle($menu, [['term_id' => $this->featured->id, 'collection_id' => $this->films->id]]))->toThrow(Illuminate\Validation\ValidationException::class);
-    expect(fn () => app(SaveMenu::class)->handle($menu, [['term_id' => $this->featured->id, 'collection_id' => $this->books->id, 'query' => ['sort' => 'title']]]))->toThrow(Illuminate\Validation\ValidationException::class);
+    expect(fn () => app(SaveMenu::class)->handle($menu, [['term_id' => $this->featured->id, 'collection_id' => $this->films->id]]))->toThrow(ValidationException::class);
+    expect(fn () => app(SaveMenu::class)->handle($menu, [['term_id' => $this->featured->id, 'collection_id' => $this->books->id, 'query' => ['sort' => 'title']]]))->toThrow(ValidationException::class);
 });
 
 it('refuses URLs another collection, taxonomy or term pages have', function () {

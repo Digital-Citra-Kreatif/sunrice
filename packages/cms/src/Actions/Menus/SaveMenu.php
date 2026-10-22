@@ -90,7 +90,7 @@ final class SaveMenu
                 function (string $attribute, mixed $value, \Closure $fail) use ($item): void {
                     // A term's page in a collection: only where its taxonomy's terms have pages.
                     $term = is_array($item) && is_numeric($item['term_id'] ?? null) ? Term::query()->find((int) $item['term_id']) : null;
-                    if ($term !== null && ! $term->taxonomy->collections()->wherePivot('term_pages', true)->whereKey((int) $value)->exists()) {
+                    if ($term !== null && is_numeric($value) && ! $term->taxonomy->collections()->wherePivot('term_pages', true)->whereKey((int) $value)->exists()) {
                         $fail(__('Its terms have no pages in that collection.'));
                     }
                 }];
