@@ -6,7 +6,6 @@ namespace Sunrice\Admin\Actions\Settings;
 
 use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Media\MediaUsages;
-use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\MediaPicker;
 use Sunrice\Admin\Settings\Settings;
@@ -15,8 +14,7 @@ use Sunrice\Admin\Settings\Settings;
  * Records the files a settings section's media pickers hold as used
  * (MediaUsages, type `sunrice.settings`, the section's key), so the media
  * library shows the logo as used by "Settings: Branding" and warns before
- * it's trashed. SaveSettings runs it on every save; all() records every
- * registered section's (the upgrade's backfill migration runs it).
+ * it's trashed. SaveSettings runs it on every save.
  *
  * @internal
  */
@@ -41,13 +39,5 @@ final class RecordSettingsMedia
         }
         $route = 'sunrice.admin.settings.edit';
         $this->usages->sync('sunrice.settings', $settings::key(), $ids, 'Settings: '.$settings::label(), Route::has($route) ? route($route, $settings::key()) : null);
-    }
-
-    /** Every registered section's, as stored now. */
-    public function all(): void
-    {
-        foreach (app(Panel::class)->getSettings() as $registered) {
-            $this->handle($registered->load());
-        }
     }
 }

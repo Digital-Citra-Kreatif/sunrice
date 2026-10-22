@@ -31,6 +31,8 @@ return new class extends Migration
             $table->string('title')->nullable();
             $table->string('alt')->nullable();
             $table->text('caption')->nullable();
+            // Alternative text and caption in the content's other languages: {"id": {"alt": "…", "caption": "…"}}.
+            $table->json('translations')->nullable();
             $table->json('sizes');
             $table->unsignedInteger('version')->default(1);
             $table->string('uploaded_by')->nullable();
@@ -39,6 +41,9 @@ return new class extends Migration
 
             $table->unique(['disk', 'path']);
             $table->index(['folder_id', 'created_at']);
+            // The trash, and files by type.
+            $table->index('deleted_at');
+            $table->index('mime_type');
         });
     }
 

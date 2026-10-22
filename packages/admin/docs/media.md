@@ -96,7 +96,7 @@ URLs end in `?v=<version>`, so a replaced file is fetched again rather than serv
 <img src="{{ $media->url('medium') }}" srcset="{{ $media->srcset() }}" sizes="(min-width: 50rem) 50rem, 100vw" alt="{{ $media->altIn() }}">
 ```
 
-**Alternative text and captions per language.** A plugin with content in several languages (the CMS) gives the panel its languages, main first: `$panel->contentLocales(fn (): array => ['en' => 'English', 'id' => 'Indonesian'])` (`@api`; `getContentLocales()` reads them). Each file then takes its alt text and caption in the others (`Media::$translations`, `{"id": {"alt": "…", "caption": "…"}}`, new migration `2026_01_01_000011_add_translations_to_sunrice_media`). `$media->altIn($locale)` and `captionIn($locale)` give them in a language (default: the app's locale, which the CMS sets to the page's), else the file's own: write `alt="{{ $media->altIn() }}"` in templates.
+**Alternative text and captions per language.** A plugin with content in several languages (the CMS) gives the panel its languages, main first: `$panel->contentLocales(fn (): array => ['en' => 'English', 'id' => 'Indonesian'])` (`@api`; `getContentLocales()` reads them). Each file then takes its alt text and caption in the others (`Media::$translations`, `{"id": {"alt": "…", "caption": "…"}}`). `$media->altIn($locale)` and `captionIn($locale)` give them in a language (default: the app's locale, which the CMS sets to the page's), else the file's own: write `alt="{{ $media->altIn() }}"` in templates.
 
 ## Settings
 

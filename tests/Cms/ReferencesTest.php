@@ -236,14 +236,6 @@ it('rebuilds every reference with sunrice:references, in a query budget', functi
     expect($rows())->toBe($before);
 });
 
-it('backfills references when migrating', function () {
-    [$before, $rows] = referencesLost($this);
-    $migration = require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_02_01_000022_backfill_sunrice_references.php';
-    $migration->up();
-
-    expect($rows())->toBe($before);
-});
-
 it('counts what it would rebuild, media usages rebuilt too', function () {
     Blueprint::query()->where('handle', 'page')->first()?->forceFill(['fields' => [
         ['handle' => 'related', 'type' => 'entries', 'config' => ['collections' => ['pages'], 'multiple' => true]],
