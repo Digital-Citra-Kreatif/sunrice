@@ -70,7 +70,8 @@ package folder to its own read-only repository, where Packagist reads it:
 
 Every push to `main` updates each repository's `main` (`dev-main` on
 Packagist), and a `v*` tag pushed here (`git tag v0.1.0 && git push origin
-v0.1.0`) is pushed to all of them, so every package gets the release. The
+v0.1.0`) is pushed to all of them, so every package gets the release.
+**Run workflow** on the Actions tab publishes `main` again by hand. The
 packages require each other at `self.version`, which only works because
 they're tagged together (`tests/Arch/SplitTest.php` checks both). Changes
 and pull requests go to this repository, never to the read-only copies,
