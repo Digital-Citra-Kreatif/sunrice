@@ -233,7 +233,7 @@ it('reads the attachments once for the taxonomy\'s form, and writes none when no
     $edit = $queries(fn () => get('/admin/cms/taxonomies/tags/edit')->assertOk());
     // The attachments read once, not per field, language or collection, and the collections once however often the form is built.
     expect(array_filter($edit, fn (string $sql): bool => str_contains($sql, 'sunrice_collection_taxonomy')))->toHaveCount(1)
-        ->and(array_filter($edit, fn (string $sql): bool => str_starts_with($sql, 'select * from "sunrice_collections"')))->toHaveCount(1);
+        ->and(array_filter($edit, fn (string $sql): bool => str_starts_with(str_replace(['"', '`'], '', $sql), 'select * from sunrice_collections ')))->toHaveCount(1);
 
     // Saved as it was: no attachment written.
     $values = [];
