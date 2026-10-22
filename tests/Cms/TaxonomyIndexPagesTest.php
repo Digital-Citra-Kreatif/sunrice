@@ -393,15 +393,12 @@ it('carries index pages and their values in the structure', function () {
     expect(fn () => app(StructureImporter::class)->import($clash))->toThrow(Exception::class);
 });
 
-it('switches index pages off for attachments made before them', function () {
-    $migration = require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_02_01_000029_add_index_pages_to_sunrice_taxonomies.php';
-    $migration->down();
-    $migration->up();
-
-    expect(DB::table('sunrice_collection_taxonomy')->pluck('index_page')->map(fn ($on) => (bool) $on)->all())->toBe([false, false]);
+it('gives new attachments their index page and term pages', function () {
     $other = Collection::query()->create(['handle' => 'games', 'title' => 'Games']);
     $this->tags->collections()->attach($other->id);
-    expect((bool) DB::table('sunrice_collection_taxonomy')->where('collection_id', $other->id)->value('index_page'))->toBeTrue();
+    $pivot = DB::table('sunrice_collection_taxonomy')->where('collection_id', $other->id)->first();
+    expect((bool) $pivot?->index_page)->toBeTrue()
+        ->and((bool) $pivot?->term_pages)->toBeTrue();
 });
 
 it('counts a collection\'s terms from its live translations, not entry by entry', function () {

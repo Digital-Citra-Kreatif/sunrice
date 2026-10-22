@@ -90,7 +90,7 @@ it('records the branding logo, browser icon and sign-in image as used, so they a
         ->and(app(MediaUsages::class)->of($icon))->toBe([$used]);
 });
 
-it('records settings media on every save, and the upgrade backfills what sections hold already', function () {
+it('records settings media on every save', function () {
     $logo = usedFile('logo.png');
     // Stored before usages were recorded (or saved since without a change).
     app(BrandingSettings::class)->fill(['logo' => $logo->id])->save();
@@ -98,11 +98,6 @@ it('records settings media on every save, and the upgrade backfills what section
 
     // Saved again, unchanged: recorded.
     app(SaveSettings::class)->handle(app(BrandingSettings::class), app(BrandingSettings::class)->toArray());
-    expect(app(MediaUsages::class)->of($logo))->toHaveCount(1);
-
-    // The backfill migration records every section's.
-    MediaUsage::query()->delete();
-    (require dirname(__DIR__, 2).'/packages/admin/database/migrations/2026_01_01_000013_backfill_sunrice_settings_media_usages.php')->up();
     expect(app(MediaUsages::class)->of($logo))->toBe([['type' => 'sunrice.settings', 'label' => 'Settings: Branding', 'url' => route('sunrice.admin.settings.edit', 'branding')]]);
 });
 

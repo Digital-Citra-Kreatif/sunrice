@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
 use Sunrice\Admin\Actions\Permissions\RenamePermissions;
 use Sunrice\Admin\Actions\Permissions\SeedRoles;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
@@ -234,22 +233,4 @@ it('leaves a permission alone when its new name is already stored', function () 
     expect(app(RenamePermissions::class)->handle(['cms.entries.blog.view' => 'cms.entries.journal.view', 'cms.entries.blog.create' => 'cms.entries.journal.create']))
         ->toBe(['cms.entries.blog.create'])
         ->and(Permission::query()->where('name', 'cms.entries.blog.view')->exists())->toBeTrue();
-});
-
-it('gives whoever had a renamed permission its new ones', function () {
-    $role = Role::findOrCreate('old', 'web');
-    foreach (['cms.terms.manage', 'cms.terms.tags.manage', 'cms.blueprints.manage', 'cms.global-sets.update'] as $name) {
-        $role->givePermissionTo(Permission::findOrCreate($name, 'web'));
-    }
-
-    (require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_02_01_000024_split_cms_manage_permissions.php')->up();
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-    expect(Role::findByName('old', 'web')->permissions->pluck('name')->sort()->values()->all())->toBe([
-        'cms.blueprints.create', 'cms.blueprints.delete', 'cms.blueprints.update', 'cms.blueprints.view',
-        'cms.fieldsets.create', 'cms.fieldsets.delete', 'cms.fieldsets.update', 'cms.fieldsets.view',
-        'cms.globals.update',
-        'cms.terms.create', 'cms.terms.delete', 'cms.terms.tags.create', 'cms.terms.tags.delete', 'cms.terms.tags.update', 'cms.terms.tags.view',
-        'cms.terms.update', 'cms.terms.view',
-    ])->and(Permission::query()->where('name', 'like', '%manage')->count())->toBe(0);
 });

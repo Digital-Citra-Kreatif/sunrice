@@ -22,6 +22,8 @@ return new class extends Migration
             $table->string('url', 2048)->nullable();
             $table->timestamps();
             $table->index(['type', 'item_id', 'locale'], 'sunrice_media_usages_item_index');
+            // Usages by file: Postgres and SQLite don't index a foreign key by themselves.
+            $table->index('media_id');
         });
     }
 
