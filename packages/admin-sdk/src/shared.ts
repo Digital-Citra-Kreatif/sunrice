@@ -39,7 +39,7 @@ export const SHARED_MODULES = {
         'Input', 'KeptEditsNotice', 'Label', 'MediaPickerInput', 'moveItem', 'PageHeader', 'registerCommandSource', 'RichTextEditor',
         'Select', 'SelectContent', 'SelectItem', 'SelectTrigger', 'SelectValue', 'Separator', 'SettingsLayout', 'SettingsNav', 'Skeleton', 'SortableHandle', 'SortableList', 'Switch',
         'Table', 'TableBody', 'TableCell', 'TableHead', 'TableHeader', 'TableRow', 'Tabs', 'TabsContent', 'TabsList', 'TabsTrigger',
-        'Textarea', 'Tooltip', 'TooltipContent', 'TooltipTrigger', 'toast', 'TrashHint', 'useBreadcrumbs', 'useEditLock', 'useTablePreferences', 'useUnsavedChanges', 'ViewingNotice',
+        'Textarea', 'Tooltip', 'TooltipContent', 'TooltipTrigger', 'toast', 'TrashBanner', 'TrashHint', 'TrashTitle', 'useBreadcrumbs', 'useEditLock', 'useTablePreferences', 'useUnsavedChanges', 'ViewingNotice',
     ],
 } as const satisfies Record<string, readonly string[]>;
 

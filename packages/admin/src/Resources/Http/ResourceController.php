@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Resources\Http;
 
+use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -84,6 +85,8 @@ final class ResourceController
                 'can' => ['update' => $resource->allows($user, 'update', $record), 'delete' => $resource->allows($user, 'delete', $record)],
                 'actions' => array_values(array_map(fn (Action $action) => $action->key, $offered)),
                 'urls' => (object) $urls,
+                // In the trash: when it was deleted.
+                'deletedAt' => self::deletedAt($record),
             ];
         }
 
@@ -221,15 +224,15 @@ final class ResourceController
         return $response;
     }
 
-    /** Selected records ("ids", primary keys) and the "action": "delete", "restore" (from the trash) or a bulk action's key. */
+    /** Selected records ("ids", primary keys) and the "action": "delete", "restore" or "force-delete" (in the trash) or a bulk action's key. */
     public function bulk(Request $request): RedirectResponse
     {
         $resource = $this->resource($request);
         $user = $this->authorize($request, $resource, 'view');
         $request->validate(['ids' => ['required', 'array', 'min:1', 'max:1000'], 'action' => ['required', 'string']]);
         $action = $request->string('action')->toString();
-        if ($action === 'restore') {
-            return $this->restoreMany($request, $resource, $user);
+        if ($action === 'restore' || $action === 'force-delete') {
+            return $this->fromTrash($request, $resource, $user, $action === 'restore');
         }
         $ids = array_values(array_filter((array) $request->input('ids'), fn (mixed $id) => is_int($id) || is_string($id)));
 
@@ -266,21 +269,34 @@ final class ResourceController
     /** Back from the trash. */
     public function restore(Request $request, string $record): RedirectResponse
     {
+        return $this->trashed($request, $record, restore: true);
+    }
+
+    /** Deleted for good, from the trash. */
+    public function forceDelete(Request $request, string $record): RedirectResponse
+    {
+        return $this->trashed($request, $record, restore: false);
+    }
+
+    private function trashed(Request $request, string $record, bool $restore): RedirectResponse
+    {
         $resource = $this->resource($request);
         abort_unless($resource->softDeletes(), 404);
         $model = $this->find($resource, $record, trashed: true);
         abort_unless(self::inTrash($model), 404);
         $this->authorize($request, $resource, 'delete', $model);
+        $title = $resource->class::title($model);
 
-        return $this->run(function () use ($resource, $model): string {
-            $resource->class::restoreRecord($model);
-            $this->activity->record('restored', $resource->key(), $model, $resource->class::title($model));
+        return $this->run(function () use ($resource, $model, $restore, $title): string {
+            $restore ? $resource->class::restoreRecord($model) : $resource->class::forceDeleteRecord($model);
+            $this->activity->record($restore ? 'restored' : 'permanently deleted', $resource->key(), $model, $title);
 
-            return __(':title restored.', ['title' => $resource->class::title($model)]);
+            return $restore ? __(':title restored.', ['title' => $title]) : __(':title permanently deleted.', ['title' => $title]);
         });
     }
 
-    private function restoreMany(Request $request, RegisteredResource $resource, Authorizable $user): RedirectResponse
+    /** Restores or permanently deletes the selected records in the trash. */
+    private function fromTrash(Request $request, RegisteredResource $resource, Authorizable $user, bool $restore): RedirectResponse
     {
         abort_unless($resource->softDeletes(), 404);
         $ids = array_values(array_filter((array) $request->input('ids'), fn (mixed $id) => is_int($id) || is_string($id)));
@@ -288,12 +304,13 @@ final class ResourceController
         foreach ($records as $record) {
             abort_unless($resource->allows($user, 'delete', $record), 403);
         }
+        $titles = $records->map(fn (Model $record): string => $resource->class::title($record));
 
-        return $this->run(function () use ($resource, $records): string {
-            DB::transaction(fn () => $records->each(fn (Model $record) => $resource->class::restoreRecord($record)));
-            $records->each(fn (Model $record) => $this->activity->record('restored', $resource->key(), $record, $resource->class::title($record)));
+        return $this->run(function () use ($resource, $records, $restore, $titles): string {
+            DB::transaction(fn () => $records->each(fn (Model $record) => $restore ? $resource->class::restoreRecord($record) : $resource->class::forceDeleteRecord($record)));
+            $records->each(fn (Model $record, int $i) => $this->activity->record($restore ? 'restored' : 'permanently deleted', $resource->key(), $record, $titles[$i]));
 
-            return __(':count restored.', ['count' => $records->count()]);
+            return $restore ? __(':count restored.', ['count' => $records->count()]) : __(':count permanently deleted.', ['count' => $records->count()]);
         });
     }
 
@@ -401,6 +418,18 @@ final class ResourceController
     private static function inTrash(Model $record): bool
     {
         return method_exists($record, 'trashed') && $record->trashed() === true;
+    }
+
+    /** When a record in the trash was deleted (ISO 8601), else null. */
+    private static function deletedAt(Model $record): ?string
+    {
+        if (! self::inTrash($record) || ! method_exists($record, 'getDeletedAtColumn')) {
+            return null;
+        }
+        $column = $record->getDeletedAtColumn();
+        $deleted = is_string($column) ? $record->getAttribute($column) : null;
+
+        return $deleted instanceof CarbonInterface ? $deleted->toIso8601String() : null;
     }
 
     /** By its address key, else (when that isn't the primary key) by a numeric id. */

@@ -203,6 +203,12 @@ export const Separator = m.Separator as AnyComponent;
 /** An empty list's note that `count` more are in the trash ("1 is in the trash."), with a button that shows it. */
 export const TrashHint = m.TrashHint as ComponentType<{ count: number; onShow: () => void }>;
 
+/** A list's title while it shows the trash: `children` (the name) with a red Trash badge. */
+export const TrashTitle = m.TrashTitle as ComponentType<{ children: ReactNode }>;
+
+/** Above a list showing the trash: its `items` ("blog posts") are deleted and show nowhere until restored, with a button back (`backLabel`, else "Back to the list"). */
+export const TrashBanner = m.TrashBanner as ComponentType<{ items: string; onBack: () => void; backLabel?: string }>;
+
 /** A "For developers" disclosure (as under a field's help, Field::developerHelp()): a sentence and code with a copy button. */
 export const DeveloperHelp = m.DeveloperHelp as ComponentType<{ text?: string | null; code?: string | null; className?: string }>;
 
