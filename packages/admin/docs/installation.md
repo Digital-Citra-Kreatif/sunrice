@@ -120,6 +120,8 @@ location /vendor/ {
 
 With Caddy, `file_server { precompressed br gzip }` serves them, and `header /vendor/sunrice-admin/assets/* Cache-Control "public, max-age=31536000, immutable"` adds the long cache. With Apache, `mod_deflate` compresses them on the fly (`AddOutputFilterByType DEFLATE text/javascript application/javascript text/css`) and `mod_expires` or a `Header set Cache-Control` in a `<Directory>` for `public/vendor/sunrice-admin/assets` adds the cache. Plugin bundles (the CMS's `vendor/sunrice-cms`) keep their file names between versions, so give them a short cache or none; their `.gz` and `.br` copies are served the same way.
 
+Behind a CDN or caching proxy, the same goes: keep the hashed files (`/vendor/sunrice-admin/assets/`, and `/build/assets/` for an app's own Vite build) for a year, and never cache the panel's pages (`/admin` and everything under it), which are per user and say `Cache-Control: no-cache, private`. For a site the CMS runs, see the CMS's [CDNs and reverse proxies](../../cms/docs/caching.md#cdns-and-reverse-proxies).
+
 ### Before going live
 
 - `APP_ENV=production` and `APP_DEBUG=false`: with debug on, error pages show code, settings and secrets to anyone. Super admins see a warning at the top of each panel page while debug is on in production.

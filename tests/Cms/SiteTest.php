@@ -113,6 +113,13 @@ it('renders with the app\'s templates when there are', function () {
     get('/about')->assertSeeText('Any entry: About');
 });
 
+it('marks a visitor\'s page private, with the session cookie, so no shared cache keeps it (caching.md, CDNs)', function () {
+    sitePost($this->pages, 'About');
+
+    get('/about')->assertOk()->assertHeader('Cache-Control', 'no-cache, private')
+        ->assertCookie(config('session.cookie'))->assertCookie('XSRF-TOKEN');
+});
+
 it('previews drafts through a signed link only', function () {
     $draft = sitePost($this->blog, 'Not yet', ['intro' => 'Draft intro'], publish: false);
     $url = URL::temporarySignedRoute('sunrice.cms.preview', now()->addMinutes(30), ['translation' => $draft->id]);
