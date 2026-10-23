@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Dashboard\Widget;
 use Sunrice\Admin\Panel;
@@ -174,4 +175,14 @@ it('lists what is left to set up for site managers, until it is done', function 
     expect(widgetKeys($manager))->not->toContain('cms.setup');
     // And "Recently edited" says it is about entries.
     expect(app(Panel::class)->getWidgets()['cms.recent-edits']->getTitle())->toBe('Recently edited entries');
+});
+
+it('says when an app route answers / instead of the homepage', function () {
+    $manager = adminUser(Panel::ACCESS, 'cms.settings.site');
+    expect(collect(widgetData('cms.setup', $manager)['rows'])->pluck('title')->all())->not->toContain('Your app\'s own / route hides the homepage');
+
+    Route::get('/', fn () => 'welcome');
+
+    expect(collect(widgetData('cms.setup', $manager)['rows'])->firstWhere('title', 'Your app\'s own / route hides the homepage'))
+        ->toMatchArray(['meta' => 'Remove it from routes/web.php: the app\'s routes win over the CMS\'s.', 'tone' => 'warning']);
 });

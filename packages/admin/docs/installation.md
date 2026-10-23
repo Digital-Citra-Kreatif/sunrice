@@ -31,6 +31,8 @@ It sets everything up, and it's safe to run again:
 
 - **The user model.** The panel uses [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) for roles, so first it offers to add the `HasRoles` trait to your user model (`App\Models\User`), before anything loads it. If it can't (a model it doesn't recognise), it stops and says so: add `use Spatie\Permission\Traits\HasRoles;` and `use HasRoles;` to the class yourself, then run the command again.
 - **The panel provider.** When the app has none, it writes `app/Providers/AdminPanelProvider.php` (the panel at `/admin`, named after `APP_NAME`, with every installed plugin, such as the CMS) and adds it to `bootstrap/providers.php`. Edit it afterwards to change the path or the name, or to add your own resources and settings: see [The panel and plugins](panel.md). An app has one panel; an existing provider is left as it is.
+- **Plugins installed later.** When an installed package offers a plugin the panel doesn't have (see [below](#installing-a-plugin-later)), it lists them and offers to add them to the panel provider. `--plugins` adds them without asking; without interaction (`--no-interaction`) it only says what to add.
+- **The plugins' steps.** After the permissions and roles, it runs the install steps plugins add ([The install step](plugins.md#the-install-step)). The CMS's: when the app's own `/` route answers the site's address (Laravel's `Route::get('/', function () { return view('welcome'); });` in `routes/web.php`, which a new Laravel app has), the homepage chosen in Settings → Site never shows, because the app's routes win over the CMS's. It explains this and offers to remove Laravel's welcome route from `routes/web.php` (the closure, arrow-function or `Route::view('/', 'welcome')` form). Without interaction it prints the lines to remove. A `/` route of your own is left alone, with a note.
 - **The rest.** It publishes `config/sunrice-admin.php` (when you don't have it yet), runs the migrations, publishes the admin's assets (the panel's, and the plugins' through the `laravel-assets` tag), links `public/storage` for the media library, syncs the permissions, creates the [default roles](permissions.md#default-roles) (`--roles`), and offers to create a super admin (`--no-user` skips it; `php artisan sunrice:make-admin` does it later).
 
 The provider it writes, for an app named Acme with the CMS:
@@ -59,6 +61,27 @@ final class AdminPanelProvider extends PanelProvider
 ```
 
 Sign in at `/admin`.
+
+### Installing a plugin later
+
+Installed the panel first and a plugin (the CMS, say) afterwards? Require it, then run the install command again:
+
+```bash
+composer require sunrice/cms
+php artisan sunrice:install
+```
+
+It finds the plugins installed packages offer (each names its plugin class in its `composer.json`, see [Plugins](plugins.md#the-layout)) that the panel doesn't have, and offers to add them to your panel provider: an import for each (`use Sunrice\Cms\CmsPlugin;`, in order with the others) and a `->plugin(CmsPlugin::make())` at the end of the `return $panel->…;` chain in `panel()`, indented like the rest. Run it again and nothing is added twice. Then it carries on as usual (migrations, assets …); the plugins' permissions (and roles, with `--roles`) are synced by a fresh `php artisan sunrice:sync-permissions` (`sunrice:roles`), because the panel of the command that's running was set up before the plugins were added. If that fails, it tells you to run them yourself.
+
+It edits the provider only when it's the app's own file and `panel()` is one `return $panel->…;` (or `return $panel;`) statement. Anything else (a provider that builds the panel another way, in a package, or a file it can't write) is left as it is, and so is the file when you answer no or run without interaction: it prints the lines to add, and where:
+
+```
+  To add them, in app/Providers/AdminPanelProvider.php, import them:
+    use Sunrice\Cms\CmsPlugin;
+  and add to the end of `return $panel->…;` in panel(), before the `;`:
+    ->plugin(CmsPlugin::make())
+  Then run php artisan sunrice:install again.
+```
 
 The CMS's config is published separately when you want to change it: `php artisan vendor:publish --tag=sunrice-cms-config`. Its starter templates for the site: `php artisan vendor:publish --tag=sunrice-cms-templates` (see [the site](../../cms/docs/site.md#starter-templates)).
 
