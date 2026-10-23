@@ -119,6 +119,9 @@ final class Panel
     /** @var array<string, RegisteredSettings> keyed by the section's key */
     private array $settings = [];
 
+    /** @var array<string, array{controller: class-string, permission: string}> plugins' own pages among the settings sections, keyed by key */
+    private array $settingsPages = [];
+
     private bool $mediaLibrary = true;
 
     private bool $aiAccess = true;
@@ -152,6 +155,9 @@ final class Panel
 
     /** @var class-string<RoleResource>|null */
     private ?string $roleResource = RoleResource::class;
+
+    /** The navigation key of a settings page (settingsPage()) starts with this, then its key. */
+    private const SETTINGS_PAGE = 'settings-page.';
 
     /** URL segments the panel uses itself; resources can't take them. */
     private const RESERVED_KEYS = ['login', 'logout', 'forgot-password', 'reset-password', 'assets', 'settings', 'media', 'activity', 'security', 'profile', 'ai', 'resources', 'docs', 'guide'];
@@ -596,6 +602,45 @@ final class Panel
     }
 
     /**
+     * A page of its own among the settings sections, for what a Settings
+     * class's form can't show (Settings → SEO): at settings/{key} like the
+     * sections ("/admin/settings/seo"), listed in the Settings menu after
+     * the section `$after` (else at the end) for users with `$permission`,
+     * with the sidebar's Settings item current on it.
+     *
+     *     $panel->settingsPage('seo', 'SEO', SeoController::class, 'cms.settings.site', after: 'site');
+     *
+     * `$controller` answers GET settings/{key} with edit() and PUT with
+     * update(), routes "sunrice.admin.settings.{key}.edit" and ".update",
+     * both behind `$permission`. Its page shows the Settings menu
+     * (settingsNavigation(), `SettingsLayout` with `current` = the key).
+     * The key can't be a settings section's: that's an error at boot.
+     *
+     * @param  class-string  $controller
+     */
+    public function settingsPage(string $key, string $label, string $controller, string $permission, ?string $after = null): self
+    {
+        $this->assertRegistering();
+        if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1) {
+            throw new PanelMisconfigured("The settings page \"{$key}\": use lowercase letters, numbers and dashes for its key.");
+        }
+        if (isset($this->settingsPages[$key])) {
+            throw new PanelMisconfigured("Two settings pages have the key \"{$key}\"{$this->owner()}.");
+        }
+        if (! class_exists($controller) || ! method_exists($controller, 'edit') || ! method_exists($controller, 'update')) {
+            throw new PanelMisconfigured("The settings page \"{$key}\" needs a controller with edit() and update(): {$controller}.");
+        }
+        if ($permission === '') {
+            throw new PanelMisconfigured("The settings page \"{$key}\" needs the permission that guards it.");
+        }
+        $this->settingsPages[$key] = ['controller' => $controller, 'permission' => $permission];
+        $this->navigation(NavigationItem::make(self::SETTINGS_PAGE.$key)->label($label)->url('settings/'.$key)->icon('settings')
+            ->inSettings($after)->permission($permission));
+
+        return $this;
+    }
+
+    /**
      * Tools for AI agents (see Sunrice\Admin\Ai\Tool). A plugin's tool names
      * start with its id and an underscore ("shop_list_orders").
      *
@@ -965,6 +1010,11 @@ final class Panel
                 $this->registering = null;
             }
         }
+        foreach (array_keys($this->settingsPages) as $key) {
+            if (isset($this->settings[$key])) {
+                throw new PanelMisconfigured("The settings page \"{$key}\" has the key of the settings section {$this->settings[$key]->class}: give one of them another key.");
+            }
+        }
         $inSettings = array_filter($this->navigation, fn (NavigationItem $item): bool => $item->isInSettings());
         if ($this->settings !== [] || $inSettings !== []) {
             $sections = $this->settings;
@@ -1203,6 +1253,12 @@ final class Panel
         return $this->settings;
     }
 
+    /** @return array<string, array{controller: class-string, permission: string}> the pages among the settings sections (settingsPage()), keyed by key */
+    public function getSettingsPages(): array
+    {
+        return $this->settingsPages;
+    }
+
     /** @return array<string, PluginBundle> keyed by id */
     public function getBundles(): array
     {
@@ -1257,7 +1313,7 @@ final class Panel
     /**
      * The Settings menu for this user: the settings sections they may edit,
      * in the order registered, with the pages put among them
-     * (NavigationItem::inSettings()) after the section each names. For a
+     * (NavigationItem::inSettings(), settingsPage()) after the section each names. For a
      * page of a plugin's own to show the same menu as the Settings pages
      * (with `SettingsNav` from `@imajiner/admin-sdk/ui`).
      *
@@ -1275,7 +1331,8 @@ final class Panel
         uasort($pages, fn (NavigationItem $a, NavigationItem $b) => [$a->getSort(), $a->getLabel()] <=> [$b->getSort(), $b->getLabel()]);
         $placed = []; // pages already put after each section, to keep their order
         foreach ($pages as $item) {
-            $entry = ['key' => $item->key, 'label' => $item->isVerbatim() ? $item->getLabel() : Say::it($item->getLabel()), 'url' => $item->getUrl()];
+            $page = str_starts_with($item->key, self::SETTINGS_PAGE) ? substr($item->key, strlen(self::SETTINGS_PAGE)) : null;
+            $entry = ['key' => $page !== null && isset($this->settingsPages[$page]) ? $page : $item->key, 'label' => $item->isVerbatim() ? $item->getLabel() : Say::it($item->getLabel()), 'url' => $item->getUrl()];
             $after = $item->getSettingsAfter();
             $index = $after === null ? false : array_search($after, array_column($entries, 'key'), true);
             // (A found index means $after names a section.)

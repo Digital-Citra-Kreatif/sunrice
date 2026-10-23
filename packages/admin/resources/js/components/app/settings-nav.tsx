@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 export interface SettingsNavEntry {
     key: string;
     label: string;
-    /** Its address under the panel: "settings/site", "cms/seo". */
+    /** Its address under the panel: "settings/site", "settings/seo". */
     url: string;
 }
 

@@ -6,6 +6,7 @@ namespace Sunrice\Cms;
 
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Assets\PluginBundle;
 use Sunrice\Admin\BasePlugin;
@@ -88,6 +89,8 @@ final class CmsPlugin extends BasePlugin
     public function register(Panel $panel): void
     {
         $panel->settings(SiteSettings::class, LocaleSettings::class, CodeSettings::class, CommentSettings::class, CacheSettings::class);
+        // Settings → SEO (/admin/settings/seo), after Site: search and sharing, structured data, the fields SEO falls back to.
+        $panel->settingsPage('seo', 'SEO', SeoController::class, 'cms.settings.site', after: 'site');
         // Each permission for one collection, taxonomy or form too (see Support\Access).
         $panel->permissionsUsing(fn (): array => Support\ScopedPermissions::all());
         // Media files take alt text and captions in each content language.
@@ -154,9 +157,6 @@ final class CmsPlugin extends BasePlugin
                 ->group('Content')->sort(55)->visible(fn (Authorizable $user): bool => $user->can('cms.entries.translate') && count(Locales::all()) > 1),
             NavigationItem::make('cms-submissions')->label('Submissions')->url('cms/submissions')->icon('inbox')
                 ->group('Content')->sort(50)->visible(fn (Authorizable $user): bool => Access::submissions($user, 'view')),
-            // In the Settings menu, after Site.
-            NavigationItem::make('cms-seo')->label('SEO')->url('cms/seo')->icon('search')
-                ->inSettings('site')->permission('cms.settings.site'),
             NavigationItem::make('cms-blueprints')->label('Blueprints')->url('cms/blueprints')->icon('layout-template')
                 ->group('Structure')->sort(91)->permission('cms.blueprints.view'),
             NavigationItem::make('cms-fieldsets')->label('Fieldsets')->url('cms/fieldsets')->icon('blocks')
@@ -178,10 +178,9 @@ final class CmsPlugin extends BasePlugin
                         Route::delete("{$area}/{{$model}:handle}", 'destroy')->name('destroy')->middleware("can:cms.{$area}.delete");
                     });
                 }
-                Route::name('seo.')->controller(SeoController::class)->middleware('can:cms.settings.site')->group(function (): void {
-                    Route::get('seo', 'edit')->name('edit');
-                    Route::put('seo', 'update')->name('update');
-                });
+                // Settings → SEO's address in 0.1: on to settings/seo, where it is now.
+                Route::get('seo', fn (): RedirectResponse => redirect()->route('sunrice.admin.settings.seo.edit', status: 301))
+                    ->name('seo.moved')->middleware('can:cms.settings.site');
                 // Settings → Cache's buttons.
                 Route::name('cache.')->controller(CacheController::class)->middleware('can:cms.settings.cache')->group(function (): void {
                     Route::post('cache/clear-pages', 'clearPages')->name('clear-pages');

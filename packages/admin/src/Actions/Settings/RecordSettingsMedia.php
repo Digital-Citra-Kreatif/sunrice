@@ -26,6 +26,9 @@ final class RecordSettingsMedia
     {
         $pickers = array_filter($settings::form(new Form)->fields('edit'), fn ($field): bool => $field instanceof MediaPicker);
         if ($pickers === []) {
+            // None (or none any more: a field moved to another page): nothing used here.
+            $this->usages->forget('sunrice.settings', $settings::key());
+
             return;
         }
         $values = $settings->toArray();

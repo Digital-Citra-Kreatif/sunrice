@@ -351,28 +351,28 @@ it('sets the site\'s SEO and each collection\'s and taxonomy\'s SEO fields in Se
     $this->blog->update(['blueprint' => 'article']);
     $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'blueprint' => 'article']);
     actingAs(adminUser(Panel::ACCESS));
-    get('/admin/cms/seo')->assertForbidden();
+    get('/admin/settings/seo')->assertForbidden();
 
     // Without the structure permissions: only the site's settings.
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
-    get('/admin/cms/seo')->assertOk()->assertInertia(fn ($page) => $page->component('Cms/Seo/Edit', shouldExist: false)
+    get('/admin/settings/seo')->assertOk()->assertInertia(fn ($page) => $page->component('Cms/Seo/Edit', shouldExist: false)
         ->where('collections', null)->where('taxonomies', null)->where('site.appendName', true));
-    put('/admin/cms/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '·', 'twitter' => 'not a handle!']])->assertSessionHasErrors('site.twitter');
-    put('/admin/cms/seo', ['site' => ['noindex' => true, 'appendName' => true, 'separator' => '·', 'twitter' => '@acme'],
+    put('/admin/settings/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '·', 'twitter' => 'not a handle!']])->assertSessionHasErrors('site.twitter');
+    put('/admin/settings/seo', ['site' => ['noindex' => true, 'appendName' => true, 'separator' => '·', 'twitter' => '@acme'],
         'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'title' => 'headline']]])->assertSessionHasNoErrors();
     expect(app(SiteSettings::class)->title('About'))->toBe('About · Acme')
         ->and(app(SiteSettings::class)->noindex)->toBeTrue()
         ->and($this->blog->fresh()?->seo_title_field)->toBeNull();
 
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.collections.update', 'cms.taxonomies.update'));
-    get('/admin/cms/seo')->assertInertia(fn ($page) => $page
+    get('/admin/settings/seo')->assertInertia(fn ($page) => $page
         ->where('collections.0.title', 'Blog')->where('collections.0.blueprint', 'Article')
         ->where('collections.0.options.title', [['value' => 'headline', 'label' => 'Headline']])
         ->where('collections.0.options.image', [['value' => 'cover', 'label' => 'Cover']])
         ->where('taxonomies.0.title', 'Topics'));
     $site = ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => ''];
-    put('/admin/cms/seo', ['site' => $site, 'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'image' => 'headline']]])->assertSessionHasErrors('mappings.0.image');
-    put('/admin/cms/seo', ['site' => $site, 'mappings' => [
+    put('/admin/settings/seo', ['site' => $site, 'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'image' => 'headline']]])->assertSessionHasErrors('mappings.0.image');
+    put('/admin/settings/seo', ['site' => $site, 'mappings' => [
         ['kind' => 'collection', 'id' => $this->blog->id, 'title' => 'headline', 'image' => 'cover'],
         ['kind' => 'taxonomy', 'id' => $topics->id, 'title' => 'headline'],
     ]])->assertSessionHasNoErrors();
@@ -386,12 +386,12 @@ it('offers only the fields of the collection\'s or taxonomy\'s own blueprints fo
     Blueprint::query()->create(['handle' => 'contact_form', 'title' => 'Contact form', 'fields' => [['handle' => 'message', 'type' => 'textarea', 'label' => 'Message']]]);
     $areas = Taxonomy::query()->create(['handle' => 'areas', 'title' => 'Areas', 'blueprint' => 'area']);
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.collections.update', 'cms.taxonomies.update'));
-    $props = get('/admin/cms/seo')->assertOk()->viewData('page')['props'];
+    $props = get('/admin/settings/seo')->assertOk()->viewData('page')['props'];
     $choices = fn (string $kind, int $id) => array_column(collect($props[$kind])->firstWhere('id', $id)['options']['description'], 'value');
 
     expect($choices('collections', $this->blog->id))->toBe(['intro'])
         ->and($choices('taxonomies', $areas->id))->toBe(['summary']);
-    put('/admin/cms/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => ''], 'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'description' => 'message']]])
+    put('/admin/settings/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => ''], 'mappings' => [['kind' => 'collection', 'id' => $this->blog->id, 'description' => 'message']]])
         ->assertSessionHasErrors('mappings.0.description');
 });
 

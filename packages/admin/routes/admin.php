@@ -25,6 +25,13 @@ Route::get('/', app(Panel::class)->getDashboard())->name('dashboard');
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
 Route::post('settings/mail/test', [SettingsController::class, 'testMail'])->middleware('can:sunrice.settings.mail')->name('settings.mail.test');
+// Plugins' own pages among the sections (Panel::settingsPage()), before settings/{section} catches their address.
+foreach (app(Panel::class)->getSettingsPages() as $key => $page) {
+    Route::controller($page['controller'])->middleware('can:'.$page['permission'])->name("settings.{$key}.")->group(function () use ($key): void {
+        Route::get("settings/{$key}", 'edit')->name('edit');
+        Route::put("settings/{$key}", 'update')->name('update');
+    });
+}
 Route::get('settings/{section}', [SettingsController::class, 'edit'])->name('settings.edit');
 Route::put('settings/{section}', [SettingsController::class, 'update'])->name('settings.update');
 

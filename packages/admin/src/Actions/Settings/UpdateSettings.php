@@ -9,6 +9,7 @@ use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Resources\Forms\Field;
 use Sunrice\Admin\Resources\Forms\Toggle;
 use Sunrice\Admin\Settings\RegisteredSettings;
+use Sunrice\Admin\Settings\Settings;
 use Sunrice\Admin\Support\Say;
 
 /**
@@ -31,8 +32,25 @@ final class UpdateSettings
     public function handle(RegisteredSettings $section, array $input): array
     {
         $settings = $section->load();
+
+        return $this->save->handle($settings, self::values($settings, $section->fields(), $input));
+    }
+
+    /**
+     * The input for these fields of the section, validated and made the
+     * properties' values (what SaveSettings takes): only these fields, and
+     * not an empty secret (it keeps its value).
+     *
+     * @param  list<Field>  $fields
+     * @param  array<mixed>  $input
+     * @return array<string, mixed>
+     *
+     * @throws ValidationException
+     */
+    public static function values(Settings $settings, array $fields, array $input): array
+    {
         $current = $settings->toArray();
-        $fields = array_values(array_filter($section->fields(), fn (Field $field) => ! $field->isDisabled(null)));
+        $fields = array_values(array_filter($fields, fn (Field $field) => ! $field->isDisabled(null)));
 
         $rules = [];
         $attributes = [];
@@ -62,6 +80,6 @@ final class UpdateSettings
             $values[$field->name] = $field instanceof Toggle ? (bool) $value : $field->dehydrate($value);
         }
 
-        return $this->save->handle($settings, $values);
+        return $values;
     }
 }
