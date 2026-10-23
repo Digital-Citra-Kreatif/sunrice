@@ -10,7 +10,9 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
 /**
  * Formatted text (HTML) written in the panel's rich text editor: headings,
  * lists, quotes, code, links and, unless ->images(false), images from the
- * media library (they keep `data-media-id`).
+ * media library (they keep `data-media-id`, and the width and alignment
+ * classes of RichTextImageClasses: `sunrice-img sunrice-img-w-50
+ * sunrice-img-left`; any other class is dropped).
  *
  * The HTML is sanitised when it's saved: only that formatting is kept, so
  * no script, style or event handler is stored; links may be http(s),
@@ -85,7 +87,8 @@ final class RichText extends Field
         }
         $config = (new HtmlSanitizerConfig)
             ->allowElement('a', ['href', 'title', 'target'])
-            ->allowElement('img', ['src', 'alt', 'title', 'width', 'height', 'data-media-id'])
+            ->allowElement('img', ['src', 'alt', 'title', 'width', 'height', 'data-media-id', 'class'])
+            ->withAttributeSanitizer(new RichTextImageClasses)
             ->allowLinkSchemes(['http', 'https', 'mailto', 'tel'])
             ->allowMediaSchemes(['http', 'https'])
             ->allowRelativeLinks()
