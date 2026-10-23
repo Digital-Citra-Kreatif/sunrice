@@ -64,6 +64,8 @@ it('lists SEO in the Settings menu after Site, at settings/seo, not in the sideb
         ->where('settingsNav.1', ['key' => 'seo', 'label' => 'SEO', 'url' => 'settings/seo']));
     // Its address in 0.1 moved for good.
     get('/admin/cms/seo')->assertStatus(301)->assertRedirect('/admin/settings/seo');
+    // With the query it was given.
+    get('/admin/cms/seo?tab=sharing&locale=id')->assertStatus(301)->assertRedirect('/admin/settings/seo?tab=sharing&locale=id');
     // Without cms.settings.site: neither the page nor its place in the menu.
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.locales'));
     expect(array_column(app(Panel::class)->settingsNavigation(auth()->user()), 'key'))->toBe(['locales']);

@@ -85,6 +85,10 @@ It edits the provider only when it's the app's own file and `panel()` is one `re
 
 The CMS's config is published separately when you want to change it: `php artisan vendor:publish --tag=sunrice-cms-config`. Its starter templates for the site: `php artisan vendor:publish --tag=sunrice-cms-templates` (see [the site](../../cms/docs/site.md#starter-templates)).
 
+### Starting from a starter site
+
+A new CMS site is empty: no pages, no templates of its own, and `/` is a 404 until you choose a homepage in Settings → Site. To begin with a whole site instead (structure, sample content with its images, templates, CSS, a homepage), install a starter with the starter kit: `composer require sunrice/starter-kit`, then `php artisan sunrice:starter blog` for its small Blog starter, after `sunrice:install`. See [Starter sites](../../starter-kit/docs/starters.md) for the starters there are, what installing one does and how to make your own.
+
 ## On the server
 
 ### The scheduler

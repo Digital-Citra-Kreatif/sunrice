@@ -90,3 +90,23 @@ test('CodeMirror loads in chunks of its own, never with the panel\'s main script
     const importers = Object.entries(manifest).filter(([, chunk]) => (chunk.imports ?? []).includes(codemirror)).map(([key]) => key);
     assert.ok(importers.every((key) => /code-editor-view|@codemirror\/lang-/.test(key)), importers.join(', '));
 });
+
+test('HTML closes no tags for you: typing `<div>Hi</div>` keeps one `</div>`', async () => {
+    const { HTML_OPTIONS, loadLanguage } = await import('../../packages/admin/resources/js/components/app/code-editor-languages.ts');
+    const { EditorState } = await import('@codemirror/state');
+    const { EditorView } = await import('@codemirror/view');
+    const { html } = await import('@codemirror/lang-html');
+    assert.deepEqual(HTML_OPTIONS, { autoCloseTags: false });
+
+    // autoCloseTags is an input handler (it inserts `</div>` on `>` and `</`): the editor's HTML has none.
+    const handlers = (extension: unknown) => EditorState.create({ extensions: extension as never }).facet(EditorView.inputHandler).length;
+    assert.ok(handlers(html()) > 0, 'CodeMirror\'s default closes tags');
+    assert.equal(handlers(await loadLanguage('html')), 0);
+
+    // Nor does any language bring closeBrackets (also an input handler), which would double a typed `)` or `"`.
+    for (const language of ['css', 'javascript', 'json'] as const) {
+        assert.equal(handlers(await loadLanguage(language)), 0, language);
+    }
+    const view = readFileSync(new URL('../../packages/admin/resources/js/components/app/code-editor-view.tsx', import.meta.url), 'utf8');
+    assert.doesNotMatch(view, /closeBrackets|autoCloseTags/);
+});
