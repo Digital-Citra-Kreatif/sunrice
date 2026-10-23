@@ -328,3 +328,13 @@ it('keeps a listing\'s or term page\'s filters in the other languages\' addresse
     get('/tags/news?page=1&q=x')->assertOk();
     expect(Content::localeUrls())->toBe(['en' => url('/tags/news').'?page=1&q=x', 'id' => url('/id/tags/news').'?page=1&q=x']);
 });
+
+it('renders rich text images with the editor\'s width and alignment classes, and nothing else', function () {
+    sitePost($this->blog, 'Pictures', ['body' => '<p><img src="/media/saw.jpg" alt="A saw" class="sunrice-img sunrice-img-w-50 sunrice-img-left wide" style="width:900px" data-media-id="3">Text wraps.</p><p><img src="/media/old.jpg" alt="Old"></p>']);
+
+    get('/blog/pictures')->assertOk()
+        ->assertSee('class="sunrice-img sunrice-img-w-50 sunrice-img-left"', false)
+        ->assertSee('alt="A saw"', false)
+        ->assertSee('<img src="/media/old.jpg" alt="Old" />', false)
+        ->assertDontSee('wide', false)->assertDontSee('width:900px', false);
+});

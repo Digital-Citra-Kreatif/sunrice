@@ -288,3 +288,14 @@ it('reads the database cache store a few times per page of the site', function (
         expect(count($reads))->toBeLessThanOrEqual($budget, $path);
     }
 });
+
+it('styles rich text images\' width and alignment presets in the blog\'s site.css and the starter templates\'', function () {
+    foreach ([dirname(__DIR__, 2).'/packages/starter-kit/starters/blog/public/cms/site.css', dirname(__DIR__, 2).'/packages/cms/stubs/public/site.css'] as $file) {
+        $css = (string) file_get_contents($file);
+        foreach (['sunrice-img', 'sunrice-img-w-25', 'sunrice-img-w-50', 'sunrice-img-w-75', 'sunrice-img-w-100', 'sunrice-img-left', 'sunrice-img-right', 'sunrice-img-center', 'sunrice-img-full'] as $class) {
+            expect($css)->toContain(".{$class}");
+        }
+        // Floats become full-width blocks on narrow screens (640px).
+        expect($css)->toMatch('/@media \(max-width: 40em\) \{\s*\.sunrice-img-left, \.sunrice-img-right \{ float: none; width: 100%;/');
+    }
+});
