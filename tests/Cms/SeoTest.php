@@ -99,10 +99,9 @@ it('gives each page of a listing or term its own canonical and alternate URLs', 
     $this->blog->update(['listing_route' => '/blog', 'per_page' => 1]);
     $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'route' => '/topics/{slug}']);
     $news = app(SaveTerm::class)->handle($topics, ['title' => 'News']);
-    Blueprint::query()->create(['handle' => 'tagged', 'title' => 'Tagged', 'fields' => [['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics', 'multiple' => true]]]]);
-    $this->blog->update(['blueprint' => 'tagged']);
+    $topics->collections()->attach($this->blog);
     foreach (range(1, 11) as $n) {
-        seoPost($this->blog, "Post {$n}", ['data' => ['topics' => [$news->id]]]);
+        seoPost($this->blog, "Post {$n}", ['terms' => ['topics' => [$news->id]]]);
     }
 
     get('/blog')->assertOk()->assertSee('<link rel="canonical" href="'.url('/blog').'">', false);

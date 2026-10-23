@@ -43,8 +43,10 @@ it('tells the term editor whether a new slug moves the term\'s page, and where t
 });
 
 it('gives terms pages listing their live entries, with their fields and SEO', function () {
-    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => 'Hello', 'data' => ['topics' => [$this->news->id]]]));
-    app(CreateEntry::class)->handle($this->blog, ['title' => 'Draft', 'data' => ['topics' => [$this->news->id]]]);
+    // The blog's entries have its terms, without term pages of its own.
+    $this->topics->collections()->attach($this->blog->id, ['term_pages' => false, 'index_page' => false]);
+    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => 'Hello', 'terms' => ['topics' => [$this->news->id]]]));
+    app(CreateEntry::class)->handle($this->blog, ['title' => 'Draft', 'terms' => ['topics' => [$this->news->id]]]);
     app(SaveTermContent::class)->handle($this->news, ['data' => ['about' => 'All the <news>'], 'seo' => ['description' => 'News, daily']]);
 
     get('/topics/news')->assertOk()->assertSee('<h1>News</h1>', false)->assertSee('All the &lt;news&gt;', false)
