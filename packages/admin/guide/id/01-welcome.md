@@ -36,6 +36,10 @@ Email tidak datang? Periksa folder spam, lalu klik **Kirim kode baru** (bisa dim
 
 Memilih kata sandi baru juga mengeluarkan Anda dari komputer lain tempat Anda mencentang *Ingat saya*.
 
+Kata sandi baru mengikuti aturan situs Anda, biasanya 12 karakter atau lebih dengan huruf besar dan kecil, angka, dan simbol; daftar periksa di bawah kata sandi mencentang setiap aturan saat Anda mengetik. Kata sandi yang pernah muncul dalam kebocoran data yang diketahui ditolak, meskipun terlihat kuat.
+
+Jika kata sandi Anda tidak lagi memenuhi aturan, panel meminta Anda **Pilih kata sandi yang lebih kuat** tepat setelah masuk: ketik kata sandi baru dua kali dan klik **Simpan kata sandi baru**, lalu Anda melanjutkan ke halaman yang dituju. **Keluar** di bawahnya keluar tanpa menggantinya.
+
 ### Akun Anda
 
 Untuk mengubah nama, alamat email, atau kata sandi Anda sendiri, klik nama Anda di bagian bawah bilah samping dan pilih **Akun Anda**. Alamat email atau kata sandi baru memerlukan kata sandi Anda saat ini (**Kata sandi saat ini**), dan kata sandi baru diketik dua kali. Peran Anda diubah oleh pengelola situs.

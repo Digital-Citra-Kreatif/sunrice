@@ -18,6 +18,7 @@ use Sunrice\Admin\Http\Middleware\HandleInertiaRequests;
 use Sunrice\Admin\Http\Middleware\PanelSecurityHeaders;
 use Sunrice\Admin\Http\Middleware\RecordRefusedPages;
 use Sunrice\Admin\Http\Middleware\RedirectIfAuthenticated;
+use Sunrice\Admin\Http\Middleware\RequireStrongPassword;
 use Sunrice\Admin\Http\Middleware\SetPanelLocale;
 use Sunrice\Admin\Resources\Http\ResourceController;
 use Sunrice\Admin\Resources\RegisteredResource;
@@ -48,7 +49,7 @@ final class PanelRoutes
     /** @return list<class-string> */
     public static function authenticated(): array
     {
-        return [Authenticate::class, EnsureAccountActive::class, EnsureCanAccessPanel::class];
+        return [Authenticate::class, EnsureAccountActive::class, EnsureCanAccessPanel::class, RequireStrongPassword::class];
     }
 
     /**

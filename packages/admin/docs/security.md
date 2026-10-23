@@ -15,6 +15,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | `account locked` | Too many wrong passwords for one account from any IPs: it's locked for `account_lock_seconds`. |
 | `password reset requested`, `password reset` | The "Forgot password?" form (also for emails without an account) and a completed reset. |
 | `password reset blocked` | Too many forgot or reset password requests from one IP (`password_resets_per_minute`, `password_resets_per_hour`), at most once a minute per IP. |
+| `weak password at sign-in`, `weak password changed` | Someone signed in with a password that fails the [strong password rules](auth.md#weak-passwords-at-sign-in) (the note says which: `fails: length, symbols`), and later chose a stronger one on the page they're sent to. |
 | `upload blocked` | A script, executable or web page, or an SVG that could run code, uploaded to the media library. |
 | `exported` | A resource's CSV export (exports can carry personal data out of the panel). |
 | `roles changed`, `permissions changed` | A user's roles or a role's permissions changed, with what was added and removed (`added` and `removed` lists in the properties, and a note). |

@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Security;
 
 use Spatie\Permission\Models\Role;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
+use Sunrice\Admin\Auth\PasswordPolicy;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\Form;
@@ -26,6 +27,12 @@ final class SecuritySettings extends Settings
 {
     /** After the password, ask for a code sent by email (see TwoFactorLogin). */
     public bool $twoFactor = false;
+
+    /** Every password the panel sets follows the strong rules (PasswordPolicy), unless the config forces it. */
+    public bool $strongPasswords = true;
+
+    /** With strong passwords: someone who signs in with a password that fails them is asked to choose another. */
+    public bool $changeWeakPasswords = true;
 
     /** @var list<string> roles whose people get security alerts, besides super admins and config's */
     public array $alertRoles = [];
@@ -51,6 +58,15 @@ final class SecuritySettings extends Settings
                     }])
                     ->help('Everyone also enters a 6-digit code sent by email. Check that email works first (Settings → Mail → Send a test email), or nobody can sign in.')
                     ->developerHelp('Locked out because email stopped working? Turn it off on the server: `php artisan sunrice:two-factor off`'),
+            ]),
+            Section::make('Passwords')->schema([
+                Toggle::make('strongPasswords')->label('Require strong passwords')
+                    ->disabled(fn (): bool => is_bool(config('sunrice-admin.auth.strong_passwords')))
+                    ->help(__('New passwords need :min characters or more, upper and lower case letters, a number and a symbol, can\'t be the person\'s email address or name, and mustn\'t have appeared in a known data leak. Off: the app\'s own password rules.', ['min' => PasswordPolicy::minLength()]))
+                    ->developerHelp('`sunrice-admin.auth.strong_passwords` (true or false) in config/sunrice-admin.php forces it whatever this says; `auth.password_min` sets the length and `auth.password_uncompromised` the data leak check.'),
+                Toggle::make('changeWeakPasswords')->label('Ask people with a weak password to change it when they sign in')
+                    ->showWhen('strongPasswords', true)
+                    ->help('After signing in, someone whose password doesn\'t meet the rules is asked to choose a stronger one before they can do anything else.'),
             ]),
             Section::make('Security alerts')->schema([
                 CheckboxList::make('alertRoles')->label('Also send alerts to these roles')

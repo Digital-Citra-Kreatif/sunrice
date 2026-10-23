@@ -1,9 +1,11 @@
 import { InputError } from '@/components/app/input-error';
+import { PasswordChecklist } from '@/components/app/password-checklist';
 import { CollapsibleCard } from '@/components/app/collapsible-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { TriangleAlert } from 'lucide-react';
 import { changeWarning } from '@/lib/change-warning';
 import { livePlaceholder, type HelpValue } from '@/lib/live-help';
+import { isPasswordRules } from '@/lib/password-rules';
 import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
 import { t } from '@/lib/i18n';
@@ -59,6 +61,10 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
                                     {input}
                                 </>
                             )}
+                            {field.type === 'password' && isPasswordRules(field.passwordRules) && (
+                                <PasswordChecklist id={`field-${field.name}-rules`} rules={field.passwordRules}
+                                    value={typeof data[field.name] === 'string' ? String(data[field.name]) : ''} />
+                            )}
                             <FieldHelp field={field} data={data} />
                             <div aria-live="polite">
                                 {warning && (
@@ -102,7 +108,7 @@ function PasswordConfirmation({ field, value, onChange }: { field: FieldInfo; va
                 {t('Confirm :field', { field: field.label.toLowerCase() })}
                 {field.required && <span className="text-destructive" aria-hidden>*</span>}
             </Label>
-            <FieldInput field={{ ...field, name, confirmed: false, placeholder: null }} value={value} invalid={false} onChange={onChange} />
+            <FieldInput field={{ ...field, name, confirmed: false, placeholder: null, passwordRules: null }} value={value} invalid={false} onChange={onChange} />
         </div>
     );
 }

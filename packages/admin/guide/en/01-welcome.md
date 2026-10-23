@@ -34,6 +34,10 @@ No email? Look in your spam folder, then click **Send a new code** (you can ask 
 
 Choosing a new password also signs you out on other computers where you ticked *Remember me*.
 
+New passwords follow your site's rules, usually 12 characters or more with upper and lower case letters, a number and a symbol; a checklist under the password ticks each rule as you type. A password that has appeared in a known data leak is refused, even if it looks strong.
+
+If your password no longer meets the rules, the panel asks you to **Choose a stronger password** right after you sign in: type a new one twice and click **Save the new password**, and you carry on where you were going. **Log out** under it leaves without changing it.
+
 ### Your account
 
 To change your own name, email address or password, click your name at the foot of the sidebar and choose **Your account**. A new email address or password needs your **Current password**, and a new password is typed twice. Your roles are changed by a site manager.

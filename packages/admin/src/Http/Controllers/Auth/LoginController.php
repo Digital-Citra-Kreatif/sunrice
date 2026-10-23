@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Admin\Actions\Auth\AttemptLogin;
+use Sunrice\Admin\Auth\TwoFactorLogin;
+use Sunrice\Admin\Auth\WeakPasswordAtLogin;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
@@ -23,7 +25,7 @@ final class LoginController
         return Inertia::render('Auth/Login');
     }
 
-    public function store(Request $request, AttemptLogin $login): RedirectResponse
+    public function store(Request $request, AttemptLogin $login, Panel $panel, WeakPasswordAtLogin $weak, TwoFactorLogin $twoFactor): RedirectResponse
     {
         $request->validate([
             'email' => ['required', 'string', 'email', 'max:255'],
@@ -38,12 +40,23 @@ final class LoginController
             (string) $request->ip(),
             $request,
         );
+        $password = $request->string('password')->toString();
         if ($codeSent) {
+            // A weak password is checked now, while it's at hand; it counts once the code signs them in.
+            $pending = $twoFactor->user($request);
+            if ($pending !== null) {
+                $weak->check($request, $pending, $password, signedIn: false);
+            }
+
             return redirect()->route('sunrice.admin.login.code');
         }
         $request->session()->regenerate();
         // Sessions that signed in before "sign out everywhere" end (AccountGuard).
         $request->session()->put(AccountGuard::LOGIN_AT, now()->getTimestamp());
+        $user = Auth::guard($panel->getGuard())->user();
+        if ($user !== null) {
+            $weak->check($request, $user, $password, signedIn: true);
+        }
 
         return redirect()->intended(route('sunrice.admin.dashboard'));
     }

@@ -7,9 +7,9 @@ namespace Sunrice\Admin\Console;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Traits\HasRoles;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
+use Sunrice\Admin\Auth\PasswordPolicy;
 use Sunrice\Admin\Panel;
 
 /**
@@ -44,11 +44,18 @@ final class MakeAdminCommand extends Command
         $validator = Validator::make($data, [
             'email' => ['required', 'email', 'max:255'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'password' => ['sometimes', 'required', 'string', 'max:1000', Password::defaults()],
+            'password' => ['sometimes', 'required', 'string', 'max:1000', ...PasswordPolicy::rules()],
         ]);
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $error) {
                 $this->components->error($error);
+            }
+            if ($validator->errors()->has('password') && $this->input->isInteractive() && PasswordPolicy::strong()) {
+                $this->components->info(sprintf(
+                    'A password needs %d characters or more, upper and lower case letters, a number and a symbol, and can\'t be the email address or name%s. Try again with one that does.',
+                    PasswordPolicy::minLength(),
+                    PasswordPolicy::checksLeaks() ? ' or a password from a known data leak' : '',
+                ));
             }
 
             return self::FAILURE;

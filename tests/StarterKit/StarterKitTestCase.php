@@ -26,6 +26,8 @@ abstract class StarterKitTestCase extends TestCase
     protected function defineEnvironment($app): void
     {
         $app['config']->set('auth.providers.users.model', User::class);
+        // No calls to Have I Been Pwned from the tests: tests/Admin/StrongPasswordsTest fakes them.
+        $app['config']->set('sunrice-admin.auth.password_uncompromised', false);
         load_migration_paths($app, default_migration_path());
     }
 }

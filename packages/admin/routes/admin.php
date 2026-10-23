@@ -11,6 +11,7 @@ use Sunrice\Admin\Http\Controllers\HelpController;
 use Sunrice\Admin\Http\Controllers\LanguageController;
 use Sunrice\Admin\Http\Controllers\PreferencesController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
+use Sunrice\Admin\Http\Controllers\StrongerPasswordController;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Preferences\Preferences;
 
@@ -43,6 +44,10 @@ Route::delete('kept-edits/{kept}', [EditLocksController::class, 'destroy'])->nam
 // The signed-in user's own account: name, email and password; nobody else's.
 Route::get('account', [AccountController::class, 'edit'])->name('account.edit');
 Route::put('account', [AccountController::class, 'update'])->middleware('throttle:10,1')->name('account.update'); // limits guesses at the current password
+
+// After signing in with a weak password, every page leads here until a stronger one is chosen (RequireStrongPassword).
+Route::get('stronger-password', [StrongerPasswordController::class, 'edit'])->name('password.stronger');
+Route::put('stronger-password', [StrongerPasswordController::class, 'update'])->middleware('throttle:10,1')->name('password.stronger.update');
 
 // The signed-in user's own preferences (useTablePreferences); nobody else's.
 // The panel's language for the signed-in user (PanelLocale).

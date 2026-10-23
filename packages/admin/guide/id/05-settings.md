@@ -5,7 +5,7 @@
 Panel selalu memiliki bagian berikut:
 
 - **Branding**: nama, logo, jenis huruf, warna panel, dan halaman masuk. Lihat [Tampilan dan identitas merek](guide:panel/appearance).
-- **Keamanan**: verifikasi dua langkah (di bawah).
+- **Keamanan**: verifikasi dua langkah dan aturan kata sandi (di bawah).
 - **Email**: cara panel mengirim email, dan email uji coba (di bawah).
 
 Plugin menambahkan bagiannya sendiri. Bagian situs web (CMS) menambahkan **Situs**, **Bahasa**, **Kode situs**, dan **Komentar**: lihat [Pengaturan situs](guide:website/settings).
@@ -23,6 +23,17 @@ Mematikannya dicatat dan diemailkan kepada penerima peringatan keamanan, karena 
 
 > [!TECHNICAL]
 > Terkunci karena email berhenti berfungsi? Di server: `php artisan sunrice:two-factor off`. Lihat [Signing in](docs:panel/auth#two-factor-login).
+
+## Keamanan: kata sandi
+
+**Wajibkan kata sandi yang kuat** menyala kecuali Anda mematikannya. Setiap kata sandi baru, siapa pun yang membuatnya, harus terdiri dari 12 karakter atau lebih, memakai huruf besar dan kecil, angka, dan simbol. Kata sandi tidak boleh sama dengan alamat email atau nama orangnya, dan kata sandi yang pernah muncul dalam kebocoran data yang diketahui ditolak. Di bawah setiap kata sandi baru, daftar periksa mencentang setiap aturan yang sudah terpenuhi.
+
+**Minta orang dengan kata sandi lemah menggantinya saat mereka masuk** (menyala secara bawaan) menangkap kata sandi yang dipilih sebelum aturan ini ada: orang yang masuk dengan kata sandi seperti itu diminta **Pilih kata sandi yang lebih kuat** sebelum bisa melakukan hal lain. Keduanya dicatat di [log aktivitas](guide:panel/activity-log).
+
+Jika dimatikan, kata sandi mengikuti aturan yang ditetapkan developer Anda untuk seluruh aplikasi (biasanya 8 karakter atau lebih). Jika developer Anda mengunci pengaturan ini untuk seluruh situs, saklarnya tidak bisa diubah.
+
+> [!TECHNICAL]
+> Panjang minimum, pemeriksaan kebocoran data, dan penguncian pengaturan ada di `config/sunrice-admin.php`. Lihat [Strong passwords](docs:panel/auth#strong-passwords).
 
 ## Email
 

@@ -7,18 +7,21 @@ import { FormSections } from '@/components/resources/form-sections';
 import type { FieldInfo, SectionInfo } from '@/components/resources/types';
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
+import type { PasswordRules } from '@/lib/password-rules';
 import { t } from '@/lib/i18n';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
 interface Props {
     values: { name: string | null; email: string | null };
+    /** The password rules, for the checklist under the new password (PasswordPolicy::checklist()). */
+    passwordRules?: PasswordRules | null;
 }
 
 const field = (name: string, label: string, type: string, extra: Partial<FieldInfo> = {}): FieldInfo => ({
     kind: 'field', type, name, label, required: false, disabled: false, help: null, placeholder: null, span: 1, ...extra,
 });
 
-const sections = (): SectionInfo[] => [
+const sections = (passwordRules: PasswordRules | null): SectionInfo[] => [
     {
         kind: 'section', title: t('Your account'), description: null, columns: 2,
         fields: [field('name', t('Name'), 'text', { required: true }), field('email', t('Email'), 'text', { required: true, inputType: 'email' })],
@@ -26,14 +29,14 @@ const sections = (): SectionInfo[] => [
     {
         kind: 'section', title: t('Password'), description: t('Leave it empty to keep your current password.'), columns: 1,
         fields: [
-            field('password', t('New password'), 'password', { confirmed: true }),
+            field('password', t('New password'), 'password', { confirmed: true, passwordRules }),
             field('current_password', t('Current password'), 'password', { help: t('Needed to change your email address or password.') }),
         ],
     },
 ];
 
 /** Your account: the signed-in user's own name, email address and password. */
-export default function AccountEdit({ values }: Props) {
+export default function AccountEdit({ values, passwordRules = null }: Props) {
     useBreadcrumbs([{ label: t('Your account') }]);
     const initial = { name: values.name ?? '', email: values.email ?? '', password: '', password_confirmation: '', current_password: '' };
     const form = useForm<Record<string, FieldValue>>(initial);
@@ -65,7 +68,7 @@ export default function AccountEdit({ values }: Props) {
                     </Button>
                 )}
             />
-            <FormSections sections={sections()} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
+            <FormSections sections={sections(passwordRules)} data={form.data} errors={form.errors} onChange={(name, value) => form.setData(name, value)} />
         </form>
     );
 }

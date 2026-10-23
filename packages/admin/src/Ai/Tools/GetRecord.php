@@ -9,6 +9,8 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+use Sunrice\Admin\Resources\Forms\Field;
+use Sunrice\Admin\Resources\Forms\Password;
 use Sunrice\Admin\Resources\Tables\Action;
 
 #[IsReadOnly]
@@ -32,7 +34,8 @@ final class GetRecord extends ResourceTool
         if ($user === null || ! $resource->allows($user, $record === null ? 'create' : 'view', $record)) {
             return $this->denied($record === null ? 'create records here' : 'view this record');
         }
-        $fields = $resource->form()->fields($record === null ? 'create' : 'edit');
+        // Passwords aren't shown, nor offered: agents can't set them (save_record).
+        $fields = array_values(array_filter($resource->form()->fields($record === null ? 'create' : 'edit'), fn (Field $field): bool => ! $field instanceof Password));
 
         return $this->json([
             'resource' => $resource->key(),

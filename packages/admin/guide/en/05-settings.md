@@ -5,7 +5,7 @@
 The panel always has these sections:
 
 - **Branding**: the panel's name, logo, font, colour and sign-in page. See [Appearance and branding](guide:panel/appearance).
-- **Security**: two-factor login (below).
+- **Security**: two-factor login and password rules (below).
 - **Mail**: how the panel sends email, and a test email (below).
 
 Plugins add their own. The website (CMS) adds **Site**, **Languages**, **Site code** and **Comments**: see [The website's settings](guide:website/settings).
@@ -23,6 +23,17 @@ Turning it off is recorded and emailed to the people who receive security alerts
 
 > [!TECHNICAL]
 > Locked out because email stopped working? On the server: `php artisan sunrice:two-factor off`. See [Signing in](docs:panel/auth#two-factor-login).
+
+## Security: passwords
+
+**Require strong passwords** is on unless you turn it off. Every new password, whoever sets it, then needs 12 characters or more, upper and lower case letters, a number and a symbol. It can't be the person's email address or name, and a password that has appeared in a known data leak is refused. Under every new password a checklist ticks each rule as it's met.
+
+**Ask people with a weak password to change it when they sign in** (on by default) catches passwords chosen before the rules: someone who signs in with one is asked to **Choose a stronger password** before they can do anything else. Both are recorded in the [activity log](guide:panel/activity-log).
+
+Turned off, passwords follow the rules your developer set for the whole app (usually 8 characters or more). If your developer has fixed it on or off for the whole site, the switch can't be changed.
+
+> [!TECHNICAL]
+> The length, the data leak check and forcing the setting are in `config/sunrice-admin.php`. See [Strong passwords](docs:panel/auth#strong-passwords).
 
 ## Mail
 

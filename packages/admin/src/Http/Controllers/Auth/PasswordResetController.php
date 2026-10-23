@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Sunrice\Admin\Auth\PasswordPolicy;
 use Sunrice\Admin\Notifications\ResetPanelPassword;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Security\SecurityLog;
@@ -62,15 +62,20 @@ final class PasswordResetController
             'email' => $request->string('email')->toString(),
             // From an invitation: choosing a first password, not a new one (wording only).
             'invited' => $request->boolean('invited'),
+            'passwordRules' => PasswordPolicy::checklist(),
         ]);
     }
 
     public function update(Request $request, SecurityLog $security): RedirectResponse
     {
+        // The account's name is refused as its password only with a valid link,
+        // so the answer can't tell anyone else who has an account.
+        $user = self::broker()->getUser(['email' => $request->string('email')->toString()]);
+        $account = $user instanceof Authenticatable && self::broker()->tokenExists($user, $request->string('token')->toString()) ? $user : null;
         $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'string', 'confirmed', 'max:1000', PasswordRule::defaults()],
+            'password' => ['required', 'string', 'confirmed', 'max:1000', ...PasswordPolicy::rules($account)],
         ]);
 
         $status = self::broker()->reset(

@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
 import { fixedValues, formatPairs, parsePairs, type Pair, withFixedValue } from '@/lib/pairs';
 import { formatList, looksValid, networkOf, parseList } from '@/lib/networks';
+import { isPasswordRules } from '@/lib/password-rules';
 import { slugInput } from '@/lib/slug';
 import { type ChoiceOption, groupOptions, RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
 import { PermissionMatrix } from './permission-matrix';
@@ -50,7 +51,8 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
 
     switch (field.type) {
         case 'password':
-            return <Input {...common} type="password" autoComplete="new-password"
+            // The rules' checklist under it (form-sections) describes it.
+            return <Input {...common} type="password" autoComplete="new-password" aria-describedby={isPasswordRules(field.passwordRules) ? `${id}-rules` : undefined}
                 value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} />;
         case 'media':
             return <MediaPickerInput id={id} disabled={disabled} invalid={invalid} multiple={field.multiple === true}

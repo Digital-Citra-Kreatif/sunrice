@@ -9,7 +9,7 @@ The **Users** list shows each person's name, email address, roles, whether the a
 ### Adding someone
 
 1. Click **New user**.
-2. Under **Account**, type their **Name** and **Email**. Then either type a **Password** and again in **Confirm password**, or leave it empty and turn on **Email an invitation**: they get an email with a link to choose their own password.
+2. Under **Account**, type their **Name** and **Email**. Then either type a **Password** and again in **Confirm password**, or leave it empty and turn on **Email an invitation**: they get an email with a link to choose their own password. A password must meet the site's password rules (see [Settings](guide:panel/settings#security-passwords)); the checklist under it shows what's still missing.
 3. Under **Roles**, tick their roles.
 4. Click **Create user**. Without an invitation, tell them the panel's address and their password.
 

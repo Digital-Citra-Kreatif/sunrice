@@ -41,8 +41,8 @@ It works as the user whose email is in `sunrice-admin.ai.local_user` (`SUNRICE_A
 | --- | --- |
 | `get_panel_info` | Start here: who the agent is, whether its token is read-only, its permissions, and the resources and settings sections it can reach. |
 | `list_records` | A resource's list, as its screen shows it: search, filters, sort, pages. |
-| `get_record` | A record's fields (type, label, required, options) and values, and the actions it may run; without an id, the create form. Passwords and secrets are never shown. |
-| `save_record` | Create a record, or change one: only the fields sent change. Validated exactly like the screen. |
+| `get_record` | A record's fields (type, label, required, options) and values, and the actions it may run; without an id, the create form. Passwords and secrets are never shown, and password fields are left out. |
+| `save_record` | Create a record, or change one: only the fields sent change. Validated exactly like the screen. Passwords can't be set: a new user is invited to choose their own. |
 | `delete_record` | Delete a record (agents are told to ask first). |
 | `run_action` | Run a resource's row or bulk action on records. |
 | `get_settings`, `update_settings` | Read a settings section (secrets show only whether they're set) and change some of its settings. |

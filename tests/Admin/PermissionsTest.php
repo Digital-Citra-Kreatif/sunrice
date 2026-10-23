@@ -82,7 +82,7 @@ it('lets super admins do everything, and others only what their roles allow', fu
 it('makes a super admin from the console', function () {
     usePanel();
 
-    artisan('sunrice:make-admin', ['--name' => 'Boss', '--email' => 'boss@example.com', '--password' => 'a-long-password-1'])
+    artisan('sunrice:make-admin', ['--name' => 'Boss', '--email' => 'boss@example.com', '--password' => 'A-long-password-1!'])
         ->assertSuccessful();
 
     $boss = User::query()->where('email', 'boss@example.com')->firstOrFail();
@@ -94,7 +94,7 @@ it('makes a super admin from the console', function () {
     artisan('sunrice:make-admin', ['--email' => $rina->email])->assertSuccessful();
     expect($rina->fresh()?->hasRole('super-admin'))->toBeTrue();
 
-    artisan('sunrice:make-admin', ['--name' => 'X', '--email' => 'not-an-email', '--password' => 'a-long-password-1'])->assertFailed();
+    artisan('sunrice:make-admin', ['--name' => 'X', '--email' => 'not-an-email', '--password' => 'A-long-password-1!'])->assertFailed();
     artisan('sunrice:make-admin', ['--name' => 'X', '--email' => 'x@example.com', '--password' => 'short'])->assertFailed();
     expect(User::query()->where('email', 'x@example.com')->exists())->toBeFalse();
 });
