@@ -322,10 +322,11 @@ final class EntryController
      */
     public function termPicker(Request $request): JsonResponse
     {
-        /** @var array{taxonomy: string, q?: string|null, ids?: list<int>} $input */
+        /** @var array{taxonomy: string, q?: string|null, offset?: int|string|null, ids?: list<int>} $input */
         $input = $request->validate([
             'taxonomy' => ['required', 'string', 'max:64'],
             'q' => ['nullable', 'string', 'max:200'],
+            'offset' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'ids' => ['nullable', 'array', 'max:500'],
             'ids.*' => ['integer'],
         ]);
@@ -340,7 +341,7 @@ final class EntryController
             return response()->json(['items' => array_map(fn (int $id, string $label): array => ['id' => $id, 'label' => $label, 'depth' => 0], array_keys($labels), $labels), 'more' => false]);
         }
 
-        return response()->json(TermsField::options($taxonomy, trim($input['q'] ?? '')));
+        return response()->json(TermsField::options($taxonomy, trim($input['q'] ?? ''), offset: (int) ($input['offset'] ?? 0)));
     }
 
     public function create(Request $request, Collection $collection): Response

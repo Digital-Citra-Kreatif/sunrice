@@ -1,7 +1,7 @@
-import { j as r, t as o, a as T } from "./admin-GndS-O4T.js";
-import { _ as u } from "./createLucideIcon-Ccbp7F45.js";
+import { j as r, t as o, a as T } from "./admin-m-MSHeg_.js";
+import { _ as d } from "./createLucideIcon-Ccbp7F45.js";
 import { u as g } from "./ui-Dh5wfMwT.js";
-import { E as U, X as _ } from "./EntryStatus-D-6UkdVr.js";
+import { E as U, X as _ } from "./EntryStatus-DcLJvSTt.js";
 import { S as B } from "./search-3zKi7F1_.js";
 function K(e) {
   return e && typeof e == "object" && !Array.isArray(e) ? e : {};
@@ -18,8 +18,8 @@ function H(e) {
   const t = typeof e == "number" ? e : typeof e == "string" && e.trim() !== "" ? Number(e) : NaN;
   return !Number.isFinite(t) || Math.abs(t) < 1e4 ? null : new Intl.NumberFormat("en", { maximumFractionDigits: 20 }).format(t);
 }
-function J(e, t, n, c) {
-  return t || e.some((a) => ["none", ""].includes(a.label.trim().toLowerCase()) || a.value.trim().toLowerCase() === "none") ? !1 : !n || !c;
+function J(e, t, n, a) {
+  return t || e.some((c) => ["none", ""].includes(c.label.trim().toLowerCase()) || c.value.trim().toLowerCase() === "none") ? !1 : !n || !a;
 }
 function R(e) {
   return e.some((t) => t.shared === !0 || R(t.fields ?? []) || (t.blocks ?? []).some((n) => R(n.fields)));
@@ -28,12 +28,12 @@ function W() {
   return { _hidden: !1 };
 }
 function M(e, t, n = 60) {
-  for (const c of e) {
-    const a = t[c.handle];
-    let f = null;
-    ["text", "textarea", "email", "url"].includes(c.type) && typeof a == "string" ? f = a : c.type === "rich_text" && typeof a == "string" ? f = a.replace(/<[^>]*>/g, " ") : c.type === "group" && Array.isArray(c.fields) && (f = M(c.fields, K(a), n));
-    const d = (f ?? "").replace(/\s+/g, " ").trim();
-    if (d !== "") return d.length > n ? `${d.slice(0, n - 1).trimEnd()}…` : d;
+  for (const a of e) {
+    const c = t[a.handle];
+    let u = null;
+    ["text", "textarea", "email", "url"].includes(a.type) && typeof c == "string" ? u = c : a.type === "rich_text" && typeof c == "string" ? u = c.replace(/<[^>]*>/g, " ") : a.type === "group" && Array.isArray(a.fields) && (u = M(a.fields, K(c), n));
+    const f = (u ?? "").replace(/\s+/g, " ").trim();
+    if (f !== "") return f.length > n ? `${f.slice(0, n - 1).trimEnd()}…` : f;
   }
   return null;
 }
@@ -45,20 +45,20 @@ function se(e) {
   return n ? ["http", "https", "mailto", "tel"].includes(n[1].toLowerCase()) : !t.includes("\\");
 }
 function P({ ids: e, search: t, collections: n }) {
-  const c = new URLSearchParams();
-  for (const a of e ?? []) c.append("ids[]", String(a));
-  t && c.set("search", t);
-  for (const a of n) c.append("collections[]", a);
-  return c.toString();
+  const a = new URLSearchParams();
+  for (const c of e ?? []) a.append("ids[]", String(c));
+  t && a.set("search", t);
+  for (const c of n) a.append("collections[]", c);
+  return a.toString();
 }
 let O = 0;
 function te(e, t) {
   return e.length === t ? e.slice() : e.length < t ? [...e, ...Array.from({ length: t - e.length }, () => `k${++O}`)] : e.slice(0, t);
 }
-function ne({ taxonomy: e, q: t, ids: n }) {
+function ne({ taxonomy: e, q: t, offset: n, ids: a }) {
   const c = new URLSearchParams({ taxonomy: e });
-  t && c.set("q", t);
-  for (const a of n ?? []) c.append("ids[]", String(a));
+  t && c.set("q", t), n && c.set("offset", String(n));
+  for (const u of a ?? []) c.append("ids[]", String(u));
   return c.toString();
 }
 async function $(e) {
@@ -70,25 +70,25 @@ async function $(e) {
 function Q(e) {
   return e.length < 2 ? e[0] ?? "" : o(":items and :last", { items: e.slice(0, -1).join(", "), last: e[e.length - 1] });
 }
-function re({ id: e, value: t, multiple: n, max: c, collections: a, invalid: f, onChange: d, emptyHint: N }) {
-  const m = t === null ? [] : Array.isArray(t) ? t : [t], [b, S] = u.useState({}), [p, E] = u.useState(""), [w, h] = u.useState(!1), [x, k] = u.useState(null), [v, C] = u.useState([]), [F, j] = u.useState(!1), L = n && c !== null && m.length >= c, y = m.filter((s) => !b[s]).join(",");
-  u.useEffect(() => {
-    y !== "" && $({ ids: y.split(",").map(Number), collections: a }).then(({ items: s }) => S((l) => ({ ...l, ...Object.fromEntries(s.map((i) => [i.id, i])) }))).catch(() => j(!0));
-  }, [y]), u.useEffect(() => {
+function re({ id: e, value: t, multiple: n, max: a, collections: c, invalid: u, onChange: f, emptyHint: N }) {
+  const m = t === null ? [] : Array.isArray(t) ? t : [t], [b, S] = d.useState({}), [p, E] = d.useState(""), [w, h] = d.useState(!1), [x, k] = d.useState(null), [v, C] = d.useState([]), [F, j] = d.useState(!1), L = n && a !== null && m.length >= a, y = m.filter((s) => !b[s]).join(",");
+  d.useEffect(() => {
+    y !== "" && $({ ids: y.split(",").map(Number), collections: c }).then(({ items: s }) => S((l) => ({ ...l, ...Object.fromEntries(s.map((i) => [i.id, i])) }))).catch(() => j(!0));
+  }, [y]), d.useEffect(() => {
     if (!w) {
       k(null);
       return;
     }
     const s = window.setTimeout(() => {
-      $({ search: p.trim(), collections: a }).then((l) => {
+      $({ search: p.trim(), collections: c }).then((l) => {
         k(l.items), C(l.unavailable), j(!1);
       }).catch(() => j(!0));
     }, p.trim() === "" ? 0 : 250);
     return () => window.clearTimeout(s);
   }, [p, w]);
   const z = (s) => {
-    S((l) => ({ ...l, [s.id]: s })), d(n ? [...m, s.id] : s.id), E("");
-  }, A = (s) => d(n ? s : s[0] ?? null);
+    S((l) => ({ ...l, [s.id]: s })), f(n ? [...m, s.id] : s.id), E("");
+  }, A = (s) => f(n ? s : s[0] ?? null);
   return /* @__PURE__ */ r.jsxs("div", { className: "cms:flex cms:flex-col cms:gap-2", children: [
     m.length > 0 && /* @__PURE__ */ r.jsx(g.SortableList, { items: m, getId: (s) => s, getLabel: (s) => b[s]?.title ?? `Entry #${s}`, onReorder: (s) => A(s), disabled: !n, className: "cms:grid-cols-[minmax(0,1fr)] cms:gap-1", children: (s, { handle: l }) => {
       const i = b[s];
@@ -123,7 +123,7 @@ function re({ id: e, value: t, multiple: n, max: c, collections: a, invalid: f, 
           id: e,
           className: "cms:pl-9",
           placeholder: o("Search entries by title"),
-          "aria-invalid": f,
+          "aria-invalid": u,
           value: p,
           autoComplete: "off",
           "aria-expanded": x !== null,

@@ -1,4 +1,4 @@
-import { t as e } from "./admin-GndS-O4T.js";
+import { t as e } from "./admin-m-MSHeg_.js";
 function n() {
   return [
     { handle: "title", type: "text", label: e("Meta title"), instructions: e("Empty: the title."), config: { max: 255 } },
