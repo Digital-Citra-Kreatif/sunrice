@@ -11,6 +11,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Entries\SaveEntrySettings;
 use Sunrice\Cms\Actions\Entries\UnpublishEntry;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
@@ -460,9 +461,10 @@ it('tells the editor whether the collection has pages, so Preview shows only whe
 });
 
 it('tells the editor which template files are tried for the page, and which exist', function () {
-    // A package's views, under the site's template prefixes.
-    config(['sunrice-cms.site.template_prefixes' => ['cms.', 'sunrice-cms::components.']]);
-    $this->articles->update(['template' => 'sunrice-cms::components.seo']);
+    // A package's views, under the site's template prefixes (never its components, partials and the like).
+    config(['sunrice-cms.site.template_prefixes' => ['cms.', 'sunrice-cms::']]);
+    $this->articles->update(['template' => 'sunrice-cms::listing']);
+    expect(SaveEntrySettings::allowed('sunrice-cms::components.seo'))->toBeFalse();
     $translation = draft();
     $translation->entry->update(['template' => 'cms.special']);
     editor('view', 'update');
@@ -472,7 +474,7 @@ it('tells the editor which template files are tried for the page, and which exis
         // Its slug's view (the main language's slug) before the collection's template.
         ->where('templates.fallbacks', [
             ['view' => 'cms.collections.articles.hello', 'exists' => false],
-            ['view' => 'sunrice-cms::components.seo', 'exists' => true],
+            ['view' => 'sunrice-cms::listing', 'exists' => true],
             ['view' => 'cms.collections.articles.show', 'exists' => false],
             ['view' => 'cms.collections.show', 'exists' => false],
         ]));

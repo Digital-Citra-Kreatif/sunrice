@@ -117,3 +117,17 @@ it('never imports site code from a structure file', function (bool $on) {
         ->toThrow(Exception::class, 'Only the site\'s settings');
     expect(app(CodeSettings::class)->head)->toBe('<script src="https://stats.example.com/a.js"></script>');
 })->with([true, false]);
+
+it('serves no kept page with the site code once it is switched off, nor one without it once it is back on', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
+
+    get('/about')->assertHeader('X-Cache-Status', 'MISS')->assertSee('stats.example.com');
+    get('/about')->assertHeader('X-Cache-Status', 'HIT')->assertSee('stats.example.com');
+
+    config(['sunrice-cms.site.custom_code' => false]);
+    get('/about')->assertHeader('X-Cache-Status', 'MISS')->assertDontSee('stats.example.com');
+    get('/about')->assertHeader('X-Cache-Status', 'HIT')->assertDontSee('stats.example.com');
+
+    config(['sunrice-cms.site.custom_code' => true]);
+    get('/about')->assertHeader('X-Cache-Status', 'HIT')->assertSee('stats.example.com');
+});

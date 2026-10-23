@@ -612,3 +612,24 @@ it('reads a value from the cache store once per request, and the next version af
     $cache->changed('test');
     expect($cache->remember('x', $make))->toBe(2)->and($made)->toBe(2);
 });
+
+it('keeps only the parameters kept pages are told apart by in the language switcher\'s links', function () {
+    config(['sunrice-cms.locales' => ['en', 'id'], 'sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
+    $views = sys_get_temp_dir().'/sunrice-switcher-'.uniqid();
+    mkdir("{$views}/cms/collections", recursive: true);
+    file_put_contents("{$views}/cms/collections/index.blade.php", '<x-sunrice-cms::language-switcher />LIST|{{ implode(",", array_column(Cms::localeUrls(), "url")) }}');
+    View::addLocation($views);
+    $this->blog->update(['per_page' => 1]);
+    cachedPost('Post 1');
+    cachedPost('Post 2');
+
+    get('/blog?utm_content=https%3A%2F%2Fattacker.test&fbclid=1')->assertHeader('X-Cache-Status', 'MISS')
+        ->assertDontSee('attacker.test')->assertDontSee('fbclid')->assertSee('/id/blog');
+    get('/blog')->assertHeader('X-Cache-Status', 'HIT')->assertDontSee('attacker.test');
+    // The page number is kept.
+    get('/blog?page=2&utm_source=mail')->assertHeader('X-Cache-Status', 'MISS')->assertSee('/id/blog?page=2')->assertDontSee('utm_source');
+
+    // Without the page cache, the query string as it is.
+    config(['sunrice-cms.cache.pages' => false]);
+    get('/blog?utm_source=mail')->assertSee('/id/blog?utm_source=mail');
+});

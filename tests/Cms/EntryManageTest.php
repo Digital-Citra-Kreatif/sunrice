@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Activity\Activity;
@@ -15,6 +16,7 @@ use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\ForceDeleteEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Entries\SaveEntrySettings;
 use Sunrice\Cms\Actions\Entries\TrashEntry;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
 use Sunrice\Cms\CmsPlugin;
@@ -198,9 +200,17 @@ it('lets only the collection\'s editors pick a template, under the site\'s prefi
     }
     // A site may keep them to some prefixes.
     config(['sunrice-cms.site.template_prefixes' => ['cms.', 'pages.']]);
-    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'landing'])->assertSessionHasErrors(['template' => 'Use a view under cms., pages., like cms.landing.']);
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'landing'])->assertSessionHasErrors(['template' => 'Use a view under cms., pages., not under layouts, partials, components, errors, vendor, emails, mail, auth, like cms.landing.']);
     put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'pages.landing'])->assertSessionHasNoErrors();
     expect($hello->entry->fresh()?->template)->toBe('pages.landing');
+    // Under the prefixes too: no layout, partial, mail or "_" view.
+    foreach (['cms.layout', 'cms.partials.card', 'cms.layouts.app', 'cms._private', 'cms.emails.welcome', 'pages.partials.x', 'cms:layout'] as $view) {
+        put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => $view])->assertSessionHasErrors('template');
+        expect(SaveEntrySettings::allowed($view))->toBeFalse()
+            ->and(fn () => SaveEntrySettings::template($view))->toThrow(ValidationException::class);
+    }
+    expect($hello->entry->fresh()?->template)->toBe('pages.landing')
+        ->and(SaveEntrySettings::allowed('cms.collections.pages.about'))->toBeTrue();
 
     // Authors of their own entries may change the rest, keeping the template as it is.
     $author = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.create', 'cms.entries.update-own');
