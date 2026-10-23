@@ -59,7 +59,8 @@ export function CollapsibleCard({
 
     return (
         <Card
-            className={cn('gap-0 overflow-hidden py-0', className)}
+            // Clipped, not a scroll box (overflow: clip), so what sticks in it (a permissions table's header) sticks to the page.
+            className={cn('gap-0 overflow-clip py-0', className)}
             onInvalidCapture={(event) => {
                 // The browser can't show a validation bubble on a folded field: open first.
                 if (open) return;
@@ -88,7 +89,7 @@ export function CollapsibleCard({
                 {headerAction && <div className="shrink-0 pr-6">{headerAction}</div>}
             </CardHeader>
             <div id={contentId} data-state={open ? 'open' : 'closed'} className="sunrice-card-content">
-                <div className="min-h-0 overflow-hidden" inert={!open} aria-hidden={!open}>
+                <div className="min-h-0 overflow-clip" inert={!open} aria-hidden={!open}>
                     <CardContent className={cn('py-5', contentClassName)}>{children}</CardContent>
                 </div>
             </div>
