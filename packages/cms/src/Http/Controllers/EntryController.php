@@ -446,6 +446,8 @@ final class EntryController
             'templates' => [
                 'own' => TemplateHelp::lookup([$entry->template])[0] ?? null,
                 'fallbacks' => TemplateHelp::lookup(TemplateLookup::entry($collection, TemplateLookup::entrySlug($translation))),
+                // A view name to show how names map to files.
+                'example' => TemplateHelp::example("{$collection->handle}-landing"),
             ],
             // The views that exist under the template prefixes, to pick from: read when the Template choice opens.
             'templateChoices' => Inertia::optional(fn (): array => TemplateHelp::choices()),

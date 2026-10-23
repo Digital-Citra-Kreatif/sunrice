@@ -17,8 +17,10 @@ export interface TemplateFile {
 export interface TemplateLookup {
     own: TemplateFile | null;
     fallbacks: TemplateFile[];
-    /** The views under the site's template prefixes that exist (partials and layouts left out): loaded when the choice opens. */
+    /** The views that exist to pick from (layouts, partials and the like left out): loaded when the choice opens. */
     choices?: string[];
+    /** A view name to show how names map to files ("pages.blog-landing"). */
+    example?: string;
 }
 
 /** A page's lookup with the views to pick from, once its `templateChoices` prop is loaded (TemplateField asks for it). */
@@ -100,7 +102,7 @@ export function TemplateField({ id, value, onChange, lookup = null, example, aut
     value: string;
     onChange: (value: string) => void;
     lookup?: TemplateLookup | null;
-    /** A view name to show how names map to files: "cms.posts-landing". */
+    /** A view name to show how names map to files, when the lookup has none: "pages.posts-landing". */
     example: string;
     /** What Automatic uses, in words: "Automatic uses the collection's template." */
     automatic: string;
@@ -111,6 +113,15 @@ export function TemplateField({ id, value, onChange, lookup = null, example, aut
     const [typed, setTyped] = React.useState('');
     const loadChoices = () => { if (lookup?.choices === undefined) router.reload({ only: ['templateChoices'] }); };
     const choices = lookup?.choices ?? [];
+    const shown = lookup?.example ?? example;
+    // The site's own folder first, then the other views.
+    const inCms = choices.filter((view) => view.startsWith('cms.'));
+    const others = choices.filter((view) => !view.startsWith('cms.'));
+    const option = (view: string) => (
+        <CommandItem key={view} value={view} onSelect={() => pick(view)}>
+            <Check className={own === view ? '' : 'cms:opacity-0'} /> <span className="cms:truncate cms:font-mono cms:text-xs">{view}</span>
+        </CommandItem>
+    );
     const own = value.trim();
     const used = usedTemplate(value, lookup);
     const missing = missingTemplate(value, lookup);
@@ -132,33 +143,33 @@ export function TemplateField({ id, value, onChange, lookup = null, example, aut
                 </PopoverTrigger>
                 <PopoverContent align="start" className="cms:w-(--radix-popover-trigger-width) cms:min-w-64 cms:p-0">
                     <Command>
-                        <CommandInput placeholder={t('Find or type a view name')} value={typed} onValueChange={setTyped} />
+                        <CommandInput placeholder={t('Automatic, or type a view name')} value={typed} onValueChange={setTyped} />
                         <CommandList>
                             <CommandEmpty>{t('No such view.')}</CommandEmpty>
+                            {/* Whatever is typed, first, so Enter takes it: any view of the app, not only those listed. */}
+                            {candidate !== '' && !choices.includes(candidate) && (
+                                <CommandGroup>
+                                    <CommandItem value={`__typed ${candidate}`} keywords={[candidate]} onSelect={() => pick(candidate)}>
+                                        <Check className="cms:opacity-0" /> <span className="cms:truncate">{t('Use “:view”', { view: candidate })}</span>
+                                    </CommandItem>
+                                </CommandGroup>
+                            )}
                             <CommandGroup>
                                 <CommandItem value="__automatic" keywords={[t('Automatic')]} onSelect={() => pick('')}>
                                     <Check className={own === '' ? '' : 'cms:opacity-0'} /> {t('Automatic')}
                                 </CommandItem>
-                                {choices.map((view) => (
-                                    <CommandItem key={view} value={view} onSelect={() => pick(view)}>
-                                        <Check className={own === view ? '' : 'cms:opacity-0'} /> <span className="cms:truncate cms:font-mono cms:text-xs">{view}</span>
-                                    </CommandItem>
-                                ))}
-                                {candidate !== '' && !choices.includes(candidate) && (
-                                    <CommandItem value={`__typed ${candidate}`} keywords={[candidate]} onSelect={() => pick(candidate)}>
-                                        <Check className="cms:opacity-0" /> <span className="cms:truncate">{t('Use :view', { view: candidate })}</span>
-                                    </CommandItem>
-                                )}
                             </CommandGroup>
+                            {inCms.length > 0 && <CommandGroup heading={t('In cms/')}>{inCms.map(option)}</CommandGroup>}
+                            {others.length > 0 && <CommandGroup heading={inCms.length > 0 ? t('Other views') : t('Views')}>{others.map(option)}</CommandGroup>}
                         </CommandList>
                     </Command>
                 </PopoverContent>
             </Popover>
             {missing && <p className="cms:text-xs cms:text-amber-700 cms:dark:text-amber-400">{t('No such file yet: the page uses the next one until it exists.')}</p>}
             <div className="cms:flex cms:flex-col cms:gap-0.5 cms:text-xs cms:leading-relaxed cms:text-muted-foreground">
-                <p>{t('Files are under resources/views; a name like :example is :file.', { example: '\u0000', file: '\u0001' }).split(/(\u0000|\u0001)/).map((part, i) => part === '\u0000'
-                    ? <code key={i} className="cms:wrap-anywhere">{example}</code>
-                    : part === '\u0001' ? <code key={i} className="cms:wrap-anywhere">{shortViewFile(example)}</code> : part)}</p>
+                <p>{t('A view name from resources/views: :example is :file.', { example: '\u0000', file: '\u0001' }).split(/(\u0000|\u0001)/).map((part, i) => part === '\u0000'
+                    ? <code key={i} className="cms:wrap-anywhere">{shown}</code>
+                    : part === '\u0001' ? <code key={i} className="cms:wrap-anywhere">{shortViewFile(shown)}</code> : part)}</p>
                 <p>{automatic}</p>
             </div>
             {/* The file in use, then the link; the link goes under it when they don't fit side by side. A long path is cut short, whole in its tooltip. */}

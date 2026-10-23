@@ -188,6 +188,8 @@ final class TermController
             'templates' => [
                 'own' => $term === null ? null : (TemplateHelp::lookup([$term->template])[0] ?? null),
                 'fallbacks' => TemplateHelp::lookup(self::termViews($taxonomy, $term?->translation(Locales::default())?->slug)),
+                // A view name to show how names map to files.
+                'example' => TemplateHelp::example("{$taxonomy->handle}-special"),
             ],
             // The views that exist under the template prefixes, to pick from: read when the Template choice opens.
             'templateChoices' => Inertia::optional(fn (): array => TemplateHelp::choices()),

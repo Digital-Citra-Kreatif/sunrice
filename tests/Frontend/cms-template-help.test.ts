@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import type { ComponentType } from 'react';
 import { loadCmsModule, render } from './support/render.ts';
 
-type Lookup = { own: { view: string; exists: boolean } | null; fallbacks: { view: string; exists: boolean }[]; choices?: string[] };
+type Lookup = { own: { view: string; exists: boolean } | null; fallbacks: { view: string; exists: boolean }[]; choices?: string[]; example?: string };
 type Module = {
     TemplateField: ComponentType<any>; TemplateOrder: ComponentType<any>;
     usedTemplate: (value: string, lookup: Lookup | null) => string | null; missingTemplate: (value: string, lookup: Lookup | null) => boolean; shortViewFile: (view: string) => string;
@@ -35,7 +35,9 @@ test('a template setting is a choice with two helper lines and the file in use; 
     assert.match(html, /role="combobox"[^>]*>.*Automatic/);
     // Names → files first, then what Automatic uses.
     // The names wrap anywhere, so a long one never widens the card.
-    assert.match(html, /<p>Files are under resources\/views; a name like <code class="[^"]*wrap-anywhere[^"]*">cms.demo-landing<\/code> is <code class="[^"]*wrap-anywhere[^"]*">cms\/demo-landing.blade.php<\/code>.<\/p><p>Automatic uses the collection&#x27;s template.<\/p>/);
+    assert.match(html, /<p>A view name from resources\/views: <code class="[^"]*wrap-anywhere[^"]*">cms.demo-landing<\/code> is <code class="[^"]*wrap-anywhere[^"]*">cms\/demo-landing.blade.php<\/code>.<\/p><p>Automatic uses the collection&#x27;s template.<\/p>/);
+    // The server's example wins: any folder of the app's views.
+    assert.match(render(TemplateField, { id: 'template', value: '', onChange: () => {}, lookup: { ...lookup, example: 'pages.demo-landing' }, example: 'cms.x', automatic: '' }), /<code[^>]*>pages.demo-landing<\/code> is <code[^>]*>pages\/demo-landing.blade.php<\/code>/);
     // The file in use on one line, the whole path in a tooltip.
     assert.match(html, /Uses<\/span><code title="cms\/collections\/demo\/show.blade.php"[^>]*truncate[^>]*>cms\/collections\/demo\/show.blade.php<\/code>/);
     assert.match(html, />How is it chosen\?<\/button>/);

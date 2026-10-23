@@ -184,7 +184,16 @@ it('lets only the collection\'s editors pick a template, under the site\'s prefi
     put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'layouts.app'])->assertSessionHasErrors('template');
     put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'emails.invoice'])->assertSessionHasErrors('template');
     put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'cms.landing'])->assertSessionHasNoErrors();
+    // By default any of the app's own views, wherever it is, but layouts, partials, components and the like, "_" files and packages' views.
+    foreach (['pages.landing', 'landing', 'site.pages.about'] as $view) {
+        put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => $view])->assertSessionHasNoErrors();
+    }
+    foreach (['cms.partials.header', 'site.components.card', 'errors.404', 'auth.login', 'vendor.x.y', 'pages._draft', 'sunrice-cms::components.seo'] as $view) {
+        put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => $view])->assertSessionHasErrors('template');
+    }
+    // A site may keep them to some prefixes.
     config(['sunrice-cms.site.template_prefixes' => ['cms.', 'pages.']]);
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'landing'])->assertSessionHasErrors(['template' => 'Use a view under cms., pages., like cms.landing.']);
     put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'pages.landing'])->assertSessionHasNoErrors();
     expect($hello->entry->fresh()?->template)->toBe('pages.landing');
 

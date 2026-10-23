@@ -198,7 +198,7 @@ it('speaks of unpublished changes and the live page on the site and in review re
     expect((new ReviewRequested($draft, $this->publisher))->render())->toContain('asks you to review <strong>Never published</strong>')->not->toContain('View the live page');
 });
 
-it('offers the views that exist under the template prefixes, without partials', function () {
+it('offers the views that exist, in cms/ and elsewhere, without partials and layouts', function () {
     $views = (string) (config('view.paths')[0] ?? resource_path('views'));
     // The starter templates' test wants no resources/views/cms: made here, removed after.
     expect(is_dir("{$views}/cms"))->toBeFalse();
@@ -207,15 +207,22 @@ it('offers the views that exist under the template prefixes, without partials', 
     File::put("{$views}/cms/collections/notes/show.blade.php", 'note');
     File::put("{$views}/cms/landing.blade.php", 'landing');
     File::put("{$views}/cms/partials/header.blade.php", 'header');
+    File::ensureDirectoryExists("{$views}/pages");
+    File::ensureDirectoryExists("{$views}/layouts");
+    File::put("{$views}/pages/about.blade.php", 'about');
+    File::put("{$views}/layouts/site.blade.php", 'layout');
     try {
         $translation = changedNote();
         // Not with the page: finding them reads the views folders. Loaded when the Template choice opens.
         get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => $page
-            ->missing('templates.choices')->missing('templateChoices')
+            ->missing('templates.choices')->missing('templateChoices')->where('templates.example', 'pages.notes-landing')
             ->reloadOnly('templateChoices', fn (Assert $reload) => $reload
                 ->where('templateChoices', fn ($choices) => collect($choices)->contains('cms.collections.notes.show')
-                    && collect($choices)->contains('cms.landing') && ! collect($choices)->contains('cms.partials.header'))));
+                    && collect($choices)->contains('cms.landing') && collect($choices)->contains('pages.about')
+                    && ! collect($choices)->contains('cms.partials.header') && ! collect($choices)->contains('layouts.site'))));
     } finally {
         File::deleteDirectory("{$views}/cms");
+        File::deleteDirectory("{$views}/pages");
+        File::deleteDirectory("{$views}/layouts");
     }
 });
