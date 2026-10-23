@@ -27,7 +27,7 @@ final class StrongerPasswordController
     public function edit(Request $request): Response|RedirectResponse
     {
         $user = $this->user($request);
-        if (! $this->weak->flagged($request, $user)) {
+        if (! $this->weak->flagged($user)) {
             return redirect()->route('sunrice.admin.dashboard');
         }
 
@@ -40,11 +40,10 @@ final class StrongerPasswordController
     public function update(Request $request, ChooseStrongerPassword $choose): RedirectResponse
     {
         $user = $this->user($request);
-        if (! $this->weak->flagged($request, $user)) {
+        if (! $this->weak->flagged($user)) {
             return redirect()->route('sunrice.admin.dashboard');
         }
         $choose->handle($user, $request->only('password', 'password_confirmation'));
-        $this->weak->clear($request);
 
         return redirect()->intended(route('sunrice.admin.dashboard'))->with('success', __('Your new password is saved.'));
     }

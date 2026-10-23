@@ -13,8 +13,9 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Someone who signed in with a weak password (WeakPasswordAtLogin) is
  * sent to "Choose a stronger password" from every panel page until they
- * do. Logging out stays open (it isn't behind this middleware). Requests
- * by AI access tokens have no session and aren't affected.
+ * do, in every session ("Remember me" too). Logging out stays open (it
+ * isn't behind this middleware). Requests by AI access tokens have no
+ * session and aren't affected.
  *
  * @internal
  */
@@ -29,7 +30,7 @@ final class RequireStrongPassword
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if (! $request->hasSession() || ! $user instanceof Authenticatable || $request->routeIs(...self::ALLOWED) || ! $this->weak->flagged($request, $user)) {
+        if (! $request->hasSession() || ! $user instanceof Authenticatable || $request->routeIs(...self::ALLOWED) || ! $this->weak->flagged($user)) {
             return $next($request);
         }
         // The panel's own fetch() calls (not Inertia visits) get an answer they can show.

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Actions\Users;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Sunrice\Admin\Actions\Ai\RevokeAiTokens;
+use Sunrice\Admin\Auth\WeakPasswordAtLogin;
 use Sunrice\Admin\Locks\KeptEdit;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Preferences\Preferences;
@@ -98,6 +100,9 @@ final class DeleteUser
             $this->tokens->all($user);
             $id = $user->getKey();
             $id = is_scalar($id) ? (string) $id : '';
+            if ($user instanceof Authenticatable) {
+                app(WeakPasswordAtLogin::class)->clear($user);
+            }
             AccountSecurity::query()->where('user_id', $id)->delete();
             KeptEdit::query()->where('user_id', $id)->delete();
             app(Preferences::class)->forgetUser($id);
