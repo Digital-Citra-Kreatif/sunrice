@@ -126,7 +126,7 @@ it('edits a section: validated, typed, secrets kept when left empty', function (
 
     get('/admin/settings/shop')->assertInertia(fn (Assert $page) => $page
         ->component('Settings/Edit', shouldExist: false)
-        ->where('section', ['key' => 'shop', 'label' => 'Shop', 'description' => 'How the shop sells.'])
+        ->where('section', ['key' => 'shop', 'label' => 'Shop', 'description' => 'How the shop sells.', 'warning' => null])
         ->where('sections', [['key' => 'outbox', 'label' => 'Outbox', 'url' => 'settings/outbox'], ['key' => 'shop', 'label' => 'Shop', 'url' => 'settings/shop']])
         ->where('values', ['name' => 'Shop', 'currency' => 'IDR', 'guestCheckout' => true, 'freeShippingFrom' => null, 'taxRate' => 0.11, 'countries' => ['ID'], 'paymentKey' => null])
         ->where('secrets', ['paymentKey' => false])

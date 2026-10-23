@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, useForm } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, TriangleAlert } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { PageHeader } from '@/components/app/page-header';
 import { SettingsNav, type SettingsNavEntry } from '@/components/app/settings-nav';
@@ -15,7 +15,7 @@ import { t } from '@/lib/i18n';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
 interface Props {
-    section: { key: string; label: string; description: string | null };
+    section: { key: string; label: string; description: string | null; warning?: string | null };
     /** The Settings menu: the sections and the pages among them (Panel::settingsNavigation()). */
     sections: SettingsNavEntry[];
     form: SectionInfo[];
@@ -80,6 +80,13 @@ function SettingsForm({ section, sections, form: schema, values, secrets, cards 
                         </Button>
                     )}
                 />
+                {section.warning && (
+                    // Settings::warning(): what can go wrong here, before anything is changed.
+                    <div role="note" className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-amber-900 dark:text-amber-200">
+                        <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                        <p>{section.warning}</p>
+                    </div>
+                )}
                 {editable && <FormSections sections={shown} data={form.data} errors={form.errors} storageKey={`sunrice:settings:${section.key}`} onChange={(name, value) => form.setData(name, value)} />}
                 <InfoCards cards={cards} />
             </form>

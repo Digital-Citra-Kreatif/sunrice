@@ -69,6 +69,27 @@ abstract class Settings
     }
 
     /**
+     * Whether the section is in use (a config switch can turn a feature
+     * off): when false it's left out of the Settings menu, its page is not
+     * found and agents' tools don't see it. Its permission stays, and so
+     * do its stored values, ready for when it's back on.
+     */
+    public static function available(): bool
+    {
+        return true;
+    }
+
+    /**
+     * A warning shown at the top of the section's page, above its form:
+     * what can go wrong with these settings (code run on every page, a key
+     * that charges money). Translated with __(). None by default.
+     */
+    public static function warning(): ?string
+    {
+        return null;
+    }
+
+    /**
      * Read-only cards under the section's form, for `$user` (who may edit
      * the section): how something is set up outside the panel, with
      * buttons to try it. Nothing by default. A section without fields

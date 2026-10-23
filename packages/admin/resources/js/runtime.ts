@@ -10,6 +10,7 @@ import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { CollapsibleCard } from '@/components/app/collapsible-card';
 import { registerCommandSource } from '@/components/app/command-palette';
 import { deferred } from '@/components/app/deferred';
+import { CodeEditor } from '@/components/app/code-editor';
 import { DeveloperHelp } from '@/components/app/developer-help';
 import { KeptEditsNotice, useEditLock, ViewingNotice } from '@/components/app/edit-lock';
 import { PageHeader } from '@/components/app/page-header';
@@ -52,7 +53,7 @@ const SortableHandle = deferred(() => import('@/components/app/sortable-list'), 
 
 /** What `@imajiner/admin-sdk/ui` gives plugins. Keep in step with SHARED_MODULES (a test checks). */
 const ui = {
-    Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, CollapsibleCard,
+    Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, CodeEditor, CollapsibleCard,
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker, DeveloperHelp,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
