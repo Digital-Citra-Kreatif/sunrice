@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Vite;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
@@ -190,10 +189,11 @@ it('never prints stored values that are not a known font or a colour', function 
 });
 
 it('carries the CSP nonce on the branding styles', function () {
-    Vite::useCspNonce('n0nc3');
     brand(['color' => '#1e66f5']);
 
-    get('/admin/login')->assertOk()->assertSee('nonce="n0nc3" >html:root{--primary:#1e66f5', false);
+    $response = get('/admin/login')->assertOk();
+    preg_match("/'nonce-([A-Za-z0-9]+)'/", (string) $response->headers->get('Content-Security-Policy'), $nonce);
+    $response->assertSee('nonce="'.$nonce[1].'" >html:root{--primary:#1e66f5', false);
 });
 
 it('shares the branding with every page, with the panel\'s defaults for what is empty', function () {

@@ -171,7 +171,7 @@ Behind a CDN or caching proxy, the same goes: keep the hashed files (`/vendor/su
 - Headers for the media directory at the web server ([Media](media.md#headers-at-the-web-server)).
 - The scheduler and a queue worker (above).
 - [Two-factor login](auth.md#two-factor-login) on (Settings → Security), recommended for any panel with administrators.
-- A `Content-Security-Policy` for the panel (`SUNRICE_CSP`, see [Security headers](security.md#security-headers)) and, if your templates allow it, for the site (`SUNRICE_SITE_CSP` in the CMS's `site.headers`).
+- The panel's [Content-Security-Policy](security.md#content-security-policy) is on: check the browser console after customising the panel (`SUNRICE_CSP_REPORT_ONLY=true` reports without blocking), and turn on the site's if your templates allow it (`SUNRICE_SITE_CSP_ENABLED`, the CMS's `site.csp`).
 
 ## Upgrading
 

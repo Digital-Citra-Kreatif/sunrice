@@ -119,7 +119,21 @@ final class AdminAssets
         $vite = (new Vite)
             ->useBuildDirectory(self::BUILD_DIRECTORY)
             ->useHotFile(public_path(self::BUILD_DIRECTORY.'/hot'));
+        // The request's CSP nonce (PanelSecurityHeaders), which this instance doesn't share with the app's Vite.
+        $nonce = app(Vite::class)->cspNonce();
+        if (is_string($nonce) && $nonce !== '') {
+            $vite->useCspNonce($nonce);
+        }
 
         return $vite(self::ENTRY);
+    }
+
+    /** The Vite dev server's URL while the panel is developed (its hot file), else null. */
+    public static function hotUrl(): ?string
+    {
+        $hot = public_path(self::BUILD_DIRECTORY.'/hot');
+        $url = is_file($hot) ? trim((string) file_get_contents($hot)) : '';
+
+        return $url === '' ? null : $url;
     }
 }

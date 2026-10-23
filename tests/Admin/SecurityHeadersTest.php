@@ -15,7 +15,7 @@ it('sends security headers on every panel response', function () {
 
     $secured = fn (TestResponse $response) => $response
         ->assertHeader('X-Frame-Options', 'DENY')->assertHeader('Referrer-Policy', 'same-origin')->assertHeader('X-Content-Type-Options', 'nosniff');
-    $secured(get('/admin/login')->assertOk())->assertHeaderMissing('Content-Security-Policy');
+    $secured(get('/admin/login')->assertOk())->assertHeader('Content-Security-Policy');
     $secured(get('/admin')->assertRedirect('/admin/login'));
 
     actingAs(adminUser(Panel::ACCESS));
@@ -23,7 +23,7 @@ it('sends security headers on every panel response', function () {
     $secured(get('/admin/reports')->assertOk());
 });
 
-it('sends a Content-Security-Policy when the app sets one', function () {
+it('sends the app\'s own Content-Security-Policy as is instead of the panel\'s', function () {
     config(['sunrice-admin.security.headers.csp' => "default-src 'self'; frame-ancestors 'none'"]);
     usePanel();
 
