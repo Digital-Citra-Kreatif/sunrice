@@ -72,7 +72,7 @@ it('publishes the starter templates, and the site renders with them', function (
     auth()->logout();
 
     artisan('vendor:publish', ['--tag' => 'sunrice-cms-templates'])->assertSuccessful();
-    foreach (['layout', 'collections/show', 'collections/index', 'taxonomies/show', 'taxonomies/index', 'search', 'comment-unsubscribe', 'partials/card', 'partials/pagination', 'partials/language-switcher', 'partials/menu', 'partials/blocks', 'partials/block', 'partials/fields'] as $view) {
+    foreach (['layout', 'collections/show', 'collections/index', 'taxonomies/show', 'taxonomies/index', 'search', 'comment-unsubscribe', 'partials/card', 'partials/pagination', 'partials/menu', 'partials/blocks', 'partials/block', 'partials/fields'] as $view) {
         expect(resource_path("views/cms/{$view}.blade.php"))->toBeFile();
     }
     expect(resource_path('views/errors/404.blade.php'))->toBeFile()
@@ -92,6 +92,8 @@ it('publishes the starter templates, and the site renders with them', function (
         ->assertSee('<body class="page-entry collection-blog', false)
         // The menu marks the page, and the switcher links the other language.
         ->assertSee('<a href="'.url('/blog/hello').'" aria-current="page"', false)
+        ->assertSee('<nav aria-label="Languages" class="language-switcher">', false)
+        ->assertSee('<span aria-current="true" lang="en">English</span>', false)
         ->assertSee('href="'.url('/id/blog/halo').'" hreflang="id" lang="id"', false)
         ->assertDontSee('<script>', false);
 
