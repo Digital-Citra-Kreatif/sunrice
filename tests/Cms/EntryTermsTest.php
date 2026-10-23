@@ -464,3 +464,33 @@ it('puts the terms of an entry published for later on the site when its time com
     app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->php->id]]]));
     expect(liveTerms($note))->toBe([$this->php->id]);
 });
+
+it('shows the entry\'s terms in compare dialogs and to AI clients only of the taxonomies the card shows', function () {
+    $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]]);
+    app(CreateTranslation::class)->handle($note->entry, 'id');
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->laravel->id], 'format' => [$this->howto->id]]);
+    $first = Revision::query()->where('entry_translation_id', $note->id)->firstOrFail();
+    $mcp = function (EntryTranslation $note): array {
+        $token = AiToken::issue((string) auth()->id(), 'Claude')[1];
+
+        return json_decode((string) $this->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => ['name' => 'cms_get_entry', 'arguments' => ['id' => $note->entry_id]]], ['Authorization' => "Bearer {$token}"])->json('result.content.0.text'), true);
+    };
+
+    // A translator who may see Tags' terms: Tags only.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate', 'cms.terms.tags.view', 'sunrice.ai.connect'));
+    get("/admin/cms/entries/{$note->entry_id}/translations/en/compare-live")->assertOk()->assertExactJson(['fields' => [['label' => 'Tags', 'live' => 'PHP', 'draft' => 'Laravel']]]);
+    get("/admin/cms/entries/{$note->entry_id}/revisions/{$first->id}/compare")->assertOk()->assertExactJson(['fields' => [['label' => 'Tags', 'revision' => 'PHP', 'draft' => 'Laravel']]]);
+    get(entryEditUrl($note->entry_id))->assertInertia(fn (Assert $page) => $page->where('entry.live.changed', ['terms.tags']));
+    $entry = $mcp($note);
+    expect(array_column($entry['taxonomies'], 'handle'))->toBe(['tags'])
+        ->and(array_keys($entry['terms']))->toBe(['tags'])->and(array_keys($entry['live_terms']))->toBe(['tags']);
+
+    // Without any terms permission: none.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate', 'sunrice.ai.connect'));
+    get("/admin/cms/entries/{$note->entry_id}/translations/en/compare-live")->assertOk()->assertExactJson(['fields' => []]);
+    expect($mcp($note))->toMatchArray(['taxonomies' => [], 'terms' => [], 'live_terms' => []]);
+
+    // Who may change the entry's terms: every taxonomy.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'sunrice.ai.connect'));
+    expect(array_keys($mcp($note)['terms']))->toBe(['format', 'tags']);
+});

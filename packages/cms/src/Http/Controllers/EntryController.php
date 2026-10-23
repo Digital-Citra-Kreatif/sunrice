@@ -388,6 +388,8 @@ final class EntryController
         $schema = $entry->schema();
         $shared = $translation->isMain() ? [] : $schema->shared();
         $taxonomies = self::taxonomies($request, $collection, $entry);
+        // The taxonomies the person may see the terms of: the Changed markers and revisions compare those only.
+        $shown = $taxonomies['shown'];
 
         return Inertia::render('Cms/Entries/Edit', [
             'collection' => self::collection($collection),
@@ -408,7 +410,7 @@ final class EntryController
                 // Published with unpublished changes: when the live version was published, by whom, and the
                 // values the draft changed from it (the editor's "Changed" markers). Null otherwise: nothing to load.
                 'live' => $translation->isPublished() && $translation->hasUnpublishedChanges()
-                    ? RevisionList::live($translation) + ['changed' => RevisionList::changedFromLive($translation)]
+                    ? RevisionList::live($translation) + ['changed' => RevisionList::changedFromLive($translation, $shown)]
                     : null,
                 'trashed' => $entry->trashed(),
                 // "Submit for review": when, and who asked.
@@ -457,7 +459,7 @@ final class EntryController
             'homepage' => self::homepageState($entry, $collection, $request),
             // Loaded after the page shows (Inertia's deferred props): the sidebar's lists.
             // Who published each and what it changed from the one before.
-            'revisions' => Inertia::defer(fn (): array => RevisionList::summaries($translation)),
+            'revisions' => Inertia::defer(fn (): array => RevisionList::summaries($translation, taxonomies: $shown)),
             'comments' => $collection->comments && ($request->user()?->can('cms.comments.view') ?? false)
                 ? Inertia::defer(fn (): array => self::comments($entry, $request))
                 : null,
@@ -485,17 +487,16 @@ final class EntryController
      * every language, or create one), with the entry's terms of each as
      * the editor shows them (not published yet, else live).
      *
-     * @return array{list: list<array{handle: string, title: string, hierarchical: bool, single: bool}>, terms: array<string, list<int>>, editable: bool}
+     * @return array{list: list<array{handle: string, title: string, hierarchical: bool, single: bool}>, terms: array<string, list<int>>, editable: bool, shown: \Illuminate\Database\Eloquent\Collection<int, Taxonomy>}
      */
     private static function taxonomies(Request $request, Collection $collection, ?Entry $entry): array
     {
         $user = $request->user();
         $user = $user instanceof Authorizable ? $user : null;
         $editable = $entry === null ? Access::entries($user, 'create', $collection) : Access::entries($user, 'update', $collection, $entry);
-        $shown = $collection->taxonomies()->orderBy('title')->get()
-            ->filter(fn (Taxonomy $taxonomy): bool => $editable || Access::terms($user, 'view', $taxonomy))->values();
+        $shown = Access::entryTaxonomies($user, $collection, $entry);
         if ($shown->isEmpty()) {
-            return ['list' => [], 'terms' => [], 'editable' => $editable];
+            return ['list' => [], 'terms' => [], 'editable' => $editable, 'shown' => $shown];
         }
         $ids = $entry?->draftTermIds() ?? [];
         $taxonomyOf = SaveEntryTerms::taxonomiesOf($ids);
@@ -510,6 +511,7 @@ final class EntryController
             ])->all()),
             'terms' => $terms,
             'editable' => $editable,
+            'shown' => $shown,
         ];
     }
 
@@ -696,12 +698,13 @@ final class EntryController
 
     /** A revision compared with the draft: the fields that differ, as text. */
     /** The live version beside the draft: the fields where they differ, in words (the editor's "Compare with live"). */
-    public function compareLive(Entry $entry, string $locale): JsonResponse
+    public function compareLive(Request $request, Entry $entry, string $locale): JsonResponse
     {
         $translation = self::translation($entry, $locale);
         abort_unless($translation->isPublished() && $translation->title !== null, 404);
 
-        return response()->json(['fields' => RevisionList::compareLive($translation)]);
+        // Terms of the taxonomies the person may see only, as the Taxonomies card.
+        return response()->json(['fields' => RevisionList::compareLive($translation, self::shownTaxonomies($request, $entry))]);
     }
 
     /** Throws away the unpublished changes: the draft is the live version again. */
@@ -714,11 +717,23 @@ final class EntryController
         return back()->with('success', 'Changes discarded. The editor shows the live version again.');
     }
 
-    public function compareRevision(Entry $entry, Revision $revision): JsonResponse
+    public function compareRevision(Request $request, Entry $entry, Revision $revision): JsonResponse
     {
         abort_unless($revision->translation->entry_id === $entry->id, 404);
 
-        return response()->json(['fields' => RevisionList::compare($revision)]);
+        return response()->json(['fields' => RevisionList::compare($revision, self::shownTaxonomies($request, $entry))]);
+    }
+
+    /**
+     * The taxonomies whose terms of the entry the person may see.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Taxonomy>
+     */
+    private static function shownTaxonomies(Request $request, Entry $entry): \Illuminate\Database\Eloquent\Collection
+    {
+        $user = $request->user();
+
+        return Access::entryTaxonomies($user instanceof Authorizable ? $user : null, $entry->collection, $entry);
     }
 
     public function restoreRevision(Request $request, Entry $entry, Revision $revision, RestoreRevision $restore): RedirectResponse

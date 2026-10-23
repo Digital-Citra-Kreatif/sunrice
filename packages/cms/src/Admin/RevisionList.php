@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Cms\Admin;
 
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Str;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
@@ -12,6 +13,7 @@ use Sunrice\Cms\Fields\Reference;
 use Sunrice\Cms\Fields\Schema;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Revision;
+use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Support\FieldText;
 use Sunrice\Cms\Support\Locales;
@@ -31,14 +33,14 @@ final class RevisionList
      *
      * @return list<array{id: int, title: string, createdAt: string|null, author: string|null, changed: list<string>|null}>
      */
-    public static function summaries(EntryTranslation $translation, int $limit = 20): array
+    public static function summaries(EntryTranslation $translation, int $limit = 20, ?EloquentCollection $taxonomies = null): array
     {
         // One more, to tell what the oldest shown changed.
         $revisions = array_values($translation->revisions()->limit($limit + 1)->get()->all());
         $authors = self::authors($revisions);
         $labels = self::labels($translation);
         // The terms they were published with, read once.
-        $terms = self::terms($translation, array_merge(...array_map(fn (Revision $revision): array => $revision->terms ?? [], $revisions)));
+        $terms = self::terms($translation, array_merge(...array_map(fn (Revision $revision): array => $revision->terms ?? [], $revisions)), $taxonomies);
         $out = [];
         foreach (array_slice($revisions, 0, $limit) as $index => $revision) {
             $before = $revisions[$index + 1] ?? null;
@@ -88,13 +90,13 @@ final class RevisionList
      *
      * @return list<array{label: string, revision: string, draft: string}>
      */
-    public static function compare(Revision $revision): array
+    public static function compare(Revision $revision, ?EloquentCollection $taxonomies = null): array
     {
         $translation = $revision->translation;
         $terms = [];
         if ($revision->terms !== null) {
             $draft = $translation->entry->draftTermIds();
-            $terms = self::terms($translation, [...$revision->terms, ...$draft])->compare($revision->terms, $draft);
+            $terms = self::terms($translation, [...$revision->terms, ...$draft], $taxonomies)->compare($revision->terms, $draft);
         }
 
         return array_map(fn (array $field): array => ['label' => $field['label'], 'revision' => $field['old'], 'draft' => $field['new']],
@@ -107,10 +109,10 @@ final class RevisionList
      *
      * @return list<array{label: string, live: string, draft: string}>
      */
-    public static function compareLive(EntryTranslation $translation): array
+    public static function compareLive(EntryTranslation $translation, ?EloquentCollection $taxonomies = null): array
     {
         return array_map(fn (array $field): array => ['label' => $field['label'], 'live' => $field['old'], 'draft' => $field['new']],
-            [...self::against($translation, $translation->title, $translation->slug, $translation->data), ...self::termsFromLive($translation)]);
+            [...self::against($translation, $translation->title, $translation->slug, $translation->data), ...self::termsFromLive($translation, $taxonomies)]);
     }
 
     /**
@@ -122,7 +124,7 @@ final class RevisionList
      *
      * @return list<string>
      */
-    public static function changedFromLive(EntryTranslation $translation): array
+    public static function changedFromLive(EntryTranslation $translation, ?EloquentCollection $taxonomies = null): array
     {
         if ($translation->title === null) {
             return [];
@@ -130,7 +132,7 @@ final class RevisionList
 
         return [...self::changedKeys(self::values($translation->title, $translation->slug, $translation->data),
             self::values($translation->draft_title, $translation->draft_slug, $translation->draft_data), self::labels($translation)),
-            ...array_column(self::termsFromLive($translation), 'key')];
+            ...array_column(self::termsFromLive($translation, $taxonomies), 'key')];
     }
 
     /**
@@ -138,7 +140,7 @@ final class RevisionList
      *
      * @return list<array{key: string, label: string, old: string, new: string}>
      */
-    private static function termsFromLive(EntryTranslation $translation): array
+    private static function termsFromLive(EntryTranslation $translation, ?EloquentCollection $taxonomies): array
     {
         $entry = $translation->entry;
         if (! $entry->hasUnpublishedTerms()) {
@@ -147,17 +149,20 @@ final class RevisionList
         $live = $entry->liveTermIds();
         $draft = $entry->draftTermIds();
 
-        return self::terms($translation, [...$live, ...$draft])->compare($live, $draft);
+        return self::terms($translation, [...$live, ...$draft], $taxonomies)->compare($live, $draft);
     }
 
     /**
-     * The taxonomies attached to the entry's collection and these terms, read once, to compare terms by taxonomy.
+     * The taxonomies attached to the entry's collection (or those given:
+     * the ones the person may see, Access::entryTaxonomies()) and these
+     * terms, read once, to compare terms by taxonomy.
      *
      * @param  list<int>  $ids
+     * @param  EloquentCollection<int, Taxonomy>|null  $taxonomies
      */
-    private static function terms(EntryTranslation $translation, array $ids): TermsCompared
+    private static function terms(EntryTranslation $translation, array $ids, ?EloquentCollection $taxonomies = null): TermsCompared
     {
-        return new TermsCompared($translation->entry->collection->taxonomies()->orderBy('title')->get(),
+        return new TermsCompared($taxonomies ?? $translation->entry->collection->taxonomies()->orderBy('title')->get(),
             $ids === [] ? [] : array_values(Term::withTrashed()->with('translations')->whereKey(array_values(array_unique($ids)))->get()->all()), $translation->locale);
     }
 
