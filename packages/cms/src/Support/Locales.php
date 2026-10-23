@@ -87,7 +87,8 @@ final class Locales
         if (class_exists(\Locale::class)) {
             $tag = str_replace('-', '_', $locale);
             $own = \Locale::getDisplayName($tag, $tag);
-            if (is_string($own)) {
+            // ICU gives an unknown language back as its code: keep the name then.
+            if (is_string($own) && $own !== '' && strcasecmp($own, $tag) !== 0) {
                 return mb_strtoupper(mb_substr($own, 0, 1)).mb_substr($own, 1);
             }
         }
