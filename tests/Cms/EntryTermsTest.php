@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -317,4 +318,42 @@ it('takes terms through SaveEntryTerms, keeping the taxonomies not given', funct
     app(SaveEntryTerms::class)->handle($entry, ['format' => []]);
     expect($entry->fresh()?->draft_terms)->toBeNull()
         ->and(Term::query()->count())->toBe(5);
+});
+
+it('leaves the entry\'s terms alone when a translator discards, restores a revision or undoes a restore', function () {
+    $note = liveNote(['tags' => [$this->php->id]]);
+    $entryId = $note->entry_id;
+    $id = app(PublishEntry::class)->handle(app(SaveDraft::class)->handle(app(CreateTranslation::class)->handle($note->entry, 'id'), ['title' => 'Halo']));
+    $revision = Revision::query()->where('entry_translation_id', $id->id)->firstOrFail();
+    expect($revision->terms)->toBe([$this->php->id]);
+    // An editor chose other terms, not published yet.
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->laravel->id]]);
+    $pending = fn (): ?array => Entry::query()->findOrFail($entryId)->draft_terms;
+    $translator = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate', 'sunrice.ai.connect');
+    actingAs($translator);
+
+    // Discarding the Indonesian changes: its text goes back, the terms stay.
+    app(SaveDraft::class)->handle($id->fresh(), ['title' => 'Halo lagi']);
+    post("/admin/cms/entries/{$entryId}/translations/id/discard", ['version' => $id->fresh()?->version])->assertSessionHasNoErrors();
+    expect($id->fresh()?->draft_title)->toBe('Halo')->and($pending())->toBe([$this->laravel->id]);
+
+    // Restoring its revision: the text, not the terms it was published with.
+    post("/admin/cms/entries/{$entryId}/revisions/{$revision->id}/restore")->assertSessionHasNoErrors();
+    expect($pending())->toBe([$this->laravel->id]);
+    // An editor changes the terms meanwhile; the translator's undo leaves them.
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->php->id, $this->laravel->id]]);
+    session()->put('sunrice-cms.undo-restore.'.$id->id, ['title' => 'Halo', 'slug' => 'halo', 'data' => [], 'terms' => [$this->laravel->id]]);
+    post("/admin/cms/entries/{$entryId}/translations/id/undo-restore")->assertSessionHasNoErrors();
+    expect($pending())->toEqualCanonicalizing([$this->php->id, $this->laravel->id]);
+
+    // Through an AI client too.
+    $token = AiToken::issue((string) $translator->id, 'Claude')[1];
+    $restored = $this->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => ['name' => 'cms_entry_revisions', 'arguments' => ['action' => 'restore', 'revision_id' => $revision->id]]], ['Authorization' => "Bearer {$token}"]);
+    expect($restored->json('result.content.0.text'))->toContain('"restored":true')
+        ->and($pending())->toEqualCanonicalizing([$this->php->id, $this->laravel->id]);
+
+    // Someone who may edit the whole entry: the terms go back with the rest (as before).
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
+    post("/admin/cms/entries/{$entryId}/revisions/{$revision->id}/restore")->assertSessionHasNoErrors();
+    expect($pending())->toBeNull()->and(liveTerms($note))->toBe([$this->php->id]);
 });

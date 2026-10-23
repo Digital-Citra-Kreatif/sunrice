@@ -707,7 +707,8 @@ final class EntryController
     public function discardChanges(Request $request, Entry $entry, string $locale, DiscardChanges $discard): RedirectResponse
     {
         $version = $request->input('version');
-        $discard->handle(self::translation($entry, $locale), is_int($version) || is_string($version) ? $version : null);
+        // The entry's terms are every language's: not for translators (as saving).
+        $discard->handle(self::translation($entry, $locale), is_int($version) || is_string($version) ? $version : null, Access::entries($request->user(), 'update', $entry->collection, $entry));
 
         return back()->with('success', 'Changes discarded. The editor shows the live version again.');
     }
@@ -724,11 +725,14 @@ final class EntryController
         $translation = $revision->translation;
         abort_unless($translation->entry_id === $entry->id, 404);
         abort_if($translation->entry->collection->trashed(), 404);
+        // The entry's terms are every language's: not for translators (as saving).
+        $withTerms = Access::entries($request->user(), 'update', $entry->collection, $entry);
         // The draft it replaces, so the restore can be undone (this session).
         $request->session()->put(EntryManageController::undoKey($translation), [
-            'title' => $translation->draft_title, 'slug' => $translation->draft_slug, 'data' => $translation->draft_data, 'terms' => $translation->entry->draftTermIds(),
+            'title' => $translation->draft_title, 'slug' => $translation->draft_slug, 'data' => $translation->draft_data,
+            ...($withTerms ? ['terms' => $translation->entry->draftTermIds()] : []),
         ]);
-        $restore->handle($revision);
+        $restore->handle($revision, $withTerms);
 
         return back()->with('success', 'The revision is in the draft now. Publish it to put it on the site.');
     }
