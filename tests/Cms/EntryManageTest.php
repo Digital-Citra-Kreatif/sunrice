@@ -179,6 +179,11 @@ it('lets only the collection\'s editors pick a template, under the site\'s prefi
     file_put_contents("{$views}/layouts/app.blade.php", 'THE APP LAYOUT');
     View::addLocation($views);
     manager('view', 'update');
+    // By default only views under cms. and pages.
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'landing'])->assertSessionHasErrors('template');
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'pages.landing'])->assertSessionHasNoErrors();
+    // With no prefixes, any view of the app's own, but none that isn't a page.
+    config(['sunrice-cms.site.template_prefixes' => null]);
 
     // No other view of the app can be made a public page.
     put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'layouts.app'])->assertSessionHasErrors('template');

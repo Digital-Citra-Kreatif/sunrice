@@ -95,7 +95,10 @@ final class TemplateHelp
      */
     public static function example(string $name): string
     {
-        foreach (SaveEntrySettings::prefixes() ?? ['pages.'] as $prefix) {
+        // pages. first: the folder for one-off pages of an app's own.
+        $prefixes = SaveEntrySettings::prefixes() ?? ['pages.'];
+        usort($prefixes, fn (string $a, string $b): int => ($b === 'pages.') <=> ($a === 'pages.'));
+        foreach ($prefixes as $prefix) {
             if (preg_match('/^[a-z0-9_-]+(\.[a-z0-9_-]+)*\.$/', $prefix) === 1) {
                 return $prefix.$name;
             }

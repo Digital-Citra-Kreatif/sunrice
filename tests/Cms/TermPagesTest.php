@@ -83,7 +83,10 @@ it('edits a term\'s page per language, and checks the template', function () {
         ->component('Cms/Terms/Edit', shouldExist: false)->where('translated', true)->where('term.title', 'Berita'));
     put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Semua berita'], 'seo' => [], 'template' => 'cms.topic'])->assertSessionHasNoErrors();
     put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'Bad!'])->assertSessionHasErrors('template');
-    // The app's own views, not layouts, mails and the like: they don't become public pages.
+    // By default only views under cms. and pages.
+    put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'topics.special'])->assertSessionHasErrors('template');
+    // With no prefixes, the app's own views, not layouts, mails and the like: they don't become public pages.
+    config(['sunrice-cms.site.template_prefixes' => null]);
     put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'layouts.app'])->assertSessionHasErrors('template');
     expect(fn () => app(SaveTermContent::class)->handle($this->news, ['template' => 'emails.invoice']))->toThrow(ValidationException::class, 'Use a view of your own, not under layouts, partials');
     put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'topics.special'])->assertSessionHasNoErrors();
