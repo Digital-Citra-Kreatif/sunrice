@@ -13,13 +13,19 @@ The panel has one media library, shared by your app and every plugin: files on a
 | `sunrice.media.update` | Editing details, replacing files, folders and moving |
 | `sunrice.media.delete` | The trash: moving to it, restoring, permanently deleting |
 
+### The trash
+
+**Move to trash** takes a file offline: its original and all its sizes move off the media disk to a private disk (`media.trash_disk`, the `local` disk by default, in `storage/app/private`) under `media.trash_directory` (`sunrice-media-trash/`), at the same path, so its links answer 404 at once (an annual report uploaded by mistake is gone from `/storage/media/…`, while it can still be restored). **Restore** moves them back to the same paths, so links work again; **Permanently delete** deletes them from wherever they are, the trash or the media disk. A move is all or nothing: every file is copied first and the originals are deleted only once all copies are there; if one can't be moved, what was done is undone, the file stays where it was and the page says so (`MediaFilesNotMoved` from code). In the trash a file shows a placeholder instead of its preview and has no link to copy. Image sizes still being made on the queue for a file moved to the trash meanwhile are deleted again, not left on the public disk.
+
+Sites upgraded from 0.1 still have the files of media they trashed before on the public disk: `php artisan sunrice:media-trash-offline` moves them (once; it leaves files already moved alone).
+
 When the media disk is a local disk served through a link in `filesystems.links` that doesn't exist (`php artisan storage:link` wasn't run), the page tells those who may upload, since files' links lead nowhere until it is.
 
 Turn the page off with `$panel->mediaLibrary(false)`; the library still works from code.
 
 ## Where files are used
 
-A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets, and the panel reports what a settings section's media pickers hold whenever it's saved, changed or not (Branding's logo, browser icon and sign-in image; Settings → Site's share image and logo; your own sections' pickers; `php artisan migrate` recorded those of sections saved before). Moving a file in use to the trash asks first; deleting it permanently asks too, and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
+A file's details list where it's **used by** (with links), as the plugins using it report it: the CMS reports entries and global sets, and the panel reports what a settings section's media pickers hold whenever it's saved, changed or not (Branding's logo, browser icon and sign-in image; Settings → Site's share image and logo; your own sections' pickers; `php artisan migrate` recorded those of sections saved before). Moving a file in use to the trash asks first; deleting it permanently asks too (and warns that pages using it will show a broken link; a file nothing uses just says so), and selecting several to delete keeps those in use (open each to see where). `DeleteMedia::handle($media, force: true)` deletes one anyway.
 
 Report your own items' files when they're saved, and forget them when they're deleted (a type starting with your plugin's id, its id, the files, a label and a link):
 
@@ -67,7 +73,7 @@ Read it back with the model: `Media::find($product->image_id)?->url('medium')`.
 The page and the picker post each file to `POST /admin/media` (`file`, an optional `folder_id`, and optionally a `title` and `alt` to set with the file; empty ones mean the file's name and no alternative text). In PHP:
 
 ```php
-use Sunrice\Admin\Actions\Media\{UploadMedia, ReplaceMedia, DeleteMedia, MoveMedia, UpdateMedia, SaveMediaFolder, DeleteMediaFolder};
+use Sunrice\Admin\Actions\Media\{UploadMedia, ReplaceMedia, TrashMedia, DeleteMedia, MoveMedia, UpdateMedia, SaveMediaFolder, DeleteMediaFolder};
 
 $media = app(UploadMedia::class)->handle($request->file('photo'), ['folder_id' => $folder->id, 'alt' => 'The shop front']);
 
@@ -78,8 +84,9 @@ $media->srcset();            // "…-medium.jpg?v=1 800w, …-large.jpg?v=1 1600
 $media->srcset('thumbnail', 'medium');   // only these sizes (and the original)
 
 app(ReplaceMedia::class)->handle($media, $newFile);   // same URL, new version
-$media->delete();                                      // to the trash (soft delete)
-app(DeleteMedia::class)->handle($media);               // gone, with its files
+app(TrashMedia::class)->handle($media);                // to the trash: its files go off the public disk ($media->delete() too, not a query's ->delete())
+app(TrashMedia::class)->restore($media);               // back, files and all
+app(DeleteMedia::class)->handle($media);               // gone, with its files, wherever they are
 
 app(UpdateMedia::class)->handle($media, ['alt' => 'The shop front', 'caption' => null]);
 app(UpdateMedia::class)->handle($media, ['translations' => ['id' => ['alt' => 'Bagian depan toko']]]);
@@ -105,6 +112,7 @@ In `config/sunrice-admin.php` under `media`:
 | Key | Default | |
 | --- | --- | --- |
 | `disk` / `directory` | `public` / `media` | Where files go: `{directory}/{Y}/{m}/{random}-{name}.{ext}`. The `public` disk needs `php artisan storage:link`. |
+| `trash_disk` / `trash_directory` | `local` / `sunrice-media-trash` | Where files in the trash are kept, at their own paths under the directory: a disk that's never served by URL (see [The trash](#the-trash)). |
 | `max_upload_kb` | `20480` | The largest upload; PHP's `upload_max_filesize` and `post_max_size` cap it too. |
 | `allowed_extensions` | images, documents, audio, video, fonts | What may be uploaded. |
 | `image_sizes` | `thumbnail` 300×300 crop, `medium` 800 wide, `large` 1600 wide | `name => [width, height, 'crop' or 'fit']`. `fit` scales down only; `null` leaves a side free. |

@@ -42,6 +42,23 @@ final class MediaConfig
         return trim(is_string($directory) ? $directory : 'media', '/');
     }
 
+    /** The private disk files in the trash are kept on (`media.trash_disk`, default `local`). */
+    public static function trashDisk(): string
+    {
+        $disk = config('sunrice-admin.media.trash_disk');
+
+        return is_string($disk) && $disk !== '' ? $disk : 'local';
+    }
+
+    /** The folder of the trash disk they're kept in (`media.trash_directory`). */
+    public static function trashDirectory(): string
+    {
+        $directory = config('sunrice-admin.media.trash_directory');
+        $directory = trim(is_string($directory) ? $directory : '', '/');
+
+        return $directory !== '' ? $directory : 'sunrice-media-trash';
+    }
+
     /** The real limit: the config's, capped by PHP's upload limits. */
     public static function maxKilobytes(): int
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Orchestra\Testbench\Attributes\ResetRefreshDatabaseState;
 use Spatie\Permission\Models\Permission;
 use Sunrice\Admin\Panel;
@@ -21,9 +22,9 @@ use Workbench\App\Models\User;
  * load the panel alone (proving it works without the CMS), CMS tests
  * load both, starter kit tests all three. Architecture tests need no app.
  */
-uses(AdminTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('admin'))->in('Admin');
-uses(CmsTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('cms'))->afterEach(fn () => emptyTablesAfterFullTextCommit())->in('Cms');
-uses(StarterKitTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('starter-kit'))->in('StarterKit');
+uses(AdminTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('admin'))->beforeEach(fn () => fakeMediaTrash())->in('Admin');
+uses(CmsTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('cms'))->beforeEach(fn () => fakeMediaTrash())->afterEach(fn () => emptyTablesAfterFullTextCommit())->in('Cms');
+uses(StarterKitTestCase::class, RefreshDatabase::class)->beforeAll(fn () => migrateFreshFor('starter-kit'))->beforeEach(fn () => fakeMediaTrash())->in('StarterKit');
 
 /**
  * RefreshDatabase migrates once and then wraps each test in a
@@ -39,6 +40,19 @@ function migrateFreshFor(string $suite): void
         ResetRefreshDatabaseState::run();
         $current = $suite;
     }
+}
+
+/**
+ * Media moved to the trash goes to a fake disk of its own, not the test
+ * app's real `local` disk (tests/Admin/MediaTrashTest checks the default,
+ * `local`, faked).
+ *
+ * @internal
+ */
+function fakeMediaTrash(): void
+{
+    config(['sunrice-admin.media.trash_disk' => 'sunrice-test-trash']);
+    Storage::fake('sunrice-test-trash');
 }
 
 /**

@@ -78,6 +78,13 @@ return [
         'disk' => 'public',
         'directory' => 'media',
 
+        // Where files in the trash are kept, off the public disk, so their
+        // links stop working until they're restored: a private disk and a
+        // folder in it ({trash_directory}/{the file's path}). The default
+        // `local` disk (storage/app/private) is never served by URL.
+        'trash_disk' => 'local',
+        'trash_directory' => 'sunrice-media-trash',
+
         // The largest upload in kilobytes (PHP's upload_max_filesize and
         // post_max_size cap it too).
         'max_upload_kb' => 20480,

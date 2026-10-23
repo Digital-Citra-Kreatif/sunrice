@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 /**
  * A file in the media library, shared by the panel and its plugins.
@@ -23,8 +24,11 @@ use Illuminate\Support\Facades\Storage;
  *     $media->srcset();          // "…-medium.jpg?v=1 800w, …-large.jpg?v=1 1600w, ….jpg?v=1 2400w"
  *
  * URLs carry the version, so browsers fetch a replaced file again.
- * Deleting moves a file to the trash (soft delete); DeleteMedia permanently
- * removes it and its files.
+ * Deleting moves a file to the trash (soft delete) and its files off the
+ * public disk to the private trash disk (`media.trash_disk`), so its links
+ * stop working; restoring moves them back. Either throws
+ * MediaFilesNotMoved, changing nothing, when the files can't be moved.
+ * DeleteMedia permanently removes it and its files, wherever they are.
  *
  * @property int $id
  * @property int|null $folder_id
@@ -50,7 +54,10 @@ use Illuminate\Support\Facades\Storage;
  */
 class Media extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes {
+        runSoftDelete as private softDeleteRecord;
+        restore as private restoreRecord;
+    }
 
     protected $table = 'sunrice_media';
 
@@ -69,6 +76,67 @@ class Media extends Model
             'version' => 'integer',
             'translations' => 'array',
         ];
+    }
+
+    /**
+     * Moves it to the trash, its files off the public disk (runSoftDelete());
+     * DeleteMedia deletes it for good, with its files.
+     *
+     * @throws MediaFilesNotMoved when its files can't be moved (nothing changed)
+     */
+    public function delete(): ?bool
+    {
+        return parent::delete();
+    }
+
+    /**
+     * To the trash: its files go off the public disk first, and come back
+     * if the record can't be saved.
+     *
+     * @throws MediaFilesNotMoved
+     */
+    protected function runSoftDelete(): void
+    {
+        $trash = app(MediaTrash::class);
+        $trash->hide($this);
+        try {
+            $this->softDeleteRecord();
+        } catch (Throwable $e) {
+            if (! $this->trashedInDatabase()) {
+                $trash->reveal($this);
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Out of the trash: its files go back to their paths first, and back
+     * into the trash if the record isn't restored.
+     *
+     * @throws MediaFilesNotMoved
+     */
+    public function restore(): bool
+    {
+        $trash = app(MediaTrash::class);
+        $trash->reveal($this);
+        try {
+            $restored = $this->restoreRecord();
+        } catch (Throwable $e) {
+            if ($this->trashedInDatabase()) {
+                $trash->hide($this);
+            }
+            throw $e;
+        }
+        if (! $restored) {
+            $trash->hide($this);
+        }
+
+        return $restored;
+    }
+
+    private function trashedInDatabase(): bool
+    {
+        return static::withTrashed()->whereKey($this->getKey())->whereNotNull($this->getDeletedAtColumn())->exists();
     }
 
     /**

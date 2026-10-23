@@ -107,7 +107,8 @@ final class MakeStarter
         });
         $names = [];
         $details = [];
-        foreach (Media::withTrashed()->whereIn('path', array_keys($paths))->orderBy('id')->get() as $media) {
+        // Not files in the trash: they're offline (and the site doesn't show them).
+        foreach (Media::query()->whereIn('path', array_keys($paths))->orderBy('id')->get() as $media) {
             $disk = Storage::disk($media->disk);
             if (! $disk->exists($media->path)) {
                 continue;

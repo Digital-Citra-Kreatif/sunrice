@@ -40,6 +40,7 @@ See [Signing in](auth.md#brute-force-protection).
 | --- | --- | --- | --- |
 | `media.disk` | `'public'` | — | The Laravel disk uploads are stored on. |
 | `media.directory` | `'media'` | — | The folder on it (`{directory}/{Y}/{m}/{random}-{name}.{ext}`). |
+| `media.trash_disk`, `media.trash_directory` | `'local'`, `'sunrice-media-trash'` | — | Where files in the trash are kept (at their paths under the directory), off the public disk: a disk never served by URL. See [Media](media.md#the-trash). |
 | `media.max_upload_kb` | `20480` | — | The largest upload, in KB (PHP's `upload_max_filesize` and `post_max_size` cap it too). |
 | `media.allowed_extensions` | images, documents, archives, audio, video, fonts, `json` | — | File types that may be uploaded. Scripts, executables and HTML are always refused. |
 | `media.image_sizes` | `thumbnail` 300×300 crop, `medium` 800 wide, `large` 1600 wide | — | Smaller copies of every image: `name => [width, height, mode]` with mode `'crop'` or `'fit'`. Run `sunrice:media-sizes` after changing them. |
