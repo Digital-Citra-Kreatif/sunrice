@@ -117,7 +117,7 @@ it('edits globals in the admin', function () {
 
 it('renames a global set or menu from its form, the handle made from the title when creating', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
-    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.globals.configure', 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.globals.configure', 'cms.menus.view', 'cms.menus.create', 'cms.menus.update', 'cms.menus.configure'));
     $menu = Menu::query()->create(['handle' => 'mian', 'title' => 'Main']);
 
     get('/admin/cms/globals/create')->assertInertia(fn (Assert $page) => $page->where('sections.0.fields.1', fn ($field) => $field['name'] === 'handle' && $field['slugFrom'] === 'title' && $field['slugSeparator'] === '_'));
