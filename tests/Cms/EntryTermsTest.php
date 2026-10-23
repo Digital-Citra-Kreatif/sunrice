@@ -541,3 +541,16 @@ it('attaches on upgrade the taxonomies terms fields use, without pages, keeping 
     app(PublishEntry::class)->handle($changed->fresh());
     expect(liveTerms($changed))->toEqualCanonicalizing([$java->id, $this->php->id]);
 });
+
+it('restores from a revision kept before revisions had terms the terms its terms fields held', function () {
+    Blueprint::query()->create(['handle' => 'note', 'title' => 'Note', 'fields' => [['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'tags', 'multiple' => true]]]]);
+    $this->notes->update(['blueprint' => 'note']);
+    $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]]);
+    // As 0.1 kept it: the field's value, no terms.
+    $old = Revision::query()->where('entry_translation_id', $note->id)->firstOrFail();
+    $old->forceFill(['terms' => null, 'data' => ['topics' => [$this->laravel->id, $this->hidden->id]]])->save();
+
+    app(RestoreRevision::class)->handle($old->fresh());
+    // Tags from the field (not a term of another taxonomy); Format, which no field has, as it was.
+    expect($note->entry->fresh()?->draftTermIds())->toEqualCanonicalizing([$this->laravel->id, $this->guide->id]);
+});
