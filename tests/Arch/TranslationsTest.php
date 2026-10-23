@@ -56,7 +56,7 @@ function panelWords(): array
         "/->group\\(\\s*{$q}\\s*\\)/",
         "/->settingsPage\\(\\s*'[^']*',\\s*{$q}/",
         "/->with\\(\\s*'(?:success|error)',\\s*{$q}\\s*\\)/",
-        "/public static function (?:label|singularLabel|navigationLabel|navigationGroup|description)\\(\\): \\??string\\s*\\{\\s*return {$q};/",
+        "/public static function (?:label|singularLabel|navigationLabel|navigationGroup|description|warning)\\(\\): \\??string\\s*\\{\\s*return {$q};/",
     ];
     foreach (translatableFiles(["{$root}/packages/admin/src", "{$root}/packages/admin/routes", "{$root}/packages/cms/src"], ['php']) as $file) {
         if (str_contains($file, '/Ai/') || str_contains($file, '/Console/') || str_contains($file, '/Mcp/')) {

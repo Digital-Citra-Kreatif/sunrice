@@ -13,7 +13,7 @@ use Sunrice\Tests\Cms\Fixtures\RatingField;
 
 it('has the built-in field types', function () {
     expect(array_keys(app(FieldTypes::class)->all()))->toBe([
-        'text', 'textarea', 'rich_text', 'number', 'toggle', 'select', 'date', 'link', 'media', 'group', 'repeater', 'flexible', 'fieldset', 'terms', 'entries', 'file',
+        'text', 'textarea', 'rich_text', 'code', 'number', 'toggle', 'select', 'date', 'link', 'media', 'group', 'repeater', 'flexible', 'fieldset', 'terms', 'entries', 'file',
     ]);
 });
 

@@ -61,6 +61,24 @@ $shop->fill(['guestCheckout' => '0'])->save();   // converted to the property's 
 
 Settings forms use the [resource form fields](resources.md#forms), with field names matching the properties. A setting that is empty shows its field's `->default()` when it has one (CMS Languages shows the config's languages that way, until saved). Only the fields on the form are written. `Secret` is for API keys and the like: its value is never sent to the browser, and leaving it empty keeps the saved one. `Password` (which hashes) and fields with `saveUsing()` can't be settings.
 
+A section that a config switch can turn off says so with `available()`: while it returns false the section is left out of the Settings menu (and the Settings item when it was the only one), its page is not found (404) and agents' `get_settings` and `update_settings` don't see it. Its permission and stored values are kept, so switching it back on brings everything back (the CMS's Site code is off with `SUNRICE_SITE_CODE=false`):
+
+```php
+public static function available(): bool
+{
+    return (bool) config('shop.payments');
+}
+```
+
+A section whose settings can do harm says so with `warning()`: the text shows in an amber callout at the top of its page, above the form (Settings → Site code in the CMS warns that its code runs in every visitor's browser):
+
+```php
+public static function warning(): ?string
+{
+    return 'Changing the payment key takes the shop offline until the new key is checked.';
+}
+```
+
 A section may also show read-only cards under its form with `cards(Authorizable $user)`, built with `Sunrice\Admin\Support\Card` (see [Cards beside the form](resources.md#cards-beside-the-form)): how something is set up outside the panel, with a button that tries it. A section with no fields shows only its cards and no Save button (Settings → Mail is one):
 
 ```php

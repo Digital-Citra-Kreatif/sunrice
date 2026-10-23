@@ -47,7 +47,7 @@ final class SettingsController
         $fields = SettingsFields::make($registered->class, $form)->props();
 
         return Inertia::render('Settings/Edit', [
-            'section' => ['key' => $registered->key(), 'label' => Say::it($registered->class::label()), 'description' => Say::it($registered->class::description())],
+            'section' => ['key' => $registered->key(), 'label' => Say::it($registered->class::label()), 'description' => Say::it($registered->class::description()), 'warning' => Say::it($registered->class::warning())],
             // The Settings menu: the sections, and pages put among them (NavigationItem::inSettings(), Panel::settingsPage()).
             'sections' => $this->panel->settingsNavigation($user),
             'form' => $fields['sections'],
@@ -95,7 +95,8 @@ final class SettingsController
     private function section(Authorizable $user, string $key): RegisteredSettings
     {
         $section = $this->panel->getSettings()[$key] ?? null;
-        abort_if($section === null, 404);
+        // A section that's switched off (Settings::available()) isn't there.
+        abort_if($section === null || ! $section->available(), 404);
         abort_unless($section->allows($user), 403);
 
         return $section;
