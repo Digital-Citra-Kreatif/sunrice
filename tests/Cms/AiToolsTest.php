@@ -166,6 +166,22 @@ it('reads and saves globals', function () {
         ->and(cmsTool($token, 'cms_get_globals', ['set' => 'contact'])['values'])->toBe(['phone' => '+62 21 555']);
 });
 
+it('lets agents change a global set\'s handle and blueprint only with cms.globals.configure', function () {
+    Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'phone', 'type' => 'text']]]);
+    Blueprint::query()->create(['handle' => 'footer', 'title' => 'Footer', 'fields' => [['handle' => 'note', 'type' => 'text']]]);
+    $set = GlobalSet::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
+    $editor = cmsAgent(['cms.globals.view', 'cms.globals.update']);
+
+    expect(cmsTool($editor, 'save_record', ['resource' => 'globals', 'id' => (string) $set->id, 'values' => ['handle' => 'footer']]))->toContain('permission')
+        ->and(cmsTool($editor, 'save_record', ['resource' => 'globals', 'id' => (string) $set->id, 'values' => ['blueprint' => 'footer']]))->toContain('permission')
+        ->and(cmsTool($editor, 'cms_save_globals', ['set' => 'contact', 'data' => ['phone' => '+62 21 555']]))->toMatchArray(['saved' => true])
+        ->and($set->fresh())->handle->toBe('contact')->blueprint->toBe('contact');
+
+    $developer = cmsAgent(['cms.globals.view', 'cms.globals.update', 'cms.globals.configure']);
+    expect(cmsTool($developer, 'save_record', ['resource' => 'globals', 'id' => (string) $set->id, 'values' => ['handle' => 'site_contact', 'blueprint' => 'footer']]))->toMatchArray(['saved' => true])
+        ->and($set->fresh())->handle->toBe('site_contact')->blueprint->toBe('footer');
+});
+
 it('lists form submissions', function () {
     Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text', 'label' => 'Your name']]]);
     $form = Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
