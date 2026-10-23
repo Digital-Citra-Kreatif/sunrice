@@ -563,7 +563,8 @@ final class EntryController
             EntryManageController::saveSettings($request, $entry, $settings);
 
             // The entry's terms are every language's: not for translators (as the page settings).
-            $terms = $request->has('terms') && Access::entries($request->user(), 'update', $entry->collection, $entry) ? ['terms' => $request->input('terms')] : [];
+            // With the terms the editor loaded (terms_base), so a save over another language's newer terms is refused.
+            $terms = $request->has('terms') && Access::entries($request->user(), 'update', $entry->collection, $entry) ? $request->only(['terms', 'terms_base']) : [];
 
             return $save->handle(self::translation($entry, $request->input('locale')), $request->only(['title', 'slug', 'data', 'seo', 'version']) + $terms);
         });

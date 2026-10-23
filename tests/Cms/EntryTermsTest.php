@@ -357,3 +357,27 @@ it('leaves the entry\'s terms alone when a translator discards, restores a revis
     post("/admin/cms/entries/{$entryId}/revisions/{$revision->id}/restore")->assertSessionHasNoErrors();
     expect($pending())->toBeNull()->and(liveTerms($note))->toBe([$this->php->id]);
 });
+
+it('refuses to save terms over those another language\'s editor changed since they were loaded', function () {
+    $note = liveNote(['tags' => [$this->php->id]]);
+    $entryId = $note->entry_id;
+    $id = app(SaveDraft::class)->handle(app(CreateTranslation::class)->handle($note->entry, 'id'), ['title' => 'Halo']);
+    $draft = fn (): array => Entry::query()->findOrFail($entryId)->draftTermIds();
+    // Both editors loaded Tags: PHP. The English one adds Laravel.
+    put("/admin/cms/entries/{$entryId}", ['title' => 'Hello', 'version' => $note->fresh()?->version, 'terms' => ['tags' => [$this->php->id, $this->laravel->id]], 'terms_base' => ['tags' => [$this->php->id]]])
+        ->assertSessionHasNoErrors();
+
+    // The Indonesian one, opened before, takes PHP out: refused, nothing changes.
+    put("/admin/cms/entries/{$entryId}", ['locale' => 'id', 'title' => 'Halo lagi', 'version' => $id->version, 'terms' => ['tags' => []], 'terms_base' => ['tags' => [$this->php->id]]])
+        ->assertSessionHasErrors(['terms' => 'Someone else changed this entry\'s terms. Reload to see them.']);
+    expect($draft())->toEqualCanonicalizing([$this->php->id, $this->laravel->id])->and($id->fresh()?->draft_title)->toBe('Halo');
+
+    // Another taxonomy, untouched by the other save: fine, and Tags keep the English editor's terms.
+    put("/admin/cms/entries/{$entryId}", ['locale' => 'id', 'title' => 'Halo lagi', 'version' => $id->version, 'terms' => ['format' => [$this->guide->id]], 'terms_base' => ['format' => []]])
+        ->assertSessionHasNoErrors();
+    expect($draft())->toEqualCanonicalizing([$this->php->id, $this->laravel->id, $this->guide->id]);
+
+    // Without what was loaded (code, AI clients): saved as given.
+    app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => []]]);
+    expect($draft())->toBe([$this->guide->id]);
+});
