@@ -46,6 +46,16 @@ A resource registers `<prefix>.view`, `.create`, `.update` and `.delete`, and `<
 
 Every admin route needs `sunrice.access` ("Open the admin panel"); give it to the roles that may sign in to the panel. Unknown permissions are denied.
 
+### How the role editor shows them
+
+Roles → Permissions shows each group as a table: a row per thing (the name without its action: `shop.orders`) and a column per standard action (`view`, `create`, `update`, `publish`, `moderate`, `delete`, `export`). A `-own` variant (`shop.orders.update-own`) is a box on an "Own orders only" line under the row, in its action's column. Any other action (`shop.orders.refund`) is a small choice on an "Also" line under the row (or the row itself when it has nothing in a column); give one with a long label a short label for it, the full label staying its tooltip and description for screen readers:
+
+```php
+Permission::make('shop.orders.refund', 'Refund orders paid by card or bank transfer', 'Shop')->short('Refund'),
+```
+
+The short label is English, said in the user's language like the label (put it in your `lang/*.json`). Names and what's stored don't change.
+
 ## Default roles
 
 `php artisan sunrice:roles` (or `sunrice:install --roles`) creates roles to start from:

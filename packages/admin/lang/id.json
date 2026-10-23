@@ -763,5 +763,9 @@
     "Select all for :name": "Pilih semua untuk :name",
     "Own only": "Milik sendiri saja",
     "Not applicable": "Tidak berlaku",
-    "General": "Umum"
+    "General": "Umum",
+    "Own :name only": ":name milik sendiri saja",
+    "Also": "Juga",
+    "Open the panel": "Membuka panel",
+    "Delete old lines": "Hapus baris lama"
 }

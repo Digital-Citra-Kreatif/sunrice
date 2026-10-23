@@ -14,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Section;
@@ -174,6 +175,10 @@ class RoleResource extends Resource
 
                 return $groups;
             })
+            ->shortLabels(fn (): array => array_filter(array_map(
+                fn (Permission $permission): ?string => $permission->short,
+                app(Panel::class)->getPermissions(),
+            ), 'is_string'))
             ->loadUsing(fn (Model $role) => static::namesOf($role->getRelationValue('permissions')))
             ->saveUsing(function (Model $role, mixed $chosen): void {
                 // Permissions that aren't offered (the app's own, or ones out of

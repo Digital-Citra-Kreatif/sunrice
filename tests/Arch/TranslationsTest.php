@@ -8,7 +8,7 @@ declare(strict_types=1);
  * packages/{admin,cms}/lang/id.json (the same text where English reads
  * better). It finds the words in t('…') and __('…') calls, and in the
  * definitions said through Say (labels, help and its links and developer notes, change warnings, section and card titles,
- * permission labels, navigation groups, flash messages).
+ * permission labels and short labels, navigation groups, flash messages).
  */
 
 /** @return list<string> files under the directories with these extensions */
@@ -51,7 +51,7 @@ function panelWords(): array
         "/(?<![\\w>])__\\(\\s*{$q}/",
         "/->(?:label|help|developerHelp|description|confirm|linkLabel|empty|heading|addLabel|navigationLabel|warnWhenChanged)\\(\\s*{$q}\\s*[,)]/",
         "/(?:Section|Card)::make\\(\\s*{$q}/",
-        "/->(?:link|button|notice)\\(\\s*{$q}/",
+        "/->(?:link|button|notice|short)\\(\\s*{$q}/",
         "/Permission::make\\(\\s*'[^']*',\\s*{$q},\\s*{$q}\\s*\\)/",
         "/->group\\(\\s*{$q}\\s*\\)/",
         "/->with\\(\\s*'(?:success|error)',\\s*{$q}\\s*\\)/",

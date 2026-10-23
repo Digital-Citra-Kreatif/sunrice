@@ -832,10 +832,10 @@ final class Panel
         // The panel's own permissions first, before the app's and the plugins'.
         $declared = $this->permissions;
         $this->permissions = [];
-        $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel'));
+        $this->permissions(Permission::make(self::ACCESS, 'Open the admin panel', 'Panel')->short('Open the panel'));
         $this->permissions(
             Permission::make('sunrice.activity.view', 'View the activity log', 'Panel'),
-            Permission::make('sunrice.activity.prune', 'Delete old activity log lines', 'Panel'),
+            Permission::make('sunrice.activity.prune', 'Delete old activity log lines', 'Panel')->short('Delete old lines'),
         );
         // Settings → Branding, Security (two-factor login) and Mail (how mail goes, a test email), in every panel.
         foreach ([BrandingSettings::class, SecuritySettings::class, MailSettings::class] as $own) {
@@ -876,7 +876,7 @@ final class Panel
         if ($this->mediaLibrary) {
             $this->permissions(
                 Permission::make('sunrice.media.view', 'View media', 'Media'),
-                Permission::make('sunrice.media.upload', 'Upload media', 'Media'),
+                Permission::make('sunrice.media.upload', 'Upload media', 'Media')->short('Upload'),
                 Permission::make('sunrice.media.update', 'Edit and organise media', 'Media'),
                 Permission::make('sunrice.media.delete', 'Delete media', 'Media'),
             );

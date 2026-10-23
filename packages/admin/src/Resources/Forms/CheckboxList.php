@@ -24,9 +24,12 @@ use Sunrice\Admin\Support\Say;
  * permissions (`cms.entries.update`), and each group shows as a compact
  * table: a row per thing (`cms.entries`), a column per standard action
  * (View, Create, Edit, Publish, Moderate, Delete, Export), the rest
- * listed in the row, and `-own` variants (`cms.entries.update-own`) as a
- * small "Own only" choice in their action's cell. Labels show as tooltips;
- * on narrow screens it's the plain list. Only how it looks changes.
+ * listed as short choices under the row, and `-own` variants
+ * (`cms.entries.update-own`) on an "own only" line under the row, in
+ * their action's column. Labels show as tooltips; ->shortLabels() gives
+ * the other actions short labels, the full label staying their
+ * description. On narrow screens it's the plain list. Only how it looks
+ * changes.
  *
  * @api
  */
@@ -41,6 +44,9 @@ final class CheckboxList extends Field
     private bool $verbatim = false;
 
     private bool $matrix = false;
+
+    /** @var array<string, string>|Closure(): array<string, string> */
+    private array|Closure $shortLabels = [];
 
     /**
      * value => label, or group => [value => label].
@@ -69,6 +75,20 @@ final class CheckboxList extends Field
     public function matrix(bool $matrix = true): self
     {
         $this->matrix = $matrix;
+
+        return $this;
+    }
+
+    /**
+     * Short labels for some options (value => label), shown where the full
+     * label is too long (a matrix's other actions), the full label being
+     * their description. Said in the panel's language unless verbatim.
+     *
+     * @param  array<string, string>|Closure(): array<string, string>  $labels
+     */
+    public function shortLabels(array|Closure $labels): self
+    {
+        $this->shortLabels = $labels;
 
         return $this;
     }
@@ -107,7 +127,7 @@ final class CheckboxList extends Field
         return ['options' => $this->resolve()] + ($this->matrix ? ['matrix' => true] : []);
     }
 
-    /** @return list<array{value: string, label: string, group: string|null}>
+    /** @return list<array{value: string, label: string, group: string|null, short?: string}>
      */
     private function resolve(): array
     {
@@ -120,6 +140,14 @@ final class CheckboxList extends Field
                 }
             } else {
                 $list[] = ['value' => (string) $key, 'label' => $this->verbatim ? $item : Say::it($item), 'group' => null];
+            }
+        }
+        $shorts = $this->shortLabels instanceof Closure ? ($this->shortLabels)() : $this->shortLabels;
+        if ($shorts !== []) {
+            foreach ($list as $index => $option) {
+                if (isset($shorts[$option['value']])) {
+                    $list[$index]['short'] = $this->verbatim ? $shorts[$option['value']] : Say::it($shorts[$option['value']]);
+                }
             }
         }
 
