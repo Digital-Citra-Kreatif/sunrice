@@ -70,23 +70,26 @@ export function CollapsibleCard({
                 requestAnimationFrame(() => control.focus());
             }}
         >
-            <CardHeader className={cn('flex flex-row items-center gap-0 px-0 [.border-b]:pb-0', open && 'border-b border-border/70')}>
+            {/* Title, then the header's action (a hint, links), then the fold chevron at the far edge. */}
+            <CardHeader className={cn('group/header flex flex-row items-center gap-0 px-0 transition-colors hover:bg-muted/40 [.border-b]:pb-0', open && 'border-b border-border/70')}>
                 <button
                     type="button"
                     aria-expanded={open}
                     aria-controls={contentId}
                     onClick={() => change(!open)}
-                    className="group/trigger flex min-w-0 flex-1 cursor-pointer items-start justify-between gap-3 px-6 py-4 text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-none"
+                    className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 py-4 pl-6 pr-3 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-none"
                 >
                     <div className="grid gap-1">
                         <CardTitle className={titleClassName}>{title}</CardTitle>
                         {description && open && <CardDescription>{description}</CardDescription>}
                     </div>
-                    <span className="mt-[-2px] grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors group-hover/trigger:bg-muted group-hover/trigger:text-foreground">
-                        <ChevronDown aria-hidden="true" className={cn('size-4 transition-transform duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]', !open && '-rotate-90')} />
-                    </span>
                 </button>
-                {headerAction && <div className="shrink-0 pr-6">{headerAction}</div>}
+                {headerAction && <div className="min-w-0 shrink-0">{headerAction}</div>}
+                {/* Folds too, for the pointer; the button above is the control for keyboards and screen readers. */}
+                <span aria-hidden="true" onClick={() => change(!open)}
+                    className="mr-6 ml-3 grid size-6 shrink-0 cursor-pointer place-items-center self-start mt-[calc(1rem-2px)] rounded-md text-muted-foreground transition-colors group-hover/header:bg-muted group-hover/header:text-foreground">
+                    <ChevronDown className={cn('size-4 transition-transform duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]', !open && '-rotate-90')} />
+                </span>
             </CardHeader>
             <div id={contentId} data-state={open ? 'open' : 'closed'} className="sunrice-card-content">
                 <div className="min-h-0 overflow-clip" inert={!open} aria-hidden={!open}>

@@ -9,6 +9,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Collections\PurgeDeleted;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
+use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\Actions\Taxonomies\AttachCollections;
@@ -18,12 +19,15 @@ use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Menus;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Site\RouteConflicts;
+use Sunrice\Cms\Site\Sitemap;
 use Sunrice\Cms\Structure\StructureExporter;
 use Sunrice\Cms\Structure\StructureImporter;
 use Sunrice\Cms\Structure\StructureImportFailed;
+use Sunrice\Cms\Support\SiteCache;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -59,6 +63,35 @@ it('gives terms a page in each attached collection, listing only its entries', f
 
     $sitemap = get('/sitemap.xml')->assertOk();
     $sitemap->assertSee(url('/books/tags/featured'))->assertSee(url('/films/tags/featured'));
+});
+
+it('leaves term and index pages listing nothing in a language out of the sitemap, as without the fallback', function () {
+    app(SaveTerm::class)->handle($this->tags, ['title' => 'Unggulan', 'locale' => 'id'], $this->featured);
+    // Its pages' addresses (not their other languages' links).
+    $sitemap = function (): string {
+        preg_match_all('#<loc>(.*?)</loc>#', (string) get('/sitemap.xml')->assertOk()->getContent(), $m);
+        app(SiteCache::class)->changed('test');
+
+        return implode('<', $m[1]).'<';
+    };
+
+    // With the main-language fallback, the untranslated entries are listed there.
+    expect($sitemap())->toContain(url('/id/books/tags/unggulan'))->toContain(url('/id/books/tags').'<');
+    get('/id/books/tags/unggulan')->assertOk()->assertSee('Dune');
+
+    // Without it, the pages are empty: not in the sitemap.
+    config(['sunrice-cms.site.fallback' => false]);
+    get('/id/books/tags/unggulan')->assertOk()->assertDontSee('Dune');
+    expect($sitemap())->not->toContain('/id/books/tags')->not->toContain('/id/films/tags')
+        ->toContain(url('/books/tags/featured'))->toContain(url('/books/tags').'<');
+
+    // A book translated: its pages list it.
+    $dune = EntryTranslation::query()->where('draft_title', 'Dune')->firstOrFail();
+    $buku = app(CreateTranslation::class)->handle($dune->entry, 'id');
+    app(PublishEntry::class)->handle($buku);
+    expect($sitemap())->toContain(url('/id/books/tags/unggulan'))->toContain(url('/id/books/tags').'<')->not->toContain('/id/films/tags');
+    expect(iterator_to_array(app(Sitemap::class)->pages('id'), false))->toContain(['url' => url('/id/books/tags/unggulan'), 'collection' => 'books'])
+        ->not->toContain(['url' => url('/id/films/tags'), 'collection' => 'films']);
 });
 
 it('lists every collection\'s entries on the shared page, which links prefer', function () {

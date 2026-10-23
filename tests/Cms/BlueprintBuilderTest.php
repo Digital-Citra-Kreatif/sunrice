@@ -5,12 +5,16 @@ declare(strict_types=1);
 use Illuminate\Support\ServiceProvider;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Blueprints\DeleteBlueprint;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\CmsServiceProvider;
 use Sunrice\Cms\Fields\DefinitionValidator;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Fieldset;
+use Sunrice\Cms\Models\Form;
+use Sunrice\Cms\Models\GlobalSet;
+use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\delete;
@@ -59,7 +63,39 @@ it('lists blueprints with the collections that use them', function () {
     builderUser();
 
     get('/admin/cms/blueprints')->assertInertia(fn (Assert $page) => $page
-        ->where('blueprints.0', ['id' => $blueprint->id, 'handle' => 'page', 'title' => 'Page', 'fields' => 1, 'usedBy' => ['Pages']]));
+        ->where('blueprints.0', ['id' => $blueprint->id, 'handle' => 'page', 'title' => 'Page', 'fields' => 1, 'usedBy' => ['the collection "Pages"']]));
+});
+
+it('lists every user of a blueprint, as deleting it would say', function () {
+    foreach (['page', 'term', 'tag_index', 'listing', 'settings', 'contact', 'spare'] as $handle) {
+        Blueprint::query()->create(['handle' => $handle, 'title' => ucfirst($handle), 'fields' => []]);
+    }
+    Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page', 'listing_blueprint' => 'listing']);
+    Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'blueprint' => 'term', 'index_blueprint' => 'tag_index']);
+    GlobalSet::query()->create(['handle' => 'site', 'title' => 'Site', 'blueprint' => 'settings']);
+    Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);
+    builderUser();
+
+    $delete = app(DeleteBlueprint::class);
+    get('/admin/cms/blueprints')->assertInertia(function (Assert $page) use ($delete) {
+        $page->where('blueprints', function ($rows) use ($delete) {
+            $usedBy = collect($rows)->mapWithKeys(fn ($row) => [$row['handle'] => $row['usedBy']])->all();
+            expect($usedBy)->toBe([
+                'contact' => ['the form "Contact"'],
+                'listing' => ['the listing page of "Pages"'],
+                'page' => ['the collection "Pages"'],
+                'settings' => ['the global set "Site"'],
+                'spare' => [],
+                'tag_index' => ['the index pages of "Tags"'],
+                'term' => ['the taxonomy "Tags"'],
+            ]);
+            foreach ($usedBy as $handle => $users) {
+                expect($delete->usedBy(Blueprint::query()->where('handle', $handle)->firstOrFail()))->toBe($users);
+            }
+
+            return true;
+        });
+    });
 });
 
 it('gives the builder the field types, their settings, fieldsets and rules', function () {
