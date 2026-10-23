@@ -102,9 +102,9 @@ it('creates users with a hashed password and roles, and keeps the password unles
     get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'password'))->toMatchArray(['type' => 'password', 'required' => false])
         ->and(collect(formField($page, 'roles')['options'])->pluck('value')->all())->toBe(['boss', 'editor', 'manager', 'super-admin']));
 
-    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password', 'roles' => ['editor']])->assertRedirect();
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'A-long-passw0rd!', 'password_confirmation' => 'A-long-passw0rd!', 'roles' => ['editor']])->assertRedirect();
     $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
-    expect(Hash::check('a-long-password', $dewi->password))->toBeTrue()
+    expect(Hash::check('A-long-passw0rd!', $dewi->password))->toBeTrue()
         ->and($dewi->getRoleNames()->all())->toBe(['editor']);
 
     get("/admin/users/{$dewi->id}/edit")->assertInertia(fn (Assert $page) => $page
@@ -115,11 +115,11 @@ it('creates users with a hashed password and roles, and keeps the password unles
     put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => '', 'roles' => ['editor', 'manager']])->assertSessionHasNoErrors();
     $dewi->refresh();
     expect($dewi->name)->toBe('Dewi S')
-        ->and(Hash::check('a-long-password', $dewi->password))->toBeTrue()
+        ->and(Hash::check('A-long-passw0rd!', $dewi->password))->toBeTrue()
         ->and($dewi->getRoleNames()->sort()->values()->all())->toBe(['editor', 'manager']);
 
-    put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => 'another-password', 'password_confirmation' => 'another-password', 'roles' => []]);
-    expect(Hash::check('another-password', $dewi->fresh()->password))->toBeTrue()
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi S', 'email' => 'dewi@example.com', 'password' => 'Another-passw0rd!', 'password_confirmation' => 'Another-passw0rd!', 'roles' => []]);
+    expect(Hash::check('Another-passw0rd!', $dewi->fresh()->password))->toBeTrue()
         ->and($dewi->fresh()->getRoleNames()->all())->toBe([]);
 
     post('/admin/users', ['name' => 'X', 'email' => 'dewi@example.com', 'password' => '', 'roles' => ['nope']])
@@ -174,7 +174,7 @@ it('lets users manage only users strictly below them, and edit their own account
     foreach (['boss', 'manager', 'super-admin'] as $role) {
         put("/admin/users/{$this->editor->id}", ['name' => 'Editor', 'email' => 'editor@example.com', 'roles' => [$role]])->assertSessionHasErrors('roles.0');
     }
-    post('/admin/users', ['name' => 'New', 'email' => 'new@example.com', 'password' => 'a-long-password', 'roles' => ['super-admin']])->assertSessionHasErrors('roles.0');
+    post('/admin/users', ['name' => 'New', 'email' => 'new@example.com', 'password' => 'A-long-passw0rd!', 'roles' => ['super-admin']])->assertSessionHasErrors('roles.0');
 
     // Roles each below them, but together as much as they have: refused too.
     Role::findOrCreate('people', 'web')->givePermissionTo([Panel::ACCESS, 'sunrice.users.view', 'sunrice.users.create', 'sunrice.users.update', 'sunrice.users.delete']);
@@ -428,15 +428,15 @@ it('asks for a new password twice, unless it is left empty when editing', functi
     actingAs($this->super);
     get('/admin/users/create')->assertInertia(fn (Assert $page) => expect(formField($page, 'password'))->toMatchArray(['confirmed' => true]));
 
-    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-passw0rd', 'roles' => []])
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'A-long-passw0rd!', 'password_confirmation' => 'a-long-passw0rd', 'roles' => []])
         ->assertSessionHasErrors('password');
-    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password', 'roles' => []])
+    post('/admin/users', ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'A-long-passw0rd!', 'password_confirmation' => 'A-long-passw0rd!', 'roles' => []])
         ->assertSessionHasNoErrors();
     $dewi = User::query()->where('email', 'dewi@example.com')->firstOrFail();
 
     put("/admin/users/{$dewi->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => '', 'roles' => []])->assertSessionHasNoErrors();
-    put("/admin/users/{$dewi->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'new-long-password', 'roles' => []])->assertSessionHasErrors('password');
-    expect(Hash::check('a-long-password', $dewi->fresh()->password))->toBeTrue();
+    put("/admin/users/{$dewi->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'New-long-passw0rd!', 'roles' => []])->assertSessionHasErrors('password');
+    expect(Hash::check('A-long-passw0rd!', $dewi->fresh()->password))->toBeTrue();
 });
 
 it('creates a user with an invitation to choose their own password, and sends a fresh link later', function () {
@@ -465,9 +465,9 @@ it('creates a user with an invitation to choose their own password, and sends a 
     // It's her first password: the page and the message say so.
     expect($link)->toContain('invited=1');
     get($link)->assertOk()->assertInertia(fn (Assert $page) => $page->component('Auth/ResetPassword', false)->where('invited', true));
-    post('/admin/reset-password', ['token' => $token, 'email' => 'dewi@example.com', 'password' => 'dewis-own-password', 'password_confirmation' => 'dewis-own-password', 'invited' => true])
+    post('/admin/reset-password', ['token' => $token, 'email' => 'dewi@example.com', 'password' => 'Dewis-own-passw0rd!', 'password_confirmation' => 'Dewis-own-passw0rd!', 'invited' => true])
         ->assertRedirect('/admin/login')->assertSessionHas('success', 'Your password is set. You can log in now.');
-    expect(Hash::check('dewis-own-password', $dewi->fresh()->password))->toBeTrue();
+    expect(Hash::check('Dewis-own-passw0rd!', $dewi->fresh()->password))->toBeTrue();
 
     // Later: the row's "Email a password link".
     actingAs($this->super);
@@ -513,11 +513,11 @@ it('lets everyone change their own name, email and password on Your account', fu
     put('/admin/account', ['name' => 'Ayu', 'email' => 'ayu@example.com'])->assertSessionHasErrors('current_password');
     put('/admin/account', ['name' => 'Ayu', 'email' => 'ayu@example.com', 'current_password' => 'wrong'])->assertSessionHasErrors('current_password');
     put('/admin/account', ['name' => 'Ayu', 'email' => 'editor@example.com', 'current_password' => 'old-long-password'])->assertSessionHasErrors('email');
-    put('/admin/account', ['name' => 'Ayu', 'email' => 'author@example.com', 'current_password' => 'old-long-password', 'password' => 'new-long-password', 'password_confirmation' => 'other'])->assertSessionHasErrors('password');
-    put('/admin/account', ['name' => 'Ayu', 'email' => 'ayu@example.com', 'current_password' => 'old-long-password', 'password' => 'new-long-password', 'password_confirmation' => 'new-long-password'])
+    put('/admin/account', ['name' => 'Ayu', 'email' => 'author@example.com', 'current_password' => 'old-long-password', 'password' => 'New-long-passw0rd!', 'password_confirmation' => 'other'])->assertSessionHasErrors('password');
+    put('/admin/account', ['name' => 'Ayu', 'email' => 'ayu@example.com', 'current_password' => 'old-long-password', 'password' => 'New-long-passw0rd!', 'password_confirmation' => 'New-long-passw0rd!'])
         ->assertSessionHasNoErrors()->assertSessionHas('success', 'Your account is saved.');
     expect($author->fresh()->email)->toBe('ayu@example.com')
-        ->and(Hash::check('new-long-password', $author->fresh()->password))->toBeTrue()
+        ->and(Hash::check('New-long-passw0rd!', $author->fresh()->password))->toBeTrue()
         ->and(Activity::query()->where('source', 'security')->whereIn('action', ['email changed', 'password changed'])->pluck('action')->sort()->values()->all())->toBe(['email changed', 'password changed']);
 
     // Only their own: no other user's id is taken.

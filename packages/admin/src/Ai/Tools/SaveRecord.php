@@ -13,7 +13,7 @@ use Sunrice\Admin\Actions\Resources\SaveRecord as SaveRecordAction;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Resources\Forms\Password;
 
-#[Description('Create a record (no "id") or change one: "values" holds only the fields to set; the others keep their values. Validated like the screen; use get_record first for the fields.')]
+#[Description('Create a record (no "id") or change one: "values" holds only the fields to set; the others keep their values. Validated like the screen; use get_record first for the fields. Passwords can\'t be set.')]
 final class SaveRecord extends ResourceTool
 {
     protected string $name = 'save_record';
@@ -40,13 +40,13 @@ final class SaveRecord extends ResourceTool
         }
 
         $fields = $resource->form()->fields($operation);
-        $input = [...self::currentValues($fields, $record->exists ? $record : null), ...$values];
-        // A password asked for twice on the screen is sent once here.
+        // Passwords are never set by an agent: people choose their own (a new user can be invited).
         foreach ($fields as $field) {
-            if ($field instanceof Password && $field->isConfirmed()) {
-                $input[$field->name.'_confirmation'] ??= $input[$field->name] ?? null;
+            if ($field instanceof Password && (array_key_exists($field->name, $values) || array_key_exists($field->name.'_confirmation', $values))) {
+                return Response::error("Passwords can't be set with AI access. Leave \"{$field->name}\" out: a person sets it on the screen, or a new user chooses their own from an invitation (when the form has \"invite\").");
             }
         }
+        $input = [...self::currentValues($fields, $record->exists ? $record : null), ...$values];
         try {
             $changed = app(SaveRecordAction::class)->handle($resource, $record, $input, $operation);
         } catch (ValidationException $e) {

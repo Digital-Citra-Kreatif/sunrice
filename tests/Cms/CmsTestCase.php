@@ -25,6 +25,8 @@ abstract class CmsTestCase extends TestCase
     protected function defineEnvironment($app): void
     {
         $app['config']->set('auth.providers.users.model', User::class);
+        // No calls to Have I Been Pwned from the tests: tests/Admin/StrongPasswordsTest fakes them.
+        $app['config']->set('sunrice-admin.auth.password_uncompromised', false);
         // Laravel's users, cache and jobs tables join the migrations
         // RefreshDatabase runs once per test file, instead of being
         // migrated and rolled back around every test: on MySQL that

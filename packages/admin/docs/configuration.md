@@ -24,6 +24,9 @@ A dash in the *Env* column means the key has no environment variable: change it 
 | --- | --- | --- | --- |
 | `auth.passwords` | `null` | — | The password broker for "Forgot password?" (`config/auth.php` `passwords.*`); `null` for the app's default. |
 | `auth.two_factor` | `null` | — | `true` or `false` forces [two-factor login](auth.md#two-factor-login) on or off, whatever Settings → Security says; `null` follows the setting. |
+| `auth.strong_passwords` | `null` | — | `true` or `false` forces [strong passwords](auth.md#strong-passwords) on or off, whatever Settings → Security says; `null` follows the setting (on by default). Off: your app's `Password::defaults()`. |
+| `auth.password_min` | `12` | — | The shortest strong password (never fewer than 8). |
+| `auth.password_uncompromised` | `true` | `SUNRICE_PASSWORD_UNCOMPROMISED` | Refuse strong passwords found in known data leaks (Have I Been Pwned, by k-anonymity; accepted when it can't be reached). |
 | `auth.throttle.attempts`, `auth.throttle.decay_seconds` | `5`, `60` | — | Wrong passwords for the same email from the same IP before waiting, and for how long. |
 | `auth.throttle.per_ip`, `auth.throttle.per_ip_decay_seconds` | `20`, `60` | — | Wrong passwords from one IP for any emails (password spraying). |
 | `auth.throttle.per_account`, `auth.throttle.account_lock_seconds` | `30`, `900` | — | Wrong passwords for one account from any IPs before it's locked, and for how long. |

@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Actions\Users;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
+use Sunrice\Admin\Auth\PasswordPolicy;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Security\SecurityLog;
 
@@ -44,7 +45,7 @@ final class UpdateAccount
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique($user->getTable(), 'email')->ignore($user->getKey(), $user->getKeyName())],
             'current_password' => $changesEmail || $changesPassword ? ['required', 'string', 'current_password:'.$this->panel->getGuard()] : ['nullable'],
-            'password' => ['nullable', 'string', 'max:255', 'confirmed', PasswordRule::default()],
+            'password' => ['nullable', 'string', 'max:255', 'confirmed', ...PasswordPolicy::rules($user instanceof Authenticatable ? $user : null)],
         ], [
             'current_password.required' => 'Type your current password to change your email address or password.',
             'current_password.current_password' => 'That isn\'t your current password.',

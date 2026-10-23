@@ -9,7 +9,7 @@ Daftar **Pengguna** menampilkan nama, alamat email, peran, apakah akun **Dikunci
 ### Menambahkan orang
 
 1. Klik **Tambah pengguna**.
-2. Di bagian **Akun**, ketik **Nama** dan **Email**. Lalu ketik **Kata sandi** dan sekali lagi di **Konfirmasi kata sandi**, atau biarkan kosong dan nyalakan **Kirim undangan lewat email**: mereka menerima email berisi tautan untuk memilih kata sandi sendiri.
+2. Di bagian **Akun**, ketik **Nama** dan **Email**. Lalu ketik **Kata sandi** dan sekali lagi di **Konfirmasi kata sandi**, atau biarkan kosong dan nyalakan **Kirim undangan lewat email**: mereka menerima email berisi tautan untuk memilih kata sandi sendiri. Kata sandi harus memenuhi aturan kata sandi situs (lihat [Pengaturan](guide:panel/settings#keamanan-kata-sandi)); daftar periksa di bawahnya menunjukkan apa yang masih kurang.
 3. Di bagian **Peran**, centang perannya.
 4. Klik **Buat pengguna**. Tanpa undangan, beri tahu mereka alamat panel dan kata sandinya.
 

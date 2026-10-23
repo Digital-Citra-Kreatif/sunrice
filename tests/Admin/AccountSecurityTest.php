@@ -21,9 +21,9 @@ use function Pest\Laravel\post;
 beforeEach(function () {
     usePanel();
     app(SyncPermissions::class)->handle();
-    $this->admin = User::query()->create(['name' => 'Admin', 'email' => 'admin@example.com', 'password' => 'secret-password'])->assignRole('super-admin');
+    $this->admin = User::query()->create(['name' => 'Admin', 'email' => 'admin@example.com', 'password' => 'Secret-passw0rd!'])->assignRole('super-admin');
     Role::findOrCreate('member', 'web')->givePermissionTo([Panel::ACCESS]);
-    $this->rina = User::query()->create(['name' => 'Rina', 'email' => 'rina@example.com', 'password' => 'secret-password'])->assignRole('member');
+    $this->rina = User::query()->create(['name' => 'Rina', 'email' => 'rina@example.com', 'password' => 'Secret-passw0rd!'])->assignRole('member');
 });
 
 /** The security actions about Rina, oldest first. */
@@ -48,14 +48,14 @@ it('locks an account: its session ends, it can\'t log in, until unlocked', funct
     actingAs($this->rina);
     get('/admin')->assertRedirect('/admin/login')->assertSessionHas('error', 'This account is locked. Ask an administrator to unlock it.');
     expect(Auth::check())->toBeFalse();
-    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password'])
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'Secret-passw0rd!'])
         ->assertSessionHasErrors(['email' => 'This account is locked. Ask an administrator to unlock it.']);
     expect(Auth::check())->toBeFalse();
 
     actingAs($this->admin);
     post("/admin/users/{$this->rina->id}/actions/unlock")->assertSessionHas('success', 'Account unlocked.');
     Auth::logout();
-    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password'])->assertRedirect('/admin');
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'Secret-passw0rd!'])->assertRedirect('/admin');
 
     expect(rinaEvents($this->rina))->toBe(['account locked by admin', 'login blocked', 'login blocked', 'account unlocked']);
 });
@@ -69,7 +69,7 @@ it('signs an account out everywhere, with any session driver', function () {
     // A session from before ends; one from after stays.
     actingAs($this->rina)->withSession([AccountGuard::LOGIN_AT => now()->subHour()->getTimestamp()]);
     get('/admin')->assertRedirect('/admin/login')->assertSessionHas('error', 'You were signed out. Please log in again.');
-    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password'])->assertRedirect('/admin');
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'Secret-passw0rd!'])->assertRedirect('/admin');
     get('/admin')->assertOk();
 
     expect(rinaEvents($this->rina))->toBe(['signed out everywhere']);
@@ -113,10 +113,10 @@ it('unlocks from the console, also after too many wrong passwords', function () 
     config(['sunrice-admin.auth.throttle' => ['attempts' => 50, 'per_ip' => 50, 'per_account' => 2, 'account_lock_seconds' => 900]]);
     post('/admin/login', ['email' => 'rina@example.com', 'password' => 'wrong']);
     post('/admin/login', ['email' => 'rina@example.com', 'password' => 'wrong']);
-    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password'])->assertSessionHasErrors('email');
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'Secret-passw0rd!'])->assertSessionHasErrors('email');
 
     artisan('sunrice:unlock', ['email' => 'nobody@example.com'])->assertFailed();
     artisan('sunrice:unlock', ['email' => 'rina@example.com'])->expectsOutputToContain('rina@example.com can log in again.')->assertSuccessful();
 
-    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password'])->assertRedirect('/admin');
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'Secret-passw0rd!'])->assertRedirect('/admin');
 });

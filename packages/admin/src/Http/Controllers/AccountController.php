@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Admin\Actions\Users\UpdateAccount;
+use Sunrice\Admin\Auth\PasswordPolicy;
 
 /**
  * Your account: the signed-in user's own name, email address and
@@ -25,6 +26,7 @@ final class AccountController
 
         return Inertia::render('Account/Edit', [
             'values' => ['name' => $user->getAttribute('name'), 'email' => $user->getAttribute('email')],
+            'passwordRules' => PasswordPolicy::checklist(),
         ]);
     }
 

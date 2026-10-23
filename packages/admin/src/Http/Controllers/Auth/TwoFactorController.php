@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Http\Controllers\Auth;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Admin\Auth\TwoFactorLogin;
+use Sunrice\Admin\Auth\WeakPasswordAtLogin;
 use Sunrice\Admin\Security\AccountGuard;
 use Sunrice\Admin\Security\SecurityLog;
 
@@ -38,7 +40,7 @@ final class TwoFactorController
         ]);
     }
 
-    public function store(Request $request, SecurityLog $security): RedirectResponse
+    public function store(Request $request, SecurityLog $security, WeakPasswordAtLogin $weak): RedirectResponse
     {
         $request->validate(['code' => ['required', 'string', 'max:20']]);
         $code = $request->string('code')->toString();
@@ -57,6 +59,9 @@ final class TwoFactorController
         if ($result === 'ok') {
             // Sessions that signed in before "sign out everywhere" end (AccountGuard).
             $request->session()->put(AccountGuard::LOGIN_AT, now()->getTimestamp());
+            if ($account instanceof Authenticatable) {
+                $weak->signedIn($request, $account);
+            }
 
             return redirect()->intended(route('sunrice.admin.dashboard'));
         }

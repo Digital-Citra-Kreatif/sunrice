@@ -31,8 +31,8 @@ beforeEach(function () {
     Storage::fake('public');
     usePanel(fn (Panel $panel) => $panel->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->resources(ProductResource::class))));
     app(SyncPermissions::class)->handle();
-    $this->admin = User::query()->create(['name' => 'Rina', 'email' => 'rina@example.com', 'password' => 'secret-password'])->assignRole('super-admin');
-    $this->customer = User::query()->create(['name' => 'Budi', 'email' => 'budi@shop.test', 'password' => 'secret-password']);
+    $this->admin = User::query()->create(['name' => 'Rina', 'email' => 'rina@example.com', 'password' => 'Secret-passw0rd!'])->assignRole('super-admin');
+    $this->customer = User::query()->create(['name' => 'Budi', 'email' => 'budi@shop.test', 'password' => 'Secret-passw0rd!']);
 });
 
 /** The security lines as [action, actor, subject label, note], oldest first. */
@@ -50,8 +50,8 @@ function attemptPanelLogin(string $email, string $password): TestResponse
 it('records logins: in, failed, refused, out', function () {
     attemptPanelLogin('rina@example.com', 'wrong');
     attemptPanelLogin('nobody@example.com', 'wrong');
-    attemptPanelLogin('budi@shop.test', 'secret-password'); // a customer: no access to the panel
-    attemptPanelLogin('rina@example.com', 'secret-password')->assertRedirect('/admin');
+    attemptPanelLogin('budi@shop.test', 'Secret-passw0rd!'); // a customer: no access to the panel
+    attemptPanelLogin('rina@example.com', 'Secret-passw0rd!')->assertRedirect('/admin');
     post('/admin/logout');
 
     expect(securityLines())->toBe([
@@ -83,7 +83,7 @@ it('records attempts made while blocked, at most once a minute per email and IP'
     attemptPanelLogin('rina@example.com', 'wrong');
     attemptPanelLogin('rina@example.com', 'wrong');
     attemptPanelLogin('rina@example.com', 'wrong');
-    attemptPanelLogin('rina@example.com', 'secret-password')->assertSessionHasErrors('email');
+    attemptPanelLogin('rina@example.com', 'Secret-passw0rd!')->assertSessionHasErrors('email');
     foreach (range(1, 3) as $i) {
         test()->withServerVariables(['REMOTE_ADDR' => '10.0.0.9'])->post('/admin/login', ['email' => 'nobody@example.com', 'password' => 'x']);
     }
@@ -108,7 +108,7 @@ it('records password resets', function () {
     post('/admin/forgot-password', ['email' => 'rina@example.com']);
     post('/admin/forgot-password', ['email' => 'ghost@example.com']);
     $token = Password::broker()->createToken($this->admin);
-    post('/admin/reset-password', ['token' => $token, 'email' => 'rina@example.com', 'password' => 'new-password-1', 'password_confirmation' => 'new-password-1'])->assertRedirect();
+    post('/admin/reset-password', ['token' => $token, 'email' => 'rina@example.com', 'password' => 'New-passw0rd-1!', 'password_confirmation' => 'New-passw0rd-1!'])->assertRedirect();
 
     expect(securityLines())->toBe([
         ['password reset requested', null, 'Rina', null],

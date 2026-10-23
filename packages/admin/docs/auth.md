@@ -15,6 +15,51 @@ Turn on **Two-factor login** in Settings → Security (permission `sunrice.setti
 - Locked out because email stopped working? `php artisan sunrice:two-factor off` (and `on`, or no argument to see it). `sunrice-admin.auth.two_factor` (`true` or `false`) forces it whatever the setting says; `null`, the default, follows the setting.
 - Codes are typed at `/admin/login/code` (`sunrice.admin.login.code`), limited to 10 tries and resends a minute per IP.
 
+## Strong passwords
+
+**Require strong passwords** in Settings → Security (permission `sunrice.settings.security`) is on by default, for new and existing installs. Every password the panel sets then needs:
+
+- `auth.password_min` characters or more (12 by default; a lower number than 8 counts as 8),
+- upper and lower case letters, a number and a symbol (Unicode counts: `É` is upper case, a space or `€` a symbol),
+- not to be the person's email address or name (whatever the case),
+- not to have appeared in a known data leak (below).
+
+Each rule it misses is its own message ("Use at least 12 characters.", "Add a symbol, such as ! or #." …), and the forms show the rules as a checklist under the new password, ticked as they're met; it comes from the server (`PasswordPolicy::checklist()`), so it always says what is enforced. The email, name and leak checks are only on the server: a leaked password gets "This password has appeared in a data leak. Choose a different one."
+
+It applies everywhere the panel sets a password: creating and editing users (the `Password` form field), **Your account**, the reset and invitation pages, **Choose a stronger password** (below) and `sunrice:make-admin` (`--password` too; asked interactively, it explains the rules when one is refused). AI agents can't set or read passwords at all: `get_record` leaves password fields out, and `save_record` refuses them (a new user is invited to choose their own).
+
+With the setting off, the panel uses your app's `Password::defaults()` as before (Laravel's default is 8 characters; set your own in a service provider), and the checklist shows what those ask for. `sunrice-admin.auth.strong_passwords` (`true` or `false`) forces it either way whatever the setting says, like `auth.two_factor`; `null`, the default, follows the setting.
+
+| Key | Default | |
+| --- | --- | --- |
+| `auth.strong_passwords` | `null` | `true` or `false` forces strong passwords on or off; `null` follows Settings → Security. |
+| `auth.password_min` | `12` | The shortest strong password (at least 8). |
+| `auth.password_uncompromised` | `true` (`SUNRICE_PASSWORD_UNCOMPROMISED`) | Refuse passwords from known data leaks. |
+
+**Data leaks.** The password is checked against [Have I Been Pwned's Pwned Passwords](https://haveibeenpwned.com/Passwords) by k-anonymity: only the first 5 characters of its SHA-1 hash are sent (with padding, so the answer's size says nothing either), and the match is made on your server. It's asked only once the other rules pass, with a 3-second timeout, and it **fails open**: when the service can't be reached or answers with an error, the password is accepted and a warning is logged (at most once an hour). Turn it off with `SUNRICE_PASSWORD_UNCOMPROMISED=false` (an offline server, say).
+
+In your own code, the same rules are one call (`@api`):
+
+```php
+use Sunrice\Admin\Auth\PasswordPolicy;
+
+$request->validate(['password' => ['required', 'string', 'max:255', 'confirmed', ...PasswordPolicy::rules($user)]]);
+
+PasswordPolicy::strong();      // whether strong passwords are on
+PasswordPolicy::checklist();   // ['min' => 12, 'mixedCase' => true, 'letters' => false, 'numbers' => true, 'symbols' => true]
+PasswordPolicy::problems($password, $user); // what it lacks, keyed by rule: ['length' => 'Use at least 12 characters.', …]
+```
+
+`rules($user)` refuses that account's email address and name; on a form that also sends `email` and `name` (a new account), those are refused too.
+
+### Weak passwords at sign-in
+
+Passwords set before strong passwords were on (or by another app sharing the users table) may not meet the rules. **Ask people with a weak password to change it when they sign in**, under it in Settings → Security, is on by default: at a successful login, the password just typed is checked against the rules, leak check included (one request to the service, failing open, only after the password was found right). A weak one keeps the person signed in, but every panel page leads to **Choose a stronger password** (`/admin/stronger-password`, `sunrice.admin.password.stronger`) until they choose one, typed twice; their current password isn't asked again, since they've just typed it. Then they go on to the page they asked for. Logging out stays open, and the panel's `fetch()` calls get a 409 answer meanwhile.
+
+- Only a mark with the account's id is kept, in the session (never anything about the password): it ends with the session, and nothing is stored in the database. With two-factor login, the password is checked at the first step and the mark counts once the code signs them in.
+- Someone signed in some other way (no password typed at the panel's login), and AI access tokens, aren't affected.
+- Both are [security events](security.md#security-events): `weak password at sign-in` (its note says which rules it failed, such as `fails: length, symbols`) and `weak password changed`.
+
 ## Brute-force protection
 
 Wrong passwords are counted three ways (`config/sunrice-admin.php`, `auth.throttle`); the first limit reached makes the person wait:
@@ -34,6 +79,6 @@ Laravel's auth events fire as usual (`Illuminate\Auth\Events\Failed`, `Login`, `
 
 ## Password reset
 
-"Forgot password?" emails a link to the panel's reset page (not the app's own `password.reset` route), through Laravel's password broker: set `auth.passwords` in `config/sunrice-admin.php` to use another broker. Both forms answer the same whether or not the email has an account (the reset form treats an unknown email as a wrong token). New passwords follow `Password::defaults()`, and resetting signs out "remember me" sessions.
+"Forgot password?" emails a link to the panel's reset page (not the app's own `password.reset` route), through Laravel's password broker: set `auth.passwords` in `config/sunrice-admin.php` to use another broker. Both forms answer the same whether or not the email has an account (the reset form treats an unknown email as a wrong token). New passwords follow the [password rules](#strong-passwords), and resetting signs out "remember me" sessions.
 
 Publish the config with `php artisan vendor:publish --tag=sunrice-admin-config`.

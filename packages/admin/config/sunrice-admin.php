@@ -41,6 +41,19 @@ return [
         // handy but readable on locked phones' notifications. Off: only in the body.
         'two_factor_code_in_subject' => env('SUNRICE_LOGIN_CODE_IN_SUBJECT', false),
 
+        // Strong passwords (Settings → Security, on by default): every password
+        // the panel sets needs password_min characters (never fewer than 8),
+        // upper and lower case letters, a number and a symbol, and mustn't be
+        // the person's email or name. true or false here forces it, whatever
+        // the setting says; null follows the setting. Off, the panel uses your
+        // app's Password::defaults().
+        'strong_passwords' => null,
+        'password_min' => 12,
+        // Also refuse passwords found in known data leaks (Have I Been Pwned,
+        // by k-anonymity: only 5 characters of a hash leave the server). When
+        // the service can't be reached, passwords are accepted (a warning is logged).
+        'password_uncompromised' => env('SUNRICE_PASSWORD_UNCOMPROMISED', true),
+
         // Brute-force protection for the panel's login. Wrong passwords are
         // counted three ways; the first limit reached makes the person wait.
         'throttle' => [
