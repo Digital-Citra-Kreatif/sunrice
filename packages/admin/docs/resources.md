@@ -42,7 +42,7 @@ final class ProductResource extends Resource
 }
 ```
 
-Register it in a plugin's `register()` or in your panel provider:
+Register it in a plugin's `register()` or in your panel provider (see [Customising the panel in your app](panel.md#customising-the-panel-in-your-app) for what else an app can add):
 
 ```php
 $panel->resources(ProductResource::class);

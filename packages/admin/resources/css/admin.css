@@ -258,6 +258,44 @@
     from { opacity: 0; transform: translateY(6px); }
 }
 
+/* A dashboard card's body folding away (components/app/collapse.tsx): the 0fr → 1fr row trick. */
+.sunrice-collapse {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition: grid-template-rows 180ms var(--ease-out-quart), opacity 150ms ease-out;
+}
+
+.sunrice-collapse[data-state="closed"] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+}
+
+/* A Radix Collapsible's content (the sidebar's groups and submenus) opening and closing. */
+@keyframes sunrice-collapsible-open {
+    from { height: 0; opacity: 0; }
+    to { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+
+@keyframes sunrice-collapsible-close {
+    from { height: var(--radix-collapsible-content-height); opacity: 1; }
+    to { height: 0; opacity: 0; }
+}
+
+.sunrice-collapsible {
+    /* Clips the height while it animates, but leaves room for focus rings. */
+    overflow: clip;
+    overflow-clip-margin: 4px;
+}
+
+.sunrice-collapsible[data-state="open"] {
+    animation: sunrice-collapsible-open 180ms var(--ease-out-quart);
+}
+
+.sunrice-collapsible[data-state="closed"] {
+    animation: sunrice-collapsible-close 150ms var(--ease-out-quart);
+}
+
 .sunrice-card-content {
     display: grid;
     grid-template-rows: 1fr;
@@ -372,8 +410,13 @@
         animation: none;
     }
 
-    .sunrice-card-content {
+    .sunrice-card-content,
+    .sunrice-collapse {
         transition: none;
+    }
+
+    .sunrice-collapsible[data-state] {
+        animation: none;
     }
 
     /* tw-animate-css: keep the fade, drop the zoom and the slide. */

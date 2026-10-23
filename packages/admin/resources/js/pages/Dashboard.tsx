@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Deferred, Head, Link, usePage } from '@inertiajs/react';
 import { ArrowRight, ArrowUpRight, CircleAlert, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
+import { CollapseRegion, CollapseToggle } from '@/components/app/collapse';
 import { navIcon } from '@/components/app/nav-icon';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -9,24 +10,37 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { adminUrl } from '@/lib/admin-url';
 import { panelLocale, t } from '@/lib/i18n';
 import {
-    formatStat, greeting, isExternal, quickLinks, relativeTime, spanClass, widgetHref,
+    COLLAPSED_PREFERENCE, formatStat, greeting, isExternal, parseCollapsed, quickLinks, relativeTime, spanClass, widgetHref, withCollapsed,
     type CardsData, type ListData, type ListRow, type StatData, type Tone, type WidgetDefinition, type WidgetResult,
 } from '@/lib/dashboard';
+import { savePreference } from '@/lib/preferences';
 import { cn } from '@/lib/utils';
 import type { SharedProps } from '@/types';
 
 interface Props {
     widgets: WidgetDefinition[];
+    /** The keys of the widgets this user folded away (a preference, so it follows them across devices). */
+    collapsed?: string[];
 }
 
 const BADGE: Record<Tone, 'outline' | 'success' | 'warning' | 'destructive'> = { neutral: 'outline', success: 'success', warning: 'warning', danger: 'destructive' };
 
 /** The dashboard: a greeting, then the widgets the panel and its plugins registered, their data arriving after the page. */
-export default function Dashboard({ widgets }: Props) {
+export default function Dashboard({ widgets, collapsed: saved }: Props) {
     const { auth, sunrice, navigation } = usePage<SharedProps>().props;
     useBreadcrumbs([{ label: t('Dashboard') }]);
     const now = React.useMemo(() => new Date(), []);
     const name = auth.user?.name?.trim().split(/\s+/)[0];
+    const [collapsed, setCollapsed] = React.useState(() => parseCollapsed(saved));
+    const current = React.useRef(collapsed);
+    const keys = React.useMemo(() => widgets.map((widget) => widget.key), [widgets]);
+    // Folded data still loads with the rest (its count shows in the header); only the body folds.
+    const toggle = React.useCallback((key: string) => {
+        const next = withCollapsed(current.current, key, !current.current.includes(key), keys);
+        current.current = next;
+        setCollapsed(next);
+        void savePreference(COLLAPSED_PREFERENCE, next.length > 0 ? next : null);
+    }, [keys]);
 
     return (
         <>
@@ -56,7 +70,7 @@ export default function Dashboard({ widgets }: Props) {
                     <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {widgets.map((widget, i) => (
                             <div key={widget.key} className={cn('sunrice-row-in min-w-0', spanClass(widget.span))} style={{ '--i': i } as React.CSSProperties}>
-                                <Widget widget={widget} now={now} />
+                                <Widget widget={widget} now={now} open={!collapsed.includes(widget.key)} onToggle={toggle} />
                             </div>
                         ))}
                     </div>
@@ -100,8 +114,12 @@ function SmartLink({ url, className, children, ...rest }: { url: string | null; 
         : <Link href={href} className={className} {...rest}>{children}</Link>;
 }
 
-function Widget({ widget, now }: { widget: WidgetDefinition; now: Date }) {
+function Widget({ widget, now, open, onToggle }: { widget: WidgetDefinition; now: Date; open: boolean; onToggle: (key: string) => void }) {
     const props = usePage().props as Record<string, unknown>;
+    const id = React.useId();
+    const bodyId = `${id}-body`;
+    const titleId = `${id}-title`;
+    const toggle = <CollapseToggle open={open} controls={bodyId} describedBy={titleId} onToggle={() => onToggle(widget.key)} />;
     const body = (
         <Deferred data={widget.prop} fallback={<WidgetSkeleton type={widget.type} />} rescue={<Unavailable />}>
             {() => {
@@ -117,28 +135,33 @@ function Widget({ widget, now }: { widget: WidgetDefinition; now: Date }) {
 
     if (widget.type === 'stat') {
         return (
-            <Card className="group relative gap-3 px-5 py-5">
+            <Card className="group relative gap-0 px-5 py-5" data-collapsed={open ? undefined : ''}>
                 <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-[13px] font-medium text-muted-foreground">
+                    <h2 id={titleId} className="min-w-0 text-[13px] font-medium text-muted-foreground">
                         {widget.link ? (
                             <SmartLink url={widget.link.url} className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none">{widget.title}</SmartLink>
                         ) : widget.title}
                     </h2>
-                    <WidgetIcon name={widget.icon} />
+                    <div className="flex shrink-0 items-center gap-1.5">
+                        <WidgetIcon name={widget.icon} />
+                        {toggle}
+                    </div>
                 </div>
-                {body}
-                {widget.link && <ArrowUpRight aria-hidden="true" className="absolute right-4 bottom-4 size-4 text-muted-foreground/0 transition-colors duration-200 group-hover:text-muted-foreground" />}
+                <CollapseRegion id={bodyId} open={open}>
+                    <div className="pt-3">{body}</div>
+                </CollapseRegion>
+                {widget.link && open && <ArrowUpRight aria-hidden="true" className="absolute right-4 bottom-4 size-4 text-muted-foreground/0 transition-colors duration-200 group-hover:text-muted-foreground" />}
             </Card>
         );
     }
 
     return (
-        <Card className="gap-0 overflow-hidden py-0">
-            <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+        <Card className="gap-0 overflow-hidden py-0" data-collapsed={open ? undefined : ''}>
+            <header className={cn('flex items-start justify-between gap-3 px-5 pt-5 pb-3 transition-[padding] duration-200 ease-out motion-reduce:transition-none', !open && 'pb-5')}>
                 <div className="min-w-0">
                     <div className="flex items-center gap-2">
                         <WidgetIcon name={widget.icon} />
-                        <h2 className="truncate text-[15px] font-semibold tracking-tight">{widget.title}</h2>
+                        <h2 id={titleId} className="truncate text-[15px] font-semibold tracking-tight">{widget.title}</h2>
                         <Deferred data={widget.prop} fallback={<></>}>
                             {() => {
                                 const result = props[widget.prop] as WidgetResult<ListData> | undefined;
@@ -151,14 +174,19 @@ function Widget({ widget, now }: { widget: WidgetDefinition; now: Date }) {
                     </div>
                     {widget.description && <p className="mt-1 text-[13px] text-muted-foreground">{widget.description}</p>}
                 </div>
-                {widget.link && (
-                    <SmartLink url={widget.link.url} className="inline-flex shrink-0 items-center gap-1 rounded-md text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-4 focus-visible:ring-ring-glow focus-visible:outline-none">
-                        {widget.link.label ?? t('See all')}
-                        <ArrowRight className="size-3.5" />
-                    </SmartLink>
-                )}
+                <div className="flex shrink-0 items-center gap-3">
+                    {widget.link && (
+                        <SmartLink url={widget.link.url} className="inline-flex shrink-0 items-center gap-1 rounded-md text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-4 focus-visible:ring-ring-glow focus-visible:outline-none">
+                            {widget.link.label ?? t('See all')}
+                            <ArrowRight className="size-3.5" />
+                        </SmartLink>
+                    )}
+                    {toggle}
+                </div>
             </header>
-            <div className="flex-1 border-t border-border/60">{body}</div>
+            <CollapseRegion id={bodyId} open={open}>
+                <div className="border-t border-border/60">{body}</div>
+            </CollapseRegion>
         </Card>
     );
 }

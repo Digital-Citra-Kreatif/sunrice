@@ -26,6 +26,47 @@ An app has one panel. Once it boots, the panel is locked: changing it later thro
 
 `brand()` is the panel's own name. Admins can give it another name, a logo, a font, a colour and their own sign-in page in Settings → Branding: see [Branding](branding.md). The name people see (in the sidebar, on the sign-in page, in emails and to AI agents) is `$panel->brandName()`.
 
+## Customising the panel in your app
+
+Everything a plugin adds, your app can add too, from the panel provider's `panel()` (the app's permissions and widget keys may use any prefix but a plugin's id):
+
+| You want | Use | See |
+| --- | --- | --- |
+| Links in the sidebar, in a group, with an icon, for those with a permission | `$panel->navigation(NavigationItem::make(...))` | [Navigation](#navigation) |
+| Admin screens to list, create and edit a model | `$panel->resources(ProductResource::class)` | [Resources](resources.md) |
+| A settings page (a form on Settings) | `$panel->settings(ShopSettings::class)` | [Settings](settings.md) |
+| A page of your own, in React | `$panel->routes(...)` with a permission, an Inertia page, and `$panel->bundle(...)` for its JavaScript | [Routes and pages](#routes-and-pages), [Admin pages in React](frontend.md) |
+| Tiles on the dashboard | `$panel->widgets(Widget::stat(...))` | [Dashboard widgets](#dashboard-widgets) |
+| Fewer tiles on the dashboard (the panel's or a plugin's) | `$panel->withoutWidgets('sunrice.activity', 'cms.setup')` | [Dashboard widgets](#dashboard-widgets) |
+| A dashboard of your own | `$panel->dashboard(...)` | [Your own dashboard](#your-own-dashboard) |
+| Permissions and roles for your screens | `$panel->permissions(...)`, `$panel->defaultRole(...)` | [Permissions](permissions.md) |
+| The panel's name, logo and colours | Settings → Branding | [Branding](branding.md) |
+
+A small app needs no plugin class: a sidebar link to a page of its own is
+
+```php
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+use Sunrice\Admin\Assets\PluginBundle;
+use Sunrice\Admin\Navigation\NavigationItem;
+use Sunrice\Admin\Permissions\Permission;
+
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->plugin(CmsPlugin::make())
+        ->permissions(Permission::make('reports.view', 'View reports', 'Reports'))
+        ->navigation(NavigationItem::make('reports')->label('Reports')->url('reports')
+            ->icon('chart-column')->group('Insights')->sort(20)->permission('reports.view'))
+        ->routes(fn () => Route::get('reports', fn () => Inertia::render('App/Reports', [
+            'totals' => Report::totals(),
+        ]))->name('reports.index')->middleware('can:reports.view'))      // sunrice.admin.reports.index
+        ->bundle(PluginBundle::make('app')->module(asset('vendor/app/admin.js'))->pages('App/'));
+}
+```
+
+with the page `App/Reports` in the app's own bundle, built with `@imajiner/admin-sdk` as [Admin pages in React](frontend.md) shows.
+
 ## Writing a plugin
 
 A plugin implements `Sunrice\Admin\Contracts\Plugin`, or extends `Sunrice\Admin\BasePlugin`:
@@ -87,6 +128,8 @@ NavigationItem::make('cms-seo')->label('SEO')->url('cms/seo')->icon('search')
 // In its page: <SettingsLayout items={settingsNav} current="cms-seo">…</SettingsLayout>
 ```
 
+Your app adds its own items the same way, in the panel provider: `$panel->navigation(NavigationItem::make('reports')->label('Reports')->url('reports')->icon('chart-column')->group('Insights')->permission('reports.view'))`. A `group` the panel or a plugin already uses (`Content`, `Administration`) puts the item among theirs; a new name makes a new group in the sidebar, which people can fold away (remembered in their browser). Give the page behind the link a route ([Routes and pages](#routes-and-pages)) that checks the same permission.
+
 Items made from data (one per record) come from `navigationUsing()`, worked out on each page rather than at boot, so new and renamed records show at once. Keep the closure cheap (it runs on every page; cache what it reads), and give each item its own `permission()` or `visible()`. The CMS lists its collections and taxonomies this way.
 
 ```php
@@ -138,9 +181,40 @@ The page arrives with the widgets' definitions and paints at once; `data` runs a
 
 `$panel->widgetsFor($user)` gives the widgets a user sees, in order, and `$widget->resolve($user)` runs and checks one's data, for tests. The panel's own widgets are `sunrice.media` (the media library's size, with `sunrice.media.view`) and `sunrice.activity` (the last eight lines of the activity log, with `sunrice.activity.view`). The CMS adds its own (see [Collections](../../cms/docs/collections.md#the-dashboard)).
 
+Each card has a fold button in its header (*Collapse* / *Expand*): a folded card shows just its header (title, icon and a list's count) and its body folds away with a short animation (none for people who asked their system for reduced motion). What each user folded is a [preference](preferences.md), `dashboard.collapsed` (the widgets' keys), so it follows them to every browser; a widget they can no longer see drops out of it. A folded widget's `data` still loads with the others (its count shows in the header), so opening it is instant.
+
+### Hiding widgets
+
+`$panel->withoutWidgets(...$keys)`, in your panel provider, takes widgets off the dashboard for everyone, the panel's own or a plugin's, however late the plugin registers them:
+
+```php
+$panel->withoutWidgets('sunrice.activity', 'cms.setup', 'cms.submissions');
+```
+
+Their `data` never runs. A key nothing registers is ignored (a plugin you don't install), and only the app may hide widgets (a plugin that calls it is refused). The keys are the panel's `sunrice.media` and `sunrice.activity`, and the CMS's `cms.setup`, `cms.collections`, `cms.review`, `cms.recent-edits`, `cms.comments`, `cms.scheduled` and `cms.submissions`; `$panel->getWidgets()` lists every registered one, and `$panel->getHiddenWidgets()` the hidden keys. To hide a widget from some people only, it's their permissions that decide (each widget names the one it needs).
+
+### Your own dashboard
+
+`$panel->dashboard($action)` replaces the panel's home page (`/admin`, the logo and *Dashboard* links, where people land after signing in) with your own. It takes what a route takes: a closure, an invokable controller's class or `[Controller::class, 'method']`. The route keeps its name, `sunrice.admin.dashboard`, and stays behind sign-in and panel access; check any further permission yourself.
+
+```php
+// A React page of your app's bundle (see Admin pages in React):
+$panel->dashboard(fn () => Inertia::render('App/Dashboard', [
+    'orders' => Order::query()->latest()->limit(5)->get(['id', 'number', 'total']),
+]));
+
+// A controller of yours:
+$panel->dashboard(HomeController::class);
+
+// Or straight to another admin page:
+$panel->dashboard(fn () => to_route('sunrice.admin.shop.orders.index'));
+```
+
+Only the app can replace the dashboard (a plugin that calls it is refused); `$panel->hasOwnDashboard()` says whether it did. Without it, the dashboard is the panel's widgets page.
+
 ## Routes and pages
 
-`$panel->routes(fn () => ...)` adds routes for signed-in users who may open the panel (the `sunrice.access` permission), under the panel's path and named `sunrice.admin.…`. Give each one its own permission as well (`->middleware('can:shop.orders.view')`, or a middleware of yours that decides): the panel's tests assert that every `sunrice.admin.*` route is behind sign-in and panel access, and the CMS's that each of its routes names a permission or content check. Plugin pages in React are explained in [Admin pages in React](frontend.md).
+`$panel->routes(fn () => ...)`, from a plugin's `register()` or your panel provider, adds routes for signed-in users who may open the panel (the `sunrice.access` permission), under the panel's path and named `sunrice.admin.…`. Give each one its own permission as well (`->middleware('can:shop.orders.view')`, or a middleware of yours that decides): the panel's tests assert that every `sunrice.admin.*` route is behind sign-in and panel access, and the CMS's that each of its routes names a permission or content check. Plugin pages in React are explained in [Admin pages in React](frontend.md).
 
 ### Error pages
 

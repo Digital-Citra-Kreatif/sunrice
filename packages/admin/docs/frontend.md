@@ -18,6 +18,8 @@ public function register(Panel $panel): void
 }
 ```
 
+Your app does the same in its panel provider's `panel()` (`$panel->routes(...)`, `$panel->bundle(...)`), with page names under a folder of its own (`App/Reports`) and a sidebar link from `$panel->navigation()`: see [Customising the panel in your app](panel.md#customising-the-panel-in-your-app). The app's own dashboard is such a page too ([Your own dashboard](panel.md#your-own-dashboard)).
+
 Routes added with `$panel->routes()` live under the panel's path (`/admin/shop/orders`), are named `sunrice.admin.…`, and are only reachable for signed-in users who may open the panel. Add the permission each route needs, as above.
 
 ## 2. The bundle
