@@ -443,3 +443,24 @@ it('shows the terms of the taxonomies attached to the entry\'s collection only, 
     expect(Content::entries('notes')->whereTerm('format', 'guide')->get())->toHaveCount(1)
         ->and($this->guide->entries()->count())->toBe(1);
 });
+
+it('puts the terms of an entry published for later on the site when its time comes', function () {
+    $this->travelTo(now()->setTime(9, 0));
+    $this->artisan('sunrice:publish-scheduled')->assertSuccessful();
+    $note = liveNote(['tags' => [$this->php->id]]);
+    $saved = app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->laravel->id]]]);
+
+    app(PublishEntry::class)->handle($saved->fresh(), now()->addMinutes(30));
+    expect(liveTerms($note))->toBe([$this->php->id])
+        ->and($note->entry->fresh()?->draftTermIds())->toBe([$this->laravel->id])
+        // The revision keeps the terms it was published with.
+        ->and(Revision::query()->where('entry_translation_id', $note->id)->latest('id')->firstOrFail()->terms)->toBe([$this->laravel->id]);
+
+    $this->travelTo(now()->addMinutes(31));
+    $this->artisan('sunrice:publish-scheduled')->expectsOutput('1 scheduled entry went live.');
+    expect(liveTerms($note))->toBe([$this->laravel->id])->and($note->entry->fresh()?->draft_terms)->toBeNull();
+
+    // Published now: at once.
+    app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->php->id]]]));
+    expect(liveTerms($note))->toBe([$this->php->id]);
+});
