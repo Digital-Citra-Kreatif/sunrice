@@ -1,16 +1,16 @@
-import { j as e, t as s, f as N, a as M, r as v, b as Ne, d as qe, e as Ke, l as P, c as He, g as Ye, h as We, s as Ge, i as Je, k as Qe } from "./admin-KmgSTUuL.js";
+import { j as e, t as s, f as N, a as M, r as v, b as Ne, d as qe, e as Ke, l as P, c as He, g as Ye, h as We, s as Ge, i as Je, k as Qe } from "./admin-6aZUY70m.js";
 import { c as K, _ as k } from "./createLucideIcon-Ccbp7F45.js";
 import { u as a } from "./ui-Dh5wfMwT.js";
-import { u as Xe } from "./Confirm-BBOmz6aj.js";
-import { S as Ze, T as es } from "./SlugNote-D9DPpTal.js";
-import { E as he, C as pe } from "./EntryStatus-DdgXO0ta.js";
-import { E as ss } from "./EntriesPicker-CAsMA2u2.js";
+import { u as Xe } from "./Confirm-Brh3VQ6S.js";
+import { S as Ze, T as es } from "./SlugNote-87LjUAcm.js";
+import { E as he, C as pe } from "./EntryStatus-FdI-LvPf.js";
+import { E as ss } from "./EntriesPicker-qoFSlrAL.js";
 import { C as Ce } from "./check-OeKFYRnl.js";
 import { S as ts, M as as, U as te } from "./undo-2-CBzqSKK6.js";
-import { F as ls } from "./FieldSections-DkTy_c-I.js";
-import { C as ns, w as is, x as rs, b as cs, h as os, y as ds } from "./FieldInput-CjPEFdF7.js";
-import { s as ms } from "./seo-DLzegt0v.js";
-import { F as q } from "./FieldError-D0UVAhdA.js";
+import { F as ls } from "./FieldSections-Due1kkNG.js";
+import { C as ns, z as is, A as rs, b as cs, h as os, B as ds } from "./FieldInput-C7jS9glm.js";
+import { s as ms } from "./seo-BMRv9N7b.js";
+import { F as q } from "./FieldError-Do79-fdx.js";
 import { R as us } from "./rotate-ccw-BcgdCn0y.js";
 import { T as xe } from "./trash-DHN6ewjn.js";
 import { E as hs, L as ps } from "./layout-template-DgadsRJI.js";
@@ -214,9 +214,9 @@ function lt(l) {
 function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedValues: p = {}, entry: t, values: m, revisions: x, comments: h, termLabels: r, usedBy: c = [], undoRestore: g = null, machineTranslate: f = null, machineTranslateMissing: S = !1, settings: $, blueprints: b = [], blueprintUrl: T = null, homepage: E, redirectsUrl: Ee = null, templates: Le = null, can: w }) {
   const V = M(`cms/collections/${l.handle}/entries`), C = t ? M(`cms/entries/${t.id}`) : V, Q = t ? m.title : s("New entry");
   a.useBreadcrumbs([{ label: l.title, href: V }, { label: Q }]);
-  const [I, Pe] = Xe(), [_e, O] = k.useState(!1), X = t?.publishedAt ? Ne(new Date(t.publishedAt)) : "", [le, ne] = k.useState(X);
+  const [z, Pe] = Xe(), [_e, O] = k.useState(!1), X = t?.publishedAt ? Ne(new Date(t.publishedAt)) : "", [le, ne] = k.useState(X);
   k.useEffect(() => ne(X), [X]);
-  const [z, ie] = k.useState(null), [Fe, re] = k.useState(!1), [Ie, ce] = k.useState(!1), [ze, Z] = k.useState(!1), d = v.useForm({
+  const [I, ie] = k.useState(null), [Fe, re] = k.useState(!1), [ze, ce] = k.useState(!1), [Ie, Z] = k.useState(!1), d = v.useForm({
     ...m,
     seo: m.seo ?? {},
     locale: t?.locale ?? null,
@@ -279,7 +279,7 @@ function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedV
               type: "button",
               variant: "outline",
               className: "cms:text-destructive",
-              onClick: () => I(
+              onClick: () => z(
                 s(`Permanently delete ":title" in every language, with its revisions? This can't be undone.`, { title: m.title }) + ve(c),
                 () => v.router.delete(`${C}/force`, { data: c.length > 0 ? { force: 1 } : {} })
               ),
@@ -327,7 +327,7 @@ function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedV
                   a.DropdownMenuItem,
                   {
                     className: "cms:text-destructive",
-                    onSelect: () => I(s('Move ":title" to the trash? It comes off the site; you can restore it.', { title: m.title }) + ve(c), () => v.router.delete(C), s("Move to trash")),
+                    onSelect: () => z(s('Move ":title" to the trash? It comes off the site; you can restore it.', { title: m.title }) + ve(c), () => v.router.delete(C), s("Move to trash")),
                     children: [
                       /* @__PURE__ */ e.jsx(xe, {}),
                       " ",
@@ -404,7 +404,7 @@ function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedV
         dirty: d.isDirty,
         actions: He(F, { liveUrl: t.url !== null, pages: G, canUpdate: A }),
         onCompare: () => re(!0),
-        onDiscard: () => I(
+        onDiscard: () => z(
           s(`Discard the unpublished changes to ":title"? The editor goes back to the live version, as visitors see it. This can't be undone.`, { title: m.title }) + (d.isDirty ? ` ${s("Your unsaved edits are lost too.")}` : ""),
           () => v.router.post(M(`cms/entries/${t.id}/translations/${t.locale}/discard`), { version: t.version }, { preserveScroll: !0 }),
           s("Discard changes")
@@ -420,7 +420,7 @@ function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedV
         locales: o,
         canAdd: (w.create || w.translate === !0) && !t.trashed,
         canRemove: w.delete && !t.isMain && !t.trashed,
-        onRemove: () => I(
+        onRemove: () => z(
           s('Remove the :language translation of ":title"? Its revisions go with it.', { language: P(t.locale), title: m.title }),
           () => v.router.delete(`${C}/translations/${t.locale}`)
         )
@@ -443,7 +443,7 @@ function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedV
             variant: "destructive",
             size: "sm",
             disabled: d.processing,
-            onClick: () => I(s("Save your version over theirs? Their changes are replaced (their earlier published versions stay in the revisions)."), Re),
+            onClick: () => z(s("Save your version over theirs? Their changes are replaced (their earlier published versions stay in the revisions)."), Re),
             children: s("Save mine anyway")
           }
         )
@@ -584,7 +584,7 @@ function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedV
               variant: "outline",
               size: "sm",
               className: "cms:mt-1 cms:self-start",
-              onClick: () => I(
+              onClick: () => z(
                 (E.current ? s('Make ":title" the homepage? Visitors to / will see it instead of ":current".', { title: m.title, current: E.current }) : s('Make ":title" the homepage? Visitors to / will see it.', { title: m.title })) + " " + s("Its own address will lead to / as well."),
                 () => v.router.post(`${C}/homepage`, {}, { preserveScroll: !0 }),
                 s("Make this the homepage")
@@ -659,7 +659,7 @@ function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedV
     t?.review && /* @__PURE__ */ e.jsx(
       ys,
       {
-        open: ze,
+        open: Ie,
         onClose: () => Z(!1),
         by: t.review.by,
         onSend: (n, j) => v.router.post(`${C}/review/send-back`, { ...R, note: n }, { preserveScroll: !0, onSuccess: () => {
@@ -686,19 +686,19 @@ function Ss({ collection: l, fields: i, locales: o = [], shared: u = [], sharedV
       /* @__PURE__ */ e.jsx(
         ke,
         {
-          open: z !== null,
+          open: I !== null,
           onClose: () => ie(null),
           dirty: d.isDirty,
-          url: z ? M(`cms/entries/${t.id}/revisions/${z.id}/compare`) : null,
+          url: I ? M(`cms/entries/${t.id}/revisions/${I.id}/compare`) : null,
           read: (n) => ({ label: String(n.label), old: String(n.revision ?? ""), new: String(n.draft ?? "") }),
-          title: s("Version of :date compared with :current", { date: N(z?.createdAt), current: je(F) }),
+          title: s("Version of :date compared with :current", { date: N(I?.createdAt), current: je(F) }),
           description: s("A version published earlier, beside :current. Removed words are struck through, added ones highlighted.", { current: je(F) }),
-          oldLabel: z ? Ms(z) : "",
+          oldLabel: I ? Ms(I) : "",
           newLabel: Ts(F),
           same: s("The two versions are the same.")
         }
       ),
-      G && /* @__PURE__ */ e.jsx(Ls, { open: Ie, onClose: () => ce(!1), url: t.previewUrl, expiresAt: t.previewExpiresAt ?? null })
+      G && /* @__PURE__ */ e.jsx(Ls, { open: ze, onClose: () => ce(!1), url: t.previewUrl, expiresAt: t.previewExpiresAt ?? null })
     ] }),
     /* @__PURE__ */ e.jsx(
       As,

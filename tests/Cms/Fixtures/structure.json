@@ -3,7 +3,7 @@
     "locales": ["en", "id"],
     "fieldsets": [
         {"handle": "cta", "title": "Call to action", "fields": [
-            {"handle": "label", "type": "text", "label": "Label", "required": true, "instructions": "", "translatable": null, "validation": [], "config": {}, "fields": []},
+            {"handle": "label", "type": "text", "label": "Label", "required": true, "instructions": "", "translatable": null, "validation": [], "config": {}, "fields": [], "width": 50},
             {"handle": "target", "type": "entries", "label": "", "required": false, "instructions": "", "translatable": null, "validation": [], "config": {"collections": ["pages"]}, "fields": []}
         ]}
     ],
@@ -12,7 +12,7 @@
             {"handle": "email", "type": "text", "label": "", "required": true, "instructions": "", "translatable": null, "validation": ["email"], "config": {}, "fields": []}
         ]},
         {"handle": "page", "title": "Page", "fields": [
-            {"handle": "intro", "type": "textarea", "label": "Intro", "required": false, "instructions": "", "translatable": null, "validation": [], "config": {}, "fields": []},
+            {"handle": "intro", "type": "textarea", "label": "Intro", "required": false, "instructions": "", "translatable": null, "validation": [], "config": {}, "fields": [], "width": 66},
             {"handle": "sections", "type": "flexible", "label": "", "required": false, "instructions": "", "translatable": null, "validation": [], "config": {"blocks": ["cta"]}, "fields": []},
             {"handle": "topics", "type": "terms", "label": "", "required": false, "instructions": "", "translatable": null, "validation": [], "config": {"taxonomy": "topics", "multiple": true}, "fields": []}
         ]}

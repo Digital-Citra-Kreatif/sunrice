@@ -522,3 +522,20 @@ it('lists in the template guide the term pages of taxonomies whose terms have pa
     $tags->collections()->updateExistingPivot($this->blog->id, ['term_pages' => false]);
     expect(Templates::map()['taxonomies'])->toBe([]);
 });
+
+it('saves and shows fields\' widths through the blueprint tools', function () {
+    $token = cmsAgent(['cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update']);
+
+    expect(cmsTool($token, 'cms_field_types')['widths'])->toBe([25, 33, 50, 66, 75, 100])
+        ->and(cmsTool($token, 'cms_save_blueprint', ['handle' => 'event', 'fields' => [['handle' => 'starts', 'type' => 'date', 'width' => 40]]]))->toContain('The width must be one of 25, 33, 50, 66, 75, 100');
+    $saved = cmsTool($token, 'cms_save_blueprint', ['handle' => 'event', 'title' => 'Event', 'fields' => [
+        ['handle' => 'starts', 'type' => 'date', 'width' => 50],
+        ['handle' => 'ends', 'type' => 'date', 'width' => 50],
+        ['handle' => 'about', 'type' => 'textarea', 'width' => 100],
+    ]]);
+    $fields = cmsTool($token, 'cms_get_blueprint', ['handle' => 'event'])['fields'];
+
+    expect($saved['fields'][0]['width'])->toBe(50)
+        ->and(array_map(fn (array $field) => $field['width'] ?? 100, $fields))->toBe([50, 50, 100])
+        ->and($fields[2])->not->toHaveKey('width');
+});

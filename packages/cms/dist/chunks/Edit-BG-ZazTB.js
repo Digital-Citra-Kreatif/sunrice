@@ -1,5 +1,5 @@
-import { a as s, j as l, t } from "./admin-KmgSTUuL.js";
-import { P as r } from "./PageValuesForm-pzqWaIcX.js";
+import { a as s, j as l, t } from "./admin-6aZUY70m.js";
+import { P as r } from "./PageValuesForm-B3hEw0Ix.js";
 function g({ collection: e, ...a }) {
   const i = s(`cms/collections/${e.handle}/entries`);
   return /* @__PURE__ */ l.jsx(
