@@ -48,9 +48,10 @@ beforeEach(function () {
     $this->tags->collections()->attach($this->blog);
 });
 
-function codePost(string $title, array $data = [], ?array $seo = null): EntryTranslation
+/** @param  array<string, list<int>>|null  $terms  its own terms, by taxonomy */
+function codePost(string $title, array $data = [], ?array $seo = null, ?array $terms = null): EntryTranslation
 {
-    return app(PublishEntry::class)->handle(app(CreateEntry::class)->handle(test()->blog, ['title' => $title, 'data' => $data, 'seo' => $seo]));
+    return app(PublishEntry::class)->handle(app(CreateEntry::class)->handle(test()->blog, ['title' => $title, 'data' => $data, 'seo' => $seo, 'terms' => $terms]));
 }
 
 function saveSite(array $values): void
@@ -198,8 +199,8 @@ it('lists terms with their live entries\' counts, as a tree', function () {
     app(SaveTerm::class)->handle($this->tags, ['title' => 'Empty']);
     $local = app(SaveTerm::class)->handle($categories, ['title' => 'Local']);
     app(SaveTerm::class)->handle($categories, ['title' => 'City', 'parent_id' => $local->id]);
-    $post = codePost('Hello', ['tags' => [$news->id]]);
-    app(CreateEntry::class)->handle($this->blog, ['title' => 'Draft', 'data' => ['tags' => [$news->id]]]);
+    $post = codePost('Hello', terms: ['tags' => [$news->id]]);
+    app(CreateEntry::class)->handle($this->blog, ['title' => 'Draft', 'terms' => ['tags' => [$news->id]]]);
 
     $render = fn (string $props, array $data = []) => trim(Blade::render('<x-sunrice-cms::terms '.$props.'>@foreach ($component->terms as $t){{ $t->title() }}:{{ $t->entries_count }}@if ($t->relationLoaded(\'children\'))[@foreach ($t->children as $c){{ $c->title() }}@endforeach]@endif @endforeach</x-sunrice-cms::terms>', $data));
 

@@ -17,8 +17,7 @@
             {"handle": "excerpt", "type": "textarea", "label": "Excerpt", "instructions": "One or two sentences for lists and search results."},
             {"handle": "image", "type": "media", "label": "Image", "config": {"types": ["image"]}},
             {"handle": "body", "type": "rich_text", "label": "Text"},
-            {"handle": "sections", "type": "flexible", "label": "More", "config": {"blocks": ["quote"]}},
-            {"handle": "topics", "type": "terms", "label": "Topics", "config": {"taxonomy": "topics", "multiple": true}}
+            {"handle": "sections", "type": "flexible", "label": "More", "config": {"blocks": ["quote"]}}
         ]},
         {"handle": "listing", "title": "Listing page", "fields": [
             {"handle": "intro", "type": "textarea", "label": "Intro"}
@@ -56,8 +55,8 @@
     "entries": [
         {"collection": "pages", "slug": "home", "parent": null, "template": null, "translations": {"en": {"title": "Welcome", "slug": "home", "data": {"intro": "This is a starter site. Change this page under Content → Pages, and choose it as the homepage in Settings → Site.", "image": {"media": "morning.jpg"}, "body": "<p>Everything here is sample content: edit it, or delete it once you have your own.</p>"}, "published": true, "published_at": "2026-01-05T09:00:00+00:00"}}},
         {"collection": "pages", "slug": "about", "parent": null, "template": null, "translations": {"en": {"title": "About", "slug": "about", "data": {"intro": "Who writes here, and why.", "image": null, "body": "<p>Tell visitors about yourself or your team.</p>"}, "published": true, "published_at": "2026-01-05T09:00:00+00:00"}}},
-        {"collection": "posts", "slug": "hello-world", "parent": null, "template": null, "translations": {"en": {"title": "Hello, world", "slug": "hello-world", "data": {"excerpt": "The first post on this blog.", "image": {"media": "morning.jpg"}, "body": "<p>Posts have an excerpt, an image, text and topics.</p>", "sections": [{"id": "q1", "type": "quote", "values": {"text": "Start where you are.", "author": "A friend"}}], "topics": [{"term": "topics/news"}]}, "published": true, "published_at": "2026-01-10T09:00:00+00:00"}}},
-        {"collection": "posts", "slug": "writing-a-post", "parent": null, "template": null, "translations": {"en": {"title": "Writing a post", "slug": "writing-a-post", "data": {"excerpt": "How the editor works, in a few steps.", "image": {"media": "evening.jpg"}, "body": "<p>Write a draft, preview it, then publish it now or on a date.</p>", "sections": [], "topics": [{"term": "topics/guides"}]}, "published": true, "published_at": "2026-01-12T09:00:00+00:00"}}},
-        {"collection": "posts", "slug": "a-draft", "parent": null, "template": null, "translations": {"en": {"title": "A draft", "slug": "a-draft", "data": {"excerpt": "Drafts aren't on the site until they're published.", "image": null, "body": "<p>Only editors see this one.</p>", "sections": [], "topics": []}, "published": false}}}
+        {"collection": "posts", "slug": "hello-world", "parent": null, "template": null, "terms": {"topics": ["news"]}, "translations": {"en": {"title": "Hello, world", "slug": "hello-world", "data": {"excerpt": "The first post on this blog.", "image": {"media": "morning.jpg"}, "body": "<p>Posts have an excerpt, an image, text and topics.</p>", "sections": [{"id": "q1", "type": "quote", "values": {"text": "Start where you are.", "author": "A friend"}}]}, "published": true, "published_at": "2026-01-10T09:00:00+00:00"}}},
+        {"collection": "posts", "slug": "writing-a-post", "parent": null, "template": null, "terms": {"topics": ["guides"]}, "translations": {"en": {"title": "Writing a post", "slug": "writing-a-post", "data": {"excerpt": "How the editor works, in a few steps.", "image": {"media": "evening.jpg"}, "body": "<p>Write a draft, preview it, then publish it now or on a date.</p>", "sections": []}, "published": true, "published_at": "2026-01-12T09:00:00+00:00"}}},
+        {"collection": "posts", "slug": "a-draft", "parent": null, "template": null, "translations": {"en": {"title": "A draft", "slug": "a-draft", "data": {"excerpt": "Drafts aren't on the site until they're published.", "image": null, "body": "<p>Only editors see this one.</p>", "sections": []}, "published": false}}}
     ]
 }

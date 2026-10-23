@@ -36,7 +36,9 @@ it('seeds a demo site through the actions', function () {
 
     $post = EntryTranslation::query()->where('draft_slug', 'hello-world')->where('locale', 'en')->first();
     expect($post->data['sections'][1]['type'])->toBe('quote_block')
-        ->and($post->data['topics'])->toHaveCount(1)
+        // A topic of its own, live: no terms field.
+        ->and($post->entry->terms->pluck('taxonomy.handle')->all())->toBe(['topics'])
+        ->and($post->data)->not->toHaveKey('topics')
         ->and(Entry::query()->whereNotNull('parent_id')->count())->toBe(1);
     get('/blog/hello-world')->assertOk()->assertSee('Hello, world');
     get('/id/blog/hello-world')->assertOk()->assertSee('Halo, dunia');
