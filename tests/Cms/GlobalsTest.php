@@ -5,6 +5,10 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
+use Sunrice\Admin\Actions\Permissions\SeedRoles;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
@@ -113,7 +117,7 @@ it('edits globals in the admin', function () {
 
 it('renames a global set or menu from its form, the handle made from the title when creating', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
-    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.globals.configure', 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
     $menu = Menu::query()->create(['handle' => 'mian', 'title' => 'Main']);
 
     get('/admin/cms/globals/create')->assertInertia(fn (Assert $page) => $page->where('sections.0.fields.1', fn ($field) => $field['name'] === 'handle' && $field['slugFrom'] === 'title' && $field['slugSeparator'] === '_'));
@@ -126,9 +130,71 @@ it('renames a global set or menu from its form, the handle made from the title w
         ->and(app(Globals::class)->get('contact_us'))->toHaveKey('address');
 });
 
+it('lets editors save a set\'s values but not change its handle or blueprint', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    app(SeedRoles::class)->handle();
+    Blueprint::query()->create(['handle' => 'other', 'title' => 'Other', 'fields' => [['handle' => 'note', 'type' => 'text']]]);
+    $editor = adminUser()->assignRole('editor');
+    actingAs($editor);
+
+    // No way to the set's Settings: not from its values, not from the list.
+    get('/admin/cms/globals/contact/values')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('can.update', true)->where('settings', null));
+    get('/admin/cms/globals')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.can.update', false));
+    get('/admin/cms/globals/contact/edit')->assertForbidden();
+
+    // Refused on the server, whatever the request sends.
+    put('/admin/cms/globals/contact', ['title' => 'Contact', 'handle' => 'footer'])->assertForbidden();
+    put('/admin/cms/globals/contact', ['title' => 'Contact', 'blueprint' => 'other'])->assertForbidden();
+    expect($this->contact->fresh())->handle->toBe('contact')->blueprint->toBe('contact');
+
+    put('/admin/cms/globals/contact/values', ['data' => ['address' => '1 Main St'], 'locale' => 'en'])->assertSessionHasNoErrors();
+    expect(app(Globals::class)->get('contact')['address'])->toBe('1 Main St');
+});
+
+it('lets administrators change a set\'s handle and blueprint', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    app(SeedRoles::class)->handle();
+    Blueprint::query()->create(['handle' => 'other', 'title' => 'Other', 'fields' => [['handle' => 'note', 'type' => 'text']]]);
+    actingAs(adminUser()->assignRole('administrator'));
+
+    get('/admin/cms/globals/contact/values')->assertInertia(fn (Assert $page) => $page->where('settings', url('/admin/cms/globals/contact/edit')));
+    get('/admin/cms/globals/contact/edit')->assertOk();
+    put('/admin/cms/globals/contact', ['title' => 'Contact', 'handle' => 'contact_us', 'blueprint' => 'other'])->assertSessionHasNoErrors();
+
+    expect($this->contact->fresh())->handle->toBe('contact_us')->blueprint->toBe('other')
+        ->and(Role::findByName('editor')->hasPermissionTo('cms.globals.configure'))->toBeFalse();
+});
+
+it('gives cms.globals.configure on upgrade to those who looked after the sets, not to editors', function () {
+    $permission = fn (string ...$names) => array_map(fn (string $name) => Permission::findOrCreate($name, 'web'), $names);
+    $permission('cms.globals.view', 'cms.globals.update', 'cms.globals.create', 'cms.globals.delete');
+    $editor = Role::findOrCreate('editor', 'web')->givePermissionTo('cms.globals.view', 'cms.globals.update');
+    $admin = Role::findOrCreate('administrator', 'web')->givePermissionTo('cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.globals.delete');
+    $developer = Role::findOrCreate('developer', 'web')->givePermissionTo('cms.globals.update', 'cms.globals.delete');
+    $creator = Role::findOrCreate('creator', 'web')->givePermissionTo('cms.globals.create');
+    $person = adminUser('cms.globals.update', 'cms.globals.create');
+    $other = adminUser('cms.globals.update');
+    Permission::query()->where('name', 'cms.globals.configure')->delete();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $migration = require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_10_25_000001_give_globals_configure_permission.php';
+    $migration->up();
+    $migration->up(); // again: nothing changes
+
+    $has = fn ($model) => $model->fresh()->hasPermissionTo('cms.globals.configure');
+    expect($has($admin))->toBeTrue()
+        ->and($has($developer))->toBeTrue()
+        ->and($has($editor))->toBeFalse()
+        ->and($has($creator))->toBeFalse()
+        ->and($person->fresh()->getDirectPermissions()->pluck('name')->all())->toContain('cms.globals.configure')
+        ->and($other->fresh()->getDirectPermissions()->pluck('name')->all())->not->toContain('cms.globals.configure')
+        ->and(DB::table('role_has_permissions')->where('role_id', $admin->id)->count())->toBe(5);
+});
+
 it('offers each blueprint picker the blueprints for its purpose', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
-    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.forms.view', 'cms.forms.create', 'cms.collections.view', 'cms.collections.create'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.globals.view', 'cms.globals.create', 'cms.globals.update', 'cms.globals.configure', 'cms.forms.view', 'cms.forms.create', 'cms.collections.view', 'cms.collections.create'));
     Blueprint::query()->create(['handle' => 'contact_form', 'title' => 'Contact form']);
     Blueprint::query()->create(['handle' => 'agent', 'title' => 'Agent']);
     Blueprint::query()->create(['handle' => 'unused', 'title' => 'Unused']);
