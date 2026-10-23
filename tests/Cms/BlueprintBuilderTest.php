@@ -134,8 +134,8 @@ it('builds fieldsets with the same builder, saying where they are used', functio
     get('/admin/cms/fieldsets/seo/edit')->assertInertia(fn (Assert $page) => $page
         ->component('Cms/Fieldsets/Edit', shouldExist: false)
         ->where('kind', 'fieldset')
-        ->where('usedBy', ['the blueprint "Page"']));
-    get('/admin/cms/fieldsets')->assertInertia(fn (Assert $page) => $page->where('fieldsets.0.title', 'SEO'));
+        ->where('usedBy', [['kind' => 'blueprint', 'handle' => 'page', 'title' => 'Page', 'uses' => [['field' => 'seo', 'how' => 'include']], 'url' => route('sunrice.admin.cms.blueprints.edit', 'page')]]));
+    get('/admin/cms/fieldsets')->assertInertia(fn (Assert $page) => $page->where('fieldsets.0.title', 'SEO')->where('fieldsets.0.usedBy', ['Page']));
     delete('/admin/cms/fieldsets/seo')->assertSessionHasErrors('fieldset');
 });
 

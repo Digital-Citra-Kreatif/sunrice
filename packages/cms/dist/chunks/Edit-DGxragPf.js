@@ -1,6 +1,6 @@
-import { a as S, t as s, r as C, j as e } from "./admin-Cvvqbzu8.js";
+import { a as S, t as s, r as C, j as e } from "./admin-BHiXk4_l.js";
 import { u as a } from "./ui-Dh5wfMwT.js";
-import { F as f } from "./FieldError-Dt_eVrB4.js";
+import { F as f } from "./FieldError-CmlN9E8v.js";
 const A = () => [
   { role: "title", label: s("Meta title"), automatic: s("Automatic (the title)") },
   { role: "description", label: s("Meta description"), automatic: s("Automatic (nothing)") },
