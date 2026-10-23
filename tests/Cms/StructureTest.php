@@ -159,7 +159,8 @@ it('serves the homepage at /, in each language, and redirects its own address', 
 
     actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
     get('/admin/settings/site')->assertOk();
-    put('/admin/settings/site', ['homepage' => (string) $home->id])->assertSessionHasNoErrors();
+    // The form sends every field: a toggle left out is off.
+    put('/admin/settings/site', ['homepage' => (string) $home->id, 'fallback' => true])->assertSessionHasNoErrors();
 
     get('/')->assertOk()->assertSee('Welcome');
     get('/welcome')->assertRedirect(url('/'))->assertStatus(301);
