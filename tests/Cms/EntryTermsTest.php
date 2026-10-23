@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -18,6 +19,7 @@ use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\SaveEntryTerms;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Content;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
@@ -61,6 +63,14 @@ beforeEach(function () {
 function liveNote(array $terms = [], string $title = 'Hello'): EntryTranslation
 {
     return app(PublishEntry::class)->handle(app(CreateEntry::class)->handle(test()->notes, ['title' => $title, 'terms' => $terms]));
+}
+
+/** @return list<int> the entry's rows in sunrice_entry_term, whatever their taxonomy, sorted */
+function storedTerms(EntryTranslation|Entry $entry): array
+{
+    $id = $entry instanceof Entry ? $entry->id : $entry->entry_id;
+
+    return DB::table('sunrice_entry_term')->where('entry_id', $id)->orderBy('term_id')->pluck('term_id')->map(fn ($id): int => (int) $id)->all();
 }
 
 /** @return list<int> the entry's live terms, sorted */
@@ -172,14 +182,19 @@ it('refuses two terms where one only is allowed, a taxonomy the collection hasn\
     expect($note->entry->fresh()?->draftTermIds())->toEqualCanonicalizing([$this->php->id, $this->laravel->id]);
 });
 
-it('leaves terms of a taxonomy no longer attached alone, and a taxonomy not given keeps its terms', function () {
+it('leaves terms of a taxonomy no longer attached alone, unseen until attached again, and a taxonomy not given keeps its terms', function () {
     $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]]);
     $this->format->collections()->detach($this->notes);
     app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->laravel->id]]]);
     app(PublishEntry::class)->handle($note->fresh());
 
-    expect(liveTerms($note))->toBe(collect([$this->laravel->id, $this->guide->id])->sort()->values()->all());
+    expect(storedTerms($note))->toBe(collect([$this->laravel->id, $this->guide->id])->sort()->values()->all())
+        ->and(liveTerms($note))->toBe([$this->laravel->id]);
     get(entryEditUrl($note->entry_id))->assertInertia(fn (Assert $page) => $page->where('values.terms', ['tags' => [$this->laravel->id]]));
+
+    // Attached again: they're back.
+    $this->format->collections()->attach($this->notes);
+    expect(liveTerms($note))->toEqualCanonicalizing([$this->laravel->id, $this->guide->id]);
 });
 
 it('goes back to the live terms when the changes are discarded', function () {
@@ -263,11 +278,11 @@ it('moves terms fields\' values to the entry\'s own terms on upgrade, leaving th
         ->and(Entry::query()->findOrFail($same->entry_id)->draft_terms)->toBeNull()
         ->and(Entry::query()->findOrFail($never->entry_id)->draft_terms)->toBe([$this->php->id])
         // The site shows the same: the live terms stay, a taxonomy not attached's too.
-        ->and(liveTerms($changed))->toBe(collect([$this->php->id, $this->hidden->id])->sort()->values()->all());
+        ->and(storedTerms($changed))->toBe(collect([$this->php->id, $this->hidden->id])->sort()->values()->all());
 
     // Published: the fields' choices are the entry's live terms; the secret one, not attached, stays.
     app(PublishEntry::class)->handle($changed->fresh());
-    expect(liveTerms($changed))->toBe(collect([$this->laravel->id, $this->guide->id, $this->hidden->id])->sort()->values()->all());
+    expect(storedTerms($changed))->toBe(collect([$this->laravel->id, $this->guide->id, $this->hidden->id])->sort()->values()->all());
 });
 
 it('carries entries\' terms and attachments\' one term only through the structure, and reads terms fields in older files', function () {
@@ -400,4 +415,31 @@ it('exports entries in as many queries for many entries as for few', function ()
     }
 
     expect($queries())->toBe($few);
+});
+
+it('shows the terms of the taxonomies attached to the entry\'s collection only, everywhere the site reads them', function () {
+    $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]]);
+    $this->format->update(['route' => '/format/{slug}']);
+    $this->format->collections()->detach($this->notes);
+    $views = sys_get_temp_dir().'/sunrice-entry-terms-'.uniqid();
+    mkdir("{$views}/cms/collections/notes", recursive: true);
+    file_put_contents("{$views}/cms/collections/notes/show.blade.php", 'all:@foreach ($entry->terms as $t){{ $t->title() }},@endforeach format:@foreach ($entry->termsOf(\'format\') as $t){{ $t->title() }},@endforeach');
+    View::addLocation($views);
+
+    // Its page, live and in a preview, alike.
+    get('/notes/hello')->assertOk()->assertSee('all:PHP, format:', false);
+    get(URL::temporarySignedRoute('sunrice.cms.preview', now()->addMinutes(5), ['translation' => $note->id]))->assertOk()->assertSee('all:PHP, format:', false);
+    // Queries, counts and the term's page.
+    expect(Content::entries('notes')->whereTerm('format', 'guide')->get())->toHaveCount(0)
+        ->and(Content::entries('notes')->whereTerm('tags', 'php')->get())->toHaveCount(1)
+        ->and(trim(Blade::render('<x-sunrice-cms::terms taxonomy="format">@foreach ($component->terms as $t){{ $t->title() }}({{ $t->entries_count }})@endforeach</x-sunrice-cms::terms>')))->toBe('Guide(0)How-to(0)')
+        ->and(trim(Blade::render('<x-sunrice-cms::terms taxonomy="format" include-children>@foreach ($component->terms as $t){{ $t->title() }}({{ $t->entries_count }})@endforeach</x-sunrice-cms::terms>')))->toBe('Guide(0)How-to(0)')
+        ->and($this->guide->entries()->count())->toBe(0);
+    get('/format/guide')->assertOk()->assertDontSee('Hello');
+
+    // Attached again: back everywhere.
+    $this->format->collections()->attach($this->notes);
+    get('/notes/hello')->assertOk()->assertSee('all:Guide,PHP, format:Guide,', false);
+    expect(Content::entries('notes')->whereTerm('format', 'guide')->get())->toHaveCount(1)
+        ->and($this->guide->entries()->count())->toBe(1);
 });
