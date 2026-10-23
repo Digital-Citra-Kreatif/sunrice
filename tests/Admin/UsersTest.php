@@ -213,7 +213,9 @@ it('edits roles and their permissions, within the editor\'s own', function () {
     get('/admin/roles/create')->assertInertia(fn (Assert $page) => expect(collect(formField($page, 'permissions')['options'])->pluck('value')->all())->toEqualCanonicalizing(MANAGES_USERS)
         ->and(collect(formField($page, 'permissions')['options'])->firstWhere('value', 'sunrice.users.view'))->toBe(['value' => 'sunrice.users.view', 'label' => 'View Users', 'group' => 'Users'])
         // Shown as a table of things by action; the names and what's stored don't change.
-        ->and(formField($page, 'permissions')['matrix'])->toBeTrue());
+        ->and(formField($page, 'permissions')['matrix'])->toBeTrue()
+        // Other actions show a short label, the full one describing them.
+        ->and(collect(formField($page, 'permissions')['options'])->firstWhere('value', Panel::ACCESS))->toBe(['value' => Panel::ACCESS, 'label' => 'Open the admin panel', 'group' => 'Panel', 'short' => 'Open the panel']));
 
     post('/admin/roles', ['name' => 'helper', 'permissions' => [Panel::ACCESS, 'sunrice.users.view']])->assertRedirect();
     $helper = Role::findByName('helper', 'web');

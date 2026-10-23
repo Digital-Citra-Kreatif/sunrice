@@ -29,6 +29,8 @@ export interface CheckboxOption {
     value: string;
     label: string;
     group: string | null;
+    /** CheckboxList::shortLabels(): shown where the full label is too long (a matrix's other actions). */
+    short?: string;
 }
 
 interface FieldProps {

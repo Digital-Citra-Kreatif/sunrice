@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { t } from '@/lib/i18n';
-import { type MatrixAction, matrixColumns, matrixRowName, type MatrixRow, matrixRows, selectionState } from '@/lib/permission-matrix';
+import { hasColumns, hasOwn, type MatrixAction, matrixColumns, type MatrixOption, matrixRowName, type MatrixRow, matrixRows, selectionState } from '@/lib/permission-matrix';
 import { cn } from '@/lib/utils';
 import { groupOptions } from './relation-select';
 
@@ -11,6 +11,7 @@ interface Option {
     value: string;
     label: string;
     group: string | null;
+    short?: string;
 }
 
 const PARTIAL = 'data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary/35 data-[state=indeterminate]:text-primary-foreground';
@@ -27,10 +28,22 @@ function actionLabel(action: MatrixAction): string {
     }
 }
 
+/** An empty cell: a faint dot, "Not applicable" to screen readers. */
+function NotApplicable() {
+    return (
+        <>
+            <span aria-hidden className="mx-auto block size-1 rounded-full bg-muted-foreground/25" />
+            <span className="sr-only">{t('Not applicable')}</span>
+        </>
+    );
+}
+
 /**
  * CheckboxList::matrix(): each group of permissions as a compact table, a row per thing and a column per
- * standard action, with "Own only" variants in their cell and other actions listed in the row; select all per
- * group and per row; groups fold away and say how many are granted. On narrow screens, a stacked list.
+ * standard action. "-own" variants are a line under their row ("Own entries only"), boxes in their action's
+ * column; other actions are a line of short choices under it ("Also: Translate · See drafts on the site"), or
+ * the row itself when it has nothing else (General). Select all per group and per row; groups fold away and
+ * say how many are granted. On narrow screens, a stacked list.
  */
 export function PermissionMatrix({ id, options, value, disabled, onChange }: {
     id: string; options: Option[]; value: string[]; disabled: boolean; onChange: (value: string[]) => void;
@@ -54,15 +67,36 @@ export function PermissionMatrix({ id, options, value, disabled, onChange }: {
                 const granted = values.filter((v) => value.includes(v)).length;
                 const rows = matrixRows(items);
                 const columns = matrixColumns(rows);
-                const hasOther = rows.some((row) => row.other.length > 0);
                 const groupId = `${id}-${group.replace(/\W+/g, '-')}`;
                 const isOpen = open[group] === true;
                 const name = (row: MatrixRow) => rows.length === 1 && group !== '' ? group : matrixRowName(row.key, t('General'));
                 // Nothing by action (settings, AI access): a plain list reads better than a table.
                 const plain = columns.length === 0;
-                const box = (option: { value: string; label: string }, extra = '') => (
+                const box = (option: MatrixOption, extra = '') => (
                     <Checkbox id={`${groupId}-${option.value}`} aria-label={option.label} title={option.label} disabled={disabled} className={extra}
                         checked={value.includes(option.value)} onCheckedChange={(checked) => set([option.value], checked === true)} />
+                );
+                // Other actions as small choices: the short label shows, the full one describes it (and is its tooltip).
+                const chips = (options: MatrixOption[]) => (
+                    <span className="flex flex-wrap items-center gap-1.5">
+                        {options.map((option) => {
+                            const boxId = `${groupId}-${option.value}`;
+                            const short = option.short !== undefined && option.short !== '' && option.short !== option.label ? option.short : null;
+                            return (
+                                <span key={option.value} title={option.label}
+                                    className="inline-flex items-center gap-1.5 rounded-full border bg-background py-0.5 pr-2.5 pl-1.5 has-[[data-state=checked]]:border-primary/40 has-[[data-state=checked]]:bg-primary/5">
+                                    <Checkbox id={boxId} disabled={disabled} aria-describedby={short ? `${boxId}-description` : undefined} className="size-3.5"
+                                        checked={value.includes(option.value)} onCheckedChange={(checked) => set([option.value], checked === true)} />
+                                    <Label htmlFor={boxId} className="cursor-pointer text-xs leading-5 font-normal whitespace-nowrap">{short ?? option.label}</Label>
+                                    {short && <span id={`${boxId}-description`} className="sr-only">{option.label}</span>}
+                                </span>
+                            );
+                        })}
+                    </span>
+                );
+                // A line under a row: its name column holds a small caption, indented past the row's select-all box.
+                const caption = (text: string) => (
+                    <th scope="row" className="py-1.5 pr-3 pl-9 text-left text-xs font-normal text-muted-foreground">{text}</th>
                 );
 
                 return (
@@ -78,7 +112,7 @@ export function PermissionMatrix({ id, options, value, disabled, onChange }: {
                             </button>
                         </div>
                         {isOpen && (
-                            <div id={`${groupId}-body`} className="border-t">
+                            <div id={`${groupId}-body`} className="@container border-t">
                                 {plain && (
                                     <div className="grid gap-x-6 gap-y-2.5 p-3 sm:grid-cols-2">
                                         {items.map((option) => (
@@ -89,66 +123,73 @@ export function PermissionMatrix({ id, options, value, disabled, onChange }: {
                                         ))}
                                     </div>
                                 )}
-                                {/* Wide screens: a table of things by action, the same widths in every group. */}
-                                {!plain && <table className="hidden w-full table-fixed text-sm md:table">
+                                {/* Where seven actions fit (by the area's own width, beside the form's sections too): a table of things by
+                                    action, the same widths in every group (the last column takes the rest). */}
+                                {!plain && <table className="hidden w-full table-fixed text-sm @min-[39rem]:table">
                                     <colgroup>
-                                        <col className="w-52" />
-                                        {columns.map((action) => <col key={action} className="w-20" />)}
-                                        {hasOther ? <col /> : <col className="w-auto" />}
+                                        <col className="w-44 @min-[52rem]:w-52" />
+                                        {columns.map((action) => <col key={action} className="w-16 @min-[52rem]:w-20" />)}
+                                        <col />
                                     </colgroup>
-                                    <thead className="sticky top-16 z-[1] bg-card/95 backdrop-blur">
+                                    <thead className="sticky top-16 z-[1] bg-card">
                                         <tr className="border-b text-xs text-muted-foreground">
                                             <th scope="col" className="px-3 py-2 text-left font-medium"><span className="sr-only">{t('Permissions')}</span></th>
-                                            {columns.map((action) => <th key={action} scope="col" className="w-20 px-2 py-2 text-center font-medium">{actionLabel(action)}</th>)}
-                                            <th scope="col" className="px-3 py-2 text-left font-medium">{hasOther ? t('Other') : ''}</th>
+                                            {columns.map((action) => <th key={action} scope="col" className="px-1 py-2 text-center font-medium">{actionLabel(action)}</th>)}
+                                            <td />
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {rows.map((row) => (
-                                            <tr key={row.key} className="border-b last:border-0 hover:bg-muted/40">
-                                                <th scope="row" className="px-3 py-2 text-left font-normal">
+                                    {/* A body per thing, so its lines hover and divide together. */}
+                                    {rows.map((row) => (
+                                        <tbody key={row.key} className="border-b last:border-0 hover:bg-muted/40">
+                                            <tr className="h-10">
+                                                <th scope="row" className="px-3 py-1.5 text-left align-middle font-normal">
                                                     <span className="flex items-center gap-2">
                                                         <Checkbox aria-label={t('Select all for :name', { name: name(row) })} disabled={disabled} className={PARTIAL}
                                                             checked={selectionState(row.values, value)} onCheckedChange={(checked) => set(row.values, checked === true)} />
-                                                        <span className="font-medium">{name(row)}</span>
+                                                        <span className="truncate font-medium" title={name(row)}>{name(row)}</span>
                                                     </span>
                                                 </th>
-                                                {columns.map((action) => {
-                                                    const cell = row.cells[action];
-                                                    return (
-                                                        <td key={action} className="px-2 py-2 text-center align-middle">
-                                                            {cell.option ? (
-                                                                <span className="inline-flex flex-col items-center gap-1">
-                                                                    {box(cell.option)}
-                                                                    {cell.own && (
-                                                                        <label className="inline-flex items-center gap-1 text-[11px] text-muted-foreground" title={cell.own.label}>
-                                                                            {box(cell.own, 'size-3.5')}{t('Own only')}
-                                                                        </label>
-                                                                    )}
-                                                                </span>
-                                                            ) : <span className="text-muted-foreground" aria-label={t('Not applicable')}>—</span>}
-                                                        </td>
-                                                    );
-                                                })}
-                                                {!hasOther && <td />}
-                                                {hasOther && (
-                                                    <td className="px-3 py-2">
-                                                        <span className="flex flex-col gap-1.5">
-                                                            {row.other.map((option) => (
-                                                                <span key={option.value} className="flex items-start gap-2">
-                                                                    {box(option, 'mt-0.5')}
-                                                                    <Label htmlFor={`${groupId}-${option.value}`} className="text-sm leading-snug font-normal">{option.label}</Label>
-                                                                </span>
-                                                            ))}
-                                                        </span>
-                                                    </td>
+                                                {hasColumns(row) ? (
+                                                    <>
+                                                        {columns.map((action) => {
+                                                            const cell = row.cells[action];
+                                                            return (
+                                                                <td key={action} className="px-1 py-1.5 text-center align-middle">
+                                                                    {cell.option ? <span className="inline-flex align-middle">{box(cell.option)}</span> : <NotApplicable />}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                        <td />
+                                                    </>
+                                                ) : (
+                                                    <td colSpan={columns.length + 1} className="px-2 py-1.5 align-middle">{chips(row.other)}</td>
                                                 )}
                                             </tr>
-                                        ))}
-                                    </tbody>
+                                            {hasOwn(row) && (
+                                                <tr className="h-8">
+                                                    {caption(t('Own :name only', { name: name(row).toLocaleLowerCase() }))}
+                                                    {columns.map((action) => {
+                                                        const own = row.cells[action].own;
+                                                        return (
+                                                            <td key={action} className="px-1 py-1.5 text-center align-middle">
+                                                                {own && <span className="inline-flex align-middle">{box(own)}</span>}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                    <td />
+                                                </tr>
+                                            )}
+                                            {hasColumns(row) && row.other.length > 0 && (
+                                                <tr className="h-8">
+                                                    {caption(t('Also'))}
+                                                    <td colSpan={columns.length + 1} className="px-2 py-1.5 align-middle">{chips(row.other)}</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    ))}
                                 </table>}
-                                {/* Narrow screens: each thing with its permissions listed. */}
-                                {!plain && <div className="grid gap-4 p-3 md:hidden">
+                                {/* Narrower: each thing with its permissions listed. */}
+                                {!plain && <div className="grid gap-4 p-3 @min-[39rem]:hidden">
                                     {rows.map((row) => (
                                         <div key={row.key} className="grid gap-2">
                                             <span className="text-sm font-medium">{name(row)}</span>
