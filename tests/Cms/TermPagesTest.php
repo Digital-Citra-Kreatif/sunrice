@@ -92,6 +92,9 @@ it('edits a term\'s page per language, and checks the template', function () {
     put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'topics.special'])->assertSessionHasNoErrors();
     config(['sunrice-cms.site.template_prefixes' => ['cms.']]);
     expect(fn () => app(SaveTermContent::class)->handle($this->news->fresh(), ['template' => 'topics.other']))->toThrow(ValidationException::class, 'Use a view under cms.');
+    // Under the prefixes too: no layout or partial.
+    put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'cms.partials.card'])->assertSessionHasErrors('template');
+    put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'cms.layout'])->assertSessionHasErrors('template');
     put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'cms.topic'])->assertSessionHasNoErrors();
 
     get('/id/topics/berita')->assertOk()->assertSee('Semua berita');

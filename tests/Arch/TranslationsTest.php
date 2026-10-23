@@ -8,6 +8,7 @@ declare(strict_types=1);
  * packages/{admin,cms}/lang/id.json (the same text where English reads
  * better). It finds the words in t('…') and __('…') calls, and in the
  * definitions said through Say (labels, help and its links and developer notes, change warnings, section and card titles,
+ * card lists' headings and empty texts, notices' details and buttons' confirmations (callArguments()),
  * permission labels and short labels, navigation groups, settings pages' labels, flash messages).
  */
 
@@ -31,6 +32,64 @@ function translatableFiles(array $directories, array $extensions): array
 function phpLiteral(string $raw): string
 {
     return str_replace(["\\'", '\\\\'], ["'", '\\'], $raw);
+}
+
+/**
+ * The arguments of every `->{$method}(` call in the code, each a string
+ * literal's text or null when it's something else (a variable, a closure,
+ * a call), so words in arguments after a closure or a long array are
+ * found too.
+ *
+ * @return list<list<string|null>>
+ */
+function callArguments(string $code, string $method): array
+{
+    $calls = [];
+    $offset = 0;
+    while (($at = strpos($code, "->{$method}(", $offset)) !== false) {
+        $i = $at + strlen($method) + 3;
+        $offset = $i;
+        // Not the examples in doc comments.
+        $lineStart = (int) strrpos(substr($code, 0, $at), "\n");
+        if (str_starts_with(ltrim(substr($code, $lineStart, $at - $lineStart)), '*')) {
+            continue;
+        }
+        $depth = 0;
+        $args = [];
+        $current = '';
+        for ($length = strlen($code); $i < $length; $i++) {
+            $char = $code[$i];
+            if ($char === "'" || $char === '"') {
+                // A string: copied as it is, brackets and commas in it don't count.
+                $end = $i + 1;
+                while ($end < $length && $code[$end] !== $char) {
+                    $end += $code[$end] === '\\' ? 2 : 1;
+                }
+                $current .= substr($code, $i, $end - $i + 1);
+                $i = $end;
+
+                continue;
+            }
+            if ($char === '(' || $char === '[' || $char === '{') {
+                $depth++;
+            } elseif ($char === ')' || $char === ']' || $char === '}') {
+                if ($depth === 0) {
+                    $args[] = $current;
+                    break;
+                }
+                $depth--;
+            } elseif ($char === ',' && $depth === 0) {
+                $args[] = $current;
+                $current = '';
+
+                continue;
+            }
+            $current .= $char;
+        }
+        $calls[] = array_map(fn (string $arg): ?string => preg_match("/^\\s*'((?:[^'\\\\]|\\\\.)*)'\\s*$/s", $arg, $m) === 1 ? phpLiteral($m[1]) : null, $args);
+    }
+
+    return $calls;
 }
 
 /** @return array<string, list<string>> the words found, with the files that use them */
@@ -63,6 +122,16 @@ function panelWords(): array
             continue; // for agents and developers, in English
         }
         $code = (string) file_get_contents($file);
+        // Card blocks' words after the first argument: a list's heading and empty text, a notice's detail, a button's confirmation.
+        foreach (['list' => [0, 2], 'notice' => [2], 'button' => [2]] as $method => $positions) {
+            foreach (callArguments($code, $method) as $args) {
+                foreach ($positions as $position) {
+                    if (($args[$position] ?? null) !== null) {
+                        $add($args[$position], $file);
+                    }
+                }
+            }
+        }
         foreach ($php as $pattern) {
             preg_match_all($pattern, $code, $matches, PREG_SET_ORDER);
             foreach ($matches as $match) {
