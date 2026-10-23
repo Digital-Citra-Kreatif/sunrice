@@ -14,7 +14,9 @@ use Sunrice\Admin\Support\Say;
  * The label and group are English, said in the user's language in the
  * role editor. A label with a name in it uses a placeholder, so the
  * sentence can be translated once: Permission::make("shop.{$handle}.orders",
- * 'Orders of :shop', 'Shops', ['shop' => $name]).
+ * 'Orders of :shop', 'Shops', ['shop' => $name]). The group takes the same
+ * placeholders: Permission::make("shop.{$handle}.refund", 'Refund',
+ * 'Shop: :shop', ['shop' => $name]).
  *
  * A permission whose action isn't one of the role editor's columns
  * (View, Create, Edit, Publish, Moderate, Delete, Export) shows as a
@@ -27,7 +29,9 @@ final readonly class Permission
 {
     /**
      * @param  string  $label  in English, with the replacements filled in
+     * @param  string  $group  in English, with the replacements filled in
      * @param  string  $words  the label as written, with its placeholders
+     * @param  string  $groupWords  the group as written, with its placeholders
      * @param  array<string, string>  $replace  the placeholders' values
      */
     private function __construct(
@@ -35,11 +39,12 @@ final readonly class Permission
         public string $label,
         public string $group,
         private string $words,
+        private string $groupWords,
         private array $replace,
         public ?string $short = null,
     ) {}
 
-    /** @param  array<string, string>  $replace  values for the label's placeholders (":label") */
+    /** @param  array<string, string>  $replace  values for the label's and the group's placeholders (":shop") */
     public static function make(string $name, string $label, string $group = 'Other', array $replace = []): self
     {
         if (preg_match('/^[a-z0-9]+(?:[-_][a-z0-9]+)*(?:\.[a-z0-9]+(?:[-_][a-z0-9]+)*)+$/', $name) !== 1) {
@@ -49,12 +54,15 @@ final readonly class Permission
             throw new InvalidArgumentException("Permission \"{$name}\" needs a label.");
         }
 
-        $filled = $label;
-        foreach ($replace as $key => $value) {
-            $filled = str_replace(':'.$key, $value, $filled);
-        }
+        $fill = function (string $words) use ($replace): string {
+            foreach ($replace as $key => $value) {
+                $words = str_replace(':'.$key, $value, $words);
+            }
 
-        return new self($name, $filled, $group, $label, $replace);
+            return $words;
+        };
+
+        return new self($name, $fill($label), $fill($group), $label, $group, $replace);
     }
 
     /**
@@ -67,7 +75,7 @@ final readonly class Permission
             throw new InvalidArgumentException("Permission \"{$this->name}\": a short label can't be empty.");
         }
 
-        return new self($this->name, $this->label, $this->group, $this->words, $this->replace, $short);
+        return new self($this->name, $this->label, $this->group, $this->words, $this->groupWords, $this->replace, $short);
     }
 
     /** The label in the signed-in user's language; names in it are said too. */
@@ -76,6 +84,17 @@ final readonly class Permission
         $said = __($this->words, array_map(fn (string $value): string => Say::it($value), $this->replace));
 
         return is_string($said) ? $said : $this->label;
+    }
+
+    /**
+     * The group in the signed-in user's language ("Entries: :collection" →
+     * "Entri: Pages"); the names in it are data (a collection's title), as they are.
+     */
+    public function saidGroup(): string
+    {
+        $said = __($this->groupWords, $this->replace);
+
+        return is_string($said) ? $said : $this->group;
     }
 
     /** The part before the first dot: the owner's prefix. */

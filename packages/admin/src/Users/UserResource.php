@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Users;
 
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -226,8 +227,8 @@ class UserResource extends Resource
         if ($state?->locked_at !== null) {
             $card->notice(
                 $state->locked_by === null
-                    ? __('Locked :date', ['date' => $state->locked_at->toDayDateTimeString()])
-                    : __('Locked :date by :name', ['date' => $state->locked_at->toDayDateTimeString(), 'name' => $state->locked_by]),
+                    ? __('Locked :date', ['date' => self::when($state->locked_at)])
+                    : __('Locked :date by :name', ['date' => self::when($state->locked_at), 'name' => $state->locked_by]),
                 Card::DANGER,
                 trim(($state->locked_reason === null ? '' : $state->locked_reason.' · ').__('This account can\'t log in, open the panel or use its AI tokens until it\'s unlocked.')),
             );
@@ -239,20 +240,18 @@ class UserResource extends Resource
         }
 
         $card->rows([
-            'Last login' => match (true) {
-                $lastLogin === null => __('No login recorded'),
-                $lastLogin->ip_address === null => $lastLogin->created_at?->toDayDateTimeString() ?? '',
-                default => __(':date from :ip', ['date' => $lastLogin->created_at?->toDayDateTimeString() ?? '', 'ip' => $lastLogin->ip_address]),
-            },
+            // A date the panel shows in its language (as the other dates on the page), and where from on its own line.
+            'Last login' => $lastLogin === null ? Say::it('No login recorded') : $lastLogin->created_at,
+            'Last login IP' => $lastLogin?->ip_address,
             'AI access tokens' => AiToken::query()->where('user_id', $id)->count(),
             'Signed out everywhere' => $state?->signed_out_at,
             // What deleting them would deal with (one count query per kind registered).
-            ...(app(DeleteUser::class)->labels() === [] ? [] : ['Owns' => self::owned(app(DeleteUser::class)->counts($record)) ?: 'Nothing']),
+            ...(app(DeleteUser::class)->labels() === [] ? [] : ['Owns' => self::owned(app(DeleteUser::class)->counts($record)) ?: Say::it('Nothing')]),
         ]);
         $card->list('Latest security events', $events->map(fn (Activity $event) => [
-            'label' => Say::it(Str::ucfirst($event->action)),
+            'label' => Str::ucfirst(Activity::verb($event->action)),
             'meta' => implode(' · ', array_filter([
-                is_string($event->properties['note'] ?? null) ? $event->properties['note'] : null,
+                $event->note(),
                 $event->user_id !== null && $event->user_id !== $id && $event->user_name !== null ? __('by :name', ['name' => $event->user_name]) : null,
                 $event->ip_address === null ? null : 'IP '.$event->ip_address,
             ], fn (mixed $part): bool => is_string($part) && $part !== '')) ?: null,
@@ -531,6 +530,12 @@ class UserResource extends Resource
         }
 
         return array_values(array_filter($models->map(fn (Model $m) => $m->getAttribute('name'))->all(), 'is_string'));
+    }
+
+    /** A date and time in the panel's language: "Oct 23, 2026 7:06 AM", "23 Okt 2026 07.06". */
+    private static function when(CarbonInterface $at): string
+    {
+        return $at->locale(app()->getLocale())->isoFormat('lll');
     }
 
     /**

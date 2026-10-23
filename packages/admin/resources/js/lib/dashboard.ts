@@ -1,4 +1,3 @@
-import { formatDistance } from 'date-fns';
 
 /** A dashboard widget as the page receives it (Sunrice\Admin\Dashboard\Widget::definition()). */
 export interface WidgetDefinition {
@@ -79,12 +78,25 @@ export function formatStat(value: number | string, locale?: string): string {
     return typeof value === 'number' ? new Intl.NumberFormat(locale).format(value) : value;
 }
 
-/** "5 minutes ago", "in 3 days"; empty for a missing or broken date. */
-export function relativeTime(iso: string | null, now: Date): string {
+const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+    ['year', 365 * 86400], ['month', 30 * 86400], ['week', 7 * 86400], ['day', 86400], ['hour', 3600], ['minute', 60],
+];
+
+/**
+ * "5 minutes ago", "in 3 days" in the panel's language ("5 menit yang
+ * lalu"); "now" under a minute; empty for a missing or broken date.
+ */
+export function relativeTime(iso: string | null, now: Date, locale?: string): string {
     if (!iso) return '';
     const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    const seconds = (date.getTime() - now.getTime()) / 1000;
+    const words = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    for (const [unit, size] of UNITS) {
+        if (Math.abs(seconds) >= size) return words.format(Math.round(seconds / size), unit);
+    }
 
-    return Number.isNaN(date.getTime()) ? '' : formatDistance(date, now, { addSuffix: true });
+    return words.format(0, 'second');
 }
 
 interface NavLinkLike {

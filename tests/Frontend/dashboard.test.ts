@@ -30,8 +30,14 @@ test('formats stats and times', () => {
     assert.equal(formatStat(12345, 'en-US'), '12,345');
     assert.equal(formatStat('n/a'), 'n/a');
     const now = new Date('2026-10-20T12:00:00Z');
-    assert.equal(relativeTime('2026-10-20T11:55:00Z', now), '5 minutes ago');
-    assert.equal(relativeTime('2026-10-23T12:00:00Z', now), 'in 3 days');
+    assert.equal(relativeTime('2026-10-20T11:55:00Z', now, 'en'), '5 minutes ago');
+    assert.equal(relativeTime('2026-10-23T12:00:00Z', now, 'en'), 'in 3 days');
+    assert.equal(relativeTime('2026-10-20T12:00:20Z', now, 'en'), 'now');
+    // In the panel's language.
+    assert.equal(relativeTime('2026-10-20T11:54:00Z', now, 'id'), '6 menit yang lalu');
+    assert.equal(relativeTime('2026-10-21T12:00:00Z', now, 'id'), 'besok');
+    assert.equal(relativeTime('2026-10-21T13:00:00Z', now, 'id'), 'besok');
+    assert.equal(relativeTime('2026-10-21T11:00:00Z', now, 'id'), 'dalam 23 jam');
     assert.equal(relativeTime(null, now), '');
     assert.equal(relativeTime('not a date', now), '');
 });

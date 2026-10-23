@@ -21,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
 import { relativeTime } from '@/lib/dashboard';
-import { t } from '@/lib/i18n';
+import { panelLocale, t } from '@/lib/i18n';
 import { toggleColumn, type TablePreferences } from '@/lib/table-preferences';
 import { useTablePreferences } from '@/lib/use-table-preferences';
 
@@ -273,8 +273,8 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
                                     </TableCell>
                                 ))}
                                 {trashed && (
-                                    <TableCell className="whitespace-nowrap" title={row.deletedAt ? new Date(row.deletedAt).toLocaleString() : undefined}>
-                                        {relativeTime(row.deletedAt ?? null, now) || '—'}
+                                    <TableCell className="whitespace-nowrap" title={row.deletedAt ? new Date(row.deletedAt).toLocaleString(panelLocale()) : undefined}>
+                                        {relativeTime(row.deletedAt ?? null, now, panelLocale()) || '—'}
                                     </TableCell>
                                 )}
                                 {hasRowMenu && (

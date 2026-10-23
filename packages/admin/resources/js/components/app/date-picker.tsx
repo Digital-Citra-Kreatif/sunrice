@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { dateLabel, formatDateValue, parseDateValue, parseTimeInput } from '@/lib/date-value';
 import { cn } from '@/lib/utils';
-import { t } from '@/lib/i18n';
+import { panelLocale, t } from '@/lib/i18n';
 
 export interface DatePickerProps {
     id?: string;
@@ -32,7 +32,7 @@ export interface DatePickerProps {
 export function DatePicker({ id, value, onChange, withTime = false, disabled = false, invalid = false, required = false, placeholder, className }: DatePickerProps) {
     const [open, setOpen] = React.useState(false);
     const { date, time } = parseDateValue(value);
-    const label = dateLabel(value, withTime);
+    const label = dateLabel(value, withTime, panelLocale());
 
     return (
         <Popover open={open} onOpenChange={setOpen}>

@@ -169,7 +169,7 @@ class RoleResource extends Resource
                 $groups = [];
                 foreach (app(Panel::class)->getPermissions() as $permission) {
                     if (in_array($permission->name, $existing, true) && $actor instanceof Model && app(PermissionRank::class)->canGrantPermissions($actor, [$permission->name])) {
-                        $groups[$permission->group][$permission->name] = $permission->saidLabel();
+                        $groups[$permission->saidGroup()][$permission->name] = $permission->saidLabel();
                     }
                 }
 

@@ -18,8 +18,10 @@ use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Preferences\Preferences;
+use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Support\Like;
 use Sunrice\Admin\Support\Say;
+use Throwable;
 
 /**
  * The activity log page: who changed what, newest first, with filters.
@@ -36,6 +38,9 @@ final class ActivityController
 
     /** The user's shown columns (useTablePreferences). */
     public const PREFERENCES = 'table.activity';
+
+    /** @var array<string, array<string, string>> field labels by settings or resource class */
+    private array $labels = [];
 
     public function __construct(private Panel $panel) {}
 
@@ -128,7 +133,7 @@ final class ActivityController
         $actions = [];
         foreach (Activity::query()->distinct()->orderBy('action')->limit(500)->pluck('action') as $action) {
             if (is_string($action)) {
-                $actions[] = $action;
+                $actions[] = ['value' => $action, 'label' => Activity::verb($action)];
             }
         }
 
@@ -192,13 +197,14 @@ final class ActivityController
         $properties = $activity->properties ?? [];
         $values = is_array($properties['values'] ?? null) ? $properties['values'] : [];
         // "Close after days: 30 → 365", or the setting's name when its values aren't kept.
-        $changed = is_array($properties['changed'] ?? null) ? array_values(array_map(function (string $name) use ($values): string {
-            $label = Str::ucfirst(str_replace('_', ' ', Str::snake($name)));
+        $labels = $this->fieldLabels($activity);
+        $changed = is_array($properties['changed'] ?? null) ? array_values(array_map(function (string $name) use ($values, $labels): string {
+            // The field's label where the form still has it ("Show the main language instead"), else its name made readable.
+            $label = $labels[$name] ?? Str::ucfirst(str_replace('_', ' ', Str::snake($name)));
             $value = $values[$name] ?? null;
 
             return is_array($value) && is_string($value['from'] ?? null) && is_string($value['to'] ?? null) ? "{$label}: {$value['from']} → {$value['to']}" : $label;
         }, array_filter($properties['changed'], 'is_string'))) : [];
-        $note = is_string($properties['note'] ?? null) ? $properties['note'] : null;
 
         return [
             'id' => $activity->id,
@@ -208,6 +214,7 @@ final class ActivityController
             'userId' => $activity->user_id,
             'user' => $activity->user_name,
             'action' => $activity->action,
+            'actionLabel' => Activity::verb($activity->action),
             'type' => $activity->subject_type,
             'typeLabel' => $this->typeLabel($activity->subject_type),
             'subjectId' => $activity->subject_id,
@@ -216,9 +223,39 @@ final class ActivityController
             'self' => $activity->isAboutItsActor(),
             'url' => $activity->action === 'deleted' ? null : $this->subjectUrl($activity),
             'changed' => $changed,
-            'note' => $note,
+            'note' => $activity->note(),
             'ip' => $activity->ip_address,
         ];
+    }
+
+    /**
+     * The labels of the fields of what the line is about, by name, in the
+     * panel's language: a settings section's or a resource's form (built
+     * once per page).
+     *
+     * @return array<string, string>
+     */
+    private function fieldLabels(Activity $activity): array
+    {
+        $settings = $activity->subject_type === 'settings' && $activity->subject_id !== null ? ($this->panel->getSettings()[$activity->subject_id] ?? null) : null;
+        $resource = $this->panel->getResources()[$activity->subject_type] ?? null;
+        $class = $settings !== null ? $settings->class : $resource?->class;
+        if ($class === null) {
+            return [];
+        }
+        if (! isset($this->labels[$class])) {
+            $labels = [];
+            try {
+                foreach ($class::form(new Form)->fields('edit') as $field) {
+                    $labels[$field->name] = (string) Say::it($field->getLabel());
+                }
+            } catch (Throwable) {
+                // A form that needs more than it has here: the names, made readable.
+            }
+            $this->labels[$class] = $labels;
+        }
+
+        return $this->labels[$class];
     }
 
     /** "Product" for the products resource, "Settings", "Media" … */

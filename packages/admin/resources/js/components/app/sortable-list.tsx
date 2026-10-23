@@ -77,7 +77,7 @@ function SortableRow<T>({ item, id, index, disabled, reduced, className, childre
         <li
             ref={setNodeRef}
             data-sortable-item={id}
-            className={cn('list-none', isDragging && 'opacity-40', className)}
+            className={cn('min-w-0 list-none', isDragging && 'opacity-40', className)}
             style={{ transform: CSS.Translate.toString(transform), transition: reduced ? undefined : transition }}
         >
             {children(item, { index, handle, isDragging, isOverlay: false })}
@@ -125,7 +125,7 @@ export function SortableList<T>({ items, getId, getLabel, onReorder, children, d
     return (
         <DndContext sensors={sensors} collisionDetection={closestCenter} accessibility={{ announcements }} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-                <ul className={cn('m-0 grid gap-2 p-0', className)}>
+                <ul className={cn('m-0 grid grid-cols-[minmax(0,1fr)] gap-2 p-0', className)}>
                     {items.map((item, index) => (
                         <SortableRow key={ids[index]} item={item} id={ids[index] as UniqueIdentifier} index={index} disabled={disabled} reduced={reduced} className={itemClassName}>
                             {children}

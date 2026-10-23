@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\MessageBag;
+use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
@@ -179,6 +181,19 @@ it('uses the policy when creating and editing users, with the rules for the chec
         ->assertSessionHasErrors(['password' => 'Don\'t use the email address or name as the password.']);
     put("/admin/users/{$dewi->id}", ['name' => 'Dewi', 'email' => 'dewi@example.com', 'password' => 'New-'.STRONG, 'password_confirmation' => 'New-'.STRONG, 'roles' => []])->assertSessionHasNoErrors();
     expect(Hash::check('New-'.STRONG, $dewi->fresh()->password))->toBeTrue();
+});
+
+it('shows every rule a password misses at once, not only the first', function () {
+    actingAs($this->super);
+    $all = 'Use both upper and lower case letters. Add a number. Don\'t use the email address or name as the password.';
+    $this->from('/admin/users/create')
+        ->post('/admin/users', ['name' => 'Wendy', 'email' => 'wendy@example.com', 'password' => 'wendy@example.com', 'password_confirmation' => 'wendy@example.com', 'roles' => []])
+        ->assertRedirect('/admin/users/create');
+    get('/admin/users/create')->assertInertia(fn (Assert $page) => $page->where('errors.password', $all));
+
+    // A named error bag keeps its fields, each with all its messages too.
+    session()->flash('errors', (new ViewErrorBag)->put('login', new MessageBag(['email' => ['One.', 'Two.']])));
+    get('/admin/users/create')->assertInertia(fn (Assert $page) => $page->where('errors.login.email', 'One. Two.'));
 });
 
 it('uses the policy on Your account', function () {

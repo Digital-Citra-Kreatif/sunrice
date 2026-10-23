@@ -120,3 +120,24 @@ it('keeps placeholders in the Indonesian lines', function () {
 
     expect($broken)->toBe([]);
 });
+
+it('has an Indonesian verb for every action the activity log records, for its sentences', function () {
+    $root = dirname(__DIR__, 2);
+    // Actions chosen in code (a ternary, a match) rather than written in the call.
+    $actions = ['account locked', 'login blocked', 'two-factor turned on', 'two-factor turned off', 'renamed', 'permanently deleted', 'restored', 'roles changed', 'approved', 'unapproved', 'marked as spam'];
+    foreach (translatableFiles(["{$root}/packages/admin/src", "{$root}/packages/cms/src"], ['php']) as $file) {
+        foreach (file($file) ?: [] as $line) {
+            // Calls with a whole action (not one put together), not the examples in doc comments.
+            if (! str_starts_with(ltrim($line), '*') && preg_match_all("/->(?:record|about)\\(\\s*'([^']+)'\\s*[,)]/", $line, $matches) > 0) {
+                array_push($actions, ...$matches[1]);
+            }
+        }
+    }
+    $actions = array_values(array_unique($actions));
+    expect(count($actions))->toBeGreaterThan(40);
+
+    $lines = indonesian();
+    $missing = array_values(array_filter($actions, fn (string $action): bool => ! isset($lines["activity: {$action}"])));
+
+    expect($missing)->toBe([]);
+});

@@ -51,3 +51,17 @@ test('a disabled list keeps its rows but takes the handles out of the tab order'
     assert.match(html, /<button type="button"[^>]*disabled=""[^>]*>a<\/button>/);
     assert.match(html, /tabindex="-1"/);
 });
+
+test('keeps its rows within the column, so wide content (an editor, a block header) shrinks instead of overflowing', async () => {
+    const { SortableList } = await loadAdminModule<{ SortableList: ComponentType<any> }>('components/app/sortable-list.tsx');
+    const html = render(SortableList, {
+        items: [{ id: 'one' }],
+        getId: (item: { id: string }) => item.id,
+        onReorder: () => undefined,
+        children: () => createElement('div', null, 'Row'),
+    });
+
+    // A grid without explicit columns sizes its one track to the widest row's min-content.
+    assert.match(html, /<ul class="[^"]*grid-cols-\[minmax\(0,1fr\)\][^"]*"/);
+    assert.match(html, /<li[^>]*class="[^"]*min-w-0[^"]*"/);
+});

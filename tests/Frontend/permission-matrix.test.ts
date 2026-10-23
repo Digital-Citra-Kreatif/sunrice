@@ -45,3 +45,26 @@ test('tells which rows have columns and own variants, and keeps short labels', (
     assert.equal(hasColumns(rows[2]!), false);
     assert.equal(hasOwn(rows[2]!), false);
 });
+
+test('names a row in the panel\'s language ("Activity" → "Aktivitas")', async () => {
+    const { loadAdminModule, render } = await import('./support/render.ts');
+    const { PermissionMatrix } = await loadAdminModule<{ PermissionMatrix: import('react').ComponentType<any> }>('components/resources/permission-matrix.tsx');
+    (globalThis as { sunriceTranslations?: unknown }).sunriceTranslations = { Activity: 'Aktivitas', Users: 'Pengguna' };
+    try {
+        const html = render(PermissionMatrix, {
+            id: 'permissions',
+            options: [
+                { value: 'sunrice.activity.view', label: 'View the activity log', group: 'Panel' },
+                { value: 'sunrice.users.view', label: 'View users', group: 'Panel' },
+            ],
+            value: ['sunrice.activity.view'],
+            disabled: false,
+            onChange: () => undefined,
+        });
+        assert.match(html, /Aktivitas/);
+        assert.match(html, /Pengguna/);
+        assert.doesNotMatch(html, />Activity</);
+    } finally {
+        delete (globalThis as { sunriceTranslations?: unknown }).sunriceTranslations;
+    }
+});
