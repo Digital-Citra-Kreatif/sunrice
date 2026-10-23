@@ -189,9 +189,14 @@ test('lays a type\'s settings out: choices and switches full width, numbers and 
 
     const file = settingGroups([
         { handle: 'types', type: 'text', instructions: 'Extensions, like "pdf, jpg, png, docx". Empty: any file, but those that could run as code.' },
-        { handle: 'multiple', type: 'toggle' }, { handle: 'options', type: 'repeater' }, { handle: 'placeholder', type: 'text' },
+        { handle: 'multiple', type: 'toggle' }, { handle: 'options', type: 'repeater' }, { handle: 'max', type: 'number' }, { handle: 'placeholder', type: 'text' },
     ]);
-    assert.deepEqual([file.options.map((s) => s.handle), file.limits.map((s) => s.handle)], [['types', 'multiple', 'options'], ['placeholder']]);
+    assert.deepEqual([file.options.map((s) => s.handle), file.limits.map((s) => s.handle)], [['types', 'multiple', 'options'], ['max']]);
+
+    // The placeholder, prefix and suffix: how the input looks, a section of their own.
+    const text = settingGroups([{ handle: 'max', type: 'number' }, { handle: 'placeholder', type: 'text' }, { handle: 'prefix', type: 'text' }, { handle: 'suffix', type: 'text' }, { handle: 'default', type: 'text' }]);
+    assert.deepEqual([text.limits.map((s) => s.handle), text.appearance.map((s) => s.handle)], [['max', 'default'], ['placeholder', 'prefix', 'suffix']]);
+    assert.deepEqual(groups.appearance, []);
 });
 
 test('puts a setting that applies only while a switch is on next to that switch', async () => {

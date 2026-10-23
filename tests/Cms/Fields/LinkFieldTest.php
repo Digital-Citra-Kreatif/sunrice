@@ -99,7 +99,7 @@ it('offers the collections setting and sends it to the editor', function () {
     $type = app(FieldTypes::class)->get('link');
     $field = Field::make('cta', 'link', ['collections' => ['news']]);
 
-    expect(array_map(fn (Field $setting): string => $setting->handle, $type->settings()))->toBe(['collections'])
+    expect(array_map(fn (Field $setting): string => $setting->handle, $type->settings()))->toBe(['collections', 'placeholder'])
         ->and($type->toAdmin($field, Schema::make([$field])))->toMatchArray(['collections' => ['news'], 'type' => 'link']);
 });
 
