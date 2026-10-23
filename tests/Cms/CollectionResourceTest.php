@@ -101,7 +101,7 @@ it('warns on the edit form, not when creating, what a new handle breaks and what
     Form::query()->create(['handle' => 'enquiry', 'title' => 'Enquiry', 'blueprint' => 'contact']);
     GlobalSet::query()->create(['handle' => 'company', 'title' => 'Company', 'blueprint' => 'contact']);
     Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
-    actingAs(adminUser(Panel::ACCESS, ...collect(['collections', 'taxonomies', 'forms', 'globals', 'menus'])->crossJoin(['view', 'create', 'update'])->map(fn ($p) => "cms.{$p[0]}.{$p[1]}")->push('cms.globals.configure')->all()));
+    actingAs(adminUser(Panel::ACCESS, ...collect(['collections', 'taxonomies', 'forms', 'globals', 'menus'])->crossJoin(['view', 'create', 'update'])->map(fn ($p) => "cms.{$p[0]}.{$p[1]}")->push('cms.globals.configure', 'cms.menus.configure')->all()));
     $handle = fn (Assert $page): array => collect($page->toArray()['props']['sections'])->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'handle');
 
     foreach (['collections/news' => ['cms/collections/:old/', 'renames the collection\'s permissions'], 'taxonomies/topics' => ['whereTerm(\':old\'', 'renames the taxonomy\'s permissions'],

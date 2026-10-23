@@ -182,6 +182,20 @@ it('lets agents change a global set\'s handle and blueprint only with cms.global
         ->and($set->fresh())->handle->toBe('site_contact')->blueprint->toBe('footer');
 });
 
+it('lets agents change a menu\'s handle only with cms.menus.configure, its links with cms.menus.update', function () {
+    $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    $editor = cmsAgent(['cms.menus.view', 'cms.menus.update']);
+
+    expect(cmsTool($editor, 'save_record', ['resource' => 'menus', 'id' => (string) $menu->id, 'values' => ['handle' => 'footer']]))->toContain('permission')
+        ->and(cmsTool($editor, 'save_record', ['resource' => 'menus', 'id' => (string) $menu->id, 'values' => ['title' => 'Top']]))->toContain('permission')
+        ->and(cmsTool($editor, 'cms_save_menu', ['handle' => 'main', 'items' => [['url' => '/contact', 'labels' => ['en' => 'Contact']]]]))->toMatchArray(['saved' => true])
+        ->and($menu->fresh())->handle->toBe('main')->title->toBe('Main');
+
+    $developer = cmsAgent(['cms.menus.view', 'cms.menus.update', 'cms.menus.configure']);
+    expect(cmsTool($developer, 'save_record', ['resource' => 'menus', 'id' => (string) $menu->id, 'values' => ['handle' => 'top', 'title' => 'Top']]))->toMatchArray(['saved' => true])
+        ->and($menu->fresh())->handle->toBe('top')->title->toBe('Top');
+});
+
 it('lists form submissions', function () {
     Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text', 'label' => 'Your name']]]);
     $form = Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'contact']);

@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
+use Sunrice\Admin\Actions\Permissions\SeedRoles;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -319,7 +323,7 @@ it('replaces a nested menu\'s links when saved again, without duplicating them',
 
 it('fills a new menu\'s handle from its title, and keeps it on the edit form, with the way to its links', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
-    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.create', 'cms.menus.update'));
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.create', 'cms.menus.update', 'cms.menus.configure'));
 
     get('/admin/cms/menus/create')->assertInertia(fn (Assert $page) => $page
         ->where('sections.0.fields.1.name', 'handle')->where('sections.0.fields.1.slugFrom', 'title'));
@@ -331,6 +335,68 @@ it('fills a new menu\'s handle from its title, and keeps it on the edit form, wi
         ->where('aside.0.title', 'Links')->where('aside.0.links.0.url', '/admin/cms/menus/main/links'));
     put('/admin/cms/menus/main', ['title' => 'Main menu', 'handle' => 'main'])->assertSessionHasNoErrors();
     expect($this->main->fresh()?->only(['title', 'handle']))->toBe(['title' => 'Main menu', 'handle' => 'main']);
+});
+
+it('lets editors edit a menu\'s links but not change its title or handle', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    app(SeedRoles::class)->handle();
+    actingAs(adminUser()->assignRole('editor'));
+
+    // No way to the menu's Settings: not from its links, not from the list.
+    get('/admin/cms/menus/main/links')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('can.update', true)->where('settings', null));
+    get('/admin/cms/menus')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.can.update', false));
+    get('/admin/cms/menus/main/edit')->assertForbidden();
+
+    // Refused on the server, whatever the request sends.
+    put('/admin/cms/menus/main', ['title' => 'Main', 'handle' => 'footer'])->assertForbidden();
+    put('/admin/cms/menus/main', ['title' => 'Top', 'handle' => 'main'])->assertForbidden();
+    expect($this->main->fresh())->handle->toBe('main')->title->toBe('Main');
+
+    put('/admin/cms/menus/main/links', ['items' => [['url' => '/contact', 'labels' => ['en' => 'Contact']]]])->assertSessionHasNoErrors();
+    expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Contact']);
+});
+
+it('lets administrators change a menu\'s title and handle', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    app(SeedRoles::class)->handle();
+    actingAs(adminUser()->assignRole('administrator'));
+
+    get('/admin/cms/menus/main/links')->assertInertia(fn (Assert $page) => $page->where('settings', url('/admin/cms/menus/main/edit')));
+    get('/admin/cms/menus')->assertInertia(fn (Assert $page) => $page->where('rows.data.0.can.update', true));
+    get('/admin/cms/menus/main/edit')->assertOk();
+    put('/admin/cms/menus/main', ['title' => 'Top', 'handle' => 'top'])->assertSessionHasNoErrors();
+
+    expect($this->main->fresh())->handle->toBe('top')->title->toBe('Top')
+        ->and(Role::findByName('editor')->hasPermissionTo('cms.menus.configure'))->toBeFalse()
+        ->and(app(Panel::class)->getPermissions()['cms.menus.configure']->label)->toBe('Change menus\' titles and handles');
+});
+
+it('gives cms.menus.configure on upgrade to those who looked after the menus, not to editors', function () {
+    $permission = fn (string ...$names) => array_map(fn (string $name) => Permission::findOrCreate($name, 'web'), $names);
+    $permission('cms.menus.view', 'cms.menus.update', 'cms.menus.create', 'cms.menus.delete');
+    $editor = Role::findOrCreate('editor', 'web')->givePermissionTo('cms.menus.view', 'cms.menus.update');
+    $admin = Role::findOrCreate('administrator', 'web')->givePermissionTo('cms.menus.view', 'cms.menus.create', 'cms.menus.update', 'cms.menus.delete');
+    $developer = Role::findOrCreate('developer', 'web')->givePermissionTo('cms.menus.update', 'cms.menus.delete');
+    $creator = Role::findOrCreate('creator', 'web')->givePermissionTo('cms.menus.create');
+    $person = adminUser('cms.menus.update', 'cms.menus.create');
+    $other = adminUser('cms.menus.update');
+    Permission::query()->where('name', 'cms.menus.configure')->delete();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $migration = require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_10_25_000002_give_menus_configure_permission.php';
+    $migration->up();
+    $migration->up(); // again: nothing changes
+
+    $has = fn ($model) => $model->fresh()->hasPermissionTo('cms.menus.configure');
+    expect($has($admin))->toBeTrue()
+        ->and($has($developer))->toBeTrue()
+        ->and($has($editor))->toBeFalse()
+        ->and($has($creator))->toBeFalse()
+        ->and($person->fresh()->getDirectPermissions()->pluck('name')->all())->toContain('cms.menus.configure')
+        ->and($other->fresh()->getDirectPermissions()->pluck('name')->all())->not->toContain('cms.menus.configure')
+        ->and(DB::table('role_has_permissions')->where('role_id', $admin->id)->count())->toBe(5)
+        ->and(DB::table('model_has_permissions')->where('model_id', $person->id)->count())->toBe(3);
 });
 
 it('builds a menu of entry links with the same queries however many there are (NEW2-front-2)', function () {
