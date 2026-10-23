@@ -91,6 +91,9 @@ it('installs a whole site: structure, content with its dates, media with alt tex
     get('/blog/hello-world')->assertOk()
         ->assertSee('class="block-quote"', false)->assertSee('Start where you are.')
         ->assertSee('Made with Sunrice.');
+    // Its home page is the homepage, so / answers at once.
+    expect(app(SiteSettings::class)->homepage)->toBe(EntryTranslation::query()->where('draft_slug', 'home')->sole()->entry_id);
+    get('/')->assertOk()->assertSee('<h1>Welcome</h1>', false);
 });
 
 it('shows the CMS\'s language switcher in the blog\'s layout, once the site has another language', function () {
@@ -295,7 +298,16 @@ it('styles rich text images\' width and alignment presets in the blog\'s site.cs
         foreach (['sunrice-img', 'sunrice-img-w-25', 'sunrice-img-w-50', 'sunrice-img-w-75', 'sunrice-img-w-100', 'sunrice-img-left', 'sunrice-img-right', 'sunrice-img-center', 'sunrice-img-full'] as $class) {
             expect($css)->toContain(".{$class}");
         }
-        // Floats become full-width blocks on narrow screens (640px).
-        expect($css)->toMatch('/@media \(max-width: 40em\) \{\s*\.sunrice-img-left, \.sunrice-img-right \{ float: none; width: 100%;/');
+        // Floats become full-width blocks on narrow screens (640px), those without a width too: the rule names the
+        // :not() selectors of their 50% limit, else that more specific rule kept them at half the width on phones.
+        expect($css)->toMatch('/@media \(max-width: 40em\) \{\s*(\/\*[^*]*\*\/\s*)?\.sunrice-img-left, \.sunrice-img-right, \.sunrice-img-left:not\(\[class\*="sunrice-img-w-"\]\), \.sunrice-img-right:not\(\[class\*="sunrice-img-w-"\]\) \{ float: none; width: 100%; max-width: 100%;/')
+            // A heading after a float clears it, with the float's bottom margin (clearance takes the heading's own) as the space.
+            ->toContain('.prose :is(h2, h3, h4, hr, pre, blockquote, figure) { clear: both; }')
+            ->toContain('.sunrice-img-left { float: left; margin: 0.35rem 1.5rem 1.5rem 0; }');
+    }
+    foreach (['entry', 'term', 'listing', 'taxonomy-index'] as $view) {
+        expect((string) file_get_contents(dirname(__DIR__, 2)."/packages/cms/resources/views/{$view}.blade.php"))
+            ->toContain('@media(max-width:40em){.sunrice-img-left,.sunrice-img-right,.sunrice-img-left:not([class*=sunrice-img-w-]),.sunrice-img-right:not([class*=sunrice-img-w-]){float:none;width:100%;max-width:100%')
+            ->toContain(':is(h2,h3,h4,hr,pre,blockquote,figure){clear:both}');
     }
 });

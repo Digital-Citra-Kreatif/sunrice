@@ -44,9 +44,10 @@ afterEach(function () {
 it('publishes the starter templates, and the site renders with them', function () {
     config(['sunrice-cms.locales' => ['en', 'id'], 'app.name' => 'Acme']);
     actingAs(adminUser());
-    Fieldset::query()->create(['handle' => 'text_block', 'title' => 'Text', 'fields' => [['handle' => 'heading', 'type' => 'text'], ['handle' => 'body', 'type' => 'rich_text']]]);
+    Fieldset::query()->create(['handle' => 'text_block', 'title' => 'Text', 'fields' => [['handle' => 'heading', 'type' => 'text'], ['handle' => 'body', 'type' => 'rich_text'], ['handle' => 'example', 'type' => 'code']]]);
     Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
         ['handle' => 'excerpt', 'type' => 'text'],
+        ['handle' => 'embed', 'type' => 'code', 'config' => ['language' => 'html']],
         ['handle' => 'body', 'type' => 'rich_text'],
         ['handle' => 'cta', 'type' => 'link'],
         ['handle' => 'sections', 'type' => 'flexible', 'config' => ['blocks' => ['text_block']]],
@@ -57,9 +58,10 @@ it('publishes the starter templates, and the site renders with them', function (
     $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'route' => '/blog/{slug}', 'listing_route' => '/blog', 'dated' => true]);
     $hello = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($blog, ['title' => 'Hello <world>', 'slug' => 'hello', 'data' => [
         'excerpt' => 'A first post',
+        'embed' => '<div>Hi</div>',
         'body' => '<p>The <strong>body</strong></p>',
         'cta' => ['type' => 'url', 'url' => 'https://example.com', 'label' => 'Read on'],
-        'sections' => [['id' => 'b1', 'type' => 'text_block', 'key' => 'intro', 'hidden' => false, 'values' => ['heading' => 'A block', 'body' => '<p>Block <em>text</em></p>']]],
+        'sections' => [['id' => 'b1', 'type' => 'text_block', 'key' => 'intro', 'hidden' => false, 'values' => ['heading' => 'A block', 'body' => '<p>Block <em>text</em></p>', 'example' => 'npm run build']]],
         'topics' => [$news->id],
     ]]));
     $halo = app(CreateTranslation::class)->handle($hello->entry, 'id');
@@ -86,6 +88,10 @@ it('publishes the starter templates, and the site renders with them', function (
         ->assertSee('<strong>body</strong>', false)
         ->assertSee('<section class="block block-text_block" id="intro">', false)
         ->assertSee('Block <em>text</em>', false)
+        // Code fields as code blocks (a block's too, plain without a language), not as paragraphs.
+        ->assertSee('<pre><code class="language-html">&lt;div&gt;Hi&lt;/div&gt;</code></pre>', false)
+        ->assertSee('<pre><code>npm run build</code></pre>', false)
+        ->assertDontSee('<p>&lt;div&gt;', false)
         ->assertSee('<a class="button" href="https://example.com"', false)
         ->assertSee('href="'.asset('cms/site.css').'"', false)
         ->assertSee('<a class="skip-link" href="#main">', false)

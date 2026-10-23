@@ -101,6 +101,16 @@ it('gives templates the string, escaped with {{ }} and on the CMS\'s own page', 
     expect($page)->toContain('&lt;script&gt;')->not->toContain("<script>\n    alert");
 });
 
+it('tells templates which fields are code, and the CMS\'s own page shows them as code blocks', function () {
+    codeEntry(['snippet' => CODE_FIELD_SNIPPET, 'settings_json' => '{"a": 1}']);
+
+    $response = get('/snippets/embed')->assertOk()->assertViewHas('code', ['snippet' => 'html', 'settings_json' => 'json']);
+    expect((string) $response->getContent())
+        ->toContain("<pre><code class=\"language-html\">&lt;script&gt;\n    alert(&#039;hi &amp; bye&#039;);\n&lt;/script&gt;</code></pre>")
+        ->toContain('<pre><code class="language-json">{&quot;a&quot;: 1}</code></pre>')
+        ->not->toContain('<p>&lt;script&gt;');
+});
+
 it('prints a code block: <pre><code class="language-…">, escaped', function () {
     $html = Blade::render('<x-sunrice-cms::code-block :value="$code" language="html" class="example" />', ['code' => CODE_FIELD_SNIPPET]);
 

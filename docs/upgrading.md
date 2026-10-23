@@ -1,15 +1,25 @@
 # Upgrading
 
-`sunrice/admin` and `sunrice/cms` are released together, with the same version number: update both at once.
+`sunrice/admin`, `sunrice/cms` and `sunrice/starter-kit` are released together, with the same version number: update them at once. The CMS and the starter kit require the panel (and the starter kit the CMS) at exactly their own version, so Composer can't update one without the others.
 
 ## How to upgrade
 
 1. Read this page from the version you have to the one you're going to, and `CHANGELOG.md` for everything else that changed.
-2. Update the packages:
+2. Update the packages. Within the version your `composer.json` allows (`^0.2` takes 0.2.1, 0.2.2…), update them:
 
    ```bash
-   composer update "sunrice/*"
+   composer update "sunrice/*" -W
    ```
+
+   **Before 1.0, each minor version is a new major one for Composer**: `^0.1` allows 0.1.x but never 0.2.0, so `composer update` finds nothing new. To move to the next minor version, raise the constraints with `composer require`, every Sunrice package you have at once (and `-W` so their dependencies may move too):
+
+   ```bash
+   composer require sunrice/admin:^0.2 sunrice/cms:^0.2 -W
+   # with the starter kit installed, add it to the same command:
+   composer require sunrice/admin:^0.2 sunrice/cms:^0.2 sunrice/starter-kit:^0.2 -W
+   ```
+
+   Plugins of your own or from others (`composer.json`'s `sunrice/admin` or `sunrice/cms` constraint) need a release allowing the new version too; Composer names any that hold the update back.
 
 3. Run the steps every update needs (see [Installation](../packages/admin/docs/installation.md#upgrading)):
 
@@ -45,6 +55,32 @@ Until 1.0, APIs may change between versions; every change is recorded in `CHANGE
 
 ## Unreleased
 
+From 0.1.x to 0.2.0. Raise the constraints, as 0.1's don't allow 0.2 (see [step 2](#how-to-upgrade)): `composer require sunrice/admin:^0.2 sunrice/cms:^0.2 -W`, adding `sunrice/starter-kit:^0.2` if you use it. Then run the steps every update needs, and:
+
+- **Copy the image preset styles into your site's CSS**: rich text images can now be given a width and an alignment, stored as classes (`sunrice-img`, `sunrice-img-w-50`, `sunrice-img-left`…) that only your site's CSS turns into a layout. A site whose `public/cms/site.css` came from 0.1 (the starter templates, `vendor:publish --tag=sunrice-cms-templates`, or the Blog starter) doesn't have the rules, so the presets do nothing on it: images show full width, wherever they're placed. Add these, from the 0.2 starter templates' `site.css` (`packages/cms/stubs/public/site.css` in `sunrice/cms`), to your own CSS (`.prose` is the starter templates' wrapper of rich text: use your own):
+
+  ```css
+  /* Rich text images: the editor's width and alignment presets (no inline styles) */
+  .sunrice-img { display: block; max-width: 100%; height: auto; margin-block: 1.5rem; }
+  .sunrice-img-w-25 { width: 25%; }
+  .sunrice-img-w-50 { width: 50%; }
+  .sunrice-img-w-75 { width: 75%; }
+  .sunrice-img-w-100, .sunrice-img-full { width: 100%; }
+  .sunrice-img-center { margin-inline: auto; }
+  .sunrice-img-left { float: left; margin: 0.35rem 1.5rem 1.5rem 0; }
+  .sunrice-img-right { float: right; margin: 0.35rem 0 1.5rem 1.5rem; }
+  .sunrice-img-left:not([class*="sunrice-img-w-"]), .sunrice-img-right:not([class*="sunrice-img-w-"]) { max-width: 50%; }
+  .prose::after { content: ""; display: block; clear: both; }
+  .prose :is(h2, h3, h4, hr, pre, blockquote, figure) { clear: both; }
+  @media (max-width: 40em) {
+      /* With the :not() selectors too, so the 50% limit of a float without a width doesn't outweigh this */
+      .sunrice-img-left, .sunrice-img-right, .sunrice-img-left:not([class*="sunrice-img-w-"]), .sunrice-img-right:not([class*="sunrice-img-w-"]) { float: none; width: 100%; max-width: 100%; margin: 1.5rem 0; }
+  }
+  ```
+
+  A site with its own design styles the same classes its own way. The CMS's plain pages (no templates of your own) have them already.
+- **Rich text keeps only the image presets' classes on `<img>`**: the CMS's rich text fields are cleaned when saved, and now drop any other class on an image (0.1 kept every class there); the panel's `RichText` fields, which kept none, now keep the presets'. Inline styles stay dropped, as in 0.1 (`style` was never kept): width and alignment are the presets' classes. Content saved before the upgrade shows as it was until it's next saved, by an editor or by code (`SaveDraft`, an import); then its other image classes are gone. If your templates or CSS style images in rich text by classes of your own (`<img class="rounded">`), style them another way (`.prose img`), or use the editor's presets.
+- **Show code fields as code**: 0.2 adds a Code field type. Templates get `$code` (the page's code fields, handle => language), and the 0.2 starter templates' `cms/partials/fields.blade.php` show those fields with `<x-sunrice-cms::code-block>`; a `fields` partial copied from 0.1 prints them as an escaped paragraph. Copy the `@elseif (isset($code[$handle]))` branch from the new one if your blueprints use code fields.
 - **Settings → SEO moved to `/admin/settings/seo`** (`php artisan migrate` runs `2026_10_24_000010`): links and bookmarks to `/admin/cms/seo` redirect (301), but code naming its routes must use `sunrice.admin.settings.seo.edit` and `.update` instead of `sunrice.admin.cms.seo.edit` and `.update`, and a page that marks it in the Settings menu uses the key `seo` (was `cms-seo`). Its **Structured data** section moved there from Settings → Site; the values are kept where they were (`SiteSettings`), so templates and code reading them change nothing. Code that saved them through Settings → Site's form (`PUT /admin/settings/site`) saves them with `SaveSeoSettings` (`structured`) or `SaveSettings` on `SiteSettings` instead; AI agents find them in the settings section `seo`.
 - **Strong passwords are on, for existing installs too**: new passwords set in the panel need 12 characters or more with upper and lower case letters, a number and a symbol, and are checked against known data leaks (a request to `api.pwnedpasswords.com`; allow it out of your firewall, or set `SUNRICE_PASSWORD_UNCOMPROMISED=false`). People whose password doesn't meet the rules are asked to choose a stronger one the next time they sign in. Scripts or tests that create users through the panel's forms or `sunrice:make-admin --password` with simple passwords need stronger ones. To keep the old behaviour (your app's `Password::defaults()`), turn off **Require strong passwords** in Settings → Security, or set `sunrice-admin.auth.strong_passwords` to `false`. See [Strong passwords](../packages/admin/docs/auth.md#strong-passwords).
 - **Entries' terms come from their collection's taxonomies** (`php artisan migrate` runs `2026_10_23_000001`, `2026_10_23_000002` and `2026_10_24_000001`): the editor's **Taxonomies** card chooses an entry's terms for the taxonomies attached to its collection, and **Terms** fields no longer give entries their terms. An entry's terms are those of the attached taxonomies only, everywhere (`$entry->terms`, `whereTerm()`, term pages, `<x-sunrice-cms::terms>` counts, the sitemap): detaching a taxonomy hides its terms from the collection's entries until it's attached again. So nothing goes missing, the upgrade **attaches for you** each taxonomy a terms field of a collection's blueprints (any it allows) uses, with term and index pages in the collection off (no new addresses) and **One term only** when the field took one term. Your site shows the same terms after the upgrade (the live terms stay); an entry whose draft had other terms in its top-level terms fields keeps them as unpublished changes. Then:
