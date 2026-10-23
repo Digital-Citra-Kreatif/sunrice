@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Http\Controllers;
 
-use BackedEnum;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +16,7 @@ use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Tables\ActionFailed;
 use Sunrice\Admin\Settings\BrandingSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
-use Sunrice\Admin\Settings\Settings;
+use Sunrice\Admin\Settings\SettingsFields;
 use Sunrice\Admin\Support\Card;
 use Sunrice\Admin\Support\Say;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -44,32 +43,16 @@ final class SettingsController
     {
         $user = $this->user($request);
         $registered = $this->section($user, $section);
-        $settings = $registered->load();
         $form = $registered->class::form(new Form);
-
-        $current = $settings->toArray();
-        $values = [];
-        $secrets = [];
-        foreach ($registered->fields($form) as $field) {
-            $value = $current[$field->name];
-            // Nothing saved yet: the field's default, when it has one (what applies until then).
-            if (($value === '' || $value === null) && $field->formValue(null) !== null) {
-                $value = $field->formValue(null);
-            }
-            if ($field->keepsValueWhenEmpty()) {
-                $secrets[$field->name] = $value !== null && $value !== '';
-                $value = null;
-            }
-            $values[$field->name] = $value instanceof BackedEnum ? $value->value : $value;
-        }
+        $fields = SettingsFields::make($registered->class, $form)->props();
 
         return Inertia::render('Settings/Edit', [
             'section' => ['key' => $registered->key(), 'label' => Say::it($registered->class::label()), 'description' => Say::it($registered->class::description()), 'warning' => Say::it($registered->class::warning())],
-            // The Settings menu: the sections, and pages put among them (NavigationItem::inSettings()).
+            // The Settings menu: the sections, and pages put among them (NavigationItem::inSettings(), Panel::settingsPage()).
             'sections' => $this->panel->settingsNavigation($user),
-            'form' => $form->toSections('edit'),
-            'values' => $values,
-            'secrets' => $secrets,
+            'form' => $fields['sections'],
+            'values' => $fields['values'],
+            'secrets' => $fields['secrets'],
             'cards' => array_map(fn (Card $card) => $card->toArray(), $registered->class::cards($user)),
         ]);
     }

@@ -37,7 +37,7 @@ final class GetSettings extends ResourceTool
 
         return $this->json([
             'section' => $section->key(),
-            'label' => $section->class::label(),
+            'label' => $section->label(),
             'fields' => self::describeFields($section->fields(), null),
             'values' => $values,
         ]);
@@ -45,7 +45,7 @@ final class GetSettings extends ResourceTool
 
     public static function section(mixed $key): ?RegisteredSettings
     {
-        return is_string($key) ? (app(Panel::class)->getSettings()[$key] ?? null) : null;
+        return is_string($key) ? (app(Panel::class)->settingsForAgents()[$key] ?? null) : null;
     }
 
     public function schema(JsonSchema $schema): array

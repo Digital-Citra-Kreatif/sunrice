@@ -14,6 +14,7 @@ use Sunrice\Cms\Models\Taxonomy;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+use function Pest\Laravel\put;
 
 beforeEach(function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
@@ -48,18 +49,27 @@ it('lists each collection under Content and each taxonomy under Taxonomies', fun
         ->and(sidebarOf(adminUser(Panel::ACCESS, 'cms.entries.pages.view')))->not->toHaveKey('Taxonomies');
 });
 
-it('lists SEO in the Settings menu after Site, not in the sidebar, with Settings current on it', function () {
+it('lists SEO in the Settings menu after Site, at settings/seo, not in the sidebar, with Settings current on it', function () {
     $user = adminUser(Panel::ACCESS, 'cms.settings.site', 'cms.settings.locales');
     $sidebar = sidebarOf($user);
 
-    expect(collect($sidebar)->flatten(1)->pluck('key')->all())->not->toContain('cms-seo')
-        ->and(collect(app(Panel::class)->navigationFor($user))->flatMap(fn (array $group) => $group['items'])->firstWhere('key', 'settings')['matches'])->toBe(['cms/seo'])
-        ->and(array_column(app(Panel::class)->settingsNavigation($user), 'key'))->toBe(['site', 'cms-seo', 'locales']);
+    expect(collect($sidebar)->flatten(1)->pluck('key')->all())->not->toContain('settings-page.seo')
+        ->and(collect(app(Panel::class)->navigationFor($user))->flatMap(fn (array $group) => $group['items'])->firstWhere('key', 'settings')['matches'])->toBe(['settings/seo'])
+        ->and(array_column(app(Panel::class)->settingsNavigation($user), 'key'))->toBe(['site', 'seo', 'locales'])
+        ->and(route('sunrice.admin.settings.seo.edit', absolute: false))->toBe('/admin/settings/seo')
+        ->and(route('sunrice.admin.settings.seo.update', absolute: false))->toBe('/admin/settings/seo');
 
     actingAs($user);
-    get('/admin/cms/seo')->assertInertia(fn (AssertableInertia $page) => $page->where('settingsNav.1', ['key' => 'cms-seo', 'label' => 'SEO', 'url' => 'cms/seo']));
+    get('/admin/settings/seo')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->component('Cms/Seo/Edit', shouldExist: false)
+        ->where('settingsNav.1', ['key' => 'seo', 'label' => 'SEO', 'url' => 'settings/seo']));
+    // Its address in 0.1 moved for good.
+    get('/admin/cms/seo')->assertStatus(301)->assertRedirect('/admin/settings/seo');
     // Without cms.settings.site: neither the page nor its place in the menu.
-    expect(array_column(app(Panel::class)->settingsNavigation(adminUser(Panel::ACCESS, 'cms.settings.locales')), 'key'))->toBe(['locales']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.locales'));
+    expect(array_column(app(Panel::class)->settingsNavigation(auth()->user()), 'key'))->toBe(['locales']);
+    get('/admin/settings/seo')->assertForbidden();
+    put('/admin/settings/seo', ['site' => ['noindex' => true, 'appendName' => true]])->assertForbidden();
+    get('/admin/cms/seo')->assertForbidden();
 });
 
 it('edits entries and terms under their collection and taxonomy, and redirects the old addresses', function () {

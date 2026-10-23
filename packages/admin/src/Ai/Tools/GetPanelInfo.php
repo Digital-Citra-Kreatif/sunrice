@@ -41,8 +41,8 @@ final class GetPanelInfo extends Tool
                 'label' => $r->class::label(),
                 'can' => array_values(array_filter(['view', 'create', 'update', 'delete'], fn (string $ability) => $r->allows($user, $ability))),
             ], array_filter($panel->getResources(), fn (RegisteredResource $r) => $r->allows($user, 'view')))),
-            'settings' => array_values(array_map(fn (RegisteredSettings $s) => ['key' => $s->key(), 'label' => $s->class::label()],
-                array_filter($panel->getSettings(), fn (RegisteredSettings $s) => $s->allows($user)))),
+            'settings' => array_values(array_map(fn (RegisteredSettings $s) => ['key' => $s->key(), 'label' => $s->label()],
+                array_filter($panel->settingsForAgents(), fn (RegisteredSettings $s) => $s->allows($user)))),
             'plugins' => array_keys($panel->getPlugins()),
         ]);
     }

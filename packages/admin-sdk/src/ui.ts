@@ -111,6 +111,31 @@ export const DropdownMenuItem = m.DropdownMenuItem as AnyComponent;
 export const DropdownMenuLabel = m.DropdownMenuLabel as AnyComponent;
 export const DropdownMenuSeparator = m.DropdownMenuSeparator as AnyComponent;
 export const DropdownMenuTrigger = m.DropdownMenuTrigger as AnyComponent;
+/** A setting's value as the form holds it. */
+export type SettingsValue = string | number | boolean | null | string[] | number[] | (string | number)[];
+
+/** A settings section's fields as `SettingsFields::props()` (PHP) gives them: `sections`, `values`, `secrets`. */
+export interface SettingsFieldsProps {
+    /** The form: opaque, made by the panel; pass it to FormSections as it is. */
+    sections: unknown[];
+    values: Record<string, SettingsValue>;
+    /** Whether each Secret field has a saved value (never sent). */
+    secrets: Record<string, boolean>;
+}
+
+/**
+ * Settings fields drawn as the Settings page draws them (every field type,
+ * sections as cards): `sections` from `SettingsFields::props()`, the values
+ * in `data` (start from its `values`), errors by field name.
+ */
+export const FormSections = m.FormSections as ComponentType<{
+    sections: unknown[];
+    data: Record<string, SettingsValue>;
+    errors: Partial<Record<string, string>>;
+    onChange: (name: string, value: SettingsValue) => void;
+    /** Remembers which titled sections are folded, under this key plus the title. */
+    storageKey?: string;
+}>;
 export const Input = m.Input as AnyComponent;
 export interface KeptEdit { id: number; by: string | null; taken_by: string | null; at: string | null }
 /** "Ana's unsaved changes were kept" notices, with Load and Discard (see useEditLock). */
@@ -239,7 +264,7 @@ export const DeveloperHelp = m.DeveloperHelp as ComponentType<{ text?: string | 
 export interface SettingsNavEntry {
     key: string;
     label: string;
-    /** Its address under the panel: "settings/site", "cms/seo". */
+    /** Its address under the panel: "settings/site", "settings/seo". */
     url: string;
 }
 

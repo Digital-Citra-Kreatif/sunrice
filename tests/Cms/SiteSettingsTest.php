@@ -118,7 +118,7 @@ it('edits the site settings behind their permission', function () {
     expect(app(SiteSettings::class)->title('About'))->toBe('About | Acme');
     // Search engines and sharing are on their own page, in the Settings menu right after Site: no card points there.
     get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('cards', [])
-        ->where('sections', [['key' => 'site', 'label' => 'Site', 'url' => 'settings/site'], ['key' => 'cms-seo', 'label' => 'SEO', 'url' => 'cms/seo']]));
+        ->where('sections', [['key' => 'site', 'label' => 'Site', 'url' => 'settings/site'], ['key' => 'seo', 'label' => 'SEO', 'url' => 'settings/seo']]));
 });
 
 it('prints the site code, and alerts when it changes', function () {

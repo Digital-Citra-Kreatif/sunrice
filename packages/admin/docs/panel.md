@@ -114,18 +114,18 @@ When the panel boots it calls `register()` on every plugin, each plugin's requir
 | A plugin's widget keys start with its id (`shop.…`); the app's may not use a plugin's id; every widget has `data` and says who sees it (`permission()`, `visible()` or `everyone()`). | `PanelMisconfigured` when it's registered. |
 | Navigation keys, widget keys, permission names, shared data keys and bundle ids are unique; the panel's own shared data keys (`sunrice`, `auth`, `navigation`, `flash`, `errors`) are reserved. | `PanelMisconfigured`, naming the plugin that registered the duplicate. |
 | Submenu items point to an existing parent, one level deep. | `PanelMisconfigured` at boot. |
+| A settings page's key (`settingsPage()`) is no settings section's and no other page's. | `PanelMisconfigured` at boot. |
 
 ## Navigation
 
 `NavigationItem::make($key)` takes a label, a `url` relative to the panel path, an `icon` (a lucide name), a `group`, a `parent` (another item's key, for a submenu), a `sort` (lower first, 100 by default) and a `permission`. An item without a permission is shown to everyone who can open the panel. Hiding a parent hides its submenu. Labels and groups are said in the panel's language ([panel languages](languages.md)); `->verbatim()` shows a label that is data (a collection's title) as written.
 
-A page that belongs with the settings (a plugin's own React page, not a `Settings` class) goes in the **Settings menu** instead of the sidebar with `->inSettings($after)`: it's listed among the settings sections, right after the section whose key is `$after` (`'site'`), or at the end without one, for users who pass its `permission()`/`visible()`. The sidebar's **Settings** item shows (and opens the first entry) even when that page is all a user may open, and it's marked current on the page. `$panel->settingsNavigation($user)` gives the menu, `[['key', 'label', 'url'], …]`: pass it to the page and render it with `SettingsLayout` (or `SettingsNav`) from `@imajiner/admin-sdk/ui` ([frontend](frontend.md)), so the page shows the same menu as the settings sections. The CMS's Settings → SEO is one:
+A page that belongs with the settings (a plugin's own React page, not a `Settings` class) is best registered with `$panel->settingsPage($key, $label, $controller, $permission, after: 'site')` ([Settings](settings.md#a-settings-page-of-your-own)): it gets the address `settings/{key}` like the sections, its routes (`sunrice.admin.settings.{key}.edit` and `.update`, behind the permission) and its place in the Settings menu. A page with an address of its own goes in the **Settings menu** instead of the sidebar with `->inSettings($after)`: it's listed among the settings sections, right after the section whose key is `$after` (`'site'`), or at the end without one, for users who pass its `permission()`/`visible()`. Either way, the sidebar's **Settings** item shows (and opens the first entry) even when that page is all a user may open, and it's marked current on the page. `$panel->settingsNavigation($user)` gives the menu, `[['key', 'label', 'url'], …]`: pass it to the page and render it with `SettingsLayout` (or `SettingsNav`) from `@imajiner/admin-sdk/ui` ([frontend](frontend.md)), so the page shows the same menu as the settings sections. The CMS's Settings → SEO is one:
 
 ```php
-NavigationItem::make('cms-seo')->label('SEO')->url('cms/seo')->icon('search')
-    ->inSettings('site')->permission('cms.settings.site');
+$panel->settingsPage('seo', 'SEO', SeoController::class, 'cms.settings.site', after: 'site');
 // In its controller: Inertia::render('Cms/Seo/Edit', ['settingsNav' => $panel->settingsNavigation($request->user()), …])
-// In its page: <SettingsLayout items={settingsNav} current="cms-seo">…</SettingsLayout>
+// In its page: <SettingsLayout items={settingsNav} current="seo">…</SettingsLayout>
 ```
 
 Your app adds its own items the same way, in the panel provider: `$panel->navigation(NavigationItem::make('reports')->label('Reports')->url('reports')->icon('chart-column')->group('Insights')->permission('reports.view'))`. A `group` the panel or a plugin already uses (`Content`, `Administration`) puts the item among theirs; a new name makes a new group in the sidebar, which people can fold away (remembered in their browser). Give the page behind the link a route ([Routes and pages](#routes-and-pages)) that checks the same permission.

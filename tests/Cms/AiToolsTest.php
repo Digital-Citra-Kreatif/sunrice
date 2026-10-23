@@ -567,3 +567,31 @@ it('saves and shows fields\' hints, placeholders, prefixes and suffixes through 
         ->and($fields[1]['config'])->toEqual(['placeholder' => '120', 'suffix' => 'm²'])
         ->and($fields[2])->not->toHaveKey('hint');
 });
+
+it('reads and changes Settings → SEO\'s structured data as the settings section "seo", checked and logged as the page does', function () {
+    $token = cmsAgent(['cms.settings.site']);
+    $info = cmsTool($token, 'get_panel_info');
+    expect(collect($info['settings'])->firstWhere('key', 'seo'))->toBe(['key' => 'seo', 'label' => 'SEO']);
+
+    $seo = cmsTool($token, 'get_settings', ['section' => 'seo']);
+    expect($seo['section'])->toBe('seo')
+        ->and(array_keys($seo['values']))->toBe(['structuredData', 'publisher', 'logo', 'publisherName', 'publisherType', 'telephone', 'address', 'sameAs'])
+        ->and(collect($seo['fields'])->pluck('name')->all())->toContain('publisherType', 'sameAs');
+
+    expect(cmsTool($token, 'update_settings', ['section' => 'seo', 'values' => ['publisherType' => 'brewery!']]))->toContain('Not saved:')
+        ->and(cmsTool($token, 'update_settings', ['section' => 'seo', 'values' => ['sameAs' => 'http://example.com']]))->toContain('Not saved:')
+        // Only the section's fields: Settings → Site's stay as they are.
+        ->and(cmsTool($token, 'update_settings', ['section' => 'seo', 'values' => ['publisherType' => 'Brewery', 'telephone' => '+62 21 555 0100', 'name' => 'Not this']]))
+        ->toBe(['saved' => true, 'changed' => ['publisherType', 'telephone']]);
+    $site = new SiteSettings;
+    expect([$site->publisherType, $site->telephone, $site->name, $site->structuredData])->toBe(['Brewery', '+62 21 555 0100', '', true])
+        ->and(Activity::query()->where('subject_type', 'settings')->latest('id')->first()?->properties['changed'] ?? null)->toBe(['publisherType', 'telephone']);
+    // And Settings → Site no longer offers them.
+    expect(array_keys(cmsTool($token, 'get_settings', ['section' => 'site'])['values']))->not->toContain('publisherType');
+
+    // Behind cms.settings.site, as the page.
+    $other = cmsAgent(['cms.settings.locales']);
+    expect(collect(cmsTool($other, 'get_panel_info')['settings'])->pluck('key')->all())->not->toContain('seo')
+        ->and(cmsTool($other, 'get_settings', ['section' => 'seo']))->toContain('No such settings section')
+        ->and(cmsTool($other, 'update_settings', ['section' => 'seo', 'values' => ['telephone' => '1']]))->toContain('No such settings section');
+});

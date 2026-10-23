@@ -175,17 +175,21 @@ it('carries Settings → Site with --settings, the homepage and images portably,
     $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page', 'route' => '/{slug}']);
     $home = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'Home']));
     $logo = app(UploadMedia::class)->handle(UploadedFile::fake()->image('logo.png', 10, 10));
-    app(SaveSettings::class)->handle(new SiteSettings, ['name' => 'Acme', 'description' => 'Homes in Bali.', 'logo' => $logo->id, 'homepage' => $home->entry_id, 'twitter' => '@acme', 'noindex' => true]);
+    app(SaveSettings::class)->handle(new SiteSettings, ['name' => 'Acme', 'description' => 'Homes in Bali.', 'logo' => $logo->id, 'homepage' => $home->entry_id, 'twitter' => '@acme', 'noindex' => true,
+        // Settings → SEO's structured data, stored with the site's.
+        'publisherType' => 'Brewery', 'telephone' => '+62 21 555 0100', 'sameAs' => 'https://instagram.com/acme']);
 
     expect(app(StructureExporter::class)->export(content: true))->not->toHaveKey('settings');
     $file = json_decode(json_encode(app(StructureExporter::class)->export(content: true, settings: true), JSON_THROW_ON_ERROR), true);
-    expect($file['settings']['site'])->toMatchArray(['name' => 'Acme', 'homepage' => ['entry' => 'pages/home'], 'logo' => ['media' => $logo->path], 'image' => null, 'twitter' => '@acme'])
+    expect($file['settings']['site'])->toMatchArray(['name' => 'Acme', 'homepage' => ['entry' => 'pages/home'], 'logo' => ['media' => $logo->path], 'image' => null, 'twitter' => '@acme',
+        'structuredData' => true, 'publisherType' => 'Brewery', 'telephone' => '+62 21 555 0100', 'sameAs' => 'https://instagram.com/acme'])
         ->and($file['settings']['site'])->not->toHaveKey('noindex');
 
     // Another site, which named itself already.
     Entry::withTrashed()->get()->each->forceDelete();
     EntryTranslation::query()->delete();
-    (new SiteSettings)->fill(['name' => 'Ours', 'description' => '', 'logo' => null, 'homepage' => null, 'twitter' => '', 'noindex' => false])->save();
+    (new SiteSettings)->fill(['name' => 'Ours', 'description' => '', 'logo' => null, 'homepage' => null, 'twitter' => '', 'noindex' => false,
+        'publisherType' => '', 'telephone' => '', 'sameAs' => ''])->save();
 
     $dry = app(StructureImporter::class)->import($file, dryRun: true);
     expect($dry->status('settings', 'site'))->toBe(ImportReport::UPDATED)->and((new SiteSettings)->description)->toBe('');
@@ -197,8 +201,12 @@ it('carries Settings → Site with --settings, the homepage and images portably,
         ->and($site->logo)->toBe($logo->id)
         ->and($site->homepage)->toBe(entryBySlug('home')?->id)
         ->and($site->noindex)->toBeFalse()
+        ->and([$site->publisherType, $site->telephone, $site->profiles()])->toBe(['Brewery', '+62 21 555 0100', ['https://instagram.com/acme']])
         ->and(collect($report->items())->firstWhere('type', 'settings')['notes'])->toBe(['Keeps this site\'s own: name.']);
     expect(app(StructureImporter::class)->import($file)->status('settings', 'site'))->toBe(ImportReport::UNCHANGED);
+    // Checked as Settings → SEO checks them.
+    (new SiteSettings)->fill(['publisherType' => ''])->save();
+    expect(fn () => app(StructureImporter::class)->import([...$file, 'settings' => ['site' => ['publisherType' => 'not a type!']]]))->toThrow(StructureImportFailed::class);
 
     unset($file['settings']['site']);
     $file['settings']['mail'] = ['host' => 'x'];

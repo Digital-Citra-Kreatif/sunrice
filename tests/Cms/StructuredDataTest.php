@@ -5,11 +5,13 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Testing\TestResponse;
 use Sunrice\Admin\Media\Media;
+use Sunrice\Admin\Media\MediaUsages;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\SaveEntrySettings;
+use Sunrice\Cms\Actions\Seo\SaveSeoSettings;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
@@ -34,6 +36,30 @@ beforeEach(function () {
 function schemaPost(Collection $collection, string $title, ?array $seo = null): EntryTranslation
 {
     return app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($collection, ['title' => $title, 'seo' => $seo]));
+}
+
+/**
+ * Saves Settings → SEO with these structured data values (the others as
+ * they are), as its page sends them.
+ *
+ * @param  array<string, mixed>  $structured
+ */
+function saveStructured(array $structured): TestResponse
+{
+    $site = app(SiteSettings::class);
+
+    return \Pest\Laravel\put('/admin/settings/seo', [
+        'site' => ['noindex' => $site->noindex, 'appendName' => $site->appendName, 'separator' => $site->separator, 'twitter' => $site->twitter, 'image' => $site->image],
+        'structured' => [...SaveSeoSettings::structuredData()->props()['values'], ...$structured],
+    ]);
+}
+
+/** Structured data's field `$name` as Settings → SEO shows it. */
+function structuredField(string $name): array
+{
+    $props = get('/admin/settings/seo')->assertOk()->viewData('page')['props'];
+
+    return collect($props['structured']['sections'])->flatMap(fn (array $section) => $section['fields'])->firstWhere('name', $name);
 }
 
 /** The page's JSON-LD nodes by @type. */
@@ -123,12 +149,12 @@ it('takes nodes from templates, prints them safely, and can be turned off', func
     expect(Blade::render('<x-sunrice-cms::seo title="Events" />'))->not->toContain('application/ld+json');
 });
 
-it('describes the publisher with its own name, type, contact details and profiles', function () {
+it('describes the publisher with its own name, type, contact details and profiles, set in Settings → SEO', function () {
     \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
-    \Pest\Laravel\put('/admin/settings/site', ['structuredData' => true, 'publisher' => 'Organization', 'publisherType' => 'RealEstate Agent', 'sameAs' => 'not a url'])
-        ->assertSessionHasErrors(['publisherType', 'sameAs']);
-    \Pest\Laravel\put('/admin/settings/site', [
-        'structuredData' => true, 'appendName' => true, 'separator' => '|', 'publisher' => 'Organization',
+    saveStructured(['structuredData' => true, 'publisher' => 'Organization', 'publisherType' => 'RealEstate Agent', 'sameAs' => 'not a url'])
+        ->assertSessionHasErrors(['structured.publisherType', 'structured.sameAs']);
+    saveStructured([
+        'structuredData' => true, 'publisher' => 'Organization',
         'publisherName' => 'Lumina Estates PT', 'publisherType' => 'RealEstateAgent', 'telephone' => '+62 21 555 0100',
         'address' => "Jl. Senopati 10\nJakarta 12190, Indonesia", 'sameAs' => "https://instagram.com/lumina\n\nhttps://www.linkedin.com/company/lumina",
     ])->assertSessionHasNoErrors();
@@ -141,37 +167,46 @@ it('describes the publisher with its own name, type, contact details and profile
         'address' => 'Jl. Senopati 10, Jakarta 12190, Indonesia',
         'sameAs' => ['https://instagram.com/lumina', 'https://www.linkedin.com/company/lumina'],
     ]);
+    // The page shows what's saved; turned off there, pages have none.
+    expect(get('/admin/settings/seo')->viewData('page')['props']['structured']['values'])->toMatchArray(['publisherName' => 'Lumina Estates PT', 'structuredData' => true]);
+    saveStructured(['structuredData' => false])->assertSessionHasNoErrors();
+    expect((string) get('/blog/hello-world')->getContent())->not->toContain('application/ld+json');
 });
 
 it('offers common organization types by group, and takes any other schema.org type', function () {
     \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
-    \Pest\Laravel\get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('form', function ($sections): bool {
-        $field = collect($sections)->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'publisherType');
-        $options = collect($field['options']);
+    $field = structuredField('publisherType');
+    $options = collect($field['options']);
+    expect($field['type'])->toBe('select')->and($field['searchable'])->toBeTrue()->and($field['other']['label'])->toBe('Other…')
+        ->and($options->firstWhere('value', 'RealEstateAgent'))->toBe(['value' => 'RealEstateAgent', 'label' => 'Real estate agent', 'group' => 'Local businesses'])
+        ->and($options->firstWhere('value', 'LegalService')['label'])->toBe('Law firm or legal service');
 
-        return $field['type'] === 'select' && $field['searchable'] === true && $field['other']['label'] === 'Other…'
-            && $options->firstWhere('value', 'RealEstateAgent') === ['value' => 'RealEstateAgent', 'label' => 'Real estate agent', 'group' => 'Local businesses']
-            && $options->firstWhere('value', 'LegalService')['label'] === 'Law firm or legal service';
-    }));
-
-    \Pest\Laravel\put('/admin/settings/site', ['publisherType' => 'Brewery'])->assertSessionHasNoErrors();
+    saveStructured(['publisherType' => 'Brewery'])->assertSessionHasNoErrors();
     expect(app(SiteSettings::class)->publisherType)->toBe('Brewery');
-    \Pest\Laravel\put('/admin/settings/site', ['publisherType' => 'brewery!'])->assertSessionHasErrors('publisherType');
-    \Pest\Laravel\put('/admin/settings/site', ['publisherType' => ''])->assertSessionHasNoErrors();
+    saveStructured(['publisherType' => 'brewery!'])->assertSessionHasErrors('structured.publisherType');
+    saveStructured(['publisherType' => ''])->assertSessionHasNoErrors();
 });
 
 it('edits the profiles elsewhere as a list of https addresses, kept one per line', function () {
     \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
-    \Pest\Laravel\get('/admin/settings/site')->assertInertia(fn ($page) => $page->where('form', function ($sections): bool {
-        $field = collect($sections)->flatMap(fn ($section) => $section['fields'])->firstWhere('name', 'sameAs');
+    $field = structuredField('sameAs');
+    expect($field['type'])->toBe('list')->and($field['accepts'])->toBe('url')->and($field['networks'])->toBeTrue()->and($field['addLabel'])->toBe('Add profile');
 
-        return $field['type'] === 'list' && $field['accepts'] === 'url' && $field['networks'] === true && $field['addLabel'] === 'Add profile';
-    }));
-
-    \Pest\Laravel\put('/admin/settings/site', ['sameAs' => "https://instagram.com/lumina\n\nhttp://example.com"])->assertSessionHasErrors('sameAs');
-    \Pest\Laravel\put('/admin/settings/site', ['sameAs' => " https://instagram.com/lumina \n\nhttps://x.com/lumina\n"])->assertSessionHasNoErrors();
+    saveStructured(['sameAs' => "https://instagram.com/lumina\n\nhttp://example.com"])->assertSessionHasErrors('structured.sameAs');
+    saveStructured(['sameAs' => " https://instagram.com/lumina \n\nhttps://x.com/lumina\n"])->assertSessionHasNoErrors();
     expect(app(SiteSettings::class)->sameAs)->toBe("https://instagram.com/lumina\nhttps://x.com/lumina")
         ->and(app(SiteSettings::class)->profiles())->toBe(['https://instagram.com/lumina', 'https://x.com/lumina']);
+});
+
+it('keeps structured data off Settings → Site, and its fields out of what Site saves', function () {
+    \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    \Pest\Laravel\get('/admin/settings/site')->assertInertia(fn ($page) => $page
+        ->where('section.description', 'The homepage, and the site\'s name and description.')
+        ->where('form', fn ($sections): bool => collect($sections)->pluck('title')->doesntContain('Structured data')
+            && collect($sections)->flatMap(fn ($section) => $section['fields'])->pluck('name')->intersect(['structuredData', 'publisher', 'logo', 'sameAs'])->isEmpty()));
+    \Pest\Laravel\put('/admin/settings/site', ['name' => 'Acme', 'publisherName' => 'Ignored'])->assertSessionHasNoErrors();
+    expect(app(SiteSettings::class)->publisherName)->toBe('')
+        ->and(app(SiteSettings::class)->structuredData)->toBeTrue();
 });
 
 it('describes people, places and products as what a page is about', function (string $type, string $page) {
@@ -205,4 +240,31 @@ it('names listings, collections and the way home in the page\'s language', funct
     expect(nodes($listing)['CollectionPage']['name'])->toBe('Jurnal');
     get('/blog')->assertOk()->assertSee('<h1>Blog</h1>', false);
     expect($this->blog->titleIn('en'))->toBe('Blog')->and($this->blog->fresh()?->titleIn('id'))->toBe('Jurnal');
+});
+
+it('lists the logo and share image as used by Settings → SEO in the media library', function () {
+    $logo = Media::query()->create(['disk' => 'public', 'path' => 'logo.png', 'filename' => 'logo.png', 'mime_type' => 'image/png', 'size' => 10]);
+    $image = Media::query()->create(['disk' => 'public', 'path' => 'share.png', 'filename' => 'share.png', 'mime_type' => 'image/png', 'size' => 10]);
+    \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    saveStructured(['logo' => $logo->id])->assertSessionHasNoErrors();
+    \Pest\Laravel\put('/admin/settings/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => '', 'image' => $image->id]])->assertSessionHasNoErrors();
+
+    $usedBy = fn (Media $media) => app(MediaUsages::class)->of($media);
+    expect($usedBy($logo))->toBe([['type' => 'cms.settings', 'label' => 'Settings: SEO', 'url' => route('sunrice.admin.settings.seo.edit')]])
+        ->and($usedBy($image))->toBe([['type' => 'cms.settings', 'label' => 'Settings: SEO', 'url' => route('sunrice.admin.settings.seo.edit')]]);
+    // Settings → Site has no media pickers left: it uses none.
+    \Pest\Laravel\put('/admin/settings/site', ['name' => 'Acme'])->assertSessionHasNoErrors();
+    expect($usedBy($logo))->toHaveCount(1);
+});
+
+it('moves the logo\'s use from Settings → Site to Settings → SEO when migrating', function () {
+    $logo = Media::query()->create(['disk' => 'public', 'path' => 'logo.png', 'filename' => 'logo.png', 'mime_type' => 'image/png', 'size' => 10]);
+    app(SiteSettings::class)->fill(['logo' => $logo->id])->save();
+    app(MediaUsages::class)->sync('sunrice.settings', 'site', [$logo->id], 'Settings: Site'); // as 0.1 recorded it
+
+    $migration = require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_10_24_000010_record_seo_settings_media.php';
+    $migration->up();
+    $migration->up();
+
+    expect(array_column(app(MediaUsages::class)->of($logo), 'label'))->toBe(['Settings: SEO']);
 });

@@ -37,7 +37,7 @@ Register it in a plugin's `register()` or in your panel provider (see [Customisi
 $panel->settings(ShopSettings::class);
 ```
 
-That adds the section to `/admin/settings/shop` and a permission to edit it: `shop.settings.shop` when the plugin `shop` registers it, `settings.shop` when your app does. The Settings sidebar item shows for users who may edit at least one section (or open a page put among them with `NavigationItem::inSettings()`, see [navigation](panel.md#navigation)); the Settings menu beside the form lists the sections in the order registered, with those pages after the section each names. The keys `branding` ([the panel's look and sign-in page](branding.md), `sunrice.settings.branding`), `security` (two-factor login, `sunrice.settings.security`) and `mail` (how mail is sent, with a test email: `sunrice.settings.mail`, see [Mail](mail.md)) belong to the panel's own sections.
+That adds the section to `/admin/settings/shop` and a permission to edit it: `shop.settings.shop` when the plugin `shop` registers it, `settings.shop` when your app does. The Settings sidebar item shows for users who may edit at least one section (or open a page put among them with `settingsPage()` below or `NavigationItem::inSettings()`, see [navigation](panel.md#navigation)); the Settings menu beside the form lists the sections in the order registered, with those pages after the section each names. The keys `branding` ([the panel's look and sign-in page](branding.md), `sunrice.settings.branding`), `security` (two-factor login, `sunrice.settings.security`) and `mail` (how mail is sent, with a test email: `sunrice.settings.mail`, see [Mail](mail.md)) belong to the panel's own sections.
 
 ## Reading and writing
 
@@ -89,4 +89,43 @@ public static function cards(Authorizable $user): array
 }
 ```
 
+Saving a section's media pickers records the files they hold as used by it in the media library ("Settings: Shop"), on every save; a section with none any more (its pickers moved to a page of their own) uses none.
+
 Saving a section fires `Sunrice\Admin\Events\SettingsSaved` with the section's key and the names of the settings that changed (no values: they may be secrets), whether the Settings page saved it or your code called `save()` (a seeder, a command): `save()` returns those names, and fires nothing when none changed. The `Sunrice\Admin\Actions\Settings\SaveSettings` action also records the change in the activity log; use it for your own screens.
+
+## A settings page of your own
+
+When a form of fields isn't enough (a table of choices per record, a preview), a plugin or your app adds a page of its own among the sections with `settingsPage()`. It lives at `settings/{key}` like a section, is listed in the Settings menu after the section `$after` (else at the end) for users with `$permission`, and the sidebar's Settings item is current on it. The CMS's Settings → SEO is one:
+
+```php
+$panel->settingsPage('seo', 'SEO', SeoController::class, 'cms.settings.site', after: 'site');
+```
+
+The controller answers `GET /admin/settings/seo` with `edit()` and `PUT` with `update()` (routes `sunrice.admin.settings.seo.edit` and `.update`), both behind the permission: guard anything else it does too. A key that is a section's (the panel's own `branding`, `security`, `mail` included) or another page's is a `PanelMisconfigured` error at boot; keys are lowercase letters, numbers and dashes. The page shows the Settings menu with `SettingsLayout` (`items` from `$panel->settingsNavigation($user)`, `current` the page's key; see [frontend](frontend.md#ui-components)).
+
+Such a page can still show settings fields, drawn and checked exactly as the Settings page does, with `Sunrice\Admin\Settings\SettingsFields`: some of a section's properties on a form of their own (usually not on the section's form, so one page owns each setting).
+
+```php
+use Sunrice\Admin\Settings\SettingsFields;
+
+$fields = SettingsFields::make(ShopSettings::class, (new Form)->schema([
+    Section::make('Checkout')->schema([Toggle::make('guestCheckout'), NumberInput::make('freeShippingFrom')->integer()->min(0)]),
+]));
+
+// edit(): what FormSections from @imajiner/admin-sdk/ui takes
+Inertia::render('Shop/Checkout', ['settingsNav' => $panel->settingsNavigation($user), 'checkout' => $fields->props()]);
+
+// update(): checked as the Settings page checks them (ValidationException), then saved
+app(SaveSettings::class)->handle(app(ShopSettings::class), $fields->validate($request->all()));
+```
+
+`props()` is `['sections' => …, 'values' => …, 'secrets' => …]`: draw it with `<FormSections sections={checkout.sections} data={…} errors={…} onChange={…} />`, starting the data from `values` (a saved `Secret` is sent empty; `secrets` says which have a value, and leaving one empty keeps it). `validate($input)` returns only these fields' values, ready for `SaveSettings`. Each field must be one of the class's properties (`PanelMisconfigured` otherwise).
+
+Give the page's settings fields to AI agents with `fields:`, a closure returning its `SettingsFields`: `get_panel_info` lists the page as a settings section of its key and label, and `get_settings` / `update_settings` read and change those fields, checked as the page checks them, behind the page's permission, logged like any settings change ([AI access](ai.md)). The CMS gives Settings → SEO's structured data this way:
+
+```php
+$panel->settingsPage('seo', 'SEO', SeoController::class, 'cms.settings.site', after: 'site', fields: SaveSeoSettings::structuredData(...));
+```
+
+Only settings fields: what a page saves elsewhere (the CMS's SEO fields per collection) isn't offered.
+

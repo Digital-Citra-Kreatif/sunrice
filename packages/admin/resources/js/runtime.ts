@@ -50,6 +50,8 @@ const DatePicker = deferred(() => import('@/components/app/date-picker'), 'DateP
 const MediaPickerInput = deferred(() => import('@/components/media/media-picker'), 'MediaPickerInput', React.createElement(Skeleton, { className: 'h-24 w-full' }));
 const SortableList = deferred(() => import('@/components/app/sortable-list'), 'SortableList');
 const SortableHandle = deferred(() => import('@/components/app/sortable-list'), 'SortableHandle');
+// A settings page's fields (SettingsFields::props()), with every field type.
+const FormSections = deferred(() => import('@/components/resources/form-sections'), 'FormSections', React.createElement(Skeleton, { className: 'h-48 w-full' }));
 
 /** What `@imajiner/admin-sdk/ui` gives plugins. Keep in step with SHARED_MODULES (a test checks). */
 const ui = {
@@ -57,7 +59,7 @@ const ui = {
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker, DeveloperHelp,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-    Input, KeptEditsNotice, Label, MediaPickerInput, moveItem, PageHeader, Popover, PopoverContent, PopoverTrigger, registerCommandSource, RichTextEditor,
+    FormSections, Input, KeptEditsNotice, Label, MediaPickerInput, moveItem, PageHeader, Popover, PopoverContent, PopoverTrigger, registerCommandSource, RichTextEditor,
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, SettingsLayout, SettingsNav, Skeleton, SortableHandle, SortableList, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
     Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, TrashBanner, TrashHint, TrashTitle, useBreadcrumbs, useEditLock, useTablePreferences, useUnsavedChanges, ViewingNotice,
