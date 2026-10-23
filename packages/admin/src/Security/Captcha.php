@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Security;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\HtmlString;
 use Throwable;
 
@@ -32,6 +33,21 @@ final class Captcha
 
     /** The providers' names, for people. */
     private const NAMES = ['turnstile' => 'Cloudflare Turnstile', 'recaptcha' => 'Google reCAPTCHA', 'hcaptcha' => 'hCaptcha'];
+
+    /**
+     * What a Content-Security-Policy must allow for each provider's widget
+     * (their documented sources): its script, its frame, and what they load.
+     *
+     * @var array<string, array<string, list<string>>>
+     */
+    private const CSP = [
+        'turnstile' => ['script-src' => ['https://challenges.cloudflare.com'], 'frame-src' => ['https://challenges.cloudflare.com']],
+        'recaptcha' => ['script-src' => ['https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/'], 'frame-src' => ['https://www.google.com/recaptcha/', 'https://recaptcha.google.com/recaptcha/']],
+        'hcaptcha' => [
+            'script-src' => ['https://hcaptcha.com', 'https://*.hcaptcha.com'], 'frame-src' => ['https://hcaptcha.com', 'https://*.hcaptcha.com'],
+            'style-src' => ['https://hcaptcha.com', 'https://*.hcaptcha.com'], 'connect-src' => ['https://hcaptcha.com', 'https://*.hcaptcha.com'],
+        ],
+    ];
 
     /** @var array<string, array{script: string, verify: string, class: string, field: string}> */
     private const PROVIDERS = [
@@ -92,11 +108,23 @@ final class Captcha
         if (request()->attributes->get('sunrice-admin.captcha.script') !== true) {
             request()->attributes->set('sunrice-admin.captcha.script', true);
             $src = $provider['script'].($this->provider() === 'turnstile' ? '' : '?hl='.rawurlencode($locale));
-            $script = '<script src="'.e($src).'" async defer></script>';
+            $nonce = Vite::cspNonce();
+            $script = '<script src="'.e($src).'"'.(is_string($nonce) && $nonce !== '' ? ' nonce="'.e($nonce).'"' : '').' async defer></script>';
         }
         $language = $this->provider() === 'turnstile' ? ' data-language="'.e($locale).'"' : '';
 
         return new HtmlString('<div class="'.$provider['class'].'" data-sitekey="'.e($this->siteKey()).'"'.$language.'></div>'.$script);
+    }
+
+    /**
+     * The sources a Content-Security-Policy must allow for the widget, by
+     * directive (none when it's off): `['script-src' => ['https://challenges.cloudflare.com'], 'frame-src' => […]]`.
+     *
+     * @return array<string, list<string>>
+     */
+    public function cspSources(): array
+    {
+        return $this->enabled() ? self::CSP[$this->provider()] ?? [] : [];
     }
 
     /** Whether the visitor's answer in the request is right (always when it's off). */

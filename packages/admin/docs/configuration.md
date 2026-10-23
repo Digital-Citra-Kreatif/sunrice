@@ -74,7 +74,11 @@ See [Security: captcha](security.md#captcha).
 
 | Key | Default | Env | |
 | --- | --- | --- | --- |
-| `security.headers.csp` | `null` | `SUNRICE_CSP` | A `Content-Security-Policy` for every panel response; none when empty. See [Security headers](security.md#security-headers). |
+| `security.csp.enabled` | `true` | `SUNRICE_CSP_ENABLED` | Send the panel's strict `Content-Security-Policy`, with a new nonce on every request. See [Content-Security-Policy](security.md#content-security-policy). |
+| `security.csp.report_only` | `false` | `SUNRICE_CSP_REPORT_ONLY` | Send it as `Content-Security-Policy-Report-Only`: report, don't block. |
+| `security.csp.report_uri` | `null` | `SUNRICE_CSP_REPORT_URI` | Where browsers send violation reports (`report-uri`). |
+| `security.csp.sources` | `[]` | — | More sources per directive: `['img-src' => ['https://images.example.com']]`. |
+| `security.headers.csp` | `null` | `SUNRICE_CSP` | A whole `Content-Security-Policy` of your own, sent as is instead of the panel's (no nonce added). |
 | `security.log_channel` | `null` | `SUNRICE_SECURITY_LOG_CHANNEL` | Also write security events to this log channel (e.g. `daily`). |
 | `security.alerts.enabled` | `true` | `SUNRICE_SECURITY_ALERTS` | Email [security alerts](security.md#email-alerts). |
 | `security.alerts.roles` | `[]` | — | Roles whose users get alerts, besides super admins. |

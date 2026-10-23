@@ -35,7 +35,7 @@ The font list (`BrandingSettings::FONTS`) is Inter, Instrument Sans (built in), 
 ],
 ```
 
-Use the config for a font that isn't on the list (self-hosted, say). A strict `Content-Security-Policy` needs `fonts.bunny.net` in `style-src` and `font-src` for the listed fonts other than Instrument Sans and System.
+Use the config for a font that isn't on the list (self-hosted, say). The panel's [Content-Security-Policy](security.md#content-security-policy) allows the chosen font's origin (`fonts.bunny.net` for the listed fonts other than Instrument Sans and System, or the config stylesheet's) in `style-src` and `font-src`; a stylesheet that loads its fonts from yet another origin needs it in `security.csp.sources`.
 
 **Privacy and offline installs.** Every listed font except Instrument Sans and System is a request from each admin's browser to `fonts.bunny.net`, a third party (Bunny Fonts doesn't log IP addresses, but your privacy policy may still need to mention it). When that request is blocked (an intranet, a firewall, a server without internet), the panel quietly falls back to the system font, so a chosen font seems to do nothing. For these installs keep the default or choose **System**, or self-host the font and point the config at it:
 
@@ -50,7 +50,7 @@ The Font field's help says this too.
 
 ## The brand colour
 
-The admin layout turns the colour into CSS variables in a `<style>` block in the page's `<head>` (with the CSP nonce when `Vite::useCspNonce()` set one), so it applies before the first paint:
+The admin layout turns the colour into CSS variables in a `<style>` block in the page's `<head>` (with the request's [CSP nonce](security.md#content-security-policy)), so it applies before the first paint:
 
 - `--primary` and `--sidebar-primary` are the colour; `--primary-foreground` and `--sidebar-primary-foreground` are black (`#111111`) or white, whichever has more contrast on it (WCAG relative luminance, `Branding::readableOn()`).
 - `--ring` mixes the colour with the background (`color-mix(in oklch, …)`); `--accent-tint` and `--ring-glow` follow from `--primary` and `--ring` as always.

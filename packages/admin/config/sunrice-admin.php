@@ -156,11 +156,25 @@ return [
 
     'security' => [
         // Headers on every panel response. X-Frame-Options: DENY, Referrer-Policy:
-        // same-origin and X-Content-Type-Options: nosniff are always sent; a
-        // Content-Security-Policy only when set here (Inertia and Vite setups
-        // vary, see packages/admin/docs/security.md#security-headers).
+        // same-origin and X-Content-Type-Options: nosniff are always sent.
         'headers' => [
+            // A whole Content-Security-Policy of your own, sent as is instead
+            // of the panel's (below): no nonce is added to it.
             'csp' => env('SUNRICE_CSP'),
+        ],
+
+        // The panel's Content-Security-Policy: scripts and styles from the
+        // panel's origin or with the request's nonce, images from the panel,
+        // data:, blob: and the media disk, no framing. See
+        // packages/admin/docs/security.md#content-security-policy.
+        'csp' => [
+            'enabled' => env('SUNRICE_CSP_ENABLED', true),
+            // Report violations (browser console, report_uri) without blocking.
+            'report_only' => env('SUNRICE_CSP_REPORT_ONLY', false),
+            'report_uri' => env('SUNRICE_CSP_REPORT_URI'),
+            // More sources per directive, e.g. 'img-src' => ['https://images.example.com'],
+            // 'connect-src' => ['https://api.example.com'].
+            'sources' => [],
         ],
 
         // Also write security events (logins, failed and blocked logins, blocked

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
+    @if ($sunriceNonce = Vite::cspNonce())
+        {{-- The CSP nonce for what Vite and the panel's scripts add to the page later. --}}
+        <meta property="csp-nonce" nonce="{{ $sunriceNonce }}">
+    @endif
     @php($sunriceBranding = \Sunrice\Admin\Support\Branding::make())
     <title inertia>{{ $sunriceBranding->name() }}</title>
     @php($sunriceIcon = $sunriceBranding->icon())
@@ -14,6 +18,20 @@
     @endif
     {{-- The saved appearance, before paint, so dark mode doesn't flash light. --}}
     <script @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
+        (function () {
+            // Under the panel's Content-Security-Policy, the style elements scripts create (toasts, the progress bar,
+            // dialogs' scroll lock, the editors) get the page's nonce: only a script that already runs can make one,
+            // while a style element injected into the page's HTML still has none.
+            var nonce = document.currentScript && document.currentScript.nonce;
+            if (nonce) {
+                var create = Document.prototype.createElement;
+                Document.prototype.createElement = function (name) {
+                    var element = create.apply(this, arguments);
+                    if (typeof name === 'string' && name.toLowerCase() === 'style') element.nonce = nonce;
+                    return element;
+                };
+            }
+        })();
         (function () {
             try {
                 var a = localStorage.getItem('sunrice-appearance') || 'system';

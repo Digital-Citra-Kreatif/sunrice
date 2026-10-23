@@ -43,19 +43,48 @@ In code: `Sunrice\Admin\Security\AccountGuard` has `signOutEverywhere($user)`, `
 
 Every panel response (`PanelRoutes::middleware()`, so plugin routes too) carries `X-Frame-Options: DENY` (no other site can frame the panel), `Referrer-Policy: same-origin` and `X-Content-Type-Options: nosniff`. The site's own pages aren't touched (the CMS sends its own). Media files are served by your web server, not PHP: give them headers there ([Headers at the web server](media.md#headers-at-the-web-server); `sunrice:install` writes an `.htaccess` for Apache), or serve them from an origin of their own.
 
-A `Content-Security-Policy` is sent only when you set one, because what it must allow depends on how your app serves the panel's assets (Vite, a CDN, inline scripts in your layout). Set `SUNRICE_CSP` or `security.headers.csp` in `config/sunrice-admin.php` to the policy string:
+### Content-Security-Policy
+
+Every panel page also sends a strict `Content-Security-Policy`, on by default. It's built for each request (`PanelSecurityHeaders`), with a new nonce each time (`Vite::useCspNonce()`):
 
 ```
-SUNRICE_CSP="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+default-src 'self'; script-src 'self' 'nonce-…'; style-src 'self' 'nonce-…'; style-src-attr 'unsafe-inline';
+img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; frame-src 'self';
+worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 ```
 
-A policy to start from, with the published assets (no Vite dev server) and media on the app's own domain; add a media CDN if you use one, and `https://fonts.bunny.net` to `style-src` and `font-src` if Settings → Branding picks a font other than the built-in Instrument Sans or System (see [Branding](branding.md#fonts)):
+- **Scripts**: only the panel's own files (its Vite build in `/vendor/sunrice-admin`, plugin bundles, which load on demand from the same origin) and inline scripts with the nonce. The admin layout's inline scripts (the saved appearance, the panel's words), its `<style>` blocks (the [brand colour](branding.md), the old-assets warning) and Vite's tags carry it, and so does `<meta property="csp-nonce">`, which Vite's loader reads. No `'unsafe-inline'` or `'unsafe-eval'`: an injected `<script>` or `onclick=""` doesn't run.
+- **Styles**: the panel's stylesheets and `<style>` elements with the nonce. The panel's libraries add `<style>` elements from script (toasts, the progress bar, dialogs' scroll lock, the editors); the layout's first script gives them the nonce, so only a script that already runs can add one, never HTML injected into a page. React and Radix set `style=""` attributes (positions, sizes, CSS variables), so `style-src-attr` allows inline attributes: that's the one `'unsafe-inline'`, and it can't run code. Browsers without `style-src-attr` (before Chrome 75, Firefox 108 and Safari 15.4) apply `style-src` to attributes too and show some menus and dialogs unstyled.
+- **Images and media**: the panel, `data:` and `blob:` (upload previews), plus the origin of the media disk's URL (`filesystems.disks.{disk}.url`, or what the disk's `url()` gives, for S3 or a CDN) when it isn't the panel's own.
+- **Calls** (`connect-src`): the panel's origin only; everything the panel calls is its own.
+- **The app's origins**: `APP_URL` and `ASSET_URL` (a CDN for the assets), when they differ from the address the panel is opened at, and the origins of plugin bundles' scripts and stylesheets.
+- **Fonts**: a web font from elsewhere (Settings → Branding's Bunny Fonts, or `sunrice-admin.font.stylesheet`) adds its origin to `style-src` and `font-src`.
+- **Developing**: while the Vite dev server runs (`public/vendor/sunrice-admin/hot`), its origin and its websocket (`ws://`) are allowed.
+- **No framing** (`frame-ancestors 'none'`, as `X-Frame-Options: DENY`), no plugins (`object-src 'none'`), and forms and `<base>` stay on the panel's origin.
 
-```
-SUNRICE_CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+JSON (Inertia's visits), downloads and files get no policy, nor does the framework's error page with the stack trace (a 500 with `APP_DEBUG`), whose inline scripts have no nonce. With `APP_DEBUG`, a failed Inertia visit shows that page in a dialog, which follows the panel's policy and shows unstyled: reload the address to see it whole.
+
+Configure it in `config/sunrice-admin.php` (`security.csp`, see [configuration](configuration.md#security)):
+
+```php
+'security' => [
+    'csp' => [
+        'enabled' => env('SUNRICE_CSP_ENABLED', true),
+        'report_only' => env('SUNRICE_CSP_REPORT_ONLY', false),   // report, don't block
+        'report_uri' => env('SUNRICE_CSP_REPORT_URI'),           // where browsers send reports
+        'sources' => [
+            'img-src' => ['https://images.example.com'],
+            'connect-src' => ['https://api.example.com'],
+        ],
+    ],
+],
 ```
 
-The panel's inline scripts (the saved appearance, its words) carry Vite's CSP nonce when your app sets one (`Vite::useCspNonce()` in a middleware, then add `'nonce-…'` to `script-src` in that same middleware's header instead of `SUNRICE_CSP`, since the nonce changes on every request); without a nonce, they need `'unsafe-inline'` in `script-src`. Check the browser console after setting it: the panel's React bundle and styles are served from `/vendor/sunrice-admin`, the media library shows images from your media disk, and the Vite dev server needs its own origin while you develop. A policy an earlier middleware already set is kept.
+`sources` adds sources per directive (a list or a space-separated string; a directive the panel doesn't send, such as `upgrade-insecure-requests` with `[]`, is added). Sources with `;`, `,`, quotes in the wrong place or control characters are dropped, so a value can't end a directive. `report_only` sends `Content-Security-Policy-Report-Only` instead: browsers report what the policy would block (in the console, and to `report_uri`) and block nothing, which is how to try it on a live panel with customisations of your own. `SUNRICE_CSP_ENABLED=false` sends none.
+
+**Your own inline code in the panel** (a published `sunrice-admin::app` view, a Blade view of your own pages, a plugin's) needs the nonce: `<script nonce="{{ Vite::cspNonce() }}">`. Inline event handlers (`onclick=""`) and `javascript:` links don't run; attach listeners from a script instead. A plugin bundle on another origin is allowed by its URL; anything else it loads needs `sources`.
+
+A whole policy of your own replaces the panel's: `SUNRICE_CSP` (`security.headers.csp`) is sent as is, with no nonce added (inline scripts then need `'unsafe-inline'`, or set `Vite::useCspNonce()` and the header in a middleware of your own). A policy a middleware already set on the response is kept.
 
 ## Links in emails
 
