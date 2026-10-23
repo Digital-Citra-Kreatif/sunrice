@@ -234,7 +234,7 @@ function ListBody({ widget, data, now }: { widget: WidgetDefinition; data: ListD
 }
 
 function Row({ row, now }: { row: ListRow; now: Date }) {
-    const when = relativeTime(row.at, now);
+    const when = relativeTime(row.at, now, panelLocale());
 
     return (
         <SmartLink url={row.url} className={cn('flex items-center gap-3 px-5 py-2.5', row.url !== null && 'transition-colors duration-150 hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none')}>

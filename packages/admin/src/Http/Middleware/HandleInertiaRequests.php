@@ -63,6 +63,40 @@ final class HandleInertiaRequests extends Middleware
     }
 
     /**
+     * Every message of a field, not only its first: a password missing
+     * three rules says all three at once ("Use both upper and lower case
+     * letters. Add a symbol, such as ! or #."). Still one string per field.
+     *
+     * @return array<mixed>|object
+     */
+    public function resolveValidationErrors(Request $request): array|object
+    {
+        $this->withAllErrors = true;
+
+        return self::joined(parent::resolveValidationErrors($request));
+    }
+
+    /**
+     * A bag's (or bags') fields with their messages in one string each.
+     *
+     * @param  array<mixed>|object  $errors
+     * @return array<mixed>|object
+     */
+    private static function joined(array|object $errors): array|object
+    {
+        $joined = [];
+        foreach ((array) $errors as $key => $value) {
+            $joined[$key] = match (true) {
+                is_array($value) && array_is_list($value) => implode(' ', array_unique(array_filter($value, 'is_string'))),
+                is_array($value) || is_object($value) => self::joined($value),
+                default => $value,
+            };
+        }
+
+        return is_object($errors) ? (object) $joined : $joined;
+    }
+
+    /**
      * This request's messages, with an id that is new for each one shown
      * (the same text twice is two toasts), or null without messages, and
      * the success toast's button ("success_action": Undo and the like).

@@ -178,7 +178,7 @@ it('filters by action and pages by the chosen size', function () {
     get('/admin/activity?action=deleted')->assertInertia(fn (Assert $page) => $page
         ->where('rows.total', 10)
         ->where('query.action', 'deleted')
-        ->where('actions', fn ($actions) => collect($actions)->contains('deleted') && collect($actions)->contains('created'))
+        ->where('actions', fn ($actions) => collect($actions)->contains(['value' => 'deleted', 'label' => 'deleted']) && collect($actions)->contains(['value' => 'created', 'label' => 'created']))
         ->where('query.perPage', 50)
         ->where('perPageOptions', [25, 50, 100, 200]));
     get('/admin/activity?per_page=25')->assertInertia(fn (Assert $page) => $page->where('query.perPage', 25)->where('rows.lastPage', 2)->has('rows.data', 25));
@@ -276,4 +276,36 @@ it('names each type once in the filter', function () {
 
     get('/admin/activity')->assertInertia(fn (Assert $page) => $page
         ->where('types', fn ($types) => collect($types)->pluck('label')->duplicates()->isEmpty() && count($types) === 2));
+});
+
+it('names what changed by the field\'s label, and says actions and notes in the panel\'s language', function () {
+    actingAs($this->admin);
+    app(ActivityLog::class)->updated('products', Product::query()->create(['name' => 'Kettle', 'sku' => 'K-1', 'price' => 12, 'status' => 'live']), 'Kettle', ['sku', 'name']);
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data.0.changed', ['SKU', 'Name'])
+        ->where('rows.data.0.actionLabel', 'updated'));
+
+    config(['sunrice-admin.locale' => 'id']);
+    app(SecurityLog::class)->record('weak password at sign-in', $this->admin, null, ['note' => 'fails: length, symbols', 'problems' => ['length', 'symbols']]);
+    app(ActivityLog::class)->record('refunded', 'products', '1', 'Kettle');
+
+    get('/admin/activity')->assertInertia(fn (Assert $page) => $page
+        // A plugin's action without a line of its own stays as it is.
+        ->where('rows.data.0.actionLabel', 'refunded')
+        ->where('rows.data.1.actionLabel', 'kata sandi lemah saat masuk')
+        ->where('rows.data.1.note', 'tidak memenuhi: panjang, simbol')
+        ->where('rows.data.2.actionLabel', 'memperbarui')
+        ->where('actions', fn ($actions) => collect($actions)->contains(['value' => 'updated', 'label' => 'memperbarui'])));
+    expect(Activity::query()->where('action', 'updated')->sole()->sentence())->toBe('Rina memperbarui Kettle')
+        ->and(Activity::verb('logged in'))->toBe('masuk');
+});
+
+it('says "System" once on the dashboard for a line nobody did', function () {
+    Activity::query()->create(['source' => 'system', 'action' => 'updated', 'subject_type' => 'products', 'subject_label' => 'Kettle', 'created_at' => now()]);
+    Activity::query()->create(['source' => 'ai', 'via' => 'Agent', 'user_id' => '1', 'user_name' => 'Rina', 'action' => 'updated', 'subject_type' => 'products', 'subject_label' => 'Kettle', 'created_at' => now()]);
+
+    $rows = PanelWidgets::activity()->resolve($this->admin)['rows'];
+    expect($rows[1]['title'])->toBe('System updated Kettle')
+        ->and($rows[1]['badge'])->toBeNull()
+        ->and($rows[0]['badge'])->toBe('AI');
 });

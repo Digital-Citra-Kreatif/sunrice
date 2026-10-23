@@ -36,10 +36,14 @@ test('writes the same strings back', () => {
 });
 
 test('labels a value for people', () => {
-    assert.equal(dateLabel('2026-10-19', false), '19 Oct 2026');
-    assert.equal(dateLabel('2026-10-19T14:30', true), '19 Oct 2026, 14:30');
-    assert.equal(dateLabel('2026-10-19', true), '19 Oct 2026, 00:00');
+    assert.equal(dateLabel('2026-10-19', false, 'en-GB'), '19 Oct 2026');
+    assert.equal(dateLabel('2026-10-19T14:30', true, 'en-GB'), '19 Oct 2026, 14:30');
+    assert.equal(dateLabel('2026-10-19', true, 'en-GB'), '19 Oct 2026, 00:00');
     assert.equal(dateLabel(null, false), '');
+    // In the panel's language, as the CMS's dates read beside it.
+    assert.equal(dateLabel('2026-10-23T06:57', true, 'id'), '23 Okt 2026, 06.57');
+    assert.equal(dateLabel('2026-10-23T06:57', true, 'id'), new Date(2026, 9, 23, 6, 57).toLocaleString('id', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }));
+    assert.equal(dateLabel('2026-10-19', false, 'id'), '19 Okt 2026');
 });
 
 test('renders a labelled trigger button that carries the value and the field id', async () => {
@@ -53,7 +57,7 @@ test('renders a labelled trigger button that carries the value and the field id'
     const filled = render(DatePicker, { id: 'f', value: '2026-10-19T14:30', withTime: true, invalid: true, onChange: () => undefined });
     assert.match(filled, /aria-invalid="true"/);
     assert.match(filled, /data-empty="false"/);
-    assert.match(filled, /19 Oct 2026, 14:30/);
+    assert.ok(filled.includes(dateLabel('2026-10-19T14:30', true)));
 });
 
 test('lays a month out in whole weeks from the first day of the week', () => {
