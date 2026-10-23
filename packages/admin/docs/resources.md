@@ -183,7 +183,11 @@ BelongsToManySelect::make('tags')->orderColumn('sort_order')
 
 ### Rich text
 
-`RichText::make('description')` is the panel's rich text editor: headings, lists, quotes, code, links and images from the media library (`->images(false)` to leave them out). The HTML is **sanitised on the server when it's saved**, with `symfony/html-sanitizer`: only that formatting is kept, links may be `http(s)`, `mailto:`, `tel:` or relative and get `rel="noopener noreferrer"`, and no script, style or event handler is stored. Empty text is stored as null. `RichText::sanitize($html)` cleans HTML the same way elsewhere. The editor's code (TipTap) loads when an editor first shows, never with the panel's main script; plugins use the same editor as `RichTextEditor` from `@imajiner/admin-sdk/ui` (see [Frontend](frontend.md)).
+`RichText::make('description')` is the panel's rich text editor: headings, lists, quotes, code, links and images from the media library (`->images(false)` to leave them out). The HTML is **sanitised on the server when it's saved**, with `symfony/html-sanitizer`: only that formatting is kept, links may be `http(s)`, `mailto:`, `tel:` or relative and get `rel="noopener noreferrer"`, and no script, style or event handler is stored. Empty text is stored as null. `RichText::sanitize($html)` cleans HTML the same way elsewhere.
+
+A selected image gets a small toolbar of its own: width presets (25, 50, 75 or 100%), alignment (left or right with the text wrapping, centred, full width), its alt text and removing it. The presets are stored as classes on the `<img>`, never inline styles, `class="sunrice-img sunrice-img-w-50 sunrice-img-left"`, and `Sunrice\Admin\Resources\Forms\RichTextImageClasses` keeps exactly those (any other class on an image is dropped; add it to your own `HtmlSanitizerConfig` with `->withAttributeSanitizer(new RichTextImageClasses)`). Style the classes where the HTML is shown; the CMS's [site guide](../../cms/docs/site.md) lists them.
+
+The editor's code (TipTap) loads when an editor first shows, never with the panel's main script; plugins use the same editor as `RichTextEditor` from `@imajiner/admin-sdk/ui` (see [Frontend](frontend.md)).
 
 Fields may turn the validated value into what they store with `dehydrate()` (that's where `RichText` sanitises); it runs for resource forms, action dialogs and settings alike.
 

@@ -855,5 +855,17 @@
     "data leak": "kebocoran data",
     "Last login IP": "IP login terakhir",
     "Activity": "Aktivitas",
-    "Docs": "Dokumentasi"
+    "Docs": "Dokumentasi",
+    "Image options": "Opsi gambar",
+    "Width": "Lebar",
+    "Width :percent%": "Lebar :percent%",
+    "Alignment": "Perataan",
+    "Left, text wraps": "Kiri, teks mengalir di sampingnya",
+    "Centre": "Tengah",
+    "Right, text wraps": "Kanan, teks mengalir di sampingnya",
+    "Full width": "Lebar penuh",
+    "Alt text": "Teks alt",
+    "Describe the image": "Jelaskan gambarnya",
+    "No alt text": "Belum ada teks alt",
+    "Remove image": "Hapus gambar"
 }

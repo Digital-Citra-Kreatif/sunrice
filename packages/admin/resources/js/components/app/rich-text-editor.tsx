@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import {
-    Bold, Code, Heading2, Heading3, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Quote, Redo2, Strikethrough, Underline, Undo2,
+    AlignCenter, AlignLeft, AlignRight, Bold, Code, Heading2, Heading3, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Quote, Redo2,
+    StretchHorizontal, Strikethrough, Trash2, TriangleAlert, Underline, Undo2,
 } from 'lucide-react';
 import { MediaPickerInput } from '@/components/media/media-picker';
 import { Button } from '@/components/ui/button';
@@ -15,15 +17,34 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { adminUrl } from '@/lib/admin-url';
 import { isSafeUrl } from '@/lib/safe-url';
 import { cn } from '@/lib/utils';
+import { IMAGE_WIDTHS, imageClass, parseImageClass, type ImageAlignment, type ImageWidth } from '@/lib/image-presets';
 import type { RichTextEditorProps } from './rich-text';
 import { t } from '@/lib/i18n';
 
-/** Images keep their media library id, so the server knows which files a text uses. */
+/**
+ * Images keep their media library id, so the server knows which files a text
+ * uses, and their width and alignment presets as classes (lib/image-presets.ts):
+ * `sunrice-img sunrice-img-w-50 sunrice-img-left`.
+ */
 const LibraryImage = Image.extend({
     addAttributes() {
         return {
             ...this.parent?.(),
             'data-media-id': { default: null },
+            // Both presets render as one class attribute (from `size`'s renderHTML, which sees every attribute).
+            size: {
+                default: null,
+                parseHTML: (element: HTMLElement) => parseImageClass(element.getAttribute('class')).width,
+                renderHTML: (attributes: Record<string, unknown>) => {
+                    const className = imageClass({ width: attributes.size, align: attributes.align });
+                    return className === null ? {} : { class: className };
+                },
+            },
+            align: {
+                default: null,
+                parseHTML: (element: HTMLElement) => parseImageClass(element.getAttribute('class')).align,
+                renderHTML: () => ({}),
+            },
         };
     },
 });
@@ -61,6 +82,7 @@ export function RichTextEditor({ id, value, onChange, invalid = false, labelledB
         <div className={cn('rounded-lg border border-input/80 bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out-quart focus-within:border-ring/70 focus-within:ring-4 focus-within:ring-ring-glow dark:bg-input/20', invalid && 'border-destructive focus-within:ring-destructive/20', disabled && 'opacity-60')}>
             {editor && !disabled && <Toolbar editor={editor} onLink={() => setDialog('link')} onImage={images ? () => setDialog('image') : null} />}
             <EditorContent editor={editor} />
+            {editor && !disabled && <ImageMenu editor={editor} />}
             {editor && <LinkDialog editor={editor} open={dialog === 'link'} onClose={() => setDialog(null)} />}
             {editor && <ImageDialog editor={editor} open={dialog === 'image'} onClose={() => setDialog(null)} />}
         </div>
@@ -101,6 +123,116 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
             <Tool label={t('Redo')} disabled={!state.redo} onClick={() => chain().redo().run()}><Redo2 /></Tool>
         </div>
     );
+}
+
+const IMAGE_MENU = 'sunriceImageMenu';
+
+function alignments(): { value: ImageAlignment; label: string; icon: React.ReactNode }[] {
+    return [
+        { value: 'left', label: t('Left, text wraps'), icon: <AlignLeft /> },
+        { value: 'center', label: t('Centre'), icon: <AlignCenter /> },
+        { value: 'right', label: t('Right, text wraps'), icon: <AlignRight /> },
+        { value: 'full', label: t('Full width'), icon: <StretchHorizontal /> },
+    ];
+}
+
+/**
+ * The selected image's own toolbar: width and alignment presets, its alt
+ * text and removing it. Tab reaches it from the text; Esc goes back.
+ */
+function ImageMenu({ editor }: { editor: Editor }) {
+    const image = useEditorState({
+        editor,
+        selector: ({ editor: e }) => {
+            if (!e.isActive('image')) return null;
+            const attributes = e.getAttributes('image');
+            return {
+                size: (typeof attributes.size === 'string' ? attributes.size : null) as ImageWidth | null,
+                align: (typeof attributes.align === 'string' ? attributes.align : null) as ImageAlignment | null,
+                alt: typeof attributes.alt === 'string' ? attributes.alt : '',
+            };
+        },
+    });
+    const set = (attributes: Record<string, string | null>) => editor.chain().updateAttributes('image', attributes).run();
+    const back = () => editor.commands.focus();
+    const noAlt = image !== null && image.alt.trim() === '';
+    // Tab from the text goes straight to the first button: the menu plugin makes its wrapper focusable when it starts (after BubbleMenu's own effect, before this one).
+    const wrapper = React.useRef<HTMLDivElement | null>(null);
+    React.useEffect(() => { if (wrapper.current) wrapper.current.tabIndex = -1; }, [editor]);
+
+    return (
+        <BubbleMenu editor={editor} pluginKey={IMAGE_MENU} options={{ placement: 'bottom', offset: 8, flip: true, shift: { padding: 8 } }}
+            shouldShow={({ editor: e, view, element }) => e.isEditable && e.isActive('image') && (view.hasFocus() || element.contains(document.activeElement))}
+            ref={wrapper} className="z-20">
+            {image && (
+                <div role="toolbar" aria-label={t('Image options')}
+                    className="flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-1 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
+                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); back(); } }}
+                    onBlur={(e: React.FocusEvent) => {
+                        // Leaving the menu for somewhere other than the text hides it (the text's own blur does the rest).
+                        const next = e.relatedTarget;
+                        if (next instanceof Node && (e.currentTarget.contains(next) || editor.view.dom.contains(next))) return;
+                        editor.view.dispatch(editor.state.tr.setMeta(IMAGE_MENU, 'hide'));
+                    }}>
+                    <div role="group" aria-label={t('Width')} className="flex gap-0.5">
+                        {IMAGE_WIDTHS.map((width) => (
+                            <MenuButton key={width} label={t('Width :percent%', { percent: width })} active={image.size === width}
+                                onClick={() => set({ size: image.size === width ? null : width })}>
+                                <span className="px-1 text-xs font-medium tabular-nums">{width}%</span>
+                            </MenuButton>
+                        ))}
+                    </div>
+                    <MenuSeparator />
+                    <div role="group" aria-label={t('Alignment')} className="flex gap-0.5">
+                        {alignments().map((option) => (
+                            <MenuButton key={option.value} label={option.label} active={image.align === option.value}
+                                onClick={() => set({ align: image.align === option.value ? null : option.value })}>
+                                {option.icon}
+                            </MenuButton>
+                        ))}
+                    </div>
+                    <MenuSeparator />
+                    <AltInput value={image.alt} warn={noAlt} onChange={(alt) => set({ alt })} onEnter={back} />
+                    <MenuSeparator />
+                    <MenuButton label={t('Remove image')} onClick={() => editor.chain().focus().deleteSelection().run()}><Trash2 /></MenuButton>
+                </div>
+            )}
+        </BubbleMenu>
+    );
+}
+
+function AltInput({ value, warn, onChange, onEnter }: { value: string; warn: boolean; onChange: (alt: string) => void; onEnter: () => void }) {
+    const id = React.useId();
+
+    return (
+        <div className="flex items-center gap-1.5 px-1">
+            <label htmlFor={id} className="text-xs font-medium text-muted-foreground">{t('Alt text')}</label>
+            <Input id={id} value={value} className={cn('h-8 w-44 text-sm', warn && 'border-amber-500/70')} placeholder={t('Describe the image')}
+                aria-describedby={warn ? `${id}-warning` : undefined}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } }} />
+            {warn && (
+                <span id={`${id}-warning`} className="flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300">
+                    <TriangleAlert className="size-3.5" aria-hidden /> {t('No alt text')}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function MenuButton({ label, active, onClick, children }: { label: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
+    return (
+        <Button type="button" variant={active ? 'secondary' : 'ghost'} size="icon" className="size-8 w-auto min-w-8" aria-label={label} title={label}
+            aria-pressed={active === undefined ? undefined : active} onClick={onClick}
+            // A click keeps the image selected and the text focused.
+            onMouseDown={(e: React.MouseEvent) => e.preventDefault()}>
+            {children}
+        </Button>
+    );
+}
+
+function MenuSeparator() {
+    return <span aria-hidden className="mx-0.5 h-5 w-px bg-border" />;
 }
 
 function Separator() {
@@ -182,7 +314,8 @@ function ImageDialog({ editor, open, onClose }: { editor: Editor; open: boolean;
             const response = await fetch(`${adminUrl('media/picker')}?ids[]=${id}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
             const item = ((await response.json()) as { items?: PickedMedia[] }).items?.[0];
             if (!response.ok || !item) throw new Error('missing');
-            editor.chain().focus().setImage({ src: item.url, alt: item.alt ?? item.title ?? '', title: item.title ?? undefined }).updateAttributes('image', { 'data-media-id': String(item.id) }).run();
+            // One node with every attribute: setImage() leaves the selection after the image, so a later updateAttributes() missed it.
+            editor.chain().focus().insertContent({ type: 'image', attrs: { src: item.url, alt: item.alt ?? item.title ?? '', title: item.title ?? null, 'data-media-id': String(item.id) } }).run();
             onClose();
         } catch {
             setError(t('That file could not be loaded. Try again, or choose another.'));
