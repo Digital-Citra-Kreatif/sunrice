@@ -22,7 +22,7 @@ shop/
 └─ tests/
 ```
 
-`composer.json` states the panel version it needs (`"sunrice/admin": "^1.0"`): plugins never check for features at runtime. It also names the plugin class, so `sunrice:install` adds it to the panel provider it writes for a new app:
+`composer.json` states the panel version it needs (`"sunrice/admin": "^1.0"`): plugins never check for features at runtime. It also names the plugin class, so `sunrice:install` adds it to the panel provider it writes for a new app, and offers to add it to an app's existing panel when the package is installed later ([Installing a plugin later](installation.md#installing-a-plugin-later)). Name every plugin class the package has, each with a static `make()` (the provider calls `ShopPlugin::make()`):
 
 ```json
 "extra": {
