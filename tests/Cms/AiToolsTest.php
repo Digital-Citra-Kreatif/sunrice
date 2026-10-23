@@ -539,3 +539,21 @@ it('saves and shows fields\' widths through the blueprint tools', function () {
         ->and(array_map(fn (array $field) => $field['width'] ?? 100, $fields))->toBe([50, 50, 100])
         ->and($fields[2])->not->toHaveKey('width');
 });
+
+it('saves and shows fields\' hints, placeholders, prefixes and suffixes through the blueprint tools', function () {
+    $token = cmsAgent(['cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update']);
+
+    $types = collect(cmsTool($token, 'cms_field_types')['fieldTypes'])->keyBy('type');
+    expect(array_column($types['number']['settings'], 'handle'))->toContain('placeholder', 'prefix', 'suffix')
+        ->and(cmsTool($token, 'cms_save_blueprint', ['handle' => 'house', 'fields' => [['handle' => 'price', 'type' => 'number', 'hint' => str_repeat('a', 101)]]]))->toContain('100 characters');
+    cmsTool($token, 'cms_save_blueprint', ['handle' => 'house', 'title' => 'House', 'fields' => [
+        ['handle' => 'price', 'type' => 'number', 'hint' => 'Before tax', 'hint_tooltip' => 'Without VAT.', 'config' => ['prefix' => 'Rp']],
+        ['handle' => 'area', 'type' => 'number', 'config' => ['suffix' => 'm²', 'placeholder' => '120']],
+        ['handle' => 'about', 'type' => 'textarea', 'hint' => ''],
+    ]]);
+    $fields = cmsTool($token, 'cms_get_blueprint', ['handle' => 'house'])['fields'];
+
+    expect($fields[0])->toMatchArray(['hint' => 'Before tax', 'hint_tooltip' => 'Without VAT.', 'config' => ['prefix' => 'Rp']])
+        ->and($fields[1]['config'])->toEqual(['placeholder' => '120', 'suffix' => 'm²'])
+        ->and($fields[2])->not->toHaveKey('hint');
+});
