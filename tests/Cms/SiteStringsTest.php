@@ -78,6 +78,6 @@ it('gives the entry filter and the draft banner Indonesian too', function () {
     $unsubscribed = view('sunrice-cms::comment-unsubscribe', ['url' => null, 'locale' => 'id', 'title' => 'Kopi', 'done' => true, 'action' => '/x'])->render();
 
     expect($filter)->toContain('aria-label="Saring"')->toContain('Urutkan menurut')->toContain('Tampilkan hasil')->toContain('2 hasil')
-        ->and($banner)->toContain('Draf')->toContain('Lihat halaman yang tayang')->toContain('Sunting')
+        ->and($banner)->toContain('Perubahan belum terbit')->toContain('Lihat halaman yang tayang')->toContain('Sunting')
         ->and($unsubscribed)->toContain(__('sunrice-cms::site.comments.unsubscribed_title', [], 'id'))->not->toContain('Unsubscribed');
 });

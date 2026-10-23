@@ -56,7 +56,7 @@ it('opens the draft with ?draft: never indexed, cached or kept', function () {
         ->assertHeader('Cache-Control', 'no-store, private')
         ->assertViewHas('draft', true);
     // The banner comes right after <body>, whatever the template.
-    expect((string) $response->getContent())->toMatch('/<body[^>]*>\s*<aside aria-label="Draft" data-sunrice-draft-banner/')
+    expect((string) $response->getContent())->toMatch('/<body[^>]*>\s*<aside aria-label="Unpublished changes" data-sunrice-draft-banner/')
         ->and(Content::page()?->draft)->toBeTrue()
         ->and(Content::bodyClass())->toContain('is-draft')->not->toContain('is-preview');
 });
