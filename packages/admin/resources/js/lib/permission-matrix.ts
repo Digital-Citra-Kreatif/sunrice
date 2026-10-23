@@ -5,6 +5,8 @@ export type MatrixAction = (typeof MATRIX_ACTIONS)[number];
 export interface MatrixOption {
     value: string;
     label: string;
+    /** A short label for where the full one is too long (other actions); the full label is its description. */
+    short?: string;
 }
 
 export interface MatrixCell {
@@ -68,6 +70,16 @@ export function matrixRows(options: MatrixOption[]): MatrixRow[] {
     }
 
     return [...rows.values()];
+}
+
+/** Whether a row has a checkbox in any column (a row of other actions only, like "General", has none). */
+export function hasColumns(row: MatrixRow): boolean {
+    return MATRIX_ACTIONS.some((action) => row.cells[action].option !== null);
+}
+
+/** Whether a row has "-own" variants, shown on a line of their own under it. */
+export function hasOwn(row: MatrixRow): boolean {
+    return MATRIX_ACTIONS.some((action) => row.cells[action].own !== null);
 }
 
 /** The columns any of the rows uses, so a group shows only those. */
