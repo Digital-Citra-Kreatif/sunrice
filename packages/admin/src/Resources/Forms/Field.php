@@ -29,7 +29,8 @@ abstract class Field implements Component
 
     protected bool $required = false;
 
-    protected ?string $help = null;
+    /** @var string|(Closure(?Model): ?string)|null */
+    protected string|Closure|null $help = null;
 
     protected ?string $placeholder = null;
 
@@ -62,6 +63,8 @@ abstract class Field implements Component
 
     /** @var array{field: string, value: string|int|bool|null, changed?: true}|null */
     private ?array $showWhen = null;
+
+    private ?string $group = null;
 
     final public function __construct(public readonly string $name)
     {
@@ -105,9 +108,31 @@ abstract class Field implements Component
         return $this;
     }
 
-    public function help(?string $text): static
+    /**
+     * The line under the field. A closure gets the record being edited
+     * (null when creating), for help that names it.
+     *
+     * @param  string|(Closure(?Model): ?string)|null  $text
+     */
+    public function help(string|Closure|null $text): static
     {
         $this->help = $text;
+
+        return $this;
+    }
+
+    /**
+     * Puts the field in a titled group within its section: fields next to
+     * each other with the same group show under its heading, set apart
+     * from the rest by a divider. For sets of fields about one thing, like
+     * each collection's settings on a taxonomy, so their labels needn't
+     * repeat its name. A group whose fields are all hidden (showWhen()) is
+     * hidden too. The title is shown as given, as it's usually a record's
+     * name: wrap words of your own in __().
+     */
+    public function group(?string $title): static
+    {
+        $this->group = $title;
 
         return $this;
     }
@@ -368,7 +393,7 @@ abstract class Field implements Component
             'label' => Say::it($this->label),
             'required' => $this->isRequired($record),
             'disabled' => $this->isDisabled($record),
-            'help' => Say::it($this->help),
+            'help' => Say::it($this->help instanceof Closure ? ($this->help)($record) : $this->help),
             'placeholder' => Say::it($this->placeholder),
             'placeholderFrom' => $this->placeholderFrom,
             // Only on an edit form: a new record has nothing saved to change.
@@ -377,7 +402,7 @@ abstract class Field implements Component
             'showWhen' => $this->showWhen,
             ...$this->helpExtras($record),
             ...$this->props(),
-        ];
+        ] + ($this->group !== null ? ['group' => $this->group] : []);
     }
 
     /**

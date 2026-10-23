@@ -8,6 +8,7 @@ use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
+use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\SaveEntrySettings;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
@@ -66,6 +67,22 @@ it('describes an article, the website with its search box, and who publishes it'
         ])
         ->and(array_column($nodes['BreadcrumbList']['itemListElement'], 'name'))->toBe(['Home', 'Blog', 'Hello world'])
         ->and($nodes['BreadcrumbList']['itemListElement'][1]['item'])->toBe(url('/blog'));
+});
+
+it('dates an article modified when it was last published, not when a draft was saved', function () {
+    travelTo('2026-10-01 09:00');
+    $post = schemaPost($this->blog, 'Hello world');
+
+    travelTo('2026-10-05 12:00');
+    app(SaveDraft::class)->handle($post->fresh(), ['title' => 'Hello again']);
+    $page = get('/blog/hello-world')->assertOk();
+    expect(nodes($page)['Article'])->toMatchArray(['datePublished' => '2026-10-01T09:00:00+00:00', 'dateModified' => '2026-10-01T09:00:00+00:00']);
+    $page->assertSee('<meta property="article:modified_time" content="2026-10-01T09:00:00+00:00">', false);
+    expect((string) get('/sitemap.xml')->getContent())->toContain('<lastmod>2026-10-01T09:00:00+00:00</lastmod>');
+
+    travelTo('2026-10-07 08:00');
+    app(PublishEntry::class)->handle($post->fresh());
+    expect(nodes(get('/blog/hello-world')->assertOk())['Article']['dateModified'])->toBe('2026-10-07T08:00:00+00:00');
 });
 
 it('uses the collection\'s type, and breadcrumbs through parent pages', function () {

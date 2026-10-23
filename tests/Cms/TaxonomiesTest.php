@@ -382,3 +382,45 @@ it('links the term pages card to a term\'s page on the site', function () {
     get('/admin/cms/taxonomies/categories/edit')->assertInertia(fn (Assert $page) => expect($links($page))
         ->toBe([['label' => 'View a term page', 'url' => url('/categories/news'), 'newTab' => true, 'showWhen' => ['field' => 'pages', 'value' => null, 'not' => false]]]));
 });
+
+it('gives the collections ticked on a new taxonomy term pages and an index page, still checking their URLs', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'listing_route' => '/blog']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.create', 'cms.taxonomies.update'));
+
+    // The create form has both on, with {handle} in its examples until there is one.
+    get('/admin/cms/taxonomies/create')->assertInertia(fn (Assert $page) => $page
+        ->where("values.term_pages_{$blog->id}", true)->where("values.index_page_{$blog->id}", true));
+    expect(taxonomyFormJson('/admin/cms/taxonomies/create'))->toContain('/blog/{handle}/featured');
+
+    // Each collection's fields under its own heading, their labels without its name.
+    expect(taxonomyFormJson('/admin/cms/taxonomies/create'))->toContain('"name":"term_pages_'.$blog->id.'","label":"Term pages"')
+        ->toContain('"group":"Blog"');
+
+    // Sent as the form sends them, or left out.
+    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $blog->id], "term_pages_{$blog->id}" => true, "index_page_{$blog->id}" => true])->assertSessionHasNoErrors();
+    post('/admin/cms/taxonomies', ['title' => 'Labels', 'handle' => 'labels', 'collections' => [(string) $blog->id]])->assertSessionHasNoErrors();
+    foreach (['topics', 'labels'] as $handle) {
+        $pivot = DB::table('sunrice_collection_taxonomy')->where('taxonomy_id', Taxonomy::query()->where('handle', $handle)->value('id'))->first();
+        expect((bool) $pivot->term_pages)->toBeTrue()->and((bool) $pivot->index_page)->toBeTrue();
+    }
+
+    // Editing one, the examples use its handle.
+    expect(taxonomyFormJson('/admin/cms/taxonomies/topics/edit'))->toContain('/blog/topics/featured')->not->toContain('/blog/{handle}/featured');
+
+    // A new one whose index page would take a URL something else has is refused.
+    $clash = Collection::query()->create(['handle' => 'clash', 'title' => 'Clash', 'route' => '/blog/notes', 'listing_route' => '/blog/notes']);
+    post('/admin/cms/taxonomies', ['title' => 'Notes', 'handle' => 'notes', 'collections' => [(string) $blog->id], "term_pages_{$blog->id}" => true, "index_page_{$blog->id}" => true])
+        ->assertSessionHasErrors("index_route_{$blog->id}");
+});
+
+/** A taxonomy form's page props, as JSON. */
+function taxonomyFormJson(string $url): string
+{
+    $props = [];
+    get($url)->assertInertia(function (Assert $page) use (&$props) {
+        $props = $page->toArray()['props'];
+    });
+
+    return (string) json_encode($props, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+}
