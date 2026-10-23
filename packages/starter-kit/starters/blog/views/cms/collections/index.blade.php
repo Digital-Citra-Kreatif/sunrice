@@ -12,7 +12,7 @@
     </header>
 
     @if ($entries->isEmpty())
-        <p class="muted">{{ __('Nothing here yet.') }}</p>
+        <p class="muted">{{ __('site.empty') }}</p>
     @else
         <ul class="cards">
             @foreach ($entries as $item)
