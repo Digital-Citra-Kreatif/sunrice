@@ -40,7 +40,8 @@ final class GenerateImageSizes implements ShouldQueue
             return;
         }
         if (MediaConfig::queue()) {
-            self::dispatch($media->id);
+            // Once the upload commits: a worker would not find a file whose transaction is still open.
+            self::dispatch($media->id)->afterCommit();
         } else {
             self::dispatchSync($media->id);
         }

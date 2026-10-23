@@ -204,3 +204,28 @@ it('carries Settings → Site with --settings, the homepage and images portably,
     $file['settings']['mail'] = ['host' => 'x'];
     expect(fn () => app(StructureImporter::class)->import($file))->toThrow(StructureImportFailed::class, 'settings.site');
 });
+
+it('counts files to come as in the library on a dry run, so content that requires them checks before they are uploaded', function () {
+    $file = ['sunrice' => 1,
+        'blueprints' => [['handle' => 'photo', 'title' => 'Photo', 'fields' => [['handle' => 'image', 'type' => 'media', 'required' => true, 'config' => ['types' => ['image']]]]]],
+        'collections' => [['handle' => 'photos', 'title' => 'Photos', 'blueprint' => 'photo', 'route' => '/photos/{slug}']],
+        'entries' => [['collection' => 'photos', 'slug' => 'sunrise', 'translations' => ['en' => ['title' => 'Sunrise', 'slug' => 'sunrise', 'data' => ['image' => ['media' => 'sun.png']]]]]],
+    ];
+    $png = sys_get_temp_dir().'/sun-'.uniqid().'.png';
+    imagepng(imagecreatetruecolor(4, 3), $png);
+    $text = sys_get_temp_dir().'/sun-'.uniqid().'.txt';
+    file_put_contents($text, 'not an image');
+
+    // Without it the required image is missing; with it the check passes and saves nothing, stand-ins included.
+    expect(fn () => app(StructureImporter::class)->import($file, dryRun: true))->toThrow(StructureImportFailed::class, 'The Image field is required.');
+    $report = app(StructureImporter::class)->import($file, dryRun: true, mediaToCome: ['sun.png' => $png]);
+    expect($report->status('entry', 'photos/sunrise'))->toBe(ImportReport::CREATED)
+        ->and(Media::query()->count())->toBe(0)
+        ->and(Collection::query()->count())->toBe(0);
+    // A file to come of the wrong kind is no image; other names aren't found; and a real import needs the files uploaded.
+    expect(fn () => app(StructureImporter::class)->import($file, dryRun: true, mediaToCome: ['sun.png' => $text]))->toThrow(StructureImportFailed::class)
+        ->and(fn () => app(StructureImporter::class)->import($file, dryRun: true, mediaToCome: ['moon.png' => $png]))->toThrow(StructureImportFailed::class, 'The Image field is required.')
+        ->and(fn () => app(StructureImporter::class)->import($file, mediaToCome: ['sun.png' => $png]))->toThrow(InvalidArgumentException::class);
+    unlink($png);
+    unlink($text);
+});

@@ -6,14 +6,18 @@ namespace Sunrice\StarterKit\Actions;
 
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Actions\Media\UpdateMedia;
 use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Admin\Media\Media;
+use Sunrice\Cms\Structure\ImportReport;
 use Sunrice\Cms\Structure\StructureImporter;
 use Sunrice\Cms\Structure\StructureImportFailed;
 use Sunrice\StarterKit\Installation;
 use Sunrice\StarterKit\Starter;
+use Throwable;
 
 /**
  * Installs a starter into the app: checks its structure first (nothing
@@ -40,24 +44,24 @@ final class InstallStarter
      * @param  bool  $skipOtherLanguages  leave out its texts in languages the site doesn't have (else it stops)
      *
      * @throws StructureImportFailed when its structure doesn't fit the site (nothing is saved)
-     * @throws ValidationException when a media file isn't one the library takes
+     * @throws ValidationException when a media file isn't one the library takes (nothing is saved)
      */
     public function handle(Starter $starter, bool $dryRun = false, bool $force = false, bool $content = true, bool $skipOtherLanguages = false): Installation
     {
         $site = $content ? $starter->site() : self::withoutContent($starter->site());
-        // Checked as a whole first: a starter that doesn't fit leaves the site as it was.
-        $report = $this->importer->import($site, true, $force, false, $skipOtherLanguages);
-        $plan = $this->plan($starter, $force);
         [$toUpload, $reused] = $this->media($starter);
+        // Checked as a whole first, a starter that doesn't fit leaving the site as it was: its media files as
+        // uploads are, and its structure and content with the files it brings counting as in the library.
+        foreach ($toUpload as $name => $path) {
+            UploadMedia::validate(new UploadedFile($path, $name, null, null, true));
+        }
+        $report = $this->importer->import($site, true, $force, false, $skipOtherLanguages, $toUpload);
+        $plan = $this->plan($starter, $force);
         if ($dryRun) {
             return new Installation($starter, $report, $plan, array_keys($toUpload), $reused, true);
         }
 
-        $details = $starter->mediaDetails();
-        foreach ($toUpload as $name => $path) {
-            $this->uploadMedia($name, $path, $details[$name] ?? []);
-        }
-        $report = $this->importer->import($site, false, $force, false, $skipOtherLanguages);
+        $report = $this->save($starter, $site, $toUpload, $force, $skipOtherLanguages);
         foreach ($plan as $relative => $status) {
             if ($status === Installation::COPIED) {
                 $target = base_path($relative);
@@ -67,6 +71,38 @@ final class InstallStarter
         }
 
         return new Installation($starter, $report, $plan, array_keys($toUpload), $reused, false);
+    }
+
+    /**
+     * Uploads its media files and imports its structure and content in one
+     * database transaction: all of it or nothing (the files uploaded are
+     * deleted again when it fails). Jobs it queues (the images' sizes) go
+     * to the queue once it
+     * commits, so a worker (on SQLite, one writing to the same file) never
+     * takes one while the install holds the database.
+     *
+     * @param  array<string, mixed>  $site
+     * @param  array<string, string>  $toUpload  name => path
+     */
+    private function save(Starter $starter, array $site, array $toUpload, bool $force, bool $skipOtherLanguages): ImportReport
+    {
+        $details = $starter->mediaDetails();
+        $uploaded = [];
+        try {
+            return DB::transaction(function () use ($site, $toUpload, $details, $force, $skipOtherLanguages, &$uploaded): ImportReport {
+                foreach ($toUpload as $name => $path) {
+                    $uploaded[] = $this->uploadMedia($name, $path, $details[$name] ?? []);
+                }
+
+                return $this->importer->import($site, false, $force, false, $skipOtherLanguages);
+            });
+        } catch (Throwable $e) {
+            foreach ($uploaded as $media) {
+                Storage::disk($media->disk)->delete($media->files());
+            }
+
+            throw $e;
+        }
     }
 
     /**
@@ -169,7 +205,7 @@ final class InstallStarter
     }
 
     /** @param  array<string, mixed>  $details  title, alt, caption, translations */
-    private function uploadMedia(string $name, string $path, array $details): void
+    private function uploadMedia(string $name, string $path, array $details): Media
     {
         $text = fn (string $key): ?string => is_string($details[$key] ?? null) ? $details[$key] : null;
         $media = $this->upload->handle(new UploadedFile($path, $name, null, null, true), array_filter([
@@ -192,5 +228,7 @@ final class InstallStarter
         if ($more !== []) {
             $this->updateMedia->handle($media, $more);
         }
+
+        return $media;
     }
 }

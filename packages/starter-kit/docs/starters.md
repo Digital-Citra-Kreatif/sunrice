@@ -67,9 +67,9 @@ Only `starter.json` is required. `starter.json`:
 
 `php artisan sunrice:starter <name>` (or `--path=<folder>` for a starter that isn't registered), in this order:
 
-1. **Checks the whole structure first**, as a dry-run import: a blueprint that doesn't validate, a URL another collection has, or a language the site lacks stops it, and nothing is saved.
+1. **Checks the whole starter first**, as a dry-run import: a blueprint that doesn't validate, a URL another collection has, a language the site lacks, a media file the library wouldn't take, or content a field refuses stops it, and nothing is saved or uploaded. Its own media files count as in the library for this check (they're uploaded next), so content may require them (a required image field set to `{"media": "hero.jpg"}`); a reference to a file it doesn't bring is left empty, which a required field refuses.
 2. **Uploads its media files** the library doesn't have yet, through the panel's own upload action (the same checks as the admin, image sizes made on the queue), with their details. A file the library has, by name, is used as it is.
-3. **Imports its structure and content** through `StructureImporter`: the admin's actions and checks. Items with the same handle are updated as an import does; entries and terms that exist are left alone; fieldsets and blueprints that would lose fields are refused unless `--force`.
+3. **Imports its structure and content** through `StructureImporter`: the admin's actions and checks. Items with the same handle are updated as an import does; entries and terms that exist are left alone; fieldsets and blueprints that would lose fields are refused unless `--force`. Steps 2 and 3 are one database transaction: if anything fails, nothing is saved and the files it uploaded are deleted. The jobs it queues (the images' sizes) reach the queue once it commits.
 4. **Copies its files**: `views/` into `resources/views`, `public/` into `public`, `lang/` into `lang`. A file the app has, different, is **kept** and listed; `--force` replaces it.
 
 | Option | |
@@ -82,6 +82,16 @@ Only `starter.json` is required. `starter.json`:
 Running it again adds only what's missing. A starter's Settings → Site values fill in what the site hasn't set; other settings (languages, mail, comments, cache, code, branding), users and roles aren't part of a starter.
 
 In code: `app(\Sunrice\StarterKit\Actions\InstallStarter::class)->handle($starter, dryRun: false, force: false, content: true)` returns an `Installation`: the import's `ImportReport` (`$installation->report`), the files by result (`files(Installation::COPIED)`, `UNCHANGED`, `KEPT`) and the media files `uploaded` and `reused`.
+
+### On SQLite
+
+The install writes in one transaction while a queue worker, `php artisan serve` or the admin may use the same database file. A worker never sees the install's jobs before it commits, so it doesn't compete with it for the file. Other writers at the same time can still meet SQLite's "database is locked": with Laravel's default `transaction_mode` (`DEFERRED`), a transaction that read first and then writes while another connection is writing fails at once, however long the busy timeout (PHP waits up to 60 seconds by default for a lock that is only held). For a site on SQLite with a queue worker or several visitors, set the `sqlite` connection in `config/database.php` (Laravel's file has no environment variables for these; `php artisan config:publish database` writes it if the app has none):
+
+```php
+'busy_timeout' => 5000,
+'journal_mode' => 'wal',          // readers no longer block a write, nor a write readers
+'transaction_mode' => 'IMMEDIATE', // a transaction takes the write lock when it begins, waiting its turn
+```
 
 ## Making one from a site
 
