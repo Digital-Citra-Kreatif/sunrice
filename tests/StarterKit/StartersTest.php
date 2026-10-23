@@ -91,6 +91,19 @@ it('installs a whole site: structure, content with its dates, media with alt tex
         ->assertSee('Made with Sunrice.');
 });
 
+it('shows the CMS\'s language switcher in the blog\'s layout, once the site has another language', function () {
+    artisan('sunrice:starter', ['name' => 'blog'])->assertSuccessful();
+    get('/blog/hello-world')->assertOk()->assertDontSee('aria-label="Languages"', false);
+
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    get('/blog/hello-world')->assertOk()
+        ->assertSee('<nav aria-label="Languages" class="language-switcher">', false)
+        ->assertSee('<span aria-current="true" lang="en">English</span>', false)
+        // Not translated yet: the English post at the Indonesian address.
+        ->assertSee('<a href="'.url('/id/blog/hello-world').'" hreflang="id" lang="id" data-fallback>Bahasa Indonesia</a>', false);
+    expect((string) file_get_contents(public_path('cms/site.css')))->toContain('.language-switcher [aria-current="true"]');
+});
+
 it('adds only what\'s missing when run again, keeping files changed since unless forced', function () {
     $install = app(InstallStarter::class);
     $install->handle(blogStarter());
