@@ -54,8 +54,15 @@ final readonly class RegisteredSettings
         return $fields;
     }
 
+    /** Whether it's in use (Settings::available()). */
+    public function available(): bool
+    {
+        return $this->class::available();
+    }
+
+    /** Whether `$user` may edit it: it's in use and they have its permission. */
     public function allows(Authorizable $user): bool
     {
-        return $user->can($this->permission);
+        return $this->available() && $user->can($this->permission);
     }
 }

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ArrowDown, ArrowUp, Check, ChevronsUpDown, Globe, Mail, Plus, X } from 'lucide-react';
+import { CodeEditor } from '@/components/app/code-editor';
 import { DatePicker } from '@/components/app/date-picker';
 import { RichTextEditor } from '@/components/app/rich-text';
 import { MediaPickerInput } from '@/components/media/media-picker';
@@ -14,6 +15,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
+import { codeLanguage } from '@/lib/code-editor';
 import { fixedValues, formatPairs, parsePairs, type Pair, withFixedValue } from '@/lib/pairs';
 import { formatList, looksValid, networkOf, parseList } from '@/lib/networks';
 import { isPasswordRules } from '@/lib/password-rules';
@@ -69,6 +71,11 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
         case 'textarea':
             return <Textarea {...common} rows={Number(field.rows ?? 4)} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
+        case 'code':
+            // CodeMirror loads in its own chunk when the first one shows (a textarea meanwhile).
+            return <CodeEditor id={id} aria-labelledby={`${id}-label`} invalid={invalid} disabled={disabled} language={codeLanguage(field.language)}
+                minLines={Number(field.minLines ?? 4)} maxLines={Number(field.maxLines ?? 20)} placeholder={field.placeholder ?? undefined}
+                value={value === null ? '' : String(value)} onChange={onChange} />;
         case 'number':
             return <Input {...common} type="number" inputMode="decimal"
                 min={field.min as number | undefined} max={field.max as number | undefined} step={String(field.step ?? 'any')}

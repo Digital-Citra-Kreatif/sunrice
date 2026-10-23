@@ -32,6 +32,29 @@ export const CardTitle = m.CardTitle as AnyComponent;
 export const Checkbox = m.Checkbox as AnyComponent;
 
 /**
+ * The panel's code editor (CodeMirror 6): line numbers, highlighting for
+ * `language` (html, css, javascript, json; plain by default), bracket
+ * matching and indentation. It grows from `minLines` (4) to `maxLines`
+ * (20), then scrolls. Tab indents; Esc then Tab moves on. Its code loads
+ * when an editor first shows, with a plain textarea meanwhile.
+ */
+export const CodeEditor = m.CodeEditor as ComponentType<{
+    id?: string;
+    value: string;
+    onChange: (value: string) => void;
+    language?: 'html' | 'css' | 'javascript' | 'json' | 'plain';
+    invalid?: boolean;
+    disabled?: boolean;
+    readOnly?: boolean;
+    minLines?: number;
+    maxLines?: number;
+    placeholder?: string;
+    'aria-labelledby'?: string;
+    'aria-describedby'?: string;
+    className?: string;
+}>;
+
+/**
  * A card whose header folds its content away (animated); the choice is
  * remembered per `storageKey`, and `hasErrors` opens it so a validation
  * error is never hidden. Folded fields stay in the form but are inert.

@@ -29,7 +29,7 @@ Other packages (sunrice-commerce, its payment and shipping gateways, sunrice-vis
 - Composer, `sunrice/cms`: the above plus `spatie/laravel-honeypot`, `spatie/laravel-sitemap`, `spatie/laravel-responsecache` (optional, suggested).
 - Composer, `sunrice/starter-kit`: `sunrice/admin` and `sunrice/cms` (same version), `illuminate/*`.
 - Dev: `orchestra/testbench`, `pestphp/pest`, `pestphp/pest-plugin-laravel`, `laravel/pint`, `larastan/larastan`.
-- npm (admin): React 19, Inertia, TypeScript, Vite, Tailwind v4, shadcn/ui components with their Radix dependencies, `lucide-react`, `@tanstack/react-table`, `@dnd-kit/*`, TipTap, `sonner`, `date-fns`.
+- npm (admin): React 19, Inertia, TypeScript, Vite, Tailwind v4, shadcn/ui components with their Radix dependencies, `lucide-react`, `@tanstack/react-table`, `@dnd-kit/*`, TipTap, `sonner`, `date-fns`, CodeMirror 6 (`@codemirror/*` and `@lezer/highlight`, for code fields: loaded in its own chunk, only where a code editor shows).
 - Anything else: explain why in the PR instead of adding it.
 
 ## Out of scope
