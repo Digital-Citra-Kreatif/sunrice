@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -37,6 +38,7 @@ beforeEach(function () {
 afterEach(function () {
     $files = new Filesystem;
     $files->deleteDirectory(lang_path('en'));
+    $files->deleteDirectory(lang_path('id'));
     $files->deleteDirectory(lang_path('vendor'));
     foreach ([resource_path('views/cms'), resource_path('views/errors'), public_path('cms'), $this->made] as $directory) {
         $files->deleteDirectory($directory);
@@ -102,6 +104,62 @@ it('shows the CMS\'s language switcher in the blog\'s layout, once the site has 
         // Not translated yet: the English post at the Indonesian address.
         ->assertSee('<a href="'.url('/id/blog/hello-world').'" hreflang="id" lang="id" data-fallback>Bahasa Indonesia</a>', false);
     expect((string) file_get_contents(public_path('cms/site.css')))->toContain('.language-switcher [aria-current="true"]');
+});
+
+it('shows taxonomy index pages in the blog\'s layout, with its look', function () {
+    artisan('sunrice:starter', ['name' => 'blog'])->assertSuccessful();
+
+    expect(is_file(resource_path('views/cms/taxonomies/index.blade.php')))->toBeTrue();
+    get('/blog/topics')->assertOk()->assertViewIs('cms.taxonomies.index')
+        ->assertSee('<a class="skip-link" href="#main">Skip to content</a>', false)
+        ->assertSee('<header class="site-header">', false)
+        ->assertSee('<ul class="terms">', false)
+        ->assertSee('<footer class="site-footer">', false)
+        ->assertSee(url('/cms/site.css'), false);
+    expect((string) file_get_contents(public_path('cms/site.css')))->toContain('.terms {');
+});
+
+it('has its own words in English and Indonesian, the same keys in each, used on each language\'s pages', function () {
+    $lang = blogStarter()->path.'/lang';
+    $keys = fn (string $locale): array => array_keys(Arr::dot(require "{$lang}/{$locale}/site.php"));
+    expect(array_map(basename(...), glob("{$lang}/*", GLOB_ONLYDIR) ?: []))->toBe(['en', 'id'])
+        ->and($keys('id'))->toBe($keys('en'));
+
+    // Every word the views use is in the files, and none is written into a template.
+    $views = '';
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(blogStarter()->path.'/views', FilesystemIterator::SKIP_DOTS)) as $file) {
+        $views .= preg_replace('/\{\{--.*?--\}\}/s', '', (string) file_get_contents((string) $file)); // not the comments
+    }
+    preg_match_all("/(?:__|trans_choice)\\('([^']+)'/", $views, $used);
+    $ours = array_values(array_unique(array_filter($used[1], fn (string $key): bool => ! str_starts_with($key, 'sunrice-cms::'))));
+    expect($ours)->not->toBeEmpty()
+        ->and(array_filter($ours, fn (string $key): bool => ! str_starts_with($key, 'site.')))->toBe([])
+        ->and(array_diff(array_map(fn (string $key): string => substr($key, 5), $ours), $keys('en')))->toBe([]);
+
+    artisan('sunrice:starter', ['name' => 'blog'])->assertSuccessful();
+    expect(is_file(lang_path('id/site.php')))->toBeTrue();
+    get('/search?q=morning')->assertOk()->assertSee('Skip to content')->assertSee('Search the site');
+
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    get('/id/search?q=morning')->assertOk()
+        ->assertSee('Langsung ke konten')->assertSee('Cari di situs')->assertSee('hasil untuk “morning”')
+        ->assertDontSee('Skip to content')->assertDontSee('Search the site');
+    get('/id/blog/topics')->assertOk()->assertSee('<a class="skip-link" href="#main">Langsung ke konten</a>', false);
+});
+
+it('styles the comment form in its site.css', function () {
+    artisan('sunrice:starter', ['name' => 'blog'])->assertSuccessful();
+
+    get('/blog/hello-world')->assertOk()
+        ->assertSee('<section class="sunrice-comments" id="comments">', false)
+        ->assertSee('<form class="sunrice-comment-form" id="comment-form"', false)
+        ->assertSee('<label for="comment-body">', false);
+    expect((string) file_get_contents(public_path('cms/site.css')))
+        ->toContain('.sunrice-comment-form { display: grid;')
+        ->toContain('.sunrice-comment-form label:not(:has(input[type="checkbox"])) { display: block;')
+        ->toContain('main textarea')
+        ->toContain('textarea:focus-visible')
+        ->toContain('main form [role="alert"]');
 });
 
 it('adds only what\'s missing when run again, keeping files changed since unless forced', function () {

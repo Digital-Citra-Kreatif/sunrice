@@ -6,18 +6,18 @@
 
 @section('content')
     <header class="page-header">
-        <h1>{{ __('Search') }}</h1>
+        <h1>{{ __('site.search.title') }}</h1>
         <x-sunrice-cms::search>
             <form class="search-form" method="get" action="{{ $component->action }}" role="search">
-                <label for="search-query" class="visually-hidden">{{ __('Search the site') }}</label>
+                <label for="search-query" class="visually-hidden">{{ __('site.search.label') }}</label>
                 <input id="search-query" type="search" name="{{ $component->name }}" value="{{ $component->query }}" required>
-                <button type="submit">{{ __('Search') }}</button>
+                <button type="submit">{{ __('site.search.button') }}</button>
             </form>
         </x-sunrice-cms::search>
     </header>
 
     @if ($query !== '')
-        <p role="status">{{ trans_choice(':count result for “:query”|:count results for “:query”', $results->total(), ['count' => $results->total(), 'query' => $query]) }}</p>
+        <p role="status">{{ trans_choice('site.search.results', $results->total(), ['count' => $results->total(), 'query' => $query]) }}</p>
         @if ($results->isNotEmpty())
             <ul class="cards">
                 @foreach ($results as $item)

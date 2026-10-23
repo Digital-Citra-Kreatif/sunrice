@@ -7,6 +7,8 @@
 
     Expects (all optional; missing ones render nothing): the menus "main" and "footer", and a global set "footer"
     with a text field "text".
+
+    The Blog starter's own words are __('site.…'), in lang/en/site.php and lang/id/site.php (the same keys in each).
 --}}
 @php($page = cms_page())
 @php($home = url(app()->getLocale() === \Sunrice\Cms\Support\Locales::default() ? '/' : '/'.app()->getLocale()))
@@ -23,13 +25,13 @@
 </head>
 <body @bodyClass>
     <x-sunrice-cms::code place="body-start" />
-    <a class="skip-link" href="#main">{{ __('Skip to content') }}</a>
+    <a class="skip-link" href="#main">{{ __('site.skip') }}</a>
 
     <header class="site-header">
         <div class="container site-header-inner">
             <a class="site-name" href="{{ $home }}" @if ($page?->home) aria-current="page" @endif>{{ \Sunrice\Cms\Content::site()->name() }}</a>
             @if (($menu = cms_menu('main')) !== [])
-                <nav class="site-menu" aria-label="{{ __('Main') }}">
+                <nav class="site-menu" aria-label="{{ __('site.menus.main') }}">
                     @include('cms.partials.menu', ['items' => $menu])
                 </nav>
             @endif
@@ -44,7 +46,7 @@
     <footer class="site-footer">
         <div class="container">
             @if (($menu = cms_menu('footer')) !== [])
-                <nav aria-label="{{ __('Footer') }}">
+                <nav aria-label="{{ __('site.menus.footer') }}">
                     @include('cms.partials.menu', ['items' => $menu])
                 </nav>
             @endif
