@@ -381,3 +381,23 @@ it('refuses to save terms over those another language\'s editor changed since th
     app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => []]]);
     expect($draft())->toBe([$this->guide->id]);
 });
+
+it('exports entries in as many queries for many entries as for few', function () {
+    $queries = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        app(StructureExporter::class)->export(content: true);
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+    foreach (['One', 'Two', 'Three'] as $title) {
+        liveNote(['tags' => [$this->php->id]], $title);
+    }
+    $few = $queries();
+    foreach (['Four', 'Five', 'Six', 'Seven', 'Eight'] as $title) {
+        liveNote(['tags' => [$this->laravel->id]], $title);
+    }
+
+    expect($queries())->toBe($few);
+});
