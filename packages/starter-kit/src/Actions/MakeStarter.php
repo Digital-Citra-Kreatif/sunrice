@@ -14,14 +14,16 @@ use Sunrice\Cms\Support\Locales;
 use Sunrice\StarterKit\Starter;
 
 /**
- * Makes a starter from the site as it is: its structure and content
- * (StructureExporter, entries included) in site.json, the media files
- * the content uses in media/ (each referred to by its file name, so
- * another site finds the uploaded copy) with their details in
- * media.json, the templates (resources/views/cms and errors), the public
- * folders named, and the CMS's site words the app overrides
- * (lang/vendor/sunrice-cms). Settings (site name, logo, mail) and users
- * aren't part of a starter.
+ * Makes a starter from the site as it is: its structure, content and
+ * Settings → Site (StructureExporter, entries and settings included) in
+ * site.json, the media files the content and settings use in media/
+ * (each referred to by its file name, so another site finds the uploaded
+ * copy) with their details in media.json, the templates
+ * (resources/views/cms and errors), the public folders named, and the
+ * app's translation files (lang/: its own words in every language, and
+ * the CMS's site words it overrides, lang/vendor/sunrice-cms; not other
+ * packages' published copies). Other settings (languages, mail, keys,
+ * cache) and users aren't part of a starter.
  *
  * @api
  */
@@ -30,7 +32,8 @@ final class MakeStarter
     /** The app's folders a starter takes, relative to resources/views and lang. */
     public const VIEWS = ['cms', 'errors'];
 
-    public const LANG = ['vendor/sunrice-cms'];
+    /** The packages of lang/vendor/ a starter takes: the CMS's site words. Everything else in lang/ is the app's own. */
+    public const LANG_VENDOR = ['sunrice-cms'];
 
     public function __construct(
         private readonly StructureExporter $exporter,
@@ -63,7 +66,7 @@ final class MakeStarter
         $this->files->ensureDirectoryExists($directory);
 
         // The export keeps some maps as objects; as arrays here, to walk them (an empty one is written [], read the same on import).
-        $site = json_decode(json_encode($this->exporter->export(content: true), JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR);
+        $site = json_decode(json_encode($this->exporter->export(content: true, settings: true), JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR);
         $site = is_array($site) ? $site : [];
         [$site, $media] = $this->withMedia($site, $directory);
         $this->writeJson("{$directory}/site.json", $site);
@@ -76,9 +79,7 @@ final class MakeStarter
         foreach ($public as $folder) {
             $this->copyFolder(public_path($folder), "{$directory}/public/{$folder}");
         }
-        foreach (self::LANG as $folder) {
-            $this->copyFolder(lang_path($folder), "{$directory}/lang/{$folder}");
-        }
+        $this->copyLang("{$directory}/lang");
         $this->writeJson("{$directory}/starter.json", [
             'name' => $name,
             'title' => $title !== '' ? $title : ucfirst(str_replace('-', ' ', $name)),
@@ -149,6 +150,23 @@ final class MakeStarter
     {
         if (is_dir($from)) {
             $this->files->copyDirectory($from, $to);
+        }
+    }
+
+    /** The app's lang/ files, without other packages' published copies (lang/vendor/<package> but LANG_VENDOR). */
+    private function copyLang(string $to): void
+    {
+        if (! is_dir(lang_path())) {
+            return;
+        }
+        foreach ($this->files->allFiles(lang_path(), true) as $file) {
+            $relative = str_replace('\\', '/', $file->getRelativePathname());
+            $parts = explode('/', $relative);
+            if ($parts[0] === 'vendor' && ! in_array($parts[1] ?? '', self::LANG_VENDOR, true)) {
+                continue;
+            }
+            $this->files->ensureDirectoryExists(dirname("{$to}/{$relative}"));
+            $this->files->copy($file->getPathname(), "{$to}/{$relative}");
         }
     }
 

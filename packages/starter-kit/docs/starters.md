@@ -24,7 +24,7 @@ A folder:
 ```
 my-starter/
 ├── starter.json          the manifest
-├── site.json             structure and sample content (sunrice:export-structure's format, entries included)
+├── site.json             structure, sample content and site settings (sunrice:export-structure's format, --entries --settings)
 ├── media.json            the media files' titles, alt text and captions
 ├── media/                the media library's files the content uses
 │   └── hero.jpg
@@ -34,7 +34,8 @@ my-starter/
 │   └── errors/           error pages
 ├── public/               copied into public (CSS, fonts, images the templates use)
 │   └── cms/site.css
-└── lang/                 copied into lang (the CMS's site words, overridden or in more languages)
+└── lang/                 copied into lang (the site's own words, and the CMS's site words overridden or in more languages)
+    ├── en/site.php
     └── vendor/sunrice-cms/id/site.php
 ```
 
@@ -52,7 +53,7 @@ Only `starter.json` is required. `starter.json`:
 - `name`: lowercase letters, digits and dashes; what `sunrice:starter <name>` takes.
 - `locales`: the languages its texts are in, shown by `sunrice:starters`. Installing on a site without one of them stops before anything is saved, naming it; `--skip-other-languages` installs the rest and leaves those texts out.
 
-`site.json` is a structure file ([Structure → Export and import](../../cms/docs/structure.md)) with its content: whatever `sunrice:export-structure --entries` writes. What field values point at is portable: an entry as `{"entry": "pages/about"}`, a term as `{"term": "topics/news"}`, a media file as `{"media": "hero.jpg"}`, the name of a file in `media/`. Published entries keep their `published_at`.
+`site.json` is a structure file ([Structure → Export and import](../../cms/docs/structure.md)) with its content and site settings: whatever `sunrice:export-structure --entries --settings` writes. What field values point at is portable: an entry as `{"entry": "pages/about"}`, a term as `{"term": "topics/news"}`, a media file as `{"media": "hero.jpg"}`, the name of a file in `media/`. Published entries keep their `published_at`, and changes not published yet stay drafts. Its `settings.site` (the site's name, description, logo, share image, publisher, profiles, homepage…) is set where the site still has the defaults; a site that set its own keeps them.
 
 `media.json` gives each file's details by name; files without an entry get their name as title:
 
@@ -78,7 +79,7 @@ Only `starter.json` is required. `starter.json`:
 | `--force` | Replace the app's files that differ, and save fieldsets and blueprints that lose fields. |
 | `--skip-other-languages` | Leave out its texts in languages the site doesn't have. |
 
-Running it again adds only what's missing. Afterwards, choose the homepage and the site's name and logo in Settings → Site: settings, users and roles aren't part of a starter.
+Running it again adds only what's missing. A starter's Settings → Site values fill in what the site hasn't set; other settings (languages, mail, comments, cache, code, branding), users and roles aren't part of a starter.
 
 In code: `app(\Sunrice\StarterKit\Actions\InstallStarter::class)->handle($starter, dryRun: false, force: false, content: true)` returns an `Installation`: the import's `ImportReport` (`$installation->report`), the files by result (`files(Installation::COPIED)`, `UNCHANGED`, `KEPT`) and the media files `uploaded` and `reused`.
 
@@ -92,11 +93,11 @@ php artisan sunrice:make-starter my-starter --title="My starter" --description="
 
 It writes `starters/my-starter` (or `--to=<folder>`):
 
-- `site.json`: the structure and content, with entries (drafts and whether each language is published, with dates);
-- `media/` and `media.json`: every media file the content, listing pages or SEO cards use (not the whole library), each named as it was uploaded (`hero.jpg`), with its details;
+- `site.json`: the structure and content, with entries (what the site shows, changes not published yet as drafts, and dates) and Settings → Site (not `noindex`; see [Structure → Export and import](../../cms/docs/structure.md));
+- `media/` and `media.json`: every media file the content, listing pages, SEO cards or site settings (logo, share image) use (not the whole library), each named as it was uploaded (`hero.jpg`), with its details;
 - `views/cms` and `views/errors`: your templates;
 - `public/<folder>` for each `--public` (your CSS, fonts and images; `public/vendor` and `public/storage` are never what you want here);
-- `lang/vendor/sunrice-cms`: the CMS's site words you override.
+- `lang/`: the app's translation files, its own words (`lang/en/site.php`, `lang/id.json`…) and the CMS's site words you override (`lang/vendor/sunrice-cms`); other packages' published copies (`lang/vendor/<package>`) are left out (`MakeStarter::LANG_VENDOR`).
 
 A folder that isn't empty is refused unless `--force`, which replaces its contents. Check the starter on a fresh app: `php artisan sunrice:starter --path=starters/my-starter --dry-run`.
 
@@ -109,8 +110,8 @@ A folder that isn't empty is refused unless `--force`, which replaces its conten
 - **Assets under a folder of your own**, `public/<starter>/…` or `public/cms/…`, referenced with `asset()`. A starter that needs a build (Vite, Tailwind) ships the built files, and its sources in a folder of its own for those who want to change them.
 - **Sample content that teaches.** Short texts that say what each field is for and where to change it ("Choose this page as the homepage in Settings → Site"), a draft to show drafts, and images light enough to keep the package small (JPEG around 70% quality, 1200 px wide is plenty).
 - **Handles that last.** Field handles are stored with every entry; renaming them later needs `sunrice:rename-field` on every site that installed the starter.
-- **Languages.** Write `locales` for the languages its texts are in. A multilingual starter carries each entry's translations in `site.json` and its site words in `lang/vendor/sunrice-cms/<locale>/site.php`.
-- **No secrets.** A starter has no settings, so no keys or addresses leak, but check that sample content and form notification addresses are examples (`team@example.com`).
+- **Languages.** Write `locales` for the languages its texts are in. A multilingual starter carries each entry's translations in `site.json`, its own words in `lang/<locale>/site.php` and the CMS's site words it changes in `lang/vendor/sunrice-cms/<locale>/site.php`.
+- **No secrets.** A starter carries only Settings → Site (no keys, mail or other settings), but check that sample content, the site's phone, address and profiles, and form notification addresses are examples (`team@example.com`).
 
 ## Shipping one as a package
 

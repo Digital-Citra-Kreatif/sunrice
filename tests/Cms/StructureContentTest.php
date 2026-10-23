@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Sunrice\Admin\Actions\Media\UploadMedia;
+use Sunrice\Admin\Actions\Settings\SaveSettings;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
@@ -18,6 +19,7 @@ use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Models\TermTranslation;
+use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Structure\ImportReport;
 use Sunrice\Cms\Structure\StructureExporter;
 use Sunrice\Cms\Structure\StructureImporter;
@@ -130,4 +132,75 @@ it('round-trips content into an empty site: entries, terms and files by name, at
     $plain = ['sunrice' => 1, 'entries' => [['collection' => 'posts', 'slug' => 'third', 'translations' => ['en' => ['title' => 'Third', 'slug' => 'third', 'data' => ['agent' => $ayu->id], 'published' => false]]]]];
     app(StructureImporter::class)->import($plain);
     expect(entryBySlug('third')->mainTranslation()->draft_data['agent'])->toBe($ayu->id);
+});
+
+it('exports what the site shows as the content, and changes not published yet as a draft that stays a draft on import', function () {
+    Blueprint::query()->create(['handle' => 'page', 'title' => 'Page', 'fields' => [['handle' => 'intro', 'type' => 'text']]]);
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page', 'route' => '/{slug}']);
+    $about = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'About', 'data' => ['intro' => 'Live words']]));
+    app(SaveDraft::class)->handle($about->fresh(), ['title' => 'About us (draft)', 'data' => ['intro' => 'Unfinished words']]);
+    app(CreateEntry::class)->handle($pages, ['title' => 'Coming', 'data' => ['intro' => 'Not yet']]);
+
+    $file = json_decode(json_encode(app(StructureExporter::class)->export(content: true), JSON_THROW_ON_ERROR), true);
+    $exported = collect($file['entries'])->firstWhere('slug', 'about')['translations']['en'];
+    expect($exported['title'])->toBe('About')
+        ->and($exported['data']['intro'])->toBe('Live words')
+        ->and($exported['published'])->toBeTrue()
+        ->and($exported['draft'])->toBe(['title' => 'About us (draft)', 'slug' => 'about', 'data' => ['intro' => 'Unfinished words']]);
+    $coming = collect($file['entries'])->firstWhere('slug', 'coming')['translations']['en'];
+    expect($coming['published'])->toBeFalse()->and($coming['data']['intro'])->toBe('Not yet')->and($coming)->not->toHaveKey('draft');
+
+    Entry::withTrashed()->get()->each->forceDelete();
+    EntryTranslation::query()->delete();
+    app(StructureImporter::class)->import($file);
+
+    $about = entryBySlug('about')->mainTranslation();
+    expect($about->isLive())->toBeTrue()
+        ->and($about->title)->toBe('About')
+        ->and($about->data['intro'] ?? null)->toBe('Live words')
+        ->and($about->draft_title)->toBe('About us (draft)')
+        ->and($about->draft_data['intro'] ?? null)->toBe('Unfinished words');
+    $this->get('/about')->assertOk()->assertSee('Live words')->assertDontSee('Unfinished words');
+    expect(entryBySlug('coming')->mainTranslation()->isPublished())->toBeFalse();
+
+    // Importing it again changes nothing.
+    $report = app(StructureImporter::class)->import($file);
+    expect($report->status('entry', 'pages/about'))->toBe(ImportReport::UNCHANGED)->and(Entry::query()->count())->toBe(2);
+});
+
+it('carries Settings → Site with --settings, the homepage and images portably, setting only what the other site left as it was', function () {
+    Storage::fake('public');
+    config(['sunrice-admin.media.queue' => false]);
+    Blueprint::query()->create(['handle' => 'page', 'title' => 'Page', 'fields' => [['handle' => 'intro', 'type' => 'text']]]);
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page', 'route' => '/{slug}']);
+    $home = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'Home']));
+    $logo = app(UploadMedia::class)->handle(UploadedFile::fake()->image('logo.png', 10, 10));
+    app(SaveSettings::class)->handle(new SiteSettings, ['name' => 'Acme', 'description' => 'Homes in Bali.', 'logo' => $logo->id, 'homepage' => $home->entry_id, 'twitter' => '@acme', 'noindex' => true]);
+
+    expect(app(StructureExporter::class)->export(content: true))->not->toHaveKey('settings');
+    $file = json_decode(json_encode(app(StructureExporter::class)->export(content: true, settings: true), JSON_THROW_ON_ERROR), true);
+    expect($file['settings']['site'])->toMatchArray(['name' => 'Acme', 'homepage' => ['entry' => 'pages/home'], 'logo' => ['media' => $logo->path], 'image' => null, 'twitter' => '@acme'])
+        ->and($file['settings']['site'])->not->toHaveKey('noindex');
+
+    // Another site, which named itself already.
+    Entry::withTrashed()->get()->each->forceDelete();
+    EntryTranslation::query()->delete();
+    (new SiteSettings)->fill(['name' => 'Ours', 'description' => '', 'logo' => null, 'homepage' => null, 'twitter' => '', 'noindex' => false])->save();
+
+    $dry = app(StructureImporter::class)->import($file, dryRun: true);
+    expect($dry->status('settings', 'site'))->toBe(ImportReport::UPDATED)->and((new SiteSettings)->description)->toBe('');
+
+    $report = app(StructureImporter::class)->import($file);
+    $site = new SiteSettings;
+    expect($site->name)->toBe('Ours')
+        ->and($site->description)->toBe('Homes in Bali.')
+        ->and($site->logo)->toBe($logo->id)
+        ->and($site->homepage)->toBe(entryBySlug('home')?->id)
+        ->and($site->noindex)->toBeFalse()
+        ->and(collect($report->items())->firstWhere('type', 'settings')['notes'])->toBe(['Keeps this site\'s own: name.']);
+    expect(app(StructureImporter::class)->import($file)->status('settings', 'site'))->toBe(ImportReport::UNCHANGED);
+
+    unset($file['settings']['site']);
+    $file['settings']['mail'] = ['host' => 'x'];
+    expect(fn () => app(StructureImporter::class)->import($file))->toThrow(StructureImportFailed::class, 'settings.site');
 });
