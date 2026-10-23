@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * An account's security state: locked by an administrator, or signed out
- * everywhere at some time. Kept apart from the app's user table.
+ * An account's security state: locked by an administrator, signed out
+ * everywhere at some time, or asked to choose a stronger password. Kept apart from the app's user table.
  *
  * @property int $id
  * @property string $user_id
@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $locked_by
  * @property string|null $locked_reason
  * @property Carbon|null $signed_out_at
+ * @property string|null $weak_password a fingerprint of the weak password signed in with (WeakPasswordAtLogin)
  *
  * @internal
  */

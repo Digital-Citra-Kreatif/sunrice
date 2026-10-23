@@ -32,6 +32,7 @@ use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Ai\TokenScope;
 use Sunrice\Admin\Assets\AdminAssets;
 use Sunrice\Admin\Assets\Precompress;
+use Sunrice\Admin\Auth\WeakPasswordAtLogin;
 use Sunrice\Admin\Console\AiTokenCommand;
 use Sunrice\Admin\Console\InstallCommand;
 use Sunrice\Admin\Console\MakeAdminCommand;
@@ -99,6 +100,7 @@ final class AdminServiceProvider extends ServiceProvider
         // Per request: its source and the lines it may merge.
         $this->app->scoped(ActivityLog::class);
         $this->app->scoped(AccountGuard::class);
+        $this->app->scoped(WeakPasswordAtLogin::class);
         $this->app->scoped(TokenScope::class);
     }
 
