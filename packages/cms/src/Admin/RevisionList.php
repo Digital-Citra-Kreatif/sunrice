@@ -31,6 +31,7 @@ final class RevisionList
     /**
      * The latest revisions; `changed` is null for the first one published.
      *
+     * @param  EloquentCollection<int, Taxonomy>|null  $taxonomies  the taxonomies to compare terms of (Access::entryTaxonomies()); null: all attached
      * @return list<array{id: int, title: string, createdAt: string|null, author: string|null, changed: list<string>|null}>
      */
     public static function summaries(EntryTranslation $translation, int $limit = 20, ?EloquentCollection $taxonomies = null): array
@@ -88,6 +89,7 @@ final class RevisionList
      * media by file name, rows and groups as "Label: value" lines (as the
      * CSV export), SEO setting by setting; never JSON.
      *
+     * @param  EloquentCollection<int, Taxonomy>|null  $taxonomies  the taxonomies to compare terms of (Access::entryTaxonomies()); null: all attached
      * @return list<array{label: string, revision: string, draft: string}>
      */
     public static function compare(Revision $revision, ?EloquentCollection $taxonomies = null): array
@@ -107,6 +109,7 @@ final class RevisionList
      * The fields where the live version (what visitors see) and the draft
      * (the unpublished changes) differ, in words as compare() gives them.
      *
+     * @param  EloquentCollection<int, Taxonomy>|null  $taxonomies  the taxonomies to compare terms of (Access::entryTaxonomies()); null: all attached
      * @return list<array{label: string, live: string, draft: string}>
      */
     public static function compareLive(EntryTranslation $translation, ?EloquentCollection $taxonomies = null): array
@@ -122,6 +125,7 @@ final class RevisionList
      * compare() does (empty values alike, objects whatever their key
      * order). For the editor's "Changed" markers.
      *
+     * @param  EloquentCollection<int, Taxonomy>|null  $taxonomies  the taxonomies to compare terms of (Access::entryTaxonomies()); null: all attached
      * @return list<string>
      */
     public static function changedFromLive(EntryTranslation $translation, ?EloquentCollection $taxonomies = null): array
@@ -138,6 +142,7 @@ final class RevisionList
     /**
      * The taxonomies whose terms the entry chose and didn't publish yet, as compare() gives fields.
      *
+     * @param  EloquentCollection<int, Taxonomy>|null  $taxonomies  the taxonomies to compare terms of (Access::entryTaxonomies()); null: all attached
      * @return list<array{key: string, label: string, old: string, new: string}>
      */
     private static function termsFromLive(EntryTranslation $translation, ?EloquentCollection $taxonomies): array

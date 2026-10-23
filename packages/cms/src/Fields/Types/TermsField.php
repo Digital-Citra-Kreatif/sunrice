@@ -183,7 +183,7 @@ final class TermsField extends FieldType
      * under it. Each row is looked at once: children are grouped by
      * parent first.
      *
-     * @param  list<object>  $rows  with id and parent_id (Term models or plain rows)
+     * @param  array<object>  $rows  with id and parent_id (Term models or plain rows)
      * @return list<array{0: int, 1: int}> term id, depth
      */
     public static function order(array $rows, ?int $parent = null, int $depth = 0): array
