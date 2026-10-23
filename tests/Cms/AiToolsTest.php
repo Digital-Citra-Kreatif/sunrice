@@ -93,12 +93,19 @@ it('writes drafts and publishes them, as the editor does', function () {
     $token = cmsAgent(['cms.entries.view', 'cms.entries.create', 'cms.entries.update', 'cms.entries.publish', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete']);
     $tag = cmsTool($token, 'cms_save_term', ['taxonomy' => 'tags', 'title' => 'News']);
     expect($tag)->toContain('taxonomy');
-    Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     $tag = cmsTool($token, 'cms_save_term', ['taxonomy' => 'tags', 'title' => 'News']);
     expect(cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags'])['terms'][0])->toMatchArray(['id' => $tag['id'], 'translations' => ['en' => ['title' => 'News', 'slug' => 'news', 'url' => null, 'collection_urls' => []]]]);
+    $tags->collections()->attach($this->blog, ['term_pages' => false, 'index_page' => false]);
 
-    $created = cmsTool($token, 'cms_save_entry', ['collection' => 'blog', 'title' => 'From the agent', 'data' => ['intro' => 'Written by AI', 'tags' => [$tag['id']]], 'seo' => ['description' => 'Short']]);
+    // The entry's own terms by taxonomy (a slug, or an id), and a terms field's value apart.
+    expect(cmsTool($token, 'cms_get_entry', ['collection' => 'blog'])['taxonomies'])->toBe([['handle' => 'tags', 'title' => 'Tags', 'single' => false]])
+        ->and(cmsTool($token, 'cms_save_entry', ['collection' => 'blog', 'title' => 'Nope', 'data' => ['intro' => 'x'], 'terms' => ['tags' => ['nothing']]]))->toContain('nothing isn\'t a term of Tags');
+    $created = cmsTool($token, 'cms_save_entry', ['collection' => 'blog', 'title' => 'From the agent', 'data' => ['intro' => 'Written by AI', 'tags' => [$tag['id']]], 'terms' => ['tags' => ['news']], 'seo' => ['description' => 'Short']]);
     expect($created)->toMatchArray(['saved' => true, 'title' => 'From the agent', 'slug' => 'from-the-agent', 'status' => 'draft']);
+    expect(cmsTool($token, 'cms_get_entry', ['id' => $created['id']]))->toMatchArray([
+        'terms' => ['tags' => [['id' => $tag['id'], 'slug' => 'news', 'title' => 'News']]], 'live_terms' => ['tags' => []],
+    ]);
 
     expect(cmsTool($token, 'cms_save_entry', ['id' => $created['id'], 'data' => ['intro' => '']]))->toContain('Intro');
     $saved = cmsTool($token, 'cms_save_entry', ['id' => $created['id'], 'data' => ['intro' => 'Better'], 'publish' => true]);
@@ -108,6 +115,9 @@ it('writes drafts and publishes them, as the editor does', function () {
     expect($translation->data)->toMatchArray(['intro' => 'Better', 'tags' => [$tag['id']]])
         ->and($translation->data['seo']['description'])->toBe('Short')
         ->and($translation->entry->terms->pluck('id')->all())->toBe([$tag['id']]);
+    // Taken off with [], published with the rest.
+    cmsTool($token, 'cms_save_entry', ['id' => $created['id'], 'terms' => ['tags' => []], 'publish' => true]);
+    expect($translation->entry->terms()->count())->toBe(0);
     expect(Activity::query()->where('subject_type', 'entry')->where('source', 'ai')->pluck('action')->all())->toContain('created', 'updated', 'published');
 });
 

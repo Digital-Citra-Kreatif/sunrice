@@ -92,7 +92,7 @@ it('validates and saves drafts with the entry\'s blueprint', function () {
     expect($translation->fresh()?->draft_data)->toMatchArray(['intro' => 'Hi', 'headline' => 'Welcome', 'body' => 'Body text']);
 });
 
-it('hydrates, syncs terms and finds references with the entry\'s blueprint', function () {
+it('hydrates and finds references with the entry\'s blueprint, whose terms field isn\'t the entry\'s terms', function () {
     $term = app(SaveTerm::class)->handle($this->tags, ['title' => 'News']);
     $translation = overridePage();
     app(ChangeBlueprint::class)->handle($translation->entry, 'landing');
@@ -103,7 +103,8 @@ it('hydrates, syncs terms and finds references with the entry\'s blueprint', fun
     $topics = $live->values()['topics'];
     expect($topics)->toHaveCount(1)
         ->and($topics[0])->not->toBe($term->id) // a term, not its id
-        ->and($live->entry->terms()->pluck('sunrice_terms.id')->all())->toBe([$term->id])
+        // A terms field is a field like any other: the entry's own terms come from its collection's taxonomies.
+        ->and($live->entry->terms()->pluck('sunrice_terms.id')->all())->toBe([])
         ->and($live->search_text)->toContain('Welcome')
         ->and((new EntryQuery(['pages']))->whereFieldTerm('topics', 'news')->count())->toBe(1); // the field is the entry's blueprint's
 });

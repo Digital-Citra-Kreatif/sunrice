@@ -38,7 +38,7 @@ beforeEach(function () {
     $this->films = Collection::query()->create(['handle' => 'films', 'title' => 'Films', 'blueprint' => 'post', 'route' => '/films/{slug}']);
     $this->tags->collections()->attach([$this->books->id, $this->films->id]);
     $this->featured = app(SaveTerm::class)->handle($this->tags, ['title' => 'Featured']);
-    $publish = fn (Collection $c, string $title) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($c, ['title' => $title, 'data' => ['tags' => [$this->featured->id]]]));
+    $publish = fn (Collection $c, string $title) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($c, ['title' => $title, 'terms' => ['tags' => [$this->featured->id]]]));
     $publish($this->books, 'Dune');
     $publish($this->films, 'Alien');
 });

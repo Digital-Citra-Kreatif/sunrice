@@ -497,10 +497,9 @@ it('runs a listing\'s and a term page\'s entries query only when the template us
     $tags = Taxonomy::query()->create(['handle' => 'places', 'title' => 'Places', 'route' => '/places/{slug}', 'hierarchical' => true]);
     $bali = app(SaveTerm::class)->handle($tags, ['title' => 'Bali']);
     $canggu = app(SaveTerm::class)->handle($tags, ['title' => 'Canggu', 'parent_id' => $bali->id]);
-    Blueprint::query()->where('handle', 'post')->firstOrFail()->update(['fields' => [['handle' => 'intro', 'type' => 'text'], ['handle' => 'places', 'type' => 'terms', 'config' => ['taxonomy' => 'places']]]]);
     $tags->collections()->attach($this->blog);
     foreach (range(1, 3) as $i) {
-        app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => "Post {$i}", 'data' => ['places' => $i === 1 ? $bali->id : $canggu->id]]));
+        app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => "Post {$i}", 'terms' => ['places' => $i === 1 ? $bali->id : $canggu->id]]));
     }
     $views = sys_get_temp_dir().'/sunrice-lazy-'.uniqid();
     foreach (['collections/blog', 'taxonomies/places'] as $folder) {

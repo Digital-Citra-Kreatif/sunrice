@@ -45,6 +45,12 @@ Until 1.0, APIs may change between versions; every change is recorded in `CHANGE
 
 ## Unreleased
 
+- **Entries' terms come from their collection's taxonomies** (`php artisan migrate` runs `2026_10_23_000001` and `2026_10_23_000002`): the editor's **Taxonomies** card chooses an entry's terms for the taxonomies attached to its collection, and **Terms** fields no longer give entries their terms. Your site shows the same terms after the upgrade (the live terms stay); an entry whose draft had other terms in its top-level terms fields keeps them as unpublished changes. Then:
+  - **Attach** each taxonomy your entries are tagged with to their collection (Structure → Taxonomies → **Collections**, or the collection's **Taxonomies**) if it isn't yet: a terms field in a collection's blueprint for a taxonomy that isn't attached no longer counts, and its entries list no longer filters by it. Tick **One term only** where an entry should have one.
+  - **Delete the terms fields** that only gave entries their terms (the Terms field type stays for custom links, like a "Featured topic"): their values stay stored, unused. Templates that read the entry's terms from such a field (`$values['topics']`) read `$entry->terms` or `$entry->termsOf('topics')` instead.
+  - Code: `AttachCollections::handle()` no longer takes `$removeFields` and returns `attached` and `detached`; `AttachCollections::blueprintsWithField()` is gone. Give `SaveDraft`, `CreateEntry` or `SaveEntryTerms` an entry's terms as `terms` (taxonomy handle => term ids or slugs) instead of writing them into a terms field's data.
+  - Structure files and starters: write an entry's terms as its `terms` (`{"topics": ["news"]}`); files without it still import, the values of their entries' top-level terms fields standing in.
+
 - **Site visitors get a session only when a page needs one** (`sunrice-cms.site.lazy_sessions`, on by default): a visitor without a session cookie reading a page without a form gets no session and no `laravel_session` or `XSRF-TOKEN` cookie. If your templates or front-end scripts rely on every visitor having them (`session()->getId()`, JavaScript reading `XSRF-TOKEN` on a page with no form), set `SUNRICE_LAZY_SESSIONS=false`, or print `csrf_token()` on those pages. A middleware list of your own in `sunrice-cms.site.middleware` keeps working: its `StartSession` is replaced on site routes. See [Sessions](../packages/cms/docs/site.md#sessions).
 
 ## 0.1.0
