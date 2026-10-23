@@ -16,11 +16,11 @@ export interface PageHeaderProps {
     description?: React.ReactNode;
     /** A button back to the list this page belongs to. */
     back?: { href: string; label: string };
-    /** Buttons on the right, before the primary action and the menu. */
+    /** Buttons on the right, between the menu and the primary action. */
     actions?: React.ReactNode;
     /** The page's main action ("New entry"), the one prominent button. */
     primary?: React.ReactNode;
-    /** Secondary actions and links (Export CSV, settings, blueprint…), in a "⋮" menu after the primary action. */
+    /** Secondary actions and links (Export CSV, settings, blueprint…), in a "⋮" menu first on the right, as in the entry editor. */
     menu?: PageHeaderMenuItem[];
     /** Beside the title: a status badge, a switcher, "Unsaved changes". */
     children?: React.ReactNode;
@@ -29,7 +29,7 @@ export interface PageHeaderProps {
 
 /**
  * The block at the top of every admin page: the title (sunrice-page-title), what's beside it, and its actions:
- * one primary button and the rest in a "⋮" menu (table controls such as Columns belong to the table's toolbar).
+ * the rest in a "⋮" menu, then one primary button last (table controls such as Columns belong to the table's toolbar).
  */
 export function PageHeader({ title, description, back, actions, primary, menu, children, className }: PageHeaderProps) {
     const hasMenu = menu !== undefined && menu.length > 0;
@@ -50,9 +50,9 @@ export function PageHeader({ title, description, back, actions, primary, menu, c
             </div>
             {(actions || primary || hasMenu) && (
                 <div className="flex flex-wrap items-center gap-2">
+                    {hasMenu && <PageHeaderMenu items={menu} />}
                     {actions}
                     {primary}
-                    {hasMenu && <PageHeaderMenu items={menu} />}
                 </div>
             )}
         </div>
