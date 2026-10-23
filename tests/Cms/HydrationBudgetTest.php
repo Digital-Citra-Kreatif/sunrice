@@ -45,7 +45,9 @@ beforeEach(function () {
     $this->bali = app(SaveTerm::class)->handle($this->tags, ['title' => 'Bali']);
 
     $card = '[{{ $p->title }}|{{ $p->url() }}|@php($v = $p->values()){{ $v[\'photo\']?->url() }}|{{ $v[\'agent\']?->title }}|{{ $v[\'agent\']?->values()[\'photo\']?->url() }}'
-        .'|@foreach ($v[\'tags\'] as $t){{ $t->title() }} {{ $t->url() }} {{ $t->parent?->title() }}@endforeach|{{ $v[\'area\']?->title() }}]';
+        .'|@foreach ($v[\'tags\'] as $t){{ $t->title() }} {{ $t->url() }} {{ $t->parent?->title() }}@endforeach|{{ $v[\'area\']?->title() }}'
+        // Its own terms, read for the whole list at once.
+        .'|@foreach ($p->terms as $t){{ $t->title() }} {{ $t->url() }}@endforeach]';
     $views = sys_get_temp_dir().'/sunrice-hydration-'.uniqid();
     foreach (['collections/pages', 'collections/properties', 'taxonomies/tags'] as $folder) {
         mkdir("{$views}/cms/{$folder}", recursive: true);
@@ -72,7 +74,7 @@ function properties(int $count): array
         $made[] = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle(test()->properties, ['title' => "Villa {$n}", 'data' => [
             'photo' => $media(), 'agent' => $agent->entry_id, 'tags' => [test()->bali->id, $tag->id], 'area' => $tag->id,
             'related' => $made === [] ? [] : [end($made)->entry_id], 'others' => array_map(fn (EntryTranslation $t): int => $t->entry_id, $made),
-        ]]));
+        ], 'terms' => ['tags' => [test()->bali->id, $tag->id]]]));
     }
 
     return $made;
@@ -97,8 +99,8 @@ it('hydrates a listing\'s, a term page\'s and the search\'s cards together', fun
     properties(6);
     $many = [queriesFor('/properties', 'Agent 8'), queriesFor('/tags/bali', 'Agent 8'), queriesFor('/search?q=villa', 'Agent 8')];
 
-    // Was 46/48/43 for two cards and 181/183/178 for eight: about five queries a card.
-    expect($many)->toBe($few)->and(max($many))->toBeLessThanOrEqual(19);
+    // Was 46/48/43 for two cards and 181/183/178 for eight: about five queries a card. One more for the entries' own terms.
+    expect($many)->toBe($few)->and(max($many))->toBeLessThanOrEqual(20);
 });
 
 it('hydrates an entries field\'s chosen entries, and what they point at, together', function () {

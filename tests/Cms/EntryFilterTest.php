@@ -27,7 +27,6 @@ beforeEach(function () {
         ['handle' => 'features', 'type' => 'select', 'config' => ['multiple' => true, 'options' => [['value' => 'wifi', 'label' => 'Wi-Fi'], ['value' => 'parking', 'label' => 'Parking']]]],
         ['handle' => 'sale', 'type' => 'toggle'],
         ['handle' => 'made', 'type' => 'date'],
-        ['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics', 'multiple' => true]],
     ]]);
     $this->shop = Collection::query()->create(['handle' => 'shop', 'title' => 'Shop', 'blueprint' => 'product', 'route' => '/shop/{slug}', 'per_page' => 10]);
     $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'hierarchical' => true]);
@@ -36,10 +35,11 @@ beforeEach(function () {
     $this->kitchen = app(SaveTerm::class)->handle($topics, ['title' => 'Kitchen', 'parent_id' => $this->home->id]);
     $this->garden = app(SaveTerm::class)->handle($topics, ['title' => 'Garden']);
 
-    $product = fn (string $title, array $data) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->shop, ['title' => $title, 'data' => $data]));
-    $product('Red kettle', ['price' => 30, 'color' => 'red', 'features' => ['wifi'], 'sale' => true, 'made' => '2026-01-10', 'topics' => [$this->kitchen->id]]);
-    $product('Blue lamp', ['price' => 120, 'color' => 'blue', 'features' => ['wifi', 'parking'], 'made' => '2026-03-05', 'topics' => [$this->home->id]]);
-    $product('Green hose', ['price' => 15, 'color' => 'green', 'features' => [], 'sale' => true, 'made' => '2026-06-01', 'topics' => [$this->garden->id]]);
+    // Their terms are their own (the editor's Taxonomies card), of the taxonomy attached to the collection.
+    $product = fn (string $title, array $data, array $topics) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->shop, ['title' => $title, 'data' => $data, 'terms' => ['topics' => $topics]]));
+    $product('Red kettle', ['price' => 30, 'color' => 'red', 'features' => ['wifi'], 'sale' => true, 'made' => '2026-01-10'], [$this->kitchen->id]);
+    $product('Blue lamp', ['price' => 120, 'color' => 'blue', 'features' => ['wifi', 'parking'], 'made' => '2026-03-05'], [$this->home->id]);
+    $product('Green hose', ['price' => 15, 'color' => 'green', 'features' => [], 'sale' => true, 'made' => '2026-06-01'], [$this->garden->id]);
 
     $filters = "['q' => 'search', 'topic' => ['type' => 'terms', 'taxonomy' => 'topics'], 'color' => ['type' => 'select', 'multiple' => true], 'feature' => ['type' => 'select', 'field' => 'features'], 'price' => 'range', 'made' => ['type' => 'date_range', 'label' => 'Made'], 'sale' => ['type' => 'toggle', 'label' => 'On sale']]";
     $sorts = "['name' => 'alphabetical', 'cheap' => ['label' => 'Price, low to high', 'order' => 'price'], 'dear' => '-price']";

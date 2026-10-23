@@ -121,7 +121,7 @@ it('filters by a term of an attached taxonomy, and ignores other taxonomies', fu
         ->where('filters.taxonomies.0.terms', [['value' => (string) $tea->id, 'label' => 'Tea', 'depth' => 0], ['value' => (string) $green->id, 'label' => 'Green', 'depth' => 1]]));
 });
 
-it('filters by a taxonomy the blueprint has a terms field for, without ticking the collection on it', function () {
+it('filters by the taxonomies attached to the collection only, not those of its terms fields', function () {
     $areas = Taxonomy::query()->create(['handle' => 'areas', 'title' => 'Areas']);
     $bali = app(SaveTerm::class)->handle($areas, ['title' => 'Bali']);
     $blueprint = Blueprint::query()->where('handle', 'product')->first();
@@ -130,10 +130,13 @@ it('filters by a taxonomy the blueprint has a terms field for, without ticking t
     listProduct('Flat');
     lister();
 
-    expect(listed("terms[areas]={$bali->id}"))->toBe(['Villa']);
+    // A terms field gives no filter: the filter's ignored.
+    expect(listed("terms[areas]={$bali->id}"))->toBe(['Flat', 'Villa']);
     get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
-        ->where('filters.taxonomies.0.handle', 'topics')
-        ->where('filters.taxonomies.1.handle', 'areas'));
+        ->where('filters.taxonomies', fn ($taxonomies) => collect($taxonomies)->pluck('handle')->all() === ['topics']));
+    // Attached: it filters, by the entries' own terms.
+    $areas->collections()->attach(Collection::query()->where('handle', 'products')->firstOrFail());
+    expect(listed("terms[areas]={$bali->id}"))->toBe(['Villa']);
 });
 
 it('lists another language\'s translations', function () {

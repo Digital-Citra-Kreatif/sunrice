@@ -56,7 +56,7 @@ beforeEach(function () {
     $this->tags->collections()->attach([$this->books->id, $this->films->id]);
     $this->featured = app(SaveTerm::class)->handle($this->tags, ['title' => 'Featured']);
     $this->scifi = app(SaveTerm::class)->handle($this->tags, ['title' => 'Sci-fi']);
-    $publish = fn (Collection $c, string $title, array $terms) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($c, ['title' => $title, 'data' => ['tags' => $terms]]));
+    $publish = fn (Collection $c, string $title, array $terms) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($c, ['title' => $title, 'terms' => ['tags' => $terms]]));
     $publish($this->books, 'Dune', [$this->featured->id]);
     $publish($this->films, 'Alien', [$this->featured->id, $this->scifi->id]);
     // Its routes are read again once changed (each test's requests share the app).
@@ -402,7 +402,7 @@ it('gives new attachments their index page and term pages', function () {
 });
 
 it('counts a collection\'s terms from its live translations, not entry by entry', function () {
-    $publish = fn (Collection $c, string $title, array $terms) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($c, ['title' => $title, 'data' => ['tags' => $terms]]));
+    $publish = fn (Collection $c, string $title, array $terms) => app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($c, ['title' => $title, 'terms' => ['tags' => $terms]]));
     $publish($this->books, 'Solaris', [$this->featured->id, $this->scifi->id]);
     DB::flushQueryLog();
     DB::enableQueryLog();
