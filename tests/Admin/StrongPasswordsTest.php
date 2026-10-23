@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +15,7 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Actions\Settings\SaveSettings;
+use Sunrice\Admin\Actions\Users\DeleteUser;
 use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Auth\PasswordPolicy;
@@ -21,6 +23,7 @@ use Sunrice\Admin\Auth\TwoFactorLogin;
 use Sunrice\Admin\Auth\WeakPasswordAtLogin;
 use Sunrice\Admin\Notifications\LoginCode;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\AccountSecurity;
 use Sunrice\Admin\Security\SecuritySettings;
 use Workbench\App\Models\User;
 
@@ -331,6 +334,99 @@ it('checks the password at the first step of two-factor login, and asks once the
     expect(Activity::query()->where('action', 'weak password at sign-in')->where('subject_id', (string) $rina->id)->exists())->toBeTrue();
     get('/admin')->assertRedirect('/admin/stronger-password');
     expect(TwoFactorLogin::enabled())->toBeTrue();
+});
+
+/** A new browser session, signed back in by the "Remember me" cookie alone. */
+function comeBackRemembered(User $user): void
+{
+    $user = $user->fresh();
+    Auth::forgetGuards();
+    test()->flushSession();
+    test()->withCookie(Auth::guard('web')->getRecallerName(), $user->id.'|'.$user->getRememberToken().'|'.$user->getAuthPassword());
+}
+
+/** The account's kept mark (a fingerprint), or null. */
+function weakMark(User $user): ?string
+{
+    return AccountSecurity::query()->where('user_id', (string) $user->id)->value('weak_password');
+}
+
+it('keeps asking in a new session signed in by "Remember me", until a stronger password is chosen', function () {
+    $rina = adminUser(Panel::ACCESS);
+    $rina->forceFill(['email' => 'rina@example.com', 'password' => 'secret-password'])->save();
+
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password', 'remember' => true])->assertRedirect('/admin');
+    expect(weakMark($rina))->toBeString()->not->toContain('secret');
+
+    // The session is gone; the cookie signs them back in, and the request is still there.
+    comeBackRemembered($rina);
+    get('/admin')->assertRedirect('/admin/stronger-password');
+    expect(auth()->user()?->is($rina))->toBeTrue()->and(Auth::guard('web')->viaRemember())->toBeTrue();
+    get('/admin/stronger-password')->assertOk();
+
+    // Another session of theirs (signed in some other way) is asked too, until they choose one.
+    put('/admin/stronger-password', ['password' => STRONG, 'password_confirmation' => STRONG])->assertRedirect('/admin');
+    expect(weakMark($rina))->toBeNull();
+    Auth::forgetGuards();
+    actingAs($rina->fresh());
+    get('/admin')->assertOk();
+});
+
+it('asks every session of the account, and stops when the setting is turned off', function () {
+    $rina = adminUser(Panel::ACCESS);
+    $rina->forceFill(['email' => 'rina@example.com', 'password' => 'secret-password'])->save();
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password']);
+    post('/admin/logout');
+
+    // Signed in without typing the password here: still asked, the account is marked.
+    actingAs($rina);
+    get('/admin')->assertRedirect('/admin/stronger-password');
+
+    app(SaveSettings::class)->handle(app(SecuritySettings::class), ['changeWeakPasswords' => false]);
+    get('/admin')->assertOk();
+    get('/admin/stronger-password')->assertRedirect('/admin');
+
+    // On again, the same weak password is asked about again.
+    app(SaveSettings::class)->handle(app(SecuritySettings::class), ['changeWeakPasswords' => true]);
+    get('/admin')->assertRedirect('/admin/stronger-password');
+});
+
+it('stops asking once an administrator sets a new password', function () {
+    $rina = adminUser(Panel::ACCESS);
+    $rina->forceFill(['name' => 'Rina', 'email' => 'rina@example.com', 'password' => 'secret-password'])->save();
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password']);
+    post('/admin/logout');
+    expect(weakMark($rina))->not->toBeNull();
+
+    actingAs($this->super);
+    put("/admin/users/{$rina->id}", ['name' => 'Rina', 'email' => 'rina@example.com', 'password' => 'New-'.STRONG, 'password_confirmation' => 'New-'.STRONG, 'roles' => $rina->roles->pluck('name')->all()])
+        ->assertSessionHasNoErrors();
+
+    actingAs($rina->fresh());
+    get('/admin')->assertOk();
+    expect(weakMark($rina))->toBeNull();
+});
+
+it('stops asking once the password is reset, and forgets the mark with the user', function () {
+    $rina = adminUser(Panel::ACCESS);
+    $rina->forceFill(['email' => 'rina@example.com', 'password' => 'secret-password'])->save();
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password']);
+    post('/admin/logout');
+
+    $token = PasswordBroker::broker()->createToken($rina);
+    post('/admin/reset-password', ['token' => $token, 'email' => 'rina@example.com', 'password' => 'New-'.STRONG, 'password_confirmation' => 'New-'.STRONG])
+        ->assertRedirect('/admin/login')->assertSessionHasNoErrors();
+    actingAs($rina->fresh());
+    get('/admin')->assertOk();
+    expect(weakMark($rina))->toBeNull();
+
+    // Weak again (set outside the panel), signed in, then deleted: nothing is left.
+    $rina->forceFill(['password' => 'secret-password'])->save();
+    post('/admin/logout');
+    post('/admin/login', ['email' => 'rina@example.com', 'password' => 'secret-password']);
+    expect(weakMark($rina))->not->toBeNull();
+    app(DeleteUser::class)->handle($rina->fresh());
+    expect(AccountSecurity::query()->where('user_id', (string) $rina->id)->exists())->toBeFalse();
 });
 
 it('checks leaks at sign-in too, when the check is on', function () {
