@@ -3,8 +3,13 @@
 declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Sunrice\Admin\Actions\Media\UploadMedia;
+use Sunrice\Admin\Actions\Settings\SaveSettings;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\CmsPlugin;
@@ -12,7 +17,9 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Menu;
+use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\StarterKit\Actions\InstallStarter;
+use Sunrice\StarterKit\Actions\MakeStarter;
 use Sunrice\StarterKit\Installation;
 use Sunrice\StarterKit\Starter;
 use Sunrice\StarterKit\Starters;
@@ -29,6 +36,8 @@ beforeEach(function () {
 // The starter's files land in the test app: gone after each test.
 afterEach(function () {
     $files = new Filesystem;
+    $files->deleteDirectory(lang_path('en'));
+    $files->deleteDirectory(lang_path('vendor'));
     foreach ([resource_path('views/cms'), resource_path('views/errors'), public_path('cms'), $this->made] as $directory) {
         $files->deleteDirectory($directory);
     }
@@ -134,6 +143,51 @@ it('makes a starter from a site, which installs on another as it was', function 
     artisan('sunrice:make-starter', ['name' => 'My Blog', '--to' => $this->made.'-x'])->expectsOutputToContain('lowercase letters')->assertFailed();
     artisan('sunrice:make-starter', ['name' => 'x', '--to' => $this->made.'-x', '--public' => ['nope']])->expectsOutputToContain('"nope" isn\'t a folder of public/')->assertFailed();
     expect(is_dir($this->made.'-x'))->toBeFalse();
+});
+
+it('takes the app\'s translation files, the site\'s settings and the files they use, which install on a fresh app', function () {
+    app(InstallStarter::class)->handle(blogStarter());
+    $logo = app(UploadMedia::class)->handle(UploadedFile::fake()->image('logo.png', 20, 20));
+    $about = EntryTranslation::query()->where('draft_slug', 'about')->sole();
+    app(SaveSettings::class)->handle(new SiteSettings, ['name' => 'Morning Notes', 'description' => 'Notes at sunrise.', 'logo' => $logo->id, 'homepage' => $about->entry_id,
+        'publisherType' => 'NewsMediaOrganization', 'sameAs' => 'https://example.com/notes', 'noindex' => true]);
+    (new Filesystem)->ensureDirectoryExists(lang_path('en'));
+    file_put_contents(lang_path('en/site.php'), "<?php\n\nreturn ['tagline' => 'Slow mornings'];\n");
+    (new Filesystem)->ensureDirectoryExists(lang_path('vendor/sunrice-admin/en'));
+    file_put_contents(lang_path('vendor/sunrice-admin/en/admin.php'), "<?php\n\nreturn [];\n");
+
+    app(MakeStarter::class)->handle('morning', $this->made);
+    $settings = Starter::load($this->made)->site()['settings']['site'];
+    expect($settings)->toMatchArray(['name' => 'Morning Notes', 'logo' => ['media' => 'logo.png'], 'homepage' => ['entry' => 'pages/about']])
+        ->and($settings)->not->toHaveKey('noindex')
+        ->and(is_file("{$this->made}/media/logo.png"))->toBeTrue()
+        ->and(is_file("{$this->made}/lang/en/site.php"))->toBeTrue()
+        ->and(is_dir("{$this->made}/lang/vendor/sunrice-admin"))->toBeFalse();
+
+    // A fresh app: no content, settings, media or translation files of its own.
+    Schema::withoutForeignKeyConstraints(function (): void {
+        foreach (Schema::getTableListing(schemaQualified: false) as $table) {
+            if (str_starts_with($table, 'sunrice_')) {
+                DB::table($table)->delete();
+            }
+        }
+    });
+    Cache::flush();
+    app()->forgetScopedInstances();
+    Storage::fake('public');
+    (new Filesystem)->deleteDirectory(lang_path('en'));
+
+    app(InstallStarter::class)->handle(Starter::load($this->made));
+
+    $site = new SiteSettings;
+    expect($site->name)->toBe('Morning Notes')
+        ->and($site->description)->toBe('Notes at sunrise.')
+        ->and($site->publisherType)->toBe('NewsMediaOrganization')
+        ->and($site->logo)->toBe(Media::query()->where('filename', 'logo.png')->sole()->id)
+        ->and($site->homepage)->toBe(EntryTranslation::query()->where('draft_slug', 'about')->sole()->entry_id)
+        ->and($site->noindex)->toBeFalse()
+        ->and(require lang_path('en/site.php'))->toBe(['tagline' => 'Slow mornings']);
+    get('/')->assertOk()->assertSee('Morning Notes');
 });
 
 it('says what\'s wrong with a starter it can\'t install', function () {
