@@ -95,7 +95,7 @@ it('finds entries for the picker', function () {
 
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view'));
     getJson('/admin/cms/entries/picker?search=TOW&collections[]=projects')->assertOk()
-        ->assertExactJson(['items' => [['id' => $tower->entry_id, 'title' => 'Tower', 'collection' => 'Projects', 'collectionHandle' => 'projects', 'status' => 'published']], 'unavailable' => []]);
+        ->assertExactJson(['items' => [['id' => $tower->entry_id, 'title' => 'Tower', 'collection' => 'Projects', 'collectionHandle' => 'projects', 'status' => 'published', 'changes' => false]], 'unavailable' => []]);
     getJson("/admin/cms/entries/picker?ids[]={$bridge->entry_id}&ids[]={$tower->entry_id}")
         ->assertJsonPath('items.0.title', 'Bridge')->assertJsonPath('items.0.status', 'draft')->assertJsonPath('items.1.title', 'Tower');
 });
@@ -116,7 +116,7 @@ it('lets the picker link to live entries of the collections a user\'s own collec
     // Citra writes the journal only: she may link to live agents, by their live title, but not to notes.
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.journal.view', 'cms.entries.journal.create', 'cms.entries.update-own'));
     getJson('/admin/cms/entries/picker?search=Rafa&collections[]=agents')->assertOk()
-        ->assertExactJson(['items' => [['id' => $rafael->entry_id, 'title' => 'Rafael', 'collection' => 'Agents', 'collectionHandle' => 'agents', 'status' => 'published']], 'unavailable' => []]);
+        ->assertExactJson(['items' => [['id' => $rafael->entry_id, 'title' => 'Rafael', 'collection' => 'Agents', 'collectionHandle' => 'agents', 'status' => 'published', 'changes' => false]], 'unavailable' => []]);
     getJson("/admin/cms/entries/picker?ids[]={$rafael->entry_id}&ids[]={$hidden->entry_id}&collections[]=agents")->assertJsonCount(1, 'items');
     // Not in the command palette, which asks for no collection: its results open the editor.
     getJson('/admin/cms/entries/picker?search=Rafa')->assertExactJson(['items' => [], 'unavailable' => []]);
