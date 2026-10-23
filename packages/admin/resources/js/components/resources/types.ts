@@ -66,6 +66,8 @@ export interface FieldInfo {
     /** Field::warnWhenChanged(): shown on an edit form once the value differs from the saved one. */
     warnWhenChanged?: string | null;
     span: number;
+    /** Field::group(): shown under this heading with the fields next to it in the same group. */
+    group?: string;
     [prop: string]: unknown;
 }
 

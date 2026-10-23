@@ -9,6 +9,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\DeleteTranslation;
+use Sunrice\Cms\Actions\Entries\DiscardChanges;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\CmsPlugin;
@@ -152,6 +153,27 @@ it('marks a translation outdated when the main language changes after it', funct
     expect($id->fresh()?->isOutdated())->toBeTrue();
     app(PublishEntry::class)->handle($id->fresh());
     expect($id->fresh()?->isOutdated())->toBeFalse();
+});
+
+it('leaves other languages up to date when the main one\'s changes are discarded', function () {
+    app(PublishEntry::class)->handle($this->main);
+    $id = app(CreateTranslation::class)->handle($this->main->entry, 'id');
+    app(PublishEntry::class)->handle($id);
+
+    // A draft of the main language marks the other outdated; discarding it takes that back.
+    app(SaveDraft::class)->handle($this->main->fresh(), ['title' => 'Coffee, stronger']);
+    app(SaveDraft::class)->handle($this->main->fresh(), ['title' => 'Coffee, strongest']);
+    expect($id->fresh()?->isOutdated())->toBeTrue();
+    app(DiscardChanges::class)->handle($this->main->fresh());
+    expect($id->fresh()?->isOutdated())->toBeFalse()
+        ->and($this->main->fresh()?->title)->toBe('Coffee');
+
+    // Outdated by a published change, it stays so when a later draft is discarded.
+    app(SaveDraft::class)->handle($this->main->fresh(), ['title' => 'Coffee, stronger']);
+    app(PublishEntry::class)->handle($this->main->fresh());
+    app(SaveDraft::class)->handle($this->main->fresh(), ['title' => 'Coffee, strongest']);
+    app(DiscardChanges::class)->handle($this->main->fresh());
+    expect($id->fresh()?->isOutdated())->toBeTrue();
 });
 
 it('shows outdated translations in the editor and the list', function () {

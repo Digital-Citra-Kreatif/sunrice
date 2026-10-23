@@ -174,7 +174,7 @@ it('translates entries into their drafts, only what isn\'t translated yet', func
         ->and($id->fresh()?->draft_title)->toBe('ID: Coffee');
 
     artisan('sunrice:translate', ['--to' => ['fr']])->assertFailed();
-    artisan('sunrice:translate', ['--only' => ['pages']])->assertFailed();
+    artisan('sunrice:translate', ['--only' => ['everything']])->assertFailed();
 });
 
 it('translates terms, globals and menu labels', function () {

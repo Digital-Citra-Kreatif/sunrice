@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { asRecord, dateInputValue, dateValueFromInput, groupedNumber, hasSharedFields, itemSummary, offersEmptyChoice, newBlock, newRow } from '../../packages/cms/resources/js/lib/values.ts';
+import { asRecord, dateInputValue, decodeEntities, dateValueFromInput, groupedNumber, hasSharedFields, itemSummary, offersEmptyChoice, newBlock, newRow } from '../../packages/cms/resources/js/lib/values.ts';
 
 test('reads stored dates into date inputs', () => {
     assert.equal(dateInputValue('2026-10-19', false), '2026-10-19');
@@ -142,4 +142,15 @@ test('publishes by the picked Publish date from either button: scheduled, back-d
     assert.deepEqual(datedPublish('published', '2026-09-01T09:00:00Z', '2026-09-01T09:00:30Z', now), { action: 'now', at: null }, 'the saved date, to the minute');
     assert.deepEqual(datedPublish('published', '2026-08-01T09:00:00Z', '2026-09-01T09:00:00Z', now), { action: 'redate', at: '2026-08-01T09:00:00.000Z' });
     assert.equal(datedPublish('scheduled', '2026-12-01T09:00:00Z', '2026-11-20T11:00:00Z', now).action, 'schedule');
+    // Taken off the site: its own past date publishes it again as it was, not "back-dated"; a date to come still schedules it.
+    assert.deepEqual(datedPublish('draft', '2026-09-01T09:00:00Z', '2026-09-01T09:00:00Z', now), { action: 'now', at: null });
+    assert.equal(datedPublish('draft', '2026-11-20T11:00:00Z', '2026-11-20T11:00:00Z', now).action, 'schedule');
+});
+
+test('reads a rich text block\'s summary as text, its entities decoded', () => {
+    const fields = [{ handle: 'body', type: 'rich_text' }];
+    assert.equal(itemSummary(fields, { body: '<p>The story of What&#039;s next &amp; more.</p>' }), 'The story of What\'s next & more.');
+    // Decoded markup stays text, and isn't decoded twice.
+    assert.equal(itemSummary(fields, { body: '<p>&lt;script&gt;alert(1)&lt;/script&gt; &amp;amp;</p>' }), '<script>alert(1)</script> &amp;');
+    assert.equal(decodeEntities('&#x27;a&#39; &nbsp;b &bogus; &#0; &#xD800;'), '\'a\'  b &bogus; &#0; &#xD800;');
 });
