@@ -10,6 +10,8 @@
     --border: #e7e5e4;
     --accent: #b45309;
     --accent-text: #ffffff;
+    --danger: #b91c1c;
+    --input-border: #a8a29e;
     --radius: 0.625rem;
     --width: 46rem;
     color-scheme: light dark;
@@ -24,6 +26,8 @@
         --border: #44403c;
         --accent: #f59e0b;
         --accent-text: #1c1917;
+        --danger: #f87171;
+        --input-border: #78716c;
     }
 }
 
@@ -39,7 +43,7 @@ body {
 h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
 img { max-width: 100%; height: auto; }
 a { color: var(--accent); text-underline-offset: 0.15em; }
-a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .muted { color: var(--muted); }
 .eyebrow { margin: 0; color: var(--muted); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.06em; }
 
@@ -86,7 +90,38 @@ figure { margin: 1.5rem 0; }
 
 /* Search */
 .search-form { display: flex; gap: 0.5rem; }
-.search-form input { flex: 1; min-width: 0; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; }
+.search-form input { flex: 1; min-width: 0; padding: 0.55rem 0.75rem; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; }
+
+/* A taxonomy's index page: its terms */
+.terms { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+.terms li { padding: 0.4rem 0.9rem; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; }
+.terms .muted { font-size: 0.875rem; }
+
+/* Forms: comments (<x-sunrice-cms::comments>), <x-sunrice-cms::form> and the unsubscribe page */
+main input:not([type="checkbox"], [type="radio"], [type="hidden"]), main textarea, main select {
+    width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--input-border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text); font: inherit;
+}
+main textarea { min-height: 8rem; resize: vertical; }
+main :is(input, textarea, select)[aria-invalid="true"] { border-color: var(--danger); }
+main form [role="alert"] { color: var(--danger); font-size: 0.9375rem; }
+.sunrice-comments { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+.sunrice-comment-form { display: grid; gap: 1rem; max-width: 36rem; margin-top: 1.5rem; }
+.sunrice-comment-form p { margin: 0; }
+.sunrice-comment-form label:not(:has(input[type="checkbox"])) { display: block; margin-bottom: 0.35rem; font-weight: 600; }
+.sunrice-comment-form label:has(input[type="checkbox"]) { display: inline-flex; align-items: center; gap: 0.5rem; }
+.sunrice-comment-form [role="alert"] { display: block; margin-top: 0.35rem; }
+.sunrice-comment-form button { justify-self: start; }
+.sunrice-comments-status { padding: 0.75rem 1rem; border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: var(--radius); background: var(--surface); }
+.sunrice-comments-list, .sunrice-comment-replies { display: grid; gap: 1rem; margin: 1.5rem 0 0; padding: 0; list-style: none; }
+.sunrice-comment { padding: 1rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.sunrice-comment-replies { margin-top: 1rem; padding-left: 1rem; border-left: 2px solid var(--border); }
+.sunrice-comment-replies .sunrice-comment { border: 0; padding: 0; }
+.sunrice-comment-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin: 0 0 0.5rem; }
+.sunrice-comment-meta time { color: var(--muted); font-size: 0.875rem; }
+.sunrice-comment-body > :first-child { margin-top: 0; }
+.sunrice-comment-body > :last-child { margin-bottom: 0; }
+.sunrice-comment-reply { margin: 0.5rem 0 0; font-size: 0.9375rem; }
 
 /* Footer */
 .site-footer { border-top: 1px solid var(--border); padding-block: 2rem; font-size: 0.9375rem; }
