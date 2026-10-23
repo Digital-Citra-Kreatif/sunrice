@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Queue\Events\JobQueued;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -286,4 +289,20 @@ it('gives a thumbnail and a srcset from the sizes an image has', function () {
     $small->forceFill(['sizes' => []]);
     expect($small->thumbnail())->toBe($small->url())
         ->and(upload(UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf'))->srcset())->toBe('');
+});
+
+it('queues the sizes of a file uploaded in a transaction once it commits, so a worker finds the file', function () {
+    config(['sunrice-admin.media.queue' => true, 'queue.default' => 'database', 'queue.connections.database.connection' => null]);
+    $levels = [];
+    Event::listen(JobQueued::class, function () use (&$levels): void {
+        $levels[] = DB::transactionLevel();
+    });
+    $base = DB::transactionLevel();
+
+    DB::transaction(function () use (&$levels): void {
+        upload(UploadedFile::fake()->image('photo.jpg', 900, 600));
+        expect($levels)->toBe([]);
+    });
+
+    expect($levels)->toBe([$base])->and(DB::table('jobs')->count())->toBe(1);
 });

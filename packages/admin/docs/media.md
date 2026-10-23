@@ -108,7 +108,7 @@ In `config/sunrice-admin.php` under `media`:
 | `max_upload_kb` | `20480` | The largest upload; PHP's `upload_max_filesize` and `post_max_size` cap it too. |
 | `allowed_extensions` | images, documents, audio, video, fonts | What may be uploaded. |
 | `image_sizes` | `thumbnail` 300×300 crop, `medium` 800 wide, `large` 1600 wide | `name => [width, height, 'crop' or 'fit']`. `fit` scales down only; `null` leaves a side free. |
-| `queue` | `null` | Make sizes on the queue instead of during the upload: `true`, `false`, or `null` to queue them whenever the default queue connection isn't `sync` (or `null`). A queued image keeps only its original until the job ran: `url('thumbnail')` and the library's thumbnails show the original meanwhile. |
+| `queue` | `null` | Make sizes on the queue instead of during the upload: `true`, `false`, or `null` to queue them whenever the default queue connection isn't `sync` (or `null`). A queued image keeps only its original until the job ran: `url('thumbnail')` and the library's thumbnails show the original meanwhile. An upload inside a database transaction queues its job once that commits. |
 | `max_pixels` | 40 million | Larger images keep only their original (decoding them could run out of memory). |
 | `optimize` | 2560 × 2560, quality 82, backups on `local` | Defaults of `sunrice:optimize-images` (see above). |
 

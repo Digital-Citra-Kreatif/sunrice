@@ -84,6 +84,17 @@ php artisan queue:work
 
 With `sync`, queued work runs during the request instead. See [Mail](mail.md) for the mailer itself, and send a test email from **Settings → Mail** once it's set up.
 
+On **SQLite**, a worker and the site write to the same file. Laravel's default `sqlite` connection begins transactions `DEFERRED`, and one that reads and then writes while another connection is writing fails at once with "database is locked" (a busy timeout doesn't help there). With a worker, or more than a few editors, set it in `config/database.php` (there are no environment variables for these; `php artisan config:publish database` writes the file if the app has none):
+
+```php
+'sqlite' => [
+    // …
+    'busy_timeout' => 5000,
+    'journal_mode' => 'wal',
+    'transaction_mode' => 'IMMEDIATE',
+],
+```
+
 ### The storage link
 
 The media library stores files on the `public` disk (`sunrice-admin.media.disk`), served through `public/storage`. `sunrice:install` makes the link; on a new server, run `php artisan storage:link`. Until it exists, the Media page warns uploaders. See [Media](media.md#headers-at-the-web-server) for headers to set on that folder at the web server (for Apache, `sunrice:install` writes them as an `.htaccess` there).
