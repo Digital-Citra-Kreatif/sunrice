@@ -1,6 +1,6 @@
 # Preferences
 
-Each user's own choices in the panel are kept on the server, per user and key, as JSON: which columns a table shows and how many rows per page, so they follow the person from browser to browser. Resource tables use them (the **Columns** menu and the page size), and so does the CMS's entries list.
+Each user's own choices in the panel are kept on the server, per user and key, as JSON: which columns a table shows and how many rows per page, so they follow the person from browser to browser. Resource tables use them (the **Columns** menu and the page size), and so does the CMS's entries list; the dashboard keeps the cards each user folded away as `dashboard.collapsed` (a list of widget keys, see [Dashboard widgets](panel.md#dashboard-widgets)).
 
 ## In PHP
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { formatStat, greeting, isExternal, quickLinks, relativeTime, spanClass, widgetHref } from '../../packages/admin/resources/js/lib/dashboard.ts';
+import { formatStat, greeting, isExternal, parseCollapsed, quickLinks, relativeTime, spanClass, widgetHref, withCollapsed } from '../../packages/admin/resources/js/lib/dashboard.ts';
 
 const adminUrl = (path: string) => `/admin/${path}`;
 
@@ -61,4 +61,15 @@ test('every <Deferred> has a fallback Inertia accepts (it throws on a falsy one,
             assert.match(tag, /fallback=\{(?!null\}|undefined\}|false\}|''\})/, `${file}: ${tag}`);
         }
     }
+});
+
+test('keeps the folded widgets in the dashboard\'s order', () => {
+    const all = ['sunrice.media', 'cms.recent-edits', 'sunrice.activity'];
+    assert.deepEqual(parseCollapsed(['sunrice.activity', 3, 'sunrice.activity', null]), ['sunrice.activity']);
+    assert.deepEqual(parseCollapsed('sunrice.activity'), []);
+    assert.deepEqual(parseCollapsed(undefined), []);
+    assert.deepEqual(withCollapsed(['sunrice.activity'], 'sunrice.media', true, all), ['sunrice.media', 'sunrice.activity']);
+    assert.deepEqual(withCollapsed(['sunrice.media', 'sunrice.activity'], 'sunrice.media', false, all), ['sunrice.activity']);
+    // A key the dashboard no longer shows (hidden, or no longer allowed) is dropped.
+    assert.deepEqual(withCollapsed(['gone'], 'cms.recent-edits', true, all), ['cms.recent-edits']);
 });

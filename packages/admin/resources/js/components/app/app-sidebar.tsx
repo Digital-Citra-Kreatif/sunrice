@@ -50,10 +50,10 @@ export function AppSidebar() {
                         <SidebarMenuButton tooltip={entry.label} isActive={isCurrent(entry.url) && !open}>
                             <Icon />
                             <span>{entry.label}</span>
-                            <ChevronRight className="ml-auto transition-transform group-data-[state=open]/submenu:rotate-90" />
+                            <ChevronRight className="ml-auto transition-transform duration-200 ease-out group-data-[state=open]/submenu:rotate-90 motion-reduce:transition-none" />
                         </SidebarMenuButton>
                     </CollapsibleTrigger>
-                    <CollapsibleContent>
+                    <CollapsibleContent className="sunrice-collapsible">
                         <SidebarMenuSub>
                             {[{ key: `${entry.key}:self`, label: entry.label, url: entry.url }, ...entry.children].map((child) => (
                                 <SidebarMenuSubItem key={child.key}>
@@ -143,10 +143,10 @@ function NavGroup({ label, current, children }: { label: string; current: boolea
                 <SidebarGroupLabel asChild className="mb-1 text-[10px] font-semibold tracking-[0.14em] uppercase">
                     <CollapsibleTrigger className="flex w-full cursor-pointer items-center hover:text-sidebar-foreground">
                         {label}
-                        <ChevronRight className="ml-auto size-3.5 transition-transform group-data-[state=open]/navgroup:rotate-90" />
+                        <ChevronRight aria-hidden="true" className="ml-auto size-3.5 transition-transform duration-200 ease-out group-data-[state=open]/navgroup:rotate-90 motion-reduce:transition-none" />
                     </CollapsibleTrigger>
                 </SidebarGroupLabel>
-                <CollapsibleContent>
+                <CollapsibleContent className="sunrice-collapsible">
                     <SidebarMenu>{children}</SidebarMenu>
                 </CollapsibleContent>
             </SidebarGroup>

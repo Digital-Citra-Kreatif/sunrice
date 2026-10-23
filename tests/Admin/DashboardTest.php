@@ -8,12 +8,16 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Dashboard\Widget;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Preferences\Preferences;
+use Sunrice\Tests\Admin\Fixtures\HomeController;
 use Sunrice\Tests\Admin\Fixtures\TestPlugin;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+use function Pest\Laravel\putJson;
 
 // Reloads (deferred props) look for the page file; the pages are the panel's frontend.
 beforeEach(fn () => config(['inertia.testing.ensure_pages_exist' => false]));
@@ -175,4 +179,103 @@ it('has the panel\'s own widgets: recent activity and media', function () {
     // Without the permissions, neither.
     actingAs(adminUser(Panel::ACCESS));
     get('/admin')->assertInertia(fn (Assert $page) => $page->where('widgets', []));
+});
+
+it('hides widgets the app names, whenever they are registered', function () {
+    // The plugin registers after the app's call; unknown keys (a plugin that isn't installed) are ignored.
+    $panel = Panel::make()->withoutWidgets('sunrice.activity', 'shop.revenue', 'cms.recent-edits')
+        ->widgets(statWidget('orders'))
+        ->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->widgets(statWidget('shop.revenue'), statWidget('shop.stock'))));
+    $panel->boot();
+
+    $keys = array_map(fn (Widget $w) => $w->key, $panel->widgetsFor(adminUser('sunrice.activity.view', 'sunrice.media.view')));
+    expect($keys)->toContain('orders', 'shop.stock', 'sunrice.media')
+        ->not->toContain('sunrice.activity', 'shop.revenue')
+        ->and($panel->getHiddenWidgets())->toBe(['sunrice.activity', 'shop.revenue', 'cms.recent-edits'])
+        // Still registered (tests resolve them by key), just not on the dashboard.
+        ->and($panel->getWidgets())->toHaveKey('shop.revenue');
+
+    // It's the app's choice: a plugin can't hide another's widgets, and nobody can after boot.
+    expect(fn () => Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->withoutWidgets('sunrice.media')))->boot())
+        ->toThrow(PanelMisconfigured::class, 'The plugin "shop" called withoutWidgets()');
+    expect(fn () => $panel->withoutWidgets('orders'))->toThrow(PanelMisconfigured::class);
+});
+
+it('leaves hidden widgets off the page and never runs their data', function () {
+    $ran = (object) ['times' => 0];
+    usePanel(fn (Panel $panel) => $panel->withoutWidgets('secret')->widgets(
+        statWidget('shown'),
+        Widget::stat('secret')->everyone()->data(function () use ($ran): array {
+            $ran->times++;
+
+            return ['value' => 1];
+        }),
+    ));
+    actingAs(adminUser(Panel::ACCESS));
+
+    get('/admin')->assertInertia(fn (Assert $page) => $page
+        ->where('widgets.0.key', 'shown')
+        ->has('widgets', 1)
+        ->loadDeferredProps('widgets', fn (Assert $reload) => $reload->missing('widget_secret')));
+    expect($ran->times)->toBe(0);
+});
+
+it('remembers the widgets a user folded away, per user, across devices', function () {
+    usePanel(fn (Panel $panel) => $panel->mediaLibrary(false)->widgets(statWidget('orders'), statWidget('visits')));
+    $rina = adminUser(Panel::ACCESS);
+    actingAs($rina);
+
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('collapsed', []));
+
+    // What the toggle saves (PUT admin/preferences/dashboard.collapsed), read back on the next visit.
+    putJson('/admin/preferences/dashboard.collapsed', ['value' => ['visits', 'gone', 'orders']])->assertSuccessful();
+    expect(app(Preferences::class)->get($rina, 'dashboard.collapsed'))->toBe(['visits', 'gone', 'orders']);
+    // Only widgets the dashboard shows, in the dashboard's order.
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('collapsed', ['orders', 'visits']));
+
+    // Someone else's dashboard is their own.
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('collapsed', []));
+
+    // Nothing usable stored: nothing folded.
+    app(Preferences::class)->set($rina, 'dashboard.collapsed', 'orders');
+    actingAs($rina);
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('collapsed', []));
+});
+
+it('replaces the dashboard with the app\'s own page, still guarded and still named', function () {
+    usePanel(fn (Panel $panel) => $panel->dashboard(fn () => Inertia\Inertia::render('App/Dashboard', ['greeting' => 'Hello'])));
+    expect(app(Panel::class)->hasOwnDashboard())->toBeTrue()
+        ->and(route('sunrice.admin.dashboard'))->toBe(url('/admin'));
+
+    get('/admin')->assertRedirect('/admin/login');
+    actingAs(adminUser());
+    get('/admin')->assertForbidden();
+
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('App/Dashboard', shouldExist: false)
+        ->where('greeting', 'Hello')
+        ->missing('widgets'));
+});
+
+it('takes a controller or a redirect for the dashboard', function () {
+    usePanel(fn (Panel $panel) => $panel->dashboard(fn () => to_route('sunrice.admin.activity.index')));
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin')->assertRedirect('/admin/activity');
+
+    $panel = Panel::make()->dashboard(HomeController::class);
+    expect($panel->getDashboard())->toBe(HomeController::class)
+        ->and(Panel::make()->getDashboard())->toBe(DashboardController::class)
+        ->and(Panel::make()->hasOwnDashboard())->toBeFalse();
+
+    expect(fn () => Panel::make()->dashboard('App\\Missing\\Home'))->toThrow(PanelMisconfigured::class, 'isn\'t a class')
+        ->and(fn () => Panel::make()->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->dashboard(fn () => 'mine')))->boot())
+        ->toThrow(PanelMisconfigured::class, 'The plugin "shop" called dashboard()');
+});
+
+it('serves an invokable controller as the dashboard', function () {
+    usePanel(fn (Panel $panel) => $panel->dashboard(HomeController::class));
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin')->assertOk()->assertInertia(fn (Assert $page) => $page->component('App/Home', shouldExist: false)->where('user', 'Rina'));
 });
