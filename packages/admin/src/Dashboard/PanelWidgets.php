@@ -31,7 +31,8 @@ final class PanelWidgets
                     'title' => $line->sentence(),
                     'meta' => self::typeLabel($line->subject_type).($line->source === 'ai' && $line->via !== null ? ' · '.__('via :agent', ['agent' => $line->via]) : ''),
                     'url' => $line->subject_id === null ? 'activity' : 'activity?'.http_build_query(['type' => $line->subject_type, 'subject' => $line->subject_id]),
-                    'badge' => $line->source === 'admin' ? null : Say::it(Str::ucfirst($line->source === 'ai' ? 'AI' : $line->source)),
+                    // "System" once: the sentence names it when nobody did it.
+                    'badge' => $line->source === 'admin' || ($line->source === 'system' && $line->user_name === null) ? null : Say::it(Str::ucfirst($line->source === 'ai' ? 'AI' : $line->source)),
                     'tone' => $line->source === 'security' ? 'warning' : 'neutral',
                     'at' => $line->created_at?->toIso8601String(),
                 ])->all()]);

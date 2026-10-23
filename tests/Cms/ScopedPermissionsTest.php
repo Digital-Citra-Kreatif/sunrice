@@ -57,6 +57,27 @@ it('has permissions for each collection, taxonomy and form, kept in step with th
         ->toContain('cms.entries.blog.view');
 });
 
+it('names the groups of scoped permissions in the panel\'s language', function () {
+    Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    Form::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'post']);
+    $permissions = app(Panel::class)->getPermissions();
+    app()->setLocale('id');
+
+    expect($permissions['cms.entries.blog.update']->saidGroup())->toBe('Entri: Blog')
+        ->and($permissions['cms.terms.tags.view']->saidGroup())->toBe('Term: Tags')
+        ->and($permissions['cms.submissions.contact.view']->saidGroup())->toBe('Kiriman: Contact')
+        // In English, as before.
+        ->and($permissions['cms.entries.blog.update']->group)->toBe('Entries: Blog');
+
+    app(SyncPermissions::class)->handle();
+    actingAs(adminUser()->assignRole(Role::findOrCreate('super-admin', 'web')));
+    config(['sunrice-admin.locale' => 'id']);
+    get('/admin/roles/create')->assertInertia(function (Assert $page) {
+        $fields = collect($page->toArray()['props']['sections'] ?? [])->flatMap(fn ($section) => $section['fields']);
+        expect(collect($fields->firstWhere('name', 'permissions')['options'] ?? [])->pluck('group')->all())->toContain('Entri: Blog');
+    });
+});
+
 it('gives the content permissions without a column of their own short labels for the role editor', function () {
     $permissions = app(Panel::class)->getPermissions();
 

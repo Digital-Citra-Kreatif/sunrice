@@ -82,6 +82,13 @@ $panel->permissionsUsing(fn () => Shop::query()->get()->map(
     fn (Shop $shop) => Permission::make("shop.{$shop->handle}.orders", "Orders of {$shop->name}", 'Shops'))->all());
 ```
 
+A permission per item usually gets a group per item too. Write the name as a placeholder so the group translates once, as the label does (`saidGroup()` says it in the user's language; the names in it stay as they are):
+
+```php
+Permission::make("shop.{$shop->handle}.refund", 'Refund orders', 'Orders: :shop', ['shop' => $shop->name]);
+// in lang/id.json: "Orders: :shop": "Pesanan: :shop"
+```
+
 When the data changes, call `$panel->flushPermissions()` and `SyncPermissions::handle()` to create and delete them (the CMS does when collections, taxonomies and forms come and go).
 
 When the data a permission is named after is **renamed**, rename the stored permissions instead, before anything syncs, so roles and people keep them:

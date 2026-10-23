@@ -12,6 +12,7 @@ import type { ActionInfo, InfoCard, ResourceInfo, SectionInfo } from '@/componen
 import { Button } from '@/components/ui/button';
 import { adminUrl } from '@/lib/admin-url';
 import { t } from '@/lib/i18n';
+import { resourceFormKey, savedValues } from '@/lib/resource-form';
 import { withSlugs } from '@/lib/slug-from';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
@@ -27,7 +28,12 @@ interface Props {
     aside?: InfoCard[];
 }
 
-export default function ResourceEdit({ resource, record, sections, values, can, deleteAction = null, aside = [] }: Props) {
+export default function ResourceEdit(props: Props) {
+    // A new form per record: creating one opens its edit page with a fresh form, not what was typed.
+    return <ResourceForm key={resourceFormKey(props.resource, props.record)} {...props} />;
+}
+
+function ResourceForm({ resource, record, sections, values, can, deleteAction = null, aside = [] }: Props) {
     const base = adminUrl(resource.path);
     const title = record ? record.title : t('New :resource', { resource: resource.singularLabel.toLowerCase() });
     useBreadcrumbs([{ label: resource.label, href: base }, { label: title }]);
@@ -48,8 +54,12 @@ export default function ResourceEdit({ resource, record, sections, values, can, 
     const save = () => {
         if (form.processing) return;
         if (record) {
-            // Saved: what's on screen is the new baseline for "unsaved changes".
-            form.put(`${base}/${record.key}`, { preserveScroll: true, onSuccess: () => form.setDefaults() });
+            // Saved: the server's values are the new data and baseline (a password typed isn't kept).
+            form.put(`${base}/${record.key}`, { preserveScroll: true, onSuccess: (page) => {
+                const fresh = savedValues(page.props as Record<string, unknown>, form.data);
+                form.setDefaults(fresh);
+                form.setData(fresh);
+            } });
         } else {
             form.post(base, { onSuccess: () => form.setDefaults() });
         }
