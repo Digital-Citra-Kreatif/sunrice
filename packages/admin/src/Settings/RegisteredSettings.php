@@ -12,18 +12,31 @@ use Sunrice\Admin\Resources\Forms\Form;
 use Sunrice\Admin\Resources\Forms\Password;
 
 /**
- * A settings section on the panel, with the permission to edit it.
+ * A settings section on the panel, with the permission to edit it. For
+ * AI agents, a settings page's fields (Panel::settingsPage(fields:)) are
+ * one too: its own key, label and form, some of the class's properties.
  *
  * @internal
  */
 final readonly class RegisteredSettings
 {
     /** @param class-string<Settings> $class */
-    public function __construct(public string $class, public string $permission) {}
+    public function __construct(
+        public string $class,
+        public string $permission,
+        private ?Form $form = null,
+        private ?string $key = null,
+        private ?string $label = null,
+    ) {}
 
     public function key(): string
     {
-        return $this->class::key();
+        return $this->key ?? $this->class::key();
+    }
+
+    public function label(): string
+    {
+        return $this->label ?? $this->class::label();
     }
 
     /** The section with its stored values. */
@@ -39,7 +52,7 @@ final readonly class RegisteredSettings
      */
     public function fields(?Form $form = null): array
     {
-        return self::checkedFields($this->class, $form ?? $this->class::form(new Form));
+        return self::checkedFields($this->class, $form ?? $this->form ?? $this->class::form(new Form));
     }
 
     /**

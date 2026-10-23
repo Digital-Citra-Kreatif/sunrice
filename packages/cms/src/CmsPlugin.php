@@ -14,6 +14,7 @@ use Sunrice\Admin\Console\InstallOutput;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Permissions\Permission;
+use Sunrice\Cms\Actions\Seo\SaveSeoSettings;
 use Sunrice\Cms\Actions\Users\ReleaseUserContent;
 use Sunrice\Cms\Admin\CollectionResource;
 use Sunrice\Cms\Admin\DashboardWidgets;
@@ -90,7 +91,8 @@ final class CmsPlugin extends BasePlugin
     {
         $panel->settings(SiteSettings::class, LocaleSettings::class, CodeSettings::class, CommentSettings::class, CacheSettings::class);
         // Settings → SEO (/admin/settings/seo), after Site: search and sharing, structured data, the fields SEO falls back to.
-        $panel->settingsPage('seo', 'SEO', SeoController::class, 'cms.settings.site', after: 'site');
+        // AI agents get its structured data fields as the settings section "seo" (get_settings, update_settings).
+        $panel->settingsPage('seo', 'SEO', SeoController::class, 'cms.settings.site', after: 'site', fields: SaveSeoSettings::structuredData(...));
         // Each permission for one collection, taxonomy or form too (see Support\Access).
         $panel->permissionsUsing(fn (): array => Support\ScopedPermissions::all());
         // Media files take alt text and captions in each content language.

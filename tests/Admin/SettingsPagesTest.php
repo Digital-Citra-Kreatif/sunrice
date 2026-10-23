@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Actions\Permissions\SyncPermissions;
+use Sunrice\Admin\Activity\Activity;
+use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Resources\Forms\Form;
@@ -74,4 +77,33 @@ it('refuses a settings page whose key is a section\'s or another page\'s', funct
 it('refuses fields that aren\'t the settings class\'s properties', function () {
     expect(fn () => SettingsFields::make(ShopSettings::class, (new Form)->schema([TextInput::make('nope')])))
         ->toThrow(PanelMisconfigured::class, 'isn\'t one of its properties');
+});
+
+it('offers a settings page\'s fields to AI agents as a section of its key, behind its permission', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->settings(ShopSettings::class)
+        ->settingsPage('checkout', 'Checkout', ShopCheckoutController::class, 'shop.settings.shop', fields: ShopCheckoutController::fields(...)))));
+    app(SyncPermissions::class)->handle();
+    $agent = function (string ...$permissions): string {
+        $user = adminUser(Panel::ACCESS, 'sunrice.ai.connect', ...$permissions);
+
+        return AiToken::issue((string) $user->getKey(), 'Claude')[1];
+    };
+    $call = function (string $token, string $tool, array $arguments = []): array|string {
+        $response = test()->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => ['name' => $tool, 'arguments' => $arguments]], ['Authorization' => "Bearer {$token}"]);
+        $text = (string) $response->json('result.content.0.text');
+
+        return $response->json('result.isError') === true ? $text : json_decode($text, true);
+    };
+    $token = $agent('shop.settings.shop');
+
+    expect(collect($call($token, 'get_panel_info')['settings'])->pluck('label', 'key')->all())->toBe(['shop' => 'Shop', 'checkout' => 'Checkout'])
+        ->and($call($token, 'get_settings', ['section' => 'checkout'])['values'])->toBe(['guestCheckout' => true, 'freeShippingFrom' => null])
+        ->and($call($token, 'update_settings', ['section' => 'checkout', 'values' => ['freeShippingFrom' => -1]]))->toContain('Not saved:')
+        ->and($call($token, 'update_settings', ['section' => 'checkout', 'values' => ['freeShippingFrom' => 100, 'name' => 'Not this']]))->toBe(['saved' => true, 'changed' => ['freeShippingFrom']])
+        ->and([app(ShopSettings::class)->freeShippingFrom, app(ShopSettings::class)->name])->toBe([100, 'Shop'])
+        ->and(Activity::query()->where('subject_type', 'settings')->where('subject_id', 'shop')->exists())->toBeTrue();
+
+    $other = $agent();
+    expect($call($other, 'get_settings', ['section' => 'checkout']))->toContain('No such settings section')
+        ->and($call($other, 'update_settings', ['section' => 'checkout', 'values' => ['freeShippingFrom' => 1]]))->toContain('No such settings section');
 });

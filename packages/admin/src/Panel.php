@@ -27,6 +27,7 @@ use Sunrice\Admin\Settings\BrandingSettings;
 use Sunrice\Admin\Settings\MailSettings;
 use Sunrice\Admin\Settings\RegisteredSettings;
 use Sunrice\Admin\Settings\Settings;
+use Sunrice\Admin\Settings\SettingsFields;
 use Sunrice\Admin\Support\Branding;
 use Sunrice\Admin\Support\Say;
 use Sunrice\Admin\Users\RoleResource;
@@ -119,7 +120,7 @@ final class Panel
     /** @var array<string, RegisteredSettings> keyed by the section's key */
     private array $settings = [];
 
-    /** @var array<string, array{controller: class-string, permission: string}> plugins' own pages among the settings sections, keyed by key */
+    /** @var array<string, array{controller: class-string, permission: string, label: string, fields: (Closure(): SettingsFields)|null}> plugins' own pages among the settings sections, keyed by key */
     private array $settingsPages = [];
 
     private bool $mediaLibrary = true;
@@ -616,9 +617,15 @@ final class Panel
      * (settingsNavigation(), `SettingsLayout` with `current` = the key).
      * The key can't be a settings section's: that's an error at boot.
      *
+     * `$fields` gives the settings fields the page edits (SettingsFields),
+     * for AI agents: get_settings and update_settings then offer them as
+     * the section `$key`, checked as the page checks them, behind
+     * `$permission`. Only settings: what the page saves elsewhere isn't.
+     *
      * @param  class-string  $controller
+     * @param  (Closure(): SettingsFields)|null  $fields
      */
-    public function settingsPage(string $key, string $label, string $controller, string $permission, ?string $after = null): self
+    public function settingsPage(string $key, string $label, string $controller, string $permission, ?string $after = null, ?Closure $fields = null): self
     {
         $this->assertRegistering();
         if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) !== 1) {
@@ -633,7 +640,7 @@ final class Panel
         if ($permission === '') {
             throw new PanelMisconfigured("The settings page \"{$key}\" needs the permission that guards it.");
         }
-        $this->settingsPages[$key] = ['controller' => $controller, 'permission' => $permission];
+        $this->settingsPages[$key] = ['controller' => $controller, 'permission' => $permission, 'label' => $label, 'fields' => $fields];
         $this->navigation(NavigationItem::make(self::SETTINGS_PAGE.$key)->label($label)->url('settings/'.$key)->icon('settings')
             ->inSettings($after)->permission($permission));
 
@@ -1253,10 +1260,31 @@ final class Panel
         return $this->settings;
     }
 
-    /** @return array<string, array{controller: class-string, permission: string}> the pages among the settings sections (settingsPage()), keyed by key */
+    /** @return array<string, array{controller: class-string, permission: string, label: string, fields: (Closure(): SettingsFields)|null}> the pages among the settings sections (settingsPage()), keyed by key */
     public function getSettingsPages(): array
     {
         return $this->settingsPages;
+    }
+
+    /**
+     * What AI agents read and change as settings sections (get_settings,
+     * update_settings): the sections, then the settings pages that give
+     * their fields (settingsPage(fields:)), keyed by key. Built on each
+     * call: the pages' forms only when an agent asks.
+     *
+     * @return array<string, RegisteredSettings>
+     */
+    public function settingsForAgents(): array
+    {
+        $sections = $this->settings;
+        foreach ($this->settingsPages as $key => $page) {
+            if ($page['fields'] !== null) {
+                $fields = ($page['fields'])();
+                $sections[$key] = new RegisteredSettings($fields->class, $page['permission'], $fields->form, $key, $page['label']);
+            }
+        }
+
+        return $sections;
     }
 
     /** @return array<string, PluginBundle> keyed by id */

@@ -45,7 +45,7 @@ It works as the user whose email is in `sunrice-admin.ai.local_user` (`SUNRICE_A
 | `save_record` | Create a record, or change one: only the fields sent change. Validated exactly like the screen. Passwords can't be set: a new user is invited to choose their own. |
 | `delete_record` | Delete a record (agents are told to ask first). |
 | `run_action` | Run a resource's row or bulk action on records. |
-| `get_settings`, `update_settings` | Read a settings section (secrets show only whether they're set) and change some of its settings. |
+| `get_settings`, `update_settings` | Read a settings section (secrets show only whether they're set) and change some of its settings, checked as the Settings page checks them and logged. A settings page that gives its fields (`Panel::settingsPage(fields:)`, like the CMS's `seo`) is a section of its key here too, behind the page's permission. |
 | `list_media` | Files and folders of the media library, with ids for media fields. |
 | `upload_media` | Add a file from a public URL or base64 content, with a title, alt text and folder. Every check of an upload in the panel (`UploadMedia`: size, allowed types, no scripts, safe SVGs); URLs on this server, its network or any non-public range are refused ([`PublicAddress`](security.md#fetching-urls-people-give)), the checked address is the one connected to, and redirects aren't followed. Needs `sunrice.media.upload`. |
 | `update_media` | Change a file's title, alt text or caption (`sunrice.media.update`). |

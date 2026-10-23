@@ -103,3 +103,11 @@ app(SaveSettings::class)->handle(app(ShopSettings::class), $fields->validate($re
 
 `props()` is `['sections' => …, 'values' => …, 'secrets' => …]`: draw it with `<FormSections sections={checkout.sections} data={…} errors={…} onChange={…} />`, starting the data from `values` (a saved `Secret` is sent empty; `secrets` says which have a value, and leaving one empty keeps it). `validate($input)` returns only these fields' values, ready for `SaveSettings`. Each field must be one of the class's properties (`PanelMisconfigured` otherwise).
 
+Give the page's settings fields to AI agents with `fields:`, a closure returning its `SettingsFields`: `get_panel_info` lists the page as a settings section of its key and label, and `get_settings` / `update_settings` read and change those fields, checked as the page checks them, behind the page's permission, logged like any settings change ([AI access](ai.md)). The CMS gives Settings → SEO's structured data this way:
+
+```php
+$panel->settingsPage('seo', 'SEO', SeoController::class, 'cms.settings.site', after: 'site', fields: SaveSeoSettings::structuredData(...));
+```
+
+Only settings fields: what a page saves elsewhere (the CMS's SEO fields per collection) isn't offered.
+
