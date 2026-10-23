@@ -41,9 +41,10 @@ beforeEach(function () {
     $this->pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'post', 'route' => '/{slug}']);
 });
 
-function queryPost(string $title, array $data = [], bool $publish = true, ?Collection $collection = null): EntryTranslation
+/** @param  list<int>|null  $topics  its own terms (the editor's Taxonomies card) */
+function queryPost(string $title, array $data = [], bool $publish = true, ?Collection $collection = null, ?array $topics = null): EntryTranslation
 {
-    $translation = app(CreateEntry::class)->handle($collection ?? test()->blog, ['title' => $title, 'data' => $data]);
+    $translation = app(CreateEntry::class)->handle($collection ?? test()->blog, ['title' => $title, 'data' => $data, 'terms' => $topics === null ? null : ['topics' => $topics]]);
 
     return $publish ? app(PublishEntry::class)->handle($translation) : $translation;
 }
@@ -96,8 +97,8 @@ it('hydrates a result with one shared context: one query per kind, however many 
 
 it('takes the main language\'s entries not live in a language, with the fallback on', function () {
     $news = queryTerm('News');
-    $hello = queryPost('Hello', ['price' => 10, 'topics' => [$news->id]]);
-    queryPost('Coffee', ['price' => 20, 'topics' => [$news->id]]);
+    $hello = queryPost('Hello', ['price' => 10], topics: [$news->id]);
+    queryPost('Coffee', ['price' => 20], topics: [$news->id]);
     $id = app(CreateTranslation::class)->handle($hello->entry, 'id');
     app(SaveDraft::class)->handle($id, ['title' => 'Halo', 'slug' => 'halo']);
     app(PublishEntry::class)->handle($id->refresh());
@@ -177,10 +178,13 @@ it('filters by terms: models, ids, a taxonomy handle with slugs, with the terms 
     $news = queryTerm('News');
     $local = queryTerm('Local', $news);
     $tips = queryTerm('Tips');
-    queryPost('National', ['topics' => [$news->id]]);
-    queryPost('Village', ['topics' => [$local->id]]);
-    queryPost('Howto', ['topics' => [$tips->id]]);
+    // Their own terms, and the same in a terms field (whereFieldTerm() reads that).
+    queryPost('National', ['topics' => [$news->id]], topics: [$news->id]);
+    queryPost('Village', ['topics' => [$local->id]], topics: [$local->id]);
+    queryPost('Howto', ['topics' => [$tips->id]], topics: [$tips->id]);
     queryPost('Plain');
+    // A terms field's value isn't the entry's terms.
+    queryPost('Field only', ['topics' => [$tips->id]]);
     $titles = fn (EntryQuery $query) => $query->alphabetical()->get()->pluck('title')->all();
 
     expect($titles(Content::entries('blog')->whereTerm($news)))->toBe(['National'])
@@ -194,7 +198,7 @@ it('filters by terms: models, ids, a taxonomy handle with slugs, with the terms 
         ->and($titles(Content::entries('blog')->whereTerm('other', 'news')))->toBe([])
         ->and($titles(Content::entries('blog')->whereFieldTerm('topics', $local)))->toBe(['Village'])
         ->and($titles(Content::entries('blog')->whereFieldTerm('topics', 'news', includeChildren: true)))->toBe(['National', 'Village'])
-        ->and($titles(Content::entries('blog')->whereFieldTerm('topics', [$tips->id, 'local'])))->toBe(['Howto', 'Village'])
+        ->and($titles(Content::entries('blog')->whereFieldTerm('topics', [$tips->id, 'local'])))->toBe(['Field only', 'Howto', 'Village'])
         ->and($titles(Content::entries('blog')->whereFieldTerm('topics', 'nothing')))->toBe([]);
 });
 
