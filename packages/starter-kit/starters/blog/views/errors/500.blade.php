@@ -8,14 +8,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>{{ __('Something went wrong') }}</title>
+    <title>{{ __('site.errors.failed') }}</title>
     <link rel="stylesheet" href="{{ asset('cms/site.css') }}">
 </head>
 <body>
     <main id="main" class="container">
-        <h1>{{ __('Something went wrong') }}</h1>
-        <p>{{ __('Sorry, the page couldn\'t be shown. Please try again in a moment.') }}</p>
-        <p><a href="{{ url('/') }}">{{ __('Go to the home page') }}</a></p>
+        <h1>{{ __('site.errors.failed') }}</h1>
+        <p>{{ __('site.errors.failed_text') }}</p>
+        <p><a href="{{ url('/') }}">{{ __('site.errors.home') }}</a></p>
     </main>
 </body>
 </html>
