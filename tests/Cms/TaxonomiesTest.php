@@ -322,7 +322,7 @@ it('attaches collections from the taxonomy\'s form, one term only or not, and le
     post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $blog->id, (string) $notes->id]])->assertSessionHasNoErrors();
     $topics = Taxonomy::query()->where('handle', 'topics')->firstOrFail();
     expect($topics->collections()->pluck('handle')->sort()->values()->all())->toBe(['blog', 'notes'])
-        ->and(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields)->toBe([['handle' => 'topics', 'type' => 'text']])
+        ->and(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields)->toEqual([['handle' => 'topics', 'type' => 'text']]) // MySQL's JSON columns reorder keys.
         ->and(Blueprint::query()->count())->toBe(1);
 
     // One term only in Notes; the side card lists the collections it groups.
