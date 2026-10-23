@@ -24,13 +24,19 @@ test('makes safe links that open in a new tab', () => {
         'See the <a href="https://example.com/guide?a=1&amp;b=2" target="_blank" rel="noopener noreferrer">style guide</a>.');
     assert.equal(inlineMarkdown('[**Prices**](/prices)'), '<a href="/prices" target="_blank" rel="noopener noreferrer"><strong>Prices</strong></a>');
     assert.equal(inlineMarkdown('[mail](mailto:team@example.com)'), '<a href="mailto:team@example.com" target="_blank" rel="noopener noreferrer">mail</a>');
+    // Balanced parentheses in an address, one level deep, as Wikipedia's have.
+    assert.equal(inlineMarkdown('See [the Sun](https://en.wikipedia.org/wiki/Sun_(star)).'),
+        'See <a href="https://en.wikipedia.org/wiki/Sun_(star)" target="_blank" rel="noopener noreferrer">the Sun</a>.');
+    assert.equal(inlineMarkdown('([note](/notes))'), '(<a href="/notes" target="_blank" rel="noopener noreferrer">note</a>)');
     // A quote can't leave the attribute.
     assert.ok(!inlineMarkdown('[x](https://example.com/"onmouseover="alert(1))').includes('" onmouseover'));
 });
 
 test('refuses links that could run script or leave the site oddly: their words only', () => {
-    // Not even a link: parentheses in an address aren't read as one.
-    assert.equal(inlineMarkdown('[click](javascript:alert(1))'), '[click](javascript:alert(1))');
+    // Parentheses in the address are read as part of it: refused, the words stay.
+    assert.equal(inlineMarkdown('[bad](javascript:alert(1))'), 'bad');
+    assert.equal(inlineMarkdown('[bad](javascript:alert(1)) and more'), 'bad and more');
+    assert.equal(inlineMarkdown('[bad](JAVASCRIPT:alert((1)))'), '[bad](JAVASCRIPT:alert((1)))', 'two levels deep: not a link, text');
     assert.equal(inlineMarkdown('[click](javascript:alert)'), 'click');
     assert.equal(inlineMarkdown('[click](JaVaScRiPt:alert)'), 'click');
     assert.equal(inlineMarkdown('[img](data:text/html,hi)'), 'img');

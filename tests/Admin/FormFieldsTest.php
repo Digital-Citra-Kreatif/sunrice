@@ -51,6 +51,22 @@ it('sends a field\'s change warning to edit forms only, in the panel\'s language
     expect($field->toArray($saved)['warnWhenChanged'])->toStartWith('Pengguna tetap');
 });
 
+it('gives a field\'s help the record being edited when it is a closure', function () {
+    $field = TextInput::make('slug')->help(fn (?Model $record): string => $record === null ? 'Like /{handle}.' : 'Like /'.$record->getAttribute('handle').'.');
+    $saved = new class extends Model {};
+    $saved->setAttribute('handle', 'news');
+
+    expect($field->toArray()['help'])->toBe('Like /{handle}.')
+        ->and($field->toArray($saved)['help'])->toBe('Like /news.')
+        ->and(TextInput::make('title')->help('Plain.')->toArray($saved)['help'])->toBe('Plain.');
+});
+
+it('puts a field in a titled group only when given one, the title as given', function () {
+    expect(Toggle::make('single_1')->group('Posts')->toArray()['group'])->toBe('Posts')
+        ->and(Toggle::make('single_1')->toArray())->not->toHaveKey('group')
+        ->and(Toggle::make('single_1')->group('Posts')->group(null)->toArray())->not->toHaveKey('group');
+});
+
 it('marks a select whose options leave out an action\'s own records, and adds what an action says about one record', function () {
     expect(Select::make('heir')->options(['1' => 'A'])->toArray())->not->toHaveKey('withoutTargets')
         ->and(Select::make('heir')->options(['1' => 'A'])->withoutTargets()->toArray()['withoutTargets'])->toBeTrue();
