@@ -69,7 +69,7 @@ it('keeps a blueprint a collection offers, or an entry chose, from being deleted
     $pages->forceFill(['blueprints' => ['landing']])->save();
     actingAs(adminUser(Panel::ACCESS, 'cms.blueprints.view'));
     get('/admin/cms/blueprints')->assertInertia(fn (Assert $page) => $page
-        ->where('blueprints.0.handle', 'landing')->where('blueprints.0.usedBy', ['Pages']));
+        ->where('blueprints.0.handle', 'landing')->where('blueprints.0.usedBy', ['the collection "Pages" (one of its other blueprints)', 'an entry of "Pages"']));
 });
 
 it('keeps the blueprint of a collection or taxonomy in the trash, so restoring it brings back its fields', function () {

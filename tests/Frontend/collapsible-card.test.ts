@@ -49,6 +49,8 @@ test('keeps header actions outside the collapse button', () => {
     assert.match(html, /<\/button>.*<button type="button">Toggle all<\/button>/);
     const firstButton = /<button[^>]*>[\s\S]*?<\/button>/.exec(html)?.[0] ?? '';
     assert.doesNotMatch(firstButton, /Toggle all/);
+    // Before the fold chevron, which sits at the far edge.
+    assert.match(html, /Toggle all<\/button><\/div><span aria-hidden="true"[^>]*><svg[^>]*lucide-chevron-down/);
 });
 
 test('read-only fieldsets never disable card toggles', async () => {

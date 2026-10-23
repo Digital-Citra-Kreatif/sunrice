@@ -158,8 +158,16 @@ it('marks live entries with unpublished changes in the list, picker and dashboar
     $items = collect(get('/admin/cms/entries/picker?'.http_build_query(['ids' => [$changed->entry_id, $live->entry_id]]))->assertOk()->json('items'));
     expect($items->pluck('changes', 'id')->all())->toBe([$changed->entry_id => true, $live->entry_id => false]);
 
-    $badges = collect(app(Panel::class)->getWidgets()['cms.recent-edits']->resolve($this->publisher)['rows'])->pluck('badge', 'title')->all();
-    expect($badges)->toMatchArray(['Hello again' => 'Live · changes pending', 'Plain' => 'Live', 'Draft only' => 'Draft']);
+    $rows = collect(app(Panel::class)->getWidgets()['cms.recent-edits']->resolve($this->publisher)['rows']);
+    expect($rows->pluck('badge', 'title')->all())->toMatchArray(['Hello again' => 'Live · Changes pending', 'Plain' => 'Live', 'Draft only' => 'Draft'])
+        // In the list's colours: "Changes pending" in amber.
+        ->and($rows->pluck('tone', 'title')->all())->toMatchArray(['Hello again' => 'warning', 'Plain' => 'success', 'Draft only' => 'neutral']);
+
+    // Scheduled, with a newer draft: said so as the list says it.
+    $later = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->notes, ['title' => 'Later']), now()->addWeek());
+    app(SaveDraft::class)->handle($later->fresh(), ['title' => 'Later, changed']);
+    $rows = collect(app(Panel::class)->getWidgets()['cms.recent-edits']->resolve($this->publisher)['rows']);
+    expect($rows->firstWhere('title', 'Later, changed'))->toMatchArray(['badge' => 'Scheduled · Changes pending', 'tone' => 'warning']);
 
     // As many queries for many rows as for a few.
     $count = function (): int {

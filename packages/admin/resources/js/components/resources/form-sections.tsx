@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { InputError } from '@/components/app/input-error';
 import { PasswordChecklist } from '@/components/app/password-checklist';
 import { CollapsibleCard } from '@/components/app/collapsible-card';
@@ -6,6 +7,7 @@ import { TriangleAlert } from 'lucide-react';
 import { changeWarning } from '@/lib/change-warning';
 import { livePlaceholder, type HelpValue } from '@/lib/live-help';
 import { isPasswordRules } from '@/lib/password-rules';
+import { fieldGroups } from '@/lib/field-groups';
 import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
 import { t } from '@/lib/i18n';
@@ -34,55 +36,64 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
         // Fields whose condition isn't met are hidden (showWhen), a section of only those too.
         const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data, saved));
         if (fields.length === 0) return null;
-        const content = (
-            <div className={cn('grid gap-5', gridColumns[section.columns])}>
-                {fields.map((field) => {
-                    const error = errors[field.name];
-                    // A section's only field named like the section: the card's title says it already.
-                    const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
-                    const warning = changeWarning(field.warnWhenChanged, data[field.name], saved, field.name);
-                    const input = <FieldInput field={{ ...field, placeholder: livePlaceholder(field.placeholder, field.placeholderFrom as HelpValue | null | undefined, data) }} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
+        const renderField = (field: FieldInfo) => {
+            const error = errors[field.name];
+            // A section's only field named like the section: the card's title says it already.
+            const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
+            const warning = changeWarning(field.warnWhenChanged, data[field.name], saved, field.name);
+            const input = <FieldInput field={{ ...field, placeholder: livePlaceholder(field.placeholder, field.placeholderFrom as HelpValue | null | undefined, data) }} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
 
-                    return (
-                        <div key={field.name} className={cn('grid min-w-0 grid-cols-1 content-start gap-2', spans[Math.min(field.span, section.columns)])}>
-                            {field.type === 'toggle' ? (
-                                <div className="flex items-center gap-3">
-                                    {input}
-                                    <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>{field.label}</Label>
-                                </div>
-                            ) : (
-                                <>
-                                    {label === null ? <span id={`field-${field.name}-label`} className="sr-only">{field.label}</span> : (
-                                        <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>
-                                            {label}
-                                            {field.required && <span className="text-destructive" aria-hidden>*</span>}
-                                        </Label>
-                                    )}
-                                    {input}
-                                </>
-                            )}
-                            {field.type === 'password' && isPasswordRules(field.passwordRules) && (
-                                <PasswordChecklist id={`field-${field.name}-rules`} rules={field.passwordRules}
-                                    value={typeof data[field.name] === 'string' ? String(data[field.name]) : ''} />
-                            )}
-                            <FieldHelp field={field} data={data} />
-                            <div aria-live="polite">
-                                {warning && (
-                                    <p id={`field-${field.name}-warning`} className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm whitespace-pre-line text-amber-900 dark:text-amber-200">
-                                        <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-                                        <span>{warning}</span>
-                                    </p>
-                                )}
-                            </div>
-                            <InputError message={error} />
-                            {field.type === 'password' && field.confirmed === true && (
-                                // Password::confirmed(): the same again, as "{name}_confirmation".
-                                <PasswordConfirmation field={field} value={data[`${field.name}_confirmation`] ?? null}
-                                    onChange={(value) => onChange(`${field.name}_confirmation`, value)} />
-                            )}
+            return (
+                <div key={field.name} className={cn('grid min-w-0 grid-cols-1 content-start gap-2', spans[Math.min(field.span, section.columns)])}>
+                    {field.type === 'toggle' ? (
+                        <div className="flex items-center gap-3">
+                            {input}
+                            <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>{field.label}</Label>
                         </div>
-                    );
-                })}
+                    ) : (
+                        <>
+                            {label === null ? <span id={`field-${field.name}-label`} className="sr-only">{field.label}</span> : (
+                                <Label id={`field-${field.name}-label`} htmlFor={`field-${field.name}`}>
+                                    {label}
+                                    {field.required && <span className="text-destructive" aria-hidden>*</span>}
+                                </Label>
+                            )}
+                            {input}
+                        </>
+                    )}
+                    {field.type === 'password' && isPasswordRules(field.passwordRules) && (
+                        <PasswordChecklist id={`field-${field.name}-rules`} rules={field.passwordRules}
+                            value={typeof data[field.name] === 'string' ? String(data[field.name]) : ''} />
+                    )}
+                    <FieldHelp field={field} data={data} />
+                    <div aria-live="polite">
+                        {warning && (
+                            <p id={`field-${field.name}-warning`} className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm whitespace-pre-line text-amber-900 dark:text-amber-200">
+                                <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                                <span>{warning}</span>
+                            </p>
+                        )}
+                    </div>
+                    <InputError message={error} />
+                    {field.type === 'password' && field.confirmed === true && (
+                        // Password::confirmed(): the same again, as "{name}_confirmation".
+                        <PasswordConfirmation field={field} value={data[`${field.name}_confirmation`] ?? null}
+                            onChange={(value) => onChange(`${field.name}_confirmation`, value)} />
+                    )}
+                </div>
+            );
+        };
+        const grid = (shown: FieldInfo[]) => <div className={cn('grid gap-5', gridColumns[section.columns])}>{shown.map(renderField)}</div>;
+        const groups = fieldGroups(fields);
+        // Field::group(): each group under its heading, set apart by a divider; without any, the plain grid.
+        const content = groups.every((group) => group.title === null) ? grid(fields) : (
+            <div className="grid gap-5">
+                {groups.map((group, at) => group.title === null ? <React.Fragment key={at}>{grid(group.fields)}</React.Fragment> : (
+                    <div key={at} role="group" aria-labelledby={`group-${index}-${at}`} className="grid min-w-0 gap-4 border-t pt-5 first:border-t-0 first:pt-0">
+                        <h3 id={`group-${index}-${at}`} className="text-sm font-semibold">{group.title}</h3>
+                        {grid(group.fields)}
+                    </div>
+                ))}
             </div>
         );
 

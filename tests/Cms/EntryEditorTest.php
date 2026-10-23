@@ -295,10 +295,14 @@ it('sends terms fields their taxonomy and the chosen terms\' titles, and the pic
     Blueprint::query()->where('handle', 'article')->update(['fields' => json_encode([['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics', 'multiple' => true]]])]);
     $entry = draft(data: ['topics' => [$local->id]])->entry;
     editor('view');
+    config(['inertia.testing.ensure_pages_exist' => false]); // the deferred reload looks for a page file: the CMS's are bundled
 
     get(entryEditUrl($entry->id))->assertInertia(fn (Assert $page) => $page
         ->where('fields.0.taxonomy', 'topics')->missing('fields.0.terms')
-        ->where('termLabels', [(string) $local->id => 'Local']));
+        ->where('termLabels', [(string) $local->id => 'Local'])
+        // Its parents' titles, for its tooltip ("News › Local") before the list is opened: after the page shows.
+        ->missing('termParents')
+        ->loadDeferredProps(fn (Assert $reload) => $reload->where('termParents', [(string) $local->id => ['News']])));
 
     $this->getJson('/admin/cms/terms/picker?taxonomy=topics')->assertOk()->assertExactJson(['items' => [
         ['id' => $news->id, 'label' => 'News', 'depth' => 0], ['id' => $local->id, 'label' => 'Local', 'depth' => 1], ['id' => $sport->id, 'label' => 'Sport', 'depth' => 0],
@@ -316,6 +320,11 @@ it('sends terms fields their taxonomy and the chosen terms\' titles, and the pic
     // A taxonomy no field of theirs uses, and whose terms they may not see.
     $this->getJson("/admin/cms/terms/picker?taxonomy=other&ids[]={$sport->id}")->assertForbidden();
     $this->getJson("/admin/cms/terms/picker?taxonomy=topics&ids[]={$sport->id}")->assertJsonPath('items.0.label', 'Sport');
+    // Looked up by id, with their parents' titles, top first.
+    $deep = app(SaveTerm::class)->handle($topics, ['title' => 'Jakarta', 'parent_id' => $local->id]);
+    $this->getJson("/admin/cms/terms/picker?taxonomy=topics&ids[]={$deep->id}&ids[]={$sport->id}")->assertExactJson(['items' => [
+        ['id' => $sport->id, 'label' => 'Sport', 'depth' => 0, 'parents' => []], ['id' => $deep->id, 'label' => 'Jakarta', 'depth' => 0, 'parents' => ['News', 'Local']],
+    ], 'more' => false]);
     $this->getJson('/admin/cms/terms/picker?taxonomy=nope')->assertNotFound();
     $this->getJson('/admin/cms/terms/picker')->assertUnprocessable();
 
