@@ -57,6 +57,13 @@ Until 1.0, APIs may change between versions; every change is recorded in `CHANGE
 
 From 0.1.x to 0.2.0. Raise the constraints, as 0.1's don't allow 0.2 (see [step 2](#how-to-upgrade)): `composer require sunrice/admin:^0.2 sunrice/cms:^0.2 -W`, adding `sunrice/starter-kit:^0.2` if you use it. Then run the steps every update needs, and:
 
+- **Take files already in the media trash offline**: moving a file to the trash now moves its files off the public disk (to `media.trash_disk`, the private `local` disk by default), but those trashed before the update are still downloadable at their links. Run once, after `migrate`:
+
+  ```bash
+  php artisan sunrice:media-trash-offline
+  ```
+
+  It moves the files of every media in the trash, leaving those already moved alone (so running it again is harmless), and fails, naming them, for any it couldn't move. With a published `config/sunrice-admin.php`, add `'trash_disk' => 'local'` and `'trash_directory' => 'sunrice-media-trash'` under `media` if you want them visible (the defaults apply without them); keep the trash disk one that isn't served by URL. See [Media](../packages/admin/docs/media.md#the-trash).
 - **Copy the image preset styles into your site's CSS**: rich text images can now be given a width and an alignment, stored as classes (`sunrice-img`, `sunrice-img-w-50`, `sunrice-img-left`…) that only your site's CSS turns into a layout. A site whose `public/cms/site.css` came from 0.1 (the starter templates, `vendor:publish --tag=sunrice-cms-templates`, or the Blog starter) doesn't have the rules, so the presets do nothing on it: images show full width, wherever they're placed. Add these, from the 0.2 starter templates' `site.css` (`packages/cms/stubs/public/site.css` in `sunrice/cms`), to your own CSS (`.prose` is the starter templates' wrapper of rich text: use your own):
 
   ```css

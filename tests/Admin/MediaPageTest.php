@@ -18,6 +18,8 @@ use function Pest\Laravel\put;
 
 beforeEach(function () {
     Storage::fake('public');
+    Storage::fake('local');
+    config(['sunrice-admin.media.trash_disk' => 'local']); // the default (tests/Pest.php fakes another)
     usePanel();
 });
 

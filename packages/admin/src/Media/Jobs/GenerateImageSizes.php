@@ -22,6 +22,7 @@ use Throwable;
  * decoding the original once, as {path}-{size}.{ext} next to it, and
  * deletes sizes that are no longer configured. If the image can't be
  * read, or there is no image library, the media keeps only its original.
+ * Media in the trash gets none: its files are off the public disk.
  *
  * @internal
  */
@@ -90,6 +91,14 @@ final class GenerateImageSizes implements ShouldQueue
             } catch (Throwable $e) {
                 Log::warning('Sunrice: can\'t make an image size', ['media' => $media->id, 'size' => $name, 'error' => $e->getMessage()]);
             }
+        }
+
+        // Moved to the trash (or deleted) meanwhile: its files are off the
+        // public disk, so the sizes just made mustn't stay there either.
+        if (! Media::query()->whereKey($media->id)->exists()) {
+            $disk->delete(array_values($sizes));
+
+            return;
         }
 
         // Sizes no longer configured.
