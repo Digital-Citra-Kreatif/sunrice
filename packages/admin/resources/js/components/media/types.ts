@@ -13,12 +13,15 @@ export interface MediaItem {
     width: number | null;
     height: number | null;
     folderId: number | null;
-    url: string;
+    /** Its public URL; null in the trash (its files are offline, on the private trash disk). */
+    url: string | null;
     thumbnail: string | null;
     createdAt: string | null;
     trashed: boolean;
     /** How many places use it (MediaUsages); null where not counted. */
     usages?: number | null;
+    /** In the trash: what permanently deleting it does (broken links only when it's used). */
+    deleteWarning?: string | null;
 }
 
 /** One place a file is used. */

@@ -293,9 +293,17 @@ final class MediaController
         return array_map(fn (string $code, string $name): array => ['code' => $code, 'name' => $name], array_keys($others), array_values($others));
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * A file for the page and the picker. One in the trash has no URL or
+     * thumbnail (its files are off the public disk: the page shows a
+     * placeholder), and says what permanently deleting it does.
+     *
+     * @return array<string, mixed>
+     */
     public static function describe(Media $media): array
     {
+        $trashed = $media->deleted_at !== null;
+
         return [
             'id' => $media->id,
             'title' => $media->title,
@@ -308,13 +316,28 @@ final class MediaController
             'width' => $media->width,
             'height' => $media->height,
             'folderId' => $media->folder_id,
-            'url' => $media->url(),
-            'thumbnail' => $media->isImage() ? $media->thumbnail() : null,
+            'url' => $trashed ? null : $media->url(),
+            'thumbnail' => ! $trashed && $media->isImage() ? $media->thumbnail() : null,
             'createdAt' => $media->created_at?->toIso8601String(),
-            'trashed' => $media->deleted_at !== null,
+            'trashed' => $trashed,
             // With withCount('usages'): how many places use it.
             'usages' => $media->getAttribute('usages_count'),
+            'deleteWarning' => $trashed ? self::deleteWarning($media) : null,
         ];
+    }
+
+    /**
+     * What permanently deleting a file in the trash does: broken links
+     * only when something uses it (MediaUsages).
+     */
+    public static function deleteWarning(Media $media): string
+    {
+        $count = $media->getAttribute('usages_count');
+        $used = is_numeric($count) ? (int) $count > 0 : $media->usages()->exists();
+
+        return $used
+            ? __('Pages using it will show a broken link.')
+            : __('Nothing uses it. This can\'t be undone.');
     }
 
     /**

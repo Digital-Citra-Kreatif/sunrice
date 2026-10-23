@@ -23,6 +23,8 @@ use function Pest\Laravel\artisan;
 
 beforeEach(function () {
     Storage::fake('public');
+    Storage::fake('local');
+    config(['sunrice-admin.media.trash_disk' => 'local']); // the default (tests/Pest.php fakes another)
 });
 
 function upload(UploadedFile $file, array $attributes = []): Media
@@ -222,11 +224,14 @@ it('trashes, and permanently deletes with its files', function () {
 
     $media->delete();
     expect(Media::query()->count())->toBe(0)->and(Media::withTrashed()->count())->toBe(1);
-    Storage::disk('public')->assertExists($files);
+    // Offline in the trash: on the private disk, not the public one (tests/Admin/MediaTrashTest).
+    Storage::disk('public')->assertMissing($files);
+    Storage::disk('local')->assertExists(array_map(fn (string $path) => "sunrice-media-trash/{$path}", $files));
 
     app(DeleteMedia::class)->handle($media);
     expect(Media::withTrashed()->count())->toBe(0)
-        ->and(Storage::disk('public')->allFiles())->toBe([]);
+        ->and(Storage::disk('public')->allFiles())->toBe([])
+        ->and(Storage::disk('local')->allFiles())->toBe([]);
 });
 
 it('makes sizes on the queue when asked, and again from the console', function () {

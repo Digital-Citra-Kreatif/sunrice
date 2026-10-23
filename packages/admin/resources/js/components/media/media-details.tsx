@@ -70,7 +70,7 @@ function Details({ item, can, accept, locales = [], onClose }: Props & { item: M
     };
     const replace = (file: File | undefined) => file && router.post(`${url}/replace`, { file }, { forceFormData: true, preserveScroll: true, preserveState: true });
     const copy = () =>
-        copyText(new URL(item.url, window.location.href).toString())
+        item.url !== null && copyText(new URL(item.url, window.location.href).toString())
             .then(() => toast.success(t('Link copied.')))
             .catch(() => toast.error(t('Couldn\'t copy the link.')));
 
@@ -83,12 +83,22 @@ function Details({ item, can, accept, locales = [], onClose }: Props & { item: M
             </SheetHeader>
             <div className="flex flex-col gap-5 px-4 pb-6">
                 <div className="flex aspect-video items-center justify-center overflow-hidden rounded-md border bg-muted">
-                    {kind === 'image' && <img src={item.url} alt={item.alt ?? ''} className="max-h-full max-w-full object-contain" />}
-                    {kind === 'video' && <video src={item.url} controls className="max-h-full max-w-full" />}
-                    {kind === 'audio' && (
-                        <div className="flex w-full flex-col items-center gap-3 p-4"><Music className="size-10 text-muted-foreground" /><audio src={item.url} controls className="w-full" /></div>
+                    {item.url === null ? (
+                        // In the trash: its files are offline until it's restored.
+                        <div className="flex flex-col items-center gap-2 p-4 text-center text-sm text-muted-foreground">
+                            <FileIcon mimeType={item.mimeType} className="size-10" />
+                            <p>{t('In the trash: offline until it\'s restored.')}</p>
+                        </div>
+                    ) : (
+                        <>
+                            {kind === 'image' && <img src={item.url} alt={item.alt ?? ''} className="max-h-full max-w-full object-contain" />}
+                            {kind === 'video' && <video src={item.url} controls className="max-h-full max-w-full" />}
+                            {kind === 'audio' && (
+                                <div className="flex w-full flex-col items-center gap-3 p-4"><Music className="size-10 text-muted-foreground" /><audio src={item.url} controls className="w-full" /></div>
+                            )}
+                            {kind === 'document' && <FileText className="size-12 text-muted-foreground" />}
+                        </>
                     )}
-                    {kind === 'document' && <FileText className="size-12 text-muted-foreground" />}
                 </div>
 
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
@@ -112,8 +122,8 @@ function Details({ item, can, accept, locales = [], onClose }: Props & { item: M
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={copy}><Copy />{t('Copy link')}</Button>
-                    {kind === 'video' || kind === 'audio' || kind === 'document' ? (
+                    {item.url !== null && <Button type="button" variant="outline" size="sm" onClick={copy}><Copy />{t('Copy link')}</Button>}
+                    {item.url !== null && (kind === 'video' || kind === 'audio' || kind === 'document') ? (
                         <Button variant="outline" size="sm" asChild><a href={item.url} target="_blank" rel="noreferrer"><FileText />{t('Open')}</a></Button>
                     ) : null}
                     {editable && (
@@ -174,7 +184,7 @@ function Details({ item, can, accept, locales = [], onClose }: Props & { item: M
                 ) : item.trashed && can.delete ? (
                     <div className="flex justify-between gap-2">
                         <Button type="button" variant="outline" onClick={() => router.post(`${url}/restore`, {}, { preserveScroll: true, onSuccess: onClose })}><RotateCcw />{t('Restore')}</Button>
-                        <Button type="button" variant="destructive" onClick={() => confirm(`${t('Permanently delete :name?', { name: item.filename })}${usedBy || ` ${t('Pages using it will show a broken link.')}`}`, () => router.delete(`${url}/force`, { data: { force: usages.length > 0 }, preserveScroll: true, onSuccess: onClose }), true)}>
+                        <Button type="button" variant="destructive" onClick={() => confirm(`${t('Permanently delete :name?', { name: item.filename })}${usedBy} ${item.deleteWarning ?? (usages.length > 0 ? t('Pages using it will show a broken link.') : t('Nothing uses it. This can\'t be undone.'))}`, () => router.delete(`${url}/force`, { data: { force: usages.length > 0 }, preserveScroll: true, onSuccess: onClose }), true)}>
                             <Trash2 />{t('Permanently delete')}
                         </Button>
                     </div>
