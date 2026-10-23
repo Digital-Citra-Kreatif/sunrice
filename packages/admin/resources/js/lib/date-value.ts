@@ -31,13 +31,19 @@ export function formatDateValue(date: Date | null, time: string, withTime: boole
     return withTime ? `${day}T${/^\d{2}:\d{2}$/.test(time) ? time : '00:00'}` : day;
 }
 
-/** What the picker's button says: "19 Oct 2026" or "19 Oct 2026, 14:30"; "" for no value. */
-export function dateLabel(value: string | null | undefined, withTime: boolean): string {
+/**
+ * What the picker's button says, in the panel's language and as the CMS's
+ * dates read: "19 Oct 2026, 14:30" (English), "19 Okt 2026, 14.30"
+ * (Indonesian); "" for no value.
+ */
+export function dateLabel(value: string | null | undefined, withTime: boolean, locale?: string): string {
     const { date, time } = parseDateValue(value);
     if (!date) return '';
-    const day = format(date, 'd MMM yyyy');
+    if (!withTime) return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+    const [hours, minutes] = (time || '00:00').split(':').map(Number);
+    date.setHours(hours ?? 0, minutes ?? 0);
 
-    return withTime ? `${day}, ${time || '00:00'}` : day;
+    return date.toLocaleString(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 }
 
 /**

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminUrl } from '@/lib/admin-url';
+import { showsSourceBadge } from '@/lib/activity';
 import { panelLocale, t } from '@/lib/i18n';
 import { queryParams } from '@/lib/query-params';
 import { toggleColumn, type TablePreferences } from '@/lib/table-preferences';
@@ -27,6 +28,8 @@ interface Row {
     userId: string | null;
     user: string | null;
     action: string;
+    /** The action as the sentence's verb, in the panel's language. */
+    actionLabel: string;
     type: string;
     typeLabel: string;
     subjectId: string | null;
@@ -56,7 +59,7 @@ interface Query {
 interface Props {
     query: Query;
     types: { value: string; label: string }[];
-    actions: string[];
+    actions: { value: string; label: string }[];
     /** Who: everyone in the log, by name. */
     people: { value: string; label: string }[];
     sources: string[];
@@ -157,7 +160,7 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
                     <SelectTrigger aria-label={t('Action')} className="w-44"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value={ALL}>{t('Any action')}</SelectItem>
-                        {actions.map((action) => <SelectItem key={action} value={action}>{action}</SelectItem>)}
+                        {actions.map((action) => <SelectItem key={action.value} value={action.value}>{action.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <div className="flex items-center gap-2">
@@ -213,11 +216,11 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
                                         <button type="button" className="text-left hover:underline" onClick={() => visit({ user: row.userId })}>{row.user}</button>
                                     ) : <span>{row.user ?? (row.source === 'system' ? t('System') : t('Someone not signed in'))}</span>}
                                     <div className="mt-0.5 flex flex-wrap gap-1">
-                                        {row.source !== 'admin' && <Badge variant={row.source === 'security' ? 'warning' : 'secondary'}>{sourceLabel(row.source)}{row.via ? ` · ${row.via}` : ''}</Badge>}
+                                        {showsSourceBadge(row) && <Badge variant={row.source === 'security' ? 'warning' : 'secondary'}>{sourceLabel(row.source)}{row.via ? ` · ${row.via}` : ''}</Badge>}
                                     </div>
                                 </TableCell>}
                                 {show('what') && <TableCell className="align-top">
-                                    <span className="font-medium">{row.action}</span>{' '}
+                                    <span className="font-medium">{row.actionLabel}</span>{' '}
                                     {!row.self && (
                                         <>
                                             <span className="text-muted-foreground">{row.type === 'account' ? t('for') : row.typeLabel.toLowerCase()}</span>{' '}

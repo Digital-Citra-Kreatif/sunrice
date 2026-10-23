@@ -24,7 +24,7 @@ Turn on **Two-factor login** in Settings → Security (permission `sunrice.setti
 - not to be the person's email address or name (whatever the case),
 - not to have appeared in a known data leak (below).
 
-Each rule it misses is its own message ("Use at least 12 characters.", "Add a symbol, such as ! or #." …), and the forms show the rules as a checklist under the new password, ticked as they're met; it comes from the server (`PasswordPolicy::checklist()`), so it always says what is enforced. The email, name and leak checks are only on the server: a leaked password gets "This password has appeared in a data leak. Choose a different one."
+Each rule it misses is its own message ("Use at least 12 characters.", "Add a symbol, such as ! or #." …), all shown at once (the panel sends every message of a field, joined, not only the first), and the forms show the rules as a checklist under the new password, ticked as they're met; it comes from the server (`PasswordPolicy::checklist()`), so it always says what is enforced. The email, name and leak checks are only on the server: a leaked password gets "This password has appeared in a data leak. Choose a different one."
 
 It applies everywhere the panel sets a password: creating and editing users (the `Password` form field), **Your account**, the reset and invitation pages, **Choose a stronger password** (below) and `sunrice:make-admin` (`--password` too; asked interactively, it explains the rules when one is refused). AI agents can't set or read passwords at all: `get_record` leaves password fields out, and `save_record` refuses them (a new user is invited to choose their own).
 

@@ -78,7 +78,7 @@ it('deletes records in the trash permanently, one or many, and nothing outside i
     post('/admin/desk/notes/bulk', ['action' => 'force-delete', 'ids' => [$also->id, $kept->id]])->assertSessionHas('success', '1 permanently deleted.');
 
     expect(Note::withTrashed()->pluck('title')->all())->toBe(['Kept'])
-        ->and(Activity::query()->where('action', 'permanently deleted')->pluck('subject_label')->all())->toBe(['Gone', 'Also gone']);
+        ->and(Activity::query()->where('action', 'permanently deleted')->orderBy('id')->pluck('subject_label')->all())->toBe(['Gone', 'Also gone']);
 
     // Only for those who may delete.
     actingAs(adminUser(Panel::ACCESS, 'desk.notes.view'));

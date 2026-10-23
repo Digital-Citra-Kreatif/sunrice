@@ -69,7 +69,8 @@ export function PermissionMatrix({ id, options, value, disabled, onChange }: {
                 const columns = matrixColumns(rows);
                 const groupId = `${id}-${group.replace(/\W+/g, '-')}`;
                 const isOpen = open[group] === true;
-                const name = (row: MatrixRow) => rows.length === 1 && group !== '' ? group : matrixRowName(row.key, t('General'));
+                // A row's name is a word of the permission's name ("Activity", "Guide"): said in the panel's language.
+                const name = (row: MatrixRow) => rows.length === 1 && group !== '' ? group : t(matrixRowName(row.key, 'General'));
                 // Nothing by action (settings, AI access): a plain list reads better than a table.
                 const plain = columns.length === 0;
                 const box = (option: MatrixOption, extra = '') => (

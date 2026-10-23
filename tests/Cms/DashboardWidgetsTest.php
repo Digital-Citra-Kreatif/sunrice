@@ -6,11 +6,13 @@ use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Activity\Activity;
 use Sunrice\Admin\Dashboard\Widget;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\TrashEntry;
+use Sunrice\Cms\Actions\Entries\UnpublishEntry;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
@@ -185,4 +187,18 @@ it('says when an app route answers / instead of the homepage', function () {
 
     expect(collect(widgetData('cms.setup', $manager)['rows'])->firstWhere('title', 'Your app\'s own / route hides the homepage'))
         ->toMatchArray(['meta' => 'Remove it from routes/web.php: the app\'s routes win over the CMS\'s.', 'tone' => 'warning']);
+});
+
+it('says what happened to entries with Indonesian verbs, on the dashboard and in the log', function () {
+    $post = dashPost($this->blog, 'Five quick tips');
+    app(UnpublishEntry::class)->handle($post);
+    app()->setLocale('id');
+
+    $lines = Activity::query()->where('subject_type', 'entry')->orderByDesc('id')->get();
+
+    expect($lines->map(fn ($line) => $line->sentence())->all())->toBe([
+        'Rina membatalkan terbitan Five quick tips',
+        'Rina menerbitkan Five quick tips',
+        'Rina membuat Five quick tips',
+    ]);
 });

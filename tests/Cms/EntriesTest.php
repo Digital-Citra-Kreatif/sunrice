@@ -116,6 +116,22 @@ it('saves drafts without touching the live version', function () {
         ->and(Activity::query()->latest('id')->first()?->properties)->toMatchArray(['changed' => ['title', 'featured']]);
 });
 
+it('logs no change for an untouched SEO on a new entry, as the editor sends it before publishing', function () {
+    $translation = article();
+    $later = request()->duplicate();
+    $later->attributes->remove(ActivityLog::REQUEST_ID);
+    app()->instance('request', $later);
+    $lines = Activity::query()->count();
+    app(SaveDraft::class)->handle($translation, ['title' => 'Hello world', 'data' => ['intro' => 'Hi'], 'seo' => ['title' => '', 'description' => null, 'image' => null, 'noindex' => false]]);
+
+    expect(Activity::query()->count())->toBe($lines)
+        ->and($translation->fresh()?->version)->toBe(1);
+
+    app(SaveDraft::class)->handle($translation, ['seo' => ['title' => 'Better title']]);
+
+    expect(Activity::query()->latest('id')->first()?->properties)->toMatchArray(['changed' => ['seo']]);
+});
+
 it('refuses a save over a newer one', function () {
     $translation = article();
     $stale = $translation->replicate()->setRawAttributes($translation->getAttributes());

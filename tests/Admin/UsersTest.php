@@ -353,7 +353,9 @@ it('shows a Security card on the user\'s page, and locks with a reason', functio
         ->where('aside.0.blocks.0.tone', 'danger')
         ->where('aside.0.blocks.0.text', fn (string $text) => str_starts_with($text, 'Locked ') && str_ends_with($text, ' by Super'))
         ->where('aside.0.blocks.0.detail', fn (string $detail) => str_starts_with($detail, 'Password leaked · '))
-        ->where('aside.0.blocks.1.rows', fn ($rows) => collect($rows)->pluck('value', 'label')->only(['Last login', 'AI access tokens'])->map(fn ($v) => str_contains($v, ' from ') ? 'from' : $v)->all() === ['Last login' => 'from', 'AI access tokens' => '0']
+        // The last login is a date the page shows in the panel's language, its IP on a line of its own.
+        ->where('aside.0.blocks.1.rows', fn ($rows) => collect($rows)->pluck('value', 'label')->only(['Last login IP', 'AI access tokens'])->all() === ['Last login IP' => '203.0.113.9', 'AI access tokens' => '0']
+            && collect($rows)->firstWhere('label', 'Last login')['type'] === 'datetime'
             && collect($rows)->firstWhere('label', 'Signed out everywhere')['type'] === 'datetime')
         ->where('aside.0.blocks.2.heading', 'Latest security events')
         ->where('aside.0.blocks.2.items', fn ($items) => collect($items)->firstWhere('label', 'Account locked by admin')['meta'] === 'Password leaked · by Super · IP 127.0.0.1')
@@ -422,6 +424,23 @@ it('shows on the Security card what the user owns', function () {
         ->where('aside.0.blocks', fn ($blocks) => collect(collect($blocks)->firstWhere('type', 'rows')['rows'])->firstWhere('label', 'Owns')['value'] === '1 upload'));
     get("/admin/users/{$this->manager->id}/edit")->assertInertia(fn (Assert $page) => $page
         ->where('aside.0.blocks', fn ($blocks) => collect(collect($blocks)->firstWhere('type', 'rows')['rows'])->firstWhere('label', 'Owns')['value'] === 'Nothing'));
+});
+
+it('says the Security card in the panel\'s language: events, their notes and what the user owns', function () {
+    actingAs($this->super);
+    config(['sunrice-admin.locale' => 'id']);
+    app(SecurityLog::class)->record('weak password at sign-in', $this->manager, null, ['note' => 'fails: length, mixed', 'problems' => ['length', 'mixed']]);
+    app(SecurityLog::class)->record('weak password changed', $this->manager);
+
+    get("/admin/users/{$this->manager->id}/edit")->assertInertia(fn (Assert $page) => $page
+        ->where('aside.0.blocks', function ($blocks) {
+            $rows = collect(collect($blocks)->firstWhere('type', 'rows')['rows']);
+            $items = collect(collect($blocks)->firstWhere('type', 'list')['items']);
+
+            return $rows->firstWhere('label', 'Miliknya')['value'] === 'Tidak ada'
+                && $items->pluck('label')->all() === ['Kata sandi lemah diganti', 'Kata sandi lemah saat masuk']
+                && str_starts_with((string) $items->firstWhere('label', 'Kata sandi lemah saat masuk')['meta'], 'tidak memenuhi: panjang, huruf besar dan kecil');
+        }));
 });
 
 it('asks for a new password twice, unless it is left empty when editing', function () {
