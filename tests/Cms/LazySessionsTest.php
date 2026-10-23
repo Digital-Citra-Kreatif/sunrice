@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Cookie\CookieValuePrefix;
+use Illuminate\Http\Request;
+use Illuminate\Routing\CompiledRouteCollection;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
@@ -25,7 +27,11 @@ use function Pest\Laravel\actingAs;
  * the database (Laravel's default driver), the session store made afresh
  * and only the cookies a test sends.
  */
-beforeEach(function () {
+beforeEach(fn () => lazySessionsSite());
+
+/** The panel with the CMS, a page without a form (/about) and one with (/contact/us); sessions in the database. */
+function lazySessionsSite(): void
+{
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [['handle' => 'intro', 'type' => 'text']]]);
     Blueprint::query()->create(['handle' => 'contact', 'title' => 'Contact', 'fields' => [['handle' => 'name', 'type' => 'text']]]);
@@ -34,10 +40,10 @@ beforeEach(function () {
     config(['sunrice-cms.site.template_prefixes' => ['cms.', 'cached::'], 'honeypot.enabled' => false, 'responsecache.debug.enabled' => true]);
     $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'post', 'route' => '/{slug}']);
     $contact = Collection::query()->create(['handle' => 'contact', 'title' => 'Contact', 'blueprint' => 'post', 'route' => '/contact/{slug}', 'template' => 'cached::cms.with-form']);
-    $this->about = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'About', 'data' => ['intro' => 'Live words']]));
+    test()->about = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'About', 'data' => ['intro' => 'Live words']]));
     app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($contact, ['title' => 'Us']));
     config(['session.driver' => 'database']);
-});
+}
 
 /** A request by a new visitor (or one with the given cookies): the session store made afresh, as in a new PHP process. */
 function newVisit(string $url, array $cookies = [], string $method = 'GET', array $input = []): TestResponse
@@ -147,3 +153,45 @@ function tokenIn(TestResponse $response): ?string
 
     return $m[1] ?? null;
 }
+
+it('works with cached routes (route:cache)', function () {
+    // Cache the routes as route:cache does, to a file of this test's own (APP_ROUTES_CACHE).
+    $routes = app('router')->getRoutes();
+    $routes->refreshNameLookups();
+    $routes->refreshActionLookups();
+    foreach ($routes as $route) {
+        $route->prepareForSerialization();
+    }
+    $file = sys_get_temp_dir().'/sunrice-routes-'.uniqid().'.php';
+    file_put_contents($file, "<?php\n\napp('router')->setCompiledRoutes(\n    ".var_export($routes->compile(), true)."\n);\n");
+    $_ENV['APP_ROUTES_CACHE'] = $_SERVER['APP_ROUTES_CACHE'] = $file;
+
+    try {
+        // A new app that boots with them, as in production: the CMS and the panel register no routes.
+        $this->reloadApplication();
+        expect(app()->routesAreCached())->toBeTrue()
+            ->and(app('router')->getRoutes()->getRoutes())->toBe([]);
+        require app()->getCachedRoutesPath();
+        lazySessionsSite();
+        expect(app('router')->getRoutes())->toBeInstanceOf(CompiledRouteCollection::class)
+            ->and(app('router')->getRoutes()->match(Request::create('/'))->getName())->toBe('sunrice.cms.home')
+            ->and(app('router')->getRoutes()->match(Request::create('/about'))->getName())->toBe('sunrice.cms.page');
+
+        $about = newVisit('/about')->assertOk()->assertSee('Live words');
+        expect(cookiesSet($about))->toBe([])
+            ->and(DB::table('sessions')->count())->toBe(0);
+        $contact = newVisit('/contact/us')->assertOk();
+        expect(cookiesSet($contact))->toContain(config('session.cookie'), 'XSRF-TOKEN')
+            ->and(DB::table('sessions')->count())->toBe(1);
+
+        // The site's group was made at the first request; the panel keeps Laravel's StartSession.
+        $router = app('router');
+        $site = $router->gatherRouteMiddleware($router->getRoutes()->getByName('sunrice.cms.page'));
+        $panel = $router->gatherRouteMiddleware($router->getRoutes()->getByName('sunrice.admin.dashboard'));
+        expect($site)->toContain(StartSessionWhenNeeded::class)->not->toContain(StartSession::class)
+            ->and($panel)->toContain(StartSession::class)->not->toContain(StartSessionWhenNeeded::class);
+    } finally {
+        unset($_ENV['APP_ROUTES_CACHE'], $_SERVER['APP_ROUTES_CACHE']);
+        @unlink($file);
+    }
+});
