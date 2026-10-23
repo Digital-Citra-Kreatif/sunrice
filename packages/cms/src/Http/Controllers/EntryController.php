@@ -444,9 +444,9 @@ final class EntryController
             'templates' => [
                 'own' => TemplateHelp::lookup([$entry->template])[0] ?? null,
                 'fallbacks' => TemplateHelp::lookup(TemplateLookup::entry($collection, TemplateLookup::entrySlug($translation))),
-                // The views that exist under the template prefixes, to pick from.
-                'choices' => TemplateHelp::choices(),
             ],
+            // The views that exist under the template prefixes, to pick from: read when the Template choice opens.
+            'templateChoices' => Inertia::optional(fn (): array => TemplateHelp::choices()),
             // The blueprints it may use, when there's a choice (Page settings).
             'blueprints' => self::blueprints($collection),
             // Its blueprint's editor, for those who may edit blueprints (the ⋮ menu's "Edit blueprint").

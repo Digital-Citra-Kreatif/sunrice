@@ -48,3 +48,12 @@ test('a template setting is a choice with two helper lines and the file in use; 
     assert.match(order, /3\.<\/span><span[^>]*>the built-in template<\/span><\/li>/);
     assert.doesNotMatch(order, /resources\/views/);
 });
+
+test('adds the views to pick from to a lookup once they are loaded', async () => {
+    const { withTemplateChoices } = await loadCmsModule<{ withTemplateChoices: (lookup: Lookup | null, choices: string[] | undefined) => Lookup | null }>('components/TemplateHelp.tsx');
+    const lookup: Lookup = { own: null, fallbacks: [] };
+
+    assert.equal(withTemplateChoices(lookup, undefined), lookup);
+    assert.equal(withTemplateChoices(null, ['cms.x']), null);
+    assert.deepEqual(withTemplateChoices(lookup, ['cms.x']), { own: null, fallbacks: [], choices: ['cms.x'] });
+});

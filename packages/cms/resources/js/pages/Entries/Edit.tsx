@@ -8,7 +8,7 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Switch, Textarea, toast, useBreadcrumbs, useEditLock, useUnsavedChanges, ViewingNotice,
 } from '@imajiner/admin-sdk/ui';
 import { useConfirm } from '@/components/Confirm.tsx';
-import { TemplateField, type TemplateLookup } from '@/components/TemplateHelp.tsx';
+import { TemplateField, type TemplateLookup, withTemplateChoices } from '@/components/TemplateHelp.tsx';
 import { ChangedMarker, EntryStatusBadges } from '@/components/EntryStatus.tsx';
 import { diffSide, wordDiff } from '@/lib/diff.ts';
 import { EntriesPicker } from '@/components/EntriesPicker.tsx';
@@ -74,6 +74,8 @@ interface Props {
     redirectsUrl?: string | null;
     /** The views tried for its page, in order, and which exist. */
     templates?: TemplateLookup | null;
+    /** The views to pick a template from: loaded when the Template choice first opens. */
+    templateChoices?: string[];
     /** terms: the entry's (every language's) by taxonomy handle, as the editor shows them (not published yet, else live). */
     values: { title: string; slug: string; data: FieldValues; seo: FieldValues | null; terms?: TermsByTaxonomy | never[] };
     /** Deferred: loaded after the page shows. */
@@ -134,7 +136,7 @@ export default function EntryEditorPage(props: Props) {
     return <EntryEditor key={entry ? `${entry.id}:${entry.locale}:${entry.version}:${entry.status}:${entry.trashed}:${entry.publishedAt}` : 'new'} {...props} />;
 }
 
-function EntryEditor({ collection, fields, locales = [], shared = [], sharedValues = {}, entry, values, revisions, comments, termLabels, usedBy = [], undoRestore = null, machineTranslate = null, machineTranslateMissing = false, settings, taxonomies = [], blueprints = [], blueprintUrl = null, homepage, redirectsUrl = null, templates = null, can }: Props) {
+function EntryEditor({ collection, fields, locales = [], shared = [], sharedValues = {}, entry, values, revisions, comments, termLabels, usedBy = [], undoRestore = null, machineTranslate = null, machineTranslateMissing = false, settings, taxonomies = [], blueprints = [], blueprintUrl = null, homepage, redirectsUrl = null, templates = null, templateChoices, can }: Props) {
     const list = adminUrl(`cms/collections/${collection.handle}/entries`);
     const url = entry ? adminUrl(`cms/entries/${entry.id}`) : list;
     const heading = entry ? values.title : t('New entry');
@@ -505,7 +507,7 @@ function EntryEditor({ collection, fields, locales = [], shared = [], sharedValu
                                 </div>
                             ))}
                         </CollapsibleCard>
-                        {settings && <PageSettings entryUrl={url} collection={collection} settings={settings} templates={templates} blueprints={blueprints} disabled={!writable}
+                        {settings && <PageSettings entryUrl={url} collection={collection} settings={settings} templates={withTemplateChoices(templates, templateChoices)} blueprints={blueprints} disabled={!writable}
                             values={form.data} errors={errors} onChange={setSettings} draftDirty={form.isDirty}
                             commentCount={comments ? comments.counts.pending + comments.counts.approved : null} />}
                         <TaxonomiesCard taxonomies={taxonomies} value={form.data.terms} labels={labels} errors={errors} changed={changed} disabled={!writable || can.terms !== true}

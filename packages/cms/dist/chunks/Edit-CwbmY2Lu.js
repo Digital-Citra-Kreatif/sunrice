@@ -1,24 +1,24 @@
-import { j as e, t as s, f as S, a as B, r as v, b as Te, d as Ze, e as es, l as _, c as ss, g as ts, h as as, s as ls, i as ns, k as is } from "./admin-DnnkivSR.js";
+import { j as e, t as s, f as S, a as B, r as v, b as Te, d as es, e as ss, l as _, c as ts, g as as, h as ls, s as ns, i as is, k as rs } from "./admin-CSdT0pxA.js";
 import { c as U, _ as N } from "./createLucideIcon-Ccbp7F45.js";
 import { u as a } from "./ui-Dh5wfMwT.js";
-import { u as rs } from "./Confirm-D1wOulqT.js";
-import { S as cs, T as os } from "./SlugNote-CN3LwW_i.js";
-import { E as je, C as Z } from "./EntryStatus-DMzNCJeW.js";
-import { E as ds } from "./EntriesPicker-D16KXyEa.js";
+import { u as cs } from "./Confirm-Dkdy_2ra.js";
+import { S as os, w as ds, T as ms } from "./SlugNote-DWC-1xHw.js";
+import { E as je, C as Z } from "./EntryStatus-C-qcgR7u.js";
+import { E as us } from "./EntriesPicker-CfNpzQw6.js";
 import { C as Ae } from "./check-OeKFYRnl.js";
-import { S as ms, M as us, U as re } from "./undo-2-CBzqSKK6.js";
-import { F as hs } from "./FieldSections-B_5APQtZ.js";
-import { C as ps, z as Be, A as xs, b as gs, h as fs, B as bs, T as js } from "./FieldInput-DRi_rsqp.js";
-import { s as vs } from "./seo-DwI8W9iW.js";
-import { F } from "./FieldError-C_v_H5nt.js";
-import { R as ws } from "./rotate-ccw-BcgdCn0y.js";
+import { S as hs, M as ps, U as re } from "./undo-2-CBzqSKK6.js";
+import { F as xs } from "./FieldSections-C4KW7pMB.js";
+import { C as gs, z as Be, A as fs, b as bs, h as js, B as vs, T as ws } from "./FieldInput-mTDdrad6.js";
+import { s as ks } from "./seo-DjBWuTZz.js";
+import { F } from "./FieldError--UeTqhS9.js";
+import { R as Ns } from "./rotate-ccw-BcgdCn0y.js";
 import { T as ve } from "./trash-DHN6ewjn.js";
-import { L as ks } from "./link-2-BYZeXgi5.js";
+import { L as Cs } from "./link-2-BYZeXgi5.js";
 import { C as Me } from "./copy-BT7TBOUx.js";
-import { L as Ns } from "./layout-template-RwJXNfEY.js";
+import { L as Ss } from "./layout-template-RwJXNfEY.js";
 import { L as _e } from "./loader-circle-ByksABXO.js";
-import { E as Cs } from "./external-link-CFxEu4M4.js";
-import { P as Ss } from "./plus-COqahUZ2.js";
+import { E as ys } from "./external-link-CFxEu4M4.js";
+import { P as Ds } from "./plus-COqahUZ2.js";
 const Ee = {
   name: "calendar-clock",
   size: 24,
@@ -44,7 +44,7 @@ const Pe = {
   aliases: ["more-vertical"]
 };
 Pe.node;
-const ys = U(Pe);
+const $s = U(Pe);
 const Le = {
   name: "eye",
   size: 24,
@@ -60,7 +60,7 @@ const Le = {
   ]
 };
 Le.node;
-const Ds = U(Le);
+const Ts = U(Le);
 const Fe = {
   name: "git-compare",
   size: 24,
@@ -72,7 +72,7 @@ const Fe = {
   ]
 };
 Fe.node;
-const $s = U(Fe);
+const As = U(Fe);
 const ze = {
   name: "languages",
   size: 24,
@@ -102,15 +102,15 @@ const Ie = {
   ]
 };
 Ie.node;
-const Ts = U(Ie);
+const Bs = U(Ie);
 function ke(l) {
   return l.match(/\n|[^\s]+[^\S\n]*|[^\S\n]+/g) ?? [];
 }
-const As = 25e4;
-function Bs(l, r) {
+const Ms = 25e4;
+function _s(l, r) {
   if (l === r) return l === "" ? [] : [{ text: l, op: "same" }];
   const c = ke(l), m = ke(r);
-  if (c.length * m.length > As)
+  if (c.length * m.length > Ms)
     return [...l ? [{ text: l, op: "removed" }] : [], ...r ? [{ text: r, op: "added" }] : []];
   const h = c.length + 1, t = m.length + 1, o = new Uint32Array(h * t);
   for (let x = c.length - 1; x >= 0; x--)
@@ -127,11 +127,11 @@ function Bs(l, r) {
   for (; u < m.length; ) p(m[u++], "added");
   return g;
 }
-function Ms(l, r) {
+function Es(l, r) {
   return l.filter((c) => c.op === "same" || c.op === (r === "old" ? "removed" : "added"));
 }
 const Ne = { preserveScroll: !0, preserveState: !0 };
-function _s({ entryId: l, comments: r }) {
+function Ps({ entryId: l, comments: r }) {
   const [c, m] = N.useState(null), [h, t] = N.useState(""), [o, g] = N.useState(!1), p = (u, x) => v.router.post(B(`cms/comments/${u}/status`), { status: x }, Ne), i = (u) => v.router.post(B(`cms/comments/${u}/reply`), { body: h }, {
     ...Ne,
     onStart: () => g(!0),
@@ -168,7 +168,7 @@ function _s({ entryId: l, comments: r }) {
               s("Approve")
             ] }),
             /* @__PURE__ */ e.jsxs(a.Button, { type: "button", variant: "ghost", size: "sm", onClick: () => p(u.id, "spam"), children: [
-              /* @__PURE__ */ e.jsx(ms, {}),
+              /* @__PURE__ */ e.jsx(hs, {}),
               " ",
               s("Spam")
             ] }),
@@ -183,7 +183,7 @@ function _s({ entryId: l, comments: r }) {
                   m(c === u.id ? null : u.id), t("");
                 },
                 children: [
-                  /* @__PURE__ */ e.jsx(us, {}),
+                  /* @__PURE__ */ e.jsx(ps, {}),
                   " ",
                   s("Reply")
                 ]
@@ -214,15 +214,15 @@ function _s({ entryId: l, comments: r }) {
     }
   );
 }
-function Es(l, r) {
+function Ls(l, r) {
   const c = new Set(l), m = new Set(r);
   return c.size === m.size && [...c].every((h) => m.has(h));
 }
-function Ps(l, r) {
+function Fs(l, r) {
   const c = {}, m = {};
   for (const [h, t] of Object.entries(r)) {
     const o = l[h] ?? [];
-    Es(o, t) || (c[h] = t.slice(), m[h] = o.slice());
+    Ls(o, t) || (c[h] = t.slice(), m[h] = o.slice());
   }
   return Object.keys(c).length === 0 ? null : { terms: c, terms_base: m };
 }
@@ -231,16 +231,16 @@ function Ce(l) {
   const r = l.slice(0, 5).map((c) => c.label).join("; ");
   return ` ${l.length > 5 ? s("It's used by :list and :count more: those links will show nothing.", { list: r, count: l.length - 5 }) : s("It's used by :list: those links will show nothing.", { list: r })}`;
 }
-function ft(l) {
+function jt(l) {
   const { entry: r } = l;
-  return /* @__PURE__ */ e.jsx(Ls, { ...l }, r ? `${r.id}:${r.locale}:${r.version}:${r.status}:${r.trashed}:${r.publishedAt}` : "new");
+  return /* @__PURE__ */ e.jsx(zs, { ...l }, r ? `${r.id}:${r.locale}:${r.version}:${r.status}:${r.trashed}:${r.publishedAt}` : "new");
 }
-function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedValues: h = {}, entry: t, values: o, revisions: g, comments: p, termLabels: i, usedBy: u = [], undoRestore: x = null, machineTranslate: f = null, machineTranslateMissing: k = !1, settings: A, taxonomies: b = [], blueprints: E = [], blueprintUrl: q = null, homepage: z, redirectsUrl: Oe = null, templates: Ve = null, can: w }) {
+function zs({ collection: l, fields: r, locales: c = [], shared: m = [], sharedValues: h = {}, entry: t, values: o, revisions: g, comments: p, termLabels: i, usedBy: u = [], undoRestore: x = null, machineTranslate: f = null, machineTranslateMissing: k = !1, settings: A, taxonomies: b = [], blueprints: E = [], blueprintUrl: q = null, homepage: z, redirectsUrl: Oe = null, templates: Ve = null, templateChoices: Ue, can: w }) {
   const K = B(`cms/collections/${l.handle}/entries`), y = t ? B(`cms/entries/${t.id}`) : K, ee = t ? o.title : s("New entry");
   a.useBreadcrumbs([{ label: l.title, href: K }, { label: ee }]);
-  const [I, Ue] = rs(), [qe, H] = N.useState(!1), se = t?.publishedAt ? Te(new Date(t.publishedAt)) : "", [oe, de] = N.useState(se);
+  const [I, qe] = cs(), [Ke, H] = N.useState(!1), se = t?.publishedAt ? Te(new Date(t.publishedAt)) : "", [oe, de] = N.useState(se);
   N.useEffect(() => de(se), [se]);
-  const [R, me] = N.useState(null), [Ke, ue] = N.useState(!1), [He, he] = N.useState(!1), [Ye, te] = N.useState(!1), d = v.useForm({
+  const [R, me] = N.useState(null), [He, ue] = N.useState(!1), [Ye, he] = N.useState(!1), [We, te] = N.useState(!1), d = v.useForm({
     ...o,
     seo: o.seo ?? {},
     terms: Array.isArray(o.terms) || !o.terms ? {} : o.terms,
@@ -252,16 +252,16 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
     template: A?.template ?? "",
     comments_closed: A?.commentsClosed === !0
   }), pe = (n) => d.setData((j) => ({ ...j, ...n })), O = t ? { locale: t.locale } : {}, M = c.find((n) => n.main)?.code, C = d.errors, G = v.usePage().props.errors ?? {}, V = (n) => {
-    const j = bs(C, n);
+    const j = vs(C, n);
     j.length > 0 && d.clearErrors(...j);
-  }, P = t !== null && t.status !== "draft" && !t.hasUnpublishedChanges && !d.isDirty, J = Ze(t?.status ?? "draft", oe, t?.publishedAt ?? null), xe = t === null ? w.create : w.update && !t.trashed, Y = t?.status === "scheduled", L = t ? es(t) : null, W = t?.live?.changed ?? [], ge = (n) => W.includes(n) ? /* @__PURE__ */ e.jsx(Z, {}) : null, Q = l.pages !== !1, We = Array.isArray(o.terms) || !o.terms ? {} : o.terms, ae = (n, j = !1) => {
-    const { terms: T, ...fe } = n, ie = w.terms === !0 && b.length > 0 ? Ps(We, T) : null, be = ie === null ? fe : { ...fe, terms: ie.terms, ...j ? {} : { terms_base: ie.terms_base } };
+  }, P = t !== null && t.status !== "draft" && !t.hasUnpublishedChanges && !d.isDirty, J = es(t?.status ?? "draft", oe, t?.publishedAt ?? null), xe = t === null ? w.create : w.update && !t.trashed, Y = t?.status === "scheduled", L = t ? ss(t) : null, W = t?.live?.changed ?? [], ge = (n) => W.includes(n) ? /* @__PURE__ */ e.jsx(Z, {}) : null, Q = l.pages !== !1, Ge = Array.isArray(o.terms) || !o.terms ? {} : o.terms, ae = (n, j = !1) => {
+    const { terms: T, ...fe } = n, ie = w.terms === !0 && b.length > 0 ? Fs(Ge, T) : null, be = ie === null ? fe : { ...fe, terms: ie.terms, ...j ? {} : { terms_base: ie.terms_base } };
     if (A || t === null) return be;
-    const { parent_id: Ys, template: Ws, comments_closed: Gs, ...Xe } = be;
-    return Xe;
+    const { parent_id: Gs, template: Js, comments_closed: Qs, ...Ze } = be;
+    return Ze;
   }, le = Array.isArray(i) || !i ? {} : i, ne = (n = !1, j = null) => {
     d.transform((T) => ({ ...ae(T), publish: n, published_at: j })), t ? d.put(y, { preserveScroll: !0, onSuccess: () => H(!1) }) : d.post(y);
-  }, Ge = () => {
+  }, Je = () => {
     d.transform((n) => ({ ...ae(n, !0), version: null, publish: !1, published_at: null })), d.put(y, { preserveScroll: !0 });
   }, $ = a.useEditLock({
     type: "cms.entry",
@@ -271,12 +271,12 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
     noun: s("entry"),
     leaveTo: K,
     getUnsaved: () => d.isDirty ? { title: d.data.title, slug: d.data.slug, data: d.data.data, seo: d.data.seo, terms: d.data.terms } : null
-  }), D = xe && !$.readOnly, Je = async (n) => {
+  }), D = xe && !$.readOnly, Qe = async (n) => {
     const j = await $.loadKept(n);
     d.setData((T) => ({ ...T, title: j.title ?? T.title, slug: j.slug ?? T.slug, data: j.data ?? T.data, seo: j.seo ?? T.seo, terms: j.terms ?? T.terms }));
   };
   a.useUnsavedChanges(d.isDirty && !$.takenOver, D ? () => d.processing || ne() : void 0);
-  const Qe = () => {
+  const Xe = () => {
     const n = () => v.router.post(`${y}/review`, O, { preserveScroll: !0 });
     d.isDirty ? (d.transform((j) => ({ ...ae(j), publish: !1, published_at: null })), d.put(y, { preserveScroll: !0, onSuccess: n })) : n();
   }, X = (n = null) => {
@@ -286,7 +286,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
     n.preventDefault(), ne();
   }, className: "cms:flex cms:flex-col cms:gap-6", children: [
     /* @__PURE__ */ e.jsx(v.Head, { title: ee }),
-    Ue,
+    qe,
     $.dialogs,
     /* @__PURE__ */ e.jsxs(
       a.PageHeader,
@@ -295,7 +295,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
         back: { href: K, label: s("Back to :title", { title: l.title }) },
         actions: /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
           t?.trashed && w.delete && /* @__PURE__ */ e.jsxs(a.Button, { type: "button", variant: "outline", onClick: () => v.router.post(`${y}/restore`, {}, { preserveScroll: !0 }), children: [
-            /* @__PURE__ */ e.jsx(ws, {}),
+            /* @__PURE__ */ e.jsx(Ns, {}),
             " ",
             s("Restore")
           ] }),
@@ -317,7 +317,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
             }
           ),
           t && !t.trashed && (Q || w.create || w.delete && !$.readOnly || D && f !== null || q) && /* @__PURE__ */ e.jsxs(a.DropdownMenu, { children: [
-            /* @__PURE__ */ e.jsx(a.DropdownMenuTrigger, { asChild: !0, children: /* @__PURE__ */ e.jsx(a.Button, { type: "button", variant: "outline", size: "icon", "aria-label": s("More actions"), children: /* @__PURE__ */ e.jsx(ys, {}) }) }),
+            /* @__PURE__ */ e.jsx(a.DropdownMenuTrigger, { asChild: !0, children: /* @__PURE__ */ e.jsx(a.Button, { type: "button", variant: "outline", size: "icon", "aria-label": s("More actions"), children: /* @__PURE__ */ e.jsx($s, {}) }) }),
             /* @__PURE__ */ e.jsxs(a.DropdownMenuContent, { align: "end", className: "cms:min-w-52", children: [
               D && f !== null && /* @__PURE__ */ e.jsxs(
                 a.DropdownMenuItem,
@@ -333,7 +333,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
                 }
               ),
               Q && /* @__PURE__ */ e.jsxs(a.DropdownMenuItem, { title: s("A link that shows the saved draft to anyone, without signing in, for a while"), onSelect: () => he(!0), children: [
-                /* @__PURE__ */ e.jsx(ks, {}),
+                /* @__PURE__ */ e.jsx(Cs, {}),
                 " ",
                 s("Share preview link…")
               ] }),
@@ -343,7 +343,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
                 s("Duplicate")
               ] }),
               q && /* @__PURE__ */ e.jsx(a.DropdownMenuItem, { asChild: !0, children: /* @__PURE__ */ e.jsxs(v.Link, { href: q, children: [
-                /* @__PURE__ */ e.jsx(Ns, {}),
+                /* @__PURE__ */ e.jsx(Ss, {}),
                 " ",
                 s("Edit blueprint")
               ] }) }),
@@ -381,10 +381,10 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
             {
               type: "button",
               disabled: d.processing,
-              onClick: Qe,
+              onClick: Xe,
               title: t.review ? s("Already sent; sending again tells them again") : s("Ask those who can publish to review it"),
               children: [
-                /* @__PURE__ */ e.jsx(Ts, {}),
+                /* @__PURE__ */ e.jsx(Bs, {}),
                 " ",
                 t.review ? s("Send for review again") : s("Submit for review")
               ]
@@ -400,7 +400,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
               P ? s("Published") : J.action === "schedule" ? s("Schedule") : J.action === "backdate" ? s("Publish now, back-dated") : t.status === "draft" ? s("Publish") : s("Publish changes")
             ] }),
             /* @__PURE__ */ e.jsxs(a.DropdownMenu, { children: [
-              /* @__PURE__ */ e.jsx(a.DropdownMenuTrigger, { asChild: !0, children: /* @__PURE__ */ e.jsx(a.Button, { type: "button", size: "icon", variant: P ? "outline" : "default", className: P ? "cms:-ml-px cms:rounded-l-none" : "cms:rounded-l-none cms:border-l cms:border-primary-foreground/20", "aria-label": s("More publishing options"), children: /* @__PURE__ */ e.jsx(ps, {}) }) }),
+              /* @__PURE__ */ e.jsx(a.DropdownMenuTrigger, { asChild: !0, children: /* @__PURE__ */ e.jsx(a.Button, { type: "button", size: "icon", variant: P ? "outline" : "default", className: P ? "cms:-ml-px cms:rounded-l-none" : "cms:rounded-l-none cms:border-l cms:border-primary-foreground/20", "aria-label": s("More publishing options"), children: /* @__PURE__ */ e.jsx(gs, {}) }) }),
               /* @__PURE__ */ e.jsxs(a.DropdownMenuContent, { align: "end", children: [
                 /* @__PURE__ */ e.jsxs(a.DropdownMenuItem, { onSelect: () => H(!0), children: [
                   /* @__PURE__ */ e.jsx(ce, {}),
@@ -423,12 +423,12 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
       }
     ),
     t && L && /* @__PURE__ */ e.jsx(
-      qs,
+      Hs,
       {
         state: L,
         entry: t,
         dirty: d.isDirty,
-        actions: ss(L, { liveUrl: t.url !== null, pages: Q, canUpdate: D }),
+        actions: ts(L, { liveUrl: t.url !== null, pages: Q, canUpdate: D }),
         onCompare: () => ue(!0),
         onDiscard: () => I(
           s(`Discard the unpublished changes to ":title"? The editor goes back to the live version, as visitors see it. This can't be undone.`, { title: o.title }) + (d.isDirty ? ` ${s("Your unsaved edits are lost too.")}` : ""),
@@ -438,7 +438,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
       }
     ),
     t && c.length > 1 && /* @__PURE__ */ e.jsx(
-      zs,
+      Rs,
       {
         entryUrl: y,
         editUrl: `${K}/${t.id}/edit`,
@@ -454,7 +454,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
     ),
     /* @__PURE__ */ e.jsx(a.ViewingNotice, { by: $.viewingBy, onTakeOver: $.requestTakeOver }),
     /* @__PURE__ */ e.jsx(a.KeptEditsNotice, { kept: $.kept, disabled: !D, onLoad: (n) => {
-      Je(n);
+      Qe(n);
     }, onDiscard: (n) => {
       $.discardKept(n);
     } }),
@@ -469,7 +469,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
             variant: "destructive",
             size: "sm",
             disabled: d.processing,
-            onClick: () => I(s("Save your version over theirs? Their changes are replaced (their earlier published versions stay in the revisions)."), Ge),
+            onClick: () => I(s("Save your version over theirs? Their changes are replaced (their earlier published versions stay in the revisions)."), Je),
             children: s("Save mine anyway")
           }
         )
@@ -492,7 +492,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
                 "aria-invalid": C.title !== void 0,
                 onChange: (n) => {
                   const j = n.target.value;
-                  d.setData((T) => ({ ...T, title: j, slug: ts(T.slug, T.title, j, t !== null && t.publishedAt === null && t.status === "draft") })), V("title");
+                  d.setData((T) => ({ ...T, title: j, slug: as(T.slug, T.title, j, t !== null && t.publishedAt === null && t.status === "draft") })), V("title");
                 }
               }
             ),
@@ -516,12 +516,12 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
                 }
               }
             ),
-            /* @__PURE__ */ e.jsx(cs, { note: as(t?.publishedSlug, d.data.slug, t !== null && t.status !== "draft"), redirectsUrl: Oe }),
+            /* @__PURE__ */ e.jsx(os, { note: ls(t?.publishedSlug, d.data.slug, t !== null && t.status !== "draft"), redirectsUrl: Oe }),
             /* @__PURE__ */ e.jsx(F, { message: C.slug })
           ] })
         ] }) }) }),
         /* @__PURE__ */ e.jsx(Be.Provider, { value: le, children: /* @__PURE__ */ e.jsx(
-          hs,
+          xs,
           {
             disabled: !D,
             fields: r,
@@ -540,14 +540,14 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
         /* @__PURE__ */ e.jsx(a.CollapsibleCard, { title: W.some((n) => n.startsWith("seo.")) ? /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
           s("SEO"),
           /* @__PURE__ */ e.jsx(Z, {})
-        ] }) : s("SEO"), description: s("How this entry appears in search results and shared links."), titleClassName: "cms:text-base", storageKey: "cms:entry:seo", hasErrors: fs(C, "seo"), children: /* @__PURE__ */ e.jsx("fieldset", { disabled: !D, className: "cms:min-w-0", children: /* @__PURE__ */ e.jsx(
-          xs,
+        ] }) : s("SEO"), description: s("How this entry appears in search results and shared links."), titleClassName: "cms:text-base", storageKey: "cms:entry:seo", hasErrors: js(C, "seo"), children: /* @__PURE__ */ e.jsx("fieldset", { disabled: !D, className: "cms:min-w-0", children: /* @__PURE__ */ e.jsx(
+          fs,
           {
             bare: !0,
             id: "seo",
-            fields: vs(),
+            fields: ks(),
             value: d.data.seo,
-            errors: gs(C, "seo"),
+            errors: bs(C, "seo"),
             onChange: (n) => {
               d.setData("seo", n), V("seo");
             }
@@ -607,7 +607,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
             )
           ] }),
           !t.trashed && w.publish && !$.readOnly && /* @__PURE__ */ e.jsx(
-            Is,
+            Os,
             {
               status: t.status,
               value: oe,
@@ -644,12 +644,12 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
           ] }, `${n.label}:${n.field}`))
         ] }),
         A && /* @__PURE__ */ e.jsx(
-          Hs,
+          Ws,
           {
             entryUrl: y,
             collection: l,
             settings: A,
-            templates: Ve,
+            templates: ds(Ve, Ue),
             blueprints: E,
             disabled: !D,
             values: d.data,
@@ -673,7 +673,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
             }
           }
         ),
-        p !== null && l.comments && /* @__PURE__ */ e.jsx(_s, { entryId: t.id, comments: p }),
+        p !== null && l.comments && /* @__PURE__ */ e.jsx(Ps, { entryId: t.id, comments: p }),
         /* @__PURE__ */ e.jsxs(a.CollapsibleCard, { title: s("Revisions"), titleClassName: "cms:text-base", storageKey: "cms:entry:revisions", contentClassName: "cms:flex cms:flex-col cms:gap-2 cms:text-sm", children: [
           x !== null && w.update && /* @__PURE__ */ e.jsxs(a.Button, { type: "button", variant: "outline", size: "sm", onClick: () => v.router.post(B(`cms/entries/${t.id}/translations/${t.locale}/undo-restore`), {}, { preserveScroll: !0 }), children: [
             /* @__PURE__ */ e.jsx(re, {}),
@@ -713,9 +713,9 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
       ] })
     ] }),
     t?.review && /* @__PURE__ */ e.jsx(
-      Fs,
+      Is,
       {
-        open: Ye,
+        open: We,
         onClose: () => te(!1),
         by: t.review.by,
         onSend: (n, j) => v.router.post(`${y}/review/send-back`, { ...O, note: n }, { preserveScroll: !0, onSuccess: () => {
@@ -727,14 +727,14 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
       /* @__PURE__ */ e.jsx(
         De,
         {
-          open: Ke,
+          open: He,
           onClose: () => ue(!1),
           dirty: d.isDirty,
           url: B(`cms/entries/${t.id}/translations/${t.locale}/compare-live`),
           read: (n) => ({ label: String(n.label), old: String(n.live ?? ""), new: String(n.draft ?? "") }),
           title: s("Your changes compared with the live version"),
           description: s("What visitors see, beside your saved changes. Removed words are struck through, added ones highlighted."),
-          oldLabel: Os(t.live),
+          oldLabel: Us(t.live),
           newLabel: s("Your changes (not published)"),
           same: s("Your changes are the same as the live version.")
         }
@@ -749,17 +749,17 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
           read: (n) => ({ label: String(n.label), old: String(n.revision ?? ""), new: String(n.draft ?? "") }),
           title: s("Version of :date compared with :current", { date: S(R?.createdAt), current: Se(L) }),
           description: s("A version published earlier, beside :current. Removed words are struck through, added ones highlighted.", { current: Se(L) }),
-          oldLabel: R ? Vs(R) : "",
-          newLabel: Us(L),
+          oldLabel: R ? qs(R) : "",
+          newLabel: Ks(L),
           same: s("The two versions are the same.")
         }
       ),
-      Q && /* @__PURE__ */ e.jsx(Ks, { open: He, onClose: () => he(!1), url: t.previewUrl, expiresAt: t.previewExpiresAt ?? null })
+      Q && /* @__PURE__ */ e.jsx(Ys, { open: Ye, onClose: () => he(!1), url: t.previewUrl, expiresAt: t.previewExpiresAt ?? null })
     ] }),
     /* @__PURE__ */ e.jsx(
-      Rs,
+      Vs,
       {
-        open: qe,
+        open: Ke,
         onClose: () => H(!1),
         processing: d.processing,
         rescheduling: Y,
@@ -769,7 +769,7 @@ function Ls({ collection: l, fields: r, locales: c = [], shared: m = [], sharedV
     )
   ] });
 }
-function Fs({ open: l, onClose: r, by: c, onSend: m }) {
+function Is({ open: l, onClose: r, by: c, onSend: m }) {
   const [h, t] = N.useState(""), [o, g] = N.useState(!1), p = v.usePage().props.errors ?? {};
   return N.useEffect(() => {
     l && t("");
@@ -806,11 +806,11 @@ function Fs({ open: l, onClose: r, by: c, onSend: m }) {
     ] })
   ] }) });
 }
-function zs({ entryUrl: l, editUrl: r, current: c, locales: m, canAdd: h, canRemove: t, onRemove: o }) {
+function Rs({ entryUrl: l, editUrl: r, current: c, locales: m, canAdd: h, canRemove: t, onRemove: o }) {
   const g = m.filter((i) => i.status !== null), p = m.filter((i) => i.status === null);
   return /* @__PURE__ */ e.jsxs("nav", { "aria-label": s("Languages"), className: "cms:flex cms:flex-wrap cms:items-center cms:gap-2", children: [
     /* @__PURE__ */ e.jsx("div", { className: "cms:inline-flex cms:items-center cms:gap-0.5 cms:rounded-md cms:bg-muted cms:p-0.5", children: g.map((i) => {
-      const u = i.code === c, x = i.main ? s(":language (main)", { language: i.name ?? _(i.code) }) : i.name ?? _(i.code), f = i.status ? ls(i.status) : "", k = i.outdated ? s(":language: :status, outdated (the main language changed since)", { language: x, status: f }) : s(":language: :status", { language: x, status: f });
+      const u = i.code === c, x = i.main ? s(":language (main)", { language: i.name ?? _(i.code) }) : i.name ?? _(i.code), f = i.status ? ns(i.status) : "", k = i.outdated ? s(":language: :status, outdated (the main language changed since)", { language: x, status: f }) : s(":language: :status", { language: x, status: f });
       return /* @__PURE__ */ e.jsxs(
         "button",
         {
@@ -838,7 +838,7 @@ function zs({ entryUrl: l, editUrl: r, current: c, locales: m, canAdd: h, canRem
         title: s("Add :language", { language: i.name ?? _(i.code) }),
         onClick: () => v.router.post(`${l}/translations`, { locale: i.code }),
         children: [
-          /* @__PURE__ */ e.jsx(Ss, {}),
+          /* @__PURE__ */ e.jsx(Ds, {}),
           " ",
           i.code
         ]
@@ -848,7 +848,7 @@ function zs({ entryUrl: l, editUrl: r, current: c, locales: m, canAdd: h, canRem
     t && /* @__PURE__ */ e.jsx(a.Button, { type: "button", variant: "ghost", size: "sm", className: "cms:ml-auto cms:text-destructive", onClick: o, children: s("Remove this language") })
   ] });
 }
-function Is({ status: l, value: r, onChange: c, dated: m, processing: h, onPublish: t, onUnpublish: o }) {
+function Os({ status: l, value: r, onChange: c, dated: m, processing: h, onPublish: t, onUnpublish: o }) {
   const g = m.action !== "now", p = {
     now: s("Publish"),
     schedule: l === "scheduled" ? s("Reschedule") : s("Schedule"),
@@ -869,10 +869,10 @@ function Is({ status: l, value: r, onChange: c, dated: m, processing: h, onPubli
     ] })
   ] });
 }
-function Rs({ open: l, onClose: r, onSchedule: c, current: m, processing: h, rescheduling: t }) {
+function Vs({ open: l, onClose: r, onSchedule: c, current: m, processing: h, rescheduling: t }) {
   const [o, g] = N.useState("");
   N.useEffect(() => {
-    l && g(Te(ns(m)));
+    l && g(Te(is(m)));
   }, [l, m]);
   const p = o === "" ? null : new Date(o), i = p !== null && p.getTime() <= Date.now();
   return /* @__PURE__ */ e.jsx(a.Dialog, { open: l, onOpenChange: (u) => !u && r(), children: /* @__PURE__ */ e.jsxs(a.DialogContent, { children: [
@@ -892,19 +892,19 @@ function Rs({ open: l, onClose: r, onSchedule: c, current: m, processing: h, res
     ] })
   ] }) });
 }
-function Os(l) {
+function Us(l) {
   return l?.publishedAt ? l.by ? s("Live (published :date by :name)", { date: S(l.publishedAt), name: l.by }) : s("Live (published :date)", { date: S(l.publishedAt) }) : s("Live");
 }
-function Vs(l) {
+function qs(l) {
   return l.author ? s("Version of :date by :name", { date: S(l.createdAt), name: l.author }) : s("Version of :date", { date: S(l.createdAt) });
 }
-function Us(l) {
+function Ks(l) {
   return l === "live" ? s("Live") : l === "scheduled" ? s("Published (scheduled)") : l === "draft" || l === "trashed" ? s("Draft (not published)") : s("Your changes (not published)");
 }
 function Se(l) {
   return l === "live" ? s("the live version") : l === "scheduled" ? s("the scheduled version") : l === "draft" || l === "trashed" ? s("the draft") : s("your changes");
 }
-function qs({ state: l, entry: r, dirty: c, actions: m, onCompare: h, onDiscard: t }) {
+function Hs({ state: l, entry: r, dirty: c, actions: m, onCompare: h, onDiscard: t }) {
   const o = r.live, g = o?.publishedAt ? o.by ? s("the version published on :date by :name", { date: S(o.publishedAt), name: o.by }) : s("the version published on :date", { date: S(o.publishedAt) }) : s("the version last published"), p = {
     draft: { title: s("Not published yet"), text: s("Only people who can edit see it."), tone: "muted" },
     offline: { title: s("Not published yet"), text: s("Taken off the site: only people who can edit see it."), tone: "muted" },
@@ -913,7 +913,7 @@ function qs({ state: l, entry: r, dirty: c, actions: m, onCompare: h, onDiscard:
     live: { title: s("Live"), text: c ? s("Visitors see what was last published.") : s("Visitors see exactly this."), tone: "live" },
     "live-changes": { title: s("Live, with unpublished changes"), text: s("Visitors still see :version.", { version: g }), tone: "pending" },
     trashed: { title: s("In the trash"), text: s("It's off the site. Restore it to edit it again."), tone: "trash" }
-  }, { title: i, text: u, tone: x } = p[l], f = { muted: "cms:bg-muted-foreground/50", live: "cms:bg-emerald-500", pending: "cms:bg-amber-500", scheduled: "cms:bg-sky-500", trash: "cms:bg-destructive" }[x], k = x === "pending" ? "cms:border-amber-500/40 cms:bg-amber-500/5" : x === "live" ? "cms:border-emerald-500/30 cms:bg-emerald-500/5" : "cms:border-border cms:bg-card", A = is(l);
+  }, { title: i, text: u, tone: x } = p[l], f = { muted: "cms:bg-muted-foreground/50", live: "cms:bg-emerald-500", pending: "cms:bg-amber-500", scheduled: "cms:bg-sky-500", trash: "cms:bg-destructive" }[x], k = x === "pending" ? "cms:border-amber-500/40 cms:bg-amber-500/5" : x === "live" ? "cms:border-emerald-500/30 cms:bg-emerald-500/5" : "cms:border-border cms:bg-card", A = rs(l);
   return /* @__PURE__ */ e.jsxs(
     "section",
     {
@@ -931,12 +931,12 @@ function qs({ state: l, entry: r, dirty: c, actions: m, onCompare: h, onDiscard:
         ] }),
         (m.viewLive || m.compare || m.preview || m.discard) && /* @__PURE__ */ e.jsxs("div", { className: "cms:flex cms:flex-wrap cms:gap-2 cms:md:justify-end", children: [
           m.viewLive && r.url && /* @__PURE__ */ e.jsx(a.Button, { type: "button", variant: "outline", size: "sm", asChild: !0, children: /* @__PURE__ */ e.jsxs("a", { href: r.url, target: "_blank", rel: "noopener noreferrer", children: [
-            /* @__PURE__ */ e.jsx(Cs, {}),
+            /* @__PURE__ */ e.jsx(ys, {}),
             " ",
             s("View live page")
           ] }) }),
           m.compare && /* @__PURE__ */ e.jsxs(a.Button, { type: "button", variant: "outline", size: "sm", onClick: h, children: [
-            /* @__PURE__ */ e.jsx($s, {}),
+            /* @__PURE__ */ e.jsx(As, {}),
             " ",
             s("Compare with live")
           ] }),
@@ -948,7 +948,7 @@ function qs({ state: l, entry: r, dirty: c, actions: m, onCompare: h, onDiscard:
               rel: "noopener noreferrer",
               title: c ? s("Shows what's saved: save first to see your unsaved edits.") : s("Shows what's saved, as visitors would see it once published."),
               children: [
-                /* @__PURE__ */ e.jsx(Ds, {}),
+                /* @__PURE__ */ e.jsx(Ts, {}),
                 " ",
                 A ? s("Preview changes") : s("Preview")
               ]
@@ -966,7 +966,7 @@ function qs({ state: l, entry: r, dirty: c, actions: m, onCompare: h, onDiscard:
 }
 function ye({ old: l, next: r, side: c }) {
   if ((c === "old" ? l : r).trim() === "") return /* @__PURE__ */ e.jsx("span", { className: "cms:text-muted-foreground cms:italic", children: s("(empty)") });
-  const h = Ms(Bs(l, r), c);
+  const h = Es(_s(l, r), c);
   return /* @__PURE__ */ e.jsx(e.Fragment, { children: h.map((t, o) => t.op === "same" ? /* @__PURE__ */ e.jsx(N.Fragment, { children: t.text }, o) : t.op === "removed" ? /* @__PURE__ */ e.jsx("del", { className: "cms:rounded-sm cms:bg-red-500/15 cms:text-red-900 cms:decoration-red-500/60 cms:dark:text-red-200", children: t.text }, o) : /* @__PURE__ */ e.jsx("ins", { className: "cms:rounded-sm cms:bg-emerald-500/20 cms:text-emerald-900 cms:no-underline cms:dark:text-emerald-200", children: t.text }, o)) });
 }
 function De({ open: l, url: r, read: c, title: m, description: h, oldLabel: t, newLabel: o, same: g, onClose: p, dirty: i }) {
@@ -1017,7 +1017,7 @@ function De({ open: l, url: r, read: c, title: m, description: h, oldLabel: t, n
     /* @__PURE__ */ e.jsx(a.DialogFooter, { children: /* @__PURE__ */ e.jsx(a.Button, { type: "button", variant: "outline", onClick: p, children: s("Close") }) })
   ] }) });
 }
-function Ks({ open: l, onClose: r, url: c, expiresAt: m }) {
+function Ys({ open: l, onClose: r, url: c, expiresAt: m }) {
   const h = () => {
     navigator.clipboard?.writeText(c).then(() => a.toast.success(s("Link copied.")), () => a.toast.error(s("Couldn't copy: select the link and copy it.")));
   };
@@ -1049,7 +1049,7 @@ function Re({ collection: l, value: r, error: c, onChange: m }) {
   return /* @__PURE__ */ e.jsxs("div", { className: "cms:flex cms:min-w-0 cms:flex-col cms:gap-2", children: [
     /* @__PURE__ */ e.jsx(a.Label, { htmlFor: "parent", children: s("Parent") }),
     /* @__PURE__ */ e.jsx(
-      ds,
+      us,
       {
         id: "parent",
         multiple: !1,
@@ -1063,7 +1063,7 @@ function Re({ collection: l, value: r, error: c, onChange: m }) {
     /* @__PURE__ */ e.jsx(F, { message: c })
   ] });
 }
-function Hs({ entryUrl: l, collection: r, settings: c, templates: m, blueprints: h, disabled: t, values: o, errors: g, onChange: p, draftDirty: i, commentCount: u = null }) {
+function Ws({ entryUrl: l, collection: r, settings: c, templates: m, blueprints: h, disabled: t, values: o, errors: g, onChange: p, draftDirty: i, commentCount: u = null }) {
   const x = h.length > 1 ? c.blueprint ?? h[0].handle : void 0, f = v.useForm({ blueprint: x ?? "" }), k = f.errors.blueprint, A = ["parent_id", "template", "comments_closed"].some((b) => g[b] !== void 0) || k !== void 0;
   return /* @__PURE__ */ e.jsx(a.CollapsibleCard, { title: s("Page settings"), titleClassName: "cms:text-base", storageKey: "cms:entry:page-settings", hasErrors: A, children: /* @__PURE__ */ e.jsxs("fieldset", { disabled: t, className: "cms:flex cms:min-w-0 cms:flex-col cms:gap-4 cms:text-sm", children: [
     r.hierarchical && /* @__PURE__ */ e.jsx(Re, { collection: r, value: o.parent_id, error: g.parent_id, onChange: (b) => p({ parent_id: b }) }),
@@ -1090,7 +1090,7 @@ function Hs({ entryUrl: l, collection: r, settings: c, templates: m, blueprints:
       /* @__PURE__ */ e.jsx(F, { message: k })
     ] }),
     /* @__PURE__ */ e.jsx(
-      os,
+      ms,
       {
         id: "template",
         value: o.template,
@@ -1126,7 +1126,7 @@ function $e({ taxonomies: l, value: r, labels: c, errors: m, changed: h, disable
           h.includes(`terms.${i.handle}`) && /* @__PURE__ */ e.jsx(Z, {})
         ] }),
         /* @__PURE__ */ e.jsx(
-          js,
+          ws,
           {
             id: u,
             taxonomy: i.handle,
@@ -1146,5 +1146,5 @@ function $e({ taxonomies: l, value: r, labels: c, errors: m, changed: h, disable
   ] }) }) });
 }
 export {
-  ft as default
+  jt as default
 };

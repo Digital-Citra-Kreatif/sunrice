@@ -209,9 +209,12 @@ it('offers the views that exist under the template prefixes, without partials', 
     File::put("{$views}/cms/partials/header.blade.php", 'header');
     try {
         $translation = changedNote();
+        // Not with the page: finding them reads the views folders. Loaded when the Template choice opens.
         get(entryEditUrl($translation->entry_id))->assertInertia(fn (Assert $page) => $page
-            ->where('templates.choices', fn ($choices) => collect($choices)->contains('cms.collections.notes.show')
-                && collect($choices)->contains('cms.landing') && ! collect($choices)->contains('cms.partials.header')));
+            ->missing('templates.choices')->missing('templateChoices')
+            ->reloadOnly('templateChoices', fn (Assert $reload) => $reload
+                ->where('templateChoices', fn ($choices) => collect($choices)->contains('cms.collections.notes.show')
+                    && collect($choices)->contains('cms.landing') && ! collect($choices)->contains('cms.partials.header'))));
     } finally {
         File::deleteDirectory("{$views}/cms");
     }

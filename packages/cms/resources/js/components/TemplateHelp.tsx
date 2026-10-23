@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { router } from '@inertiajs/react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { t } from '@imajiner/admin-sdk';
 import {
@@ -16,8 +17,13 @@ export interface TemplateFile {
 export interface TemplateLookup {
     own: TemplateFile | null;
     fallbacks: TemplateFile[];
-    /** The views under the site's template prefixes that exist (partials and layouts left out). */
+    /** The views under the site's template prefixes that exist (partials and layouts left out): loaded when the choice opens. */
     choices?: string[];
+}
+
+/** A page's lookup with the views to pick from, once its `templateChoices` prop is loaded (TemplateField asks for it). */
+export function withTemplateChoices(lookup: TemplateLookup | null, choices: string[] | undefined): TemplateLookup | null {
+    return lookup === null || choices === undefined ? lookup : { ...lookup, choices };
 }
 
 /** cms.article → cms/article.blade.php, under resources/views (a package's "pkg::x.y" stays as it is). */
@@ -84,7 +90,10 @@ export function TemplateOrder({ value = '', lookup = null }: { value?: string; l
  * "Automatic" (empty: the collection's or taxonomy's template) first and
  * any other view name typed in; two helper lines (how names map to files,
  * what Automatic uses), the file in use, and "How is it chosen?" for the
- * order the files are tried in.
+ * order the files are tried in. The views to pick from (lookup.choices)
+ * may be left out of the page until the choice first opens (finding them
+ * reads the views folders): it then reloads the page's `templateChoices`
+ * prop (withTemplateChoices()).
  */
 export function TemplateField({ id, value, onChange, lookup = null, example, automatic, error, disabled = false }: {
     id: string;
@@ -100,6 +109,7 @@ export function TemplateField({ id, value, onChange, lookup = null, example, aut
 }) {
     const [open, setOpen] = React.useState(false);
     const [typed, setTyped] = React.useState('');
+    const loadChoices = () => { if (lookup?.choices === undefined) router.reload({ only: ['templateChoices'] }); };
     const choices = lookup?.choices ?? [];
     const own = value.trim();
     const used = usedTemplate(value, lookup);
@@ -110,7 +120,7 @@ export function TemplateField({ id, value, onChange, lookup = null, example, aut
     return (
         <div className="cms:flex cms:min-w-0 cms:flex-col cms:gap-2">
             <Label htmlFor={id}>{t('Template')}</Label>
-            <Popover open={open} onOpenChange={(next: boolean) => { setOpen(next); if (!next) setTyped(''); }}>
+            <Popover open={open} onOpenChange={(next: boolean) => { setOpen(next); if (!next) setTyped(''); if (next) loadChoices(); }}>
                 <PopoverTrigger asChild>
                     <Button id={id} type="button" variant="outline" role="combobox" aria-expanded={open} aria-invalid={error !== undefined} disabled={disabled}
                         className="cms:w-full cms:min-w-0 cms:justify-between cms:font-normal">
