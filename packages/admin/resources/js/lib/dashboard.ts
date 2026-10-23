@@ -103,3 +103,20 @@ export function quickLinks(navigation: readonly { group: string | null; items: r
 
     return groups.flatMap((group) => group.items.map(({ key, label, url, icon }) => ({ key, label, url, icon }))).slice(0, max);
 }
+
+/** The preference holding the keys of the widgets the user folded away (DashboardController::COLLAPSED). */
+export const COLLAPSED_PREFERENCE = 'dashboard.collapsed';
+
+/** The folded widgets' keys from what the page sent; anything else counts as none. */
+export function parseCollapsed(value: unknown): string[] {
+    return Array.isArray(value) ? [...new Set(value.filter((key): key is string => typeof key === 'string'))] : [];
+}
+
+/** The folded widgets after one is folded or opened, in the dashboard's order (`all`, the keys it shows). */
+export function withCollapsed(collapsed: readonly string[], key: string, fold: boolean, all: readonly string[]): string[] {
+    const next = new Set(collapsed);
+    if (fold) next.add(key);
+    else next.delete(key);
+
+    return all.filter((widget) => next.has(widget));
+}

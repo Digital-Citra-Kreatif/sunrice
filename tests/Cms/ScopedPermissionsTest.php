@@ -57,6 +57,15 @@ it('has permissions for each collection, taxonomy and form, kept in step with th
         ->toContain('cms.entries.blog.view');
 });
 
+it('gives the content permissions without a column of their own short labels for the role editor', function () {
+    $permissions = app(Panel::class)->getPermissions();
+
+    expect(array_map(fn (string $name) => $permissions[$name]->short, ['cms.entries.translate', 'cms.entries.view-drafts', 'cms.homepage']))
+        ->toBe(['Translate', 'See drafts on the site', 'Choose the homepage'])
+        // Those in a column (and their own variants, under it) need none.
+        ->and($permissions['cms.entries.update-own']->short)->toBeNull();
+});
+
 it('lets someone work in one collection only', function () {
     $blog = scopedDraft($this->blog);
     $news = scopedDraft($this->news);

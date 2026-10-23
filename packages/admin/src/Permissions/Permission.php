@@ -16,6 +16,11 @@ use Sunrice\Admin\Support\Say;
  * sentence can be translated once: Permission::make("shop.{$handle}.orders",
  * 'Orders of :shop', 'Shops', ['shop' => $name]).
  *
+ * A permission whose action isn't one of the role editor's columns
+ * (View, Create, Edit, Publish, Moderate, Delete, Export) shows as a
+ * checkbox with its label; give a long label a short one for it, the
+ * full label staying its description: ->short("Refund").
+ *
  * @api
  */
 final readonly class Permission
@@ -31,6 +36,7 @@ final readonly class Permission
         public string $group,
         private string $words,
         private array $replace,
+        public ?string $short = null,
     ) {}
 
     /** @param  array<string, string>  $replace  values for the label's placeholders (":label") */
@@ -49,6 +55,19 @@ final readonly class Permission
         }
 
         return new self($name, $filled, $group, $label, $replace);
+    }
+
+    /**
+     * The same permission with a short label (English, a word or two) for the
+     * role editor, where the full label is its description.
+     */
+    public function short(string $short): self
+    {
+        if (trim($short) === '') {
+            throw new InvalidArgumentException("Permission \"{$this->name}\": a short label can't be empty.");
+        }
+
+        return new self($this->name, $this->label, $this->group, $this->words, $this->replace, $short);
     }
 
     /** The label in the signed-in user's language; names in it are said too. */

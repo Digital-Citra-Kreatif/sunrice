@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
+use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\Pairs;
@@ -114,4 +115,30 @@ it('folds a developer note with code to copy into a disclosure, said in the pane
 it('shows a checkbox list as a matrix only when asked', function () {
     expect(CheckboxList::make('permissions')->options(['a.view' => 'View'])->matrix()->toArray()['matrix'])->toBeTrue()
         ->and(CheckboxList::make('tags')->options(['new' => 'New'])->toArray())->not->toHaveKey('matrix');
+});
+
+it('gives a checkbox list\'s options their short labels, in the panel\'s language', function () {
+    app('translator')->addLines(['*.Translate' => 'Terjemahkan'], 'id');
+    app()->setLocale('id');
+    $list = CheckboxList::make('permissions')->matrix()
+        ->options(['Content' => ['cms.entries.view' => 'View entries', 'cms.entries.translate' => 'Translate entries, forms and menus']])
+        ->shortLabels(fn () => ['cms.entries.translate' => 'Translate', 'cms.gone.view' => 'Gone']);
+
+    expect($list->toArray()['options'])->toBe([
+        ['value' => 'cms.entries.view', 'label' => 'View entries', 'group' => 'Content'],
+        ['value' => 'cms.entries.translate', 'label' => 'Translate entries, forms and menus', 'group' => 'Content', 'short' => 'Terjemahkan'],
+    ])
+        // Only how it looks: the values are the same.
+        ->and($list->values())->toBe(['cms.entries.view', 'cms.entries.translate'])
+        ->and(CheckboxList::make('tags')->options(['new' => 'New'])->toArray()['options'][0])->not->toHaveKey('short');
+});
+
+it('gives a permission a short label, keeping the rest', function () {
+    $permission = Permission::make('shop.orders.refund', 'Refund orders paid by card or bank transfer', 'Shop');
+    $short = $permission->short('Refund');
+
+    expect($permission->short)->toBeNull()
+        ->and([$short->name, $short->label, $short->group, $short->short])->toBe(['shop.orders.refund', 'Refund orders paid by card or bank transfer', 'Shop', 'Refund'])
+        ->and($short->saidLabel())->toBe('Refund orders paid by card or bank transfer')
+        ->and(fn () => $permission->short(' '))->toThrow(InvalidArgumentException::class);
 });

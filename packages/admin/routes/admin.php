@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Help\HelpPages;
 use Sunrice\Admin\Http\Controllers\AccountController;
 use Sunrice\Admin\Http\Controllers\ActivityController;
-use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Http\Controllers\EditLocksController;
 use Sunrice\Admin\Http\Controllers\HelpController;
 use Sunrice\Admin\Http\Controllers\LanguageController;
 use Sunrice\Admin\Http\Controllers\PreferencesController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
+use Sunrice\Admin\Panel;
 use Sunrice\Admin\Preferences\Preferences;
 
 /*
@@ -19,7 +19,8 @@ use Sunrice\Admin\Preferences\Preferences;
  * by PanelRoutes under the panel's path, with names "sunrice.admin.*".
  */
 
-Route::get('/', DashboardController::class)->name('dashboard');
+// The widgets page, or the app's own (Panel::dashboard()).
+Route::get('/', app(Panel::class)->getDashboard())->name('dashboard');
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
 Route::post('settings/mail/test', [SettingsController::class, 'testMail'])->middleware('can:sunrice.settings.mail')->name('settings.mail.test');
