@@ -16,6 +16,7 @@ use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Dashboard\PanelWidgets;
 use Sunrice\Admin\Dashboard\Widget;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
+use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
@@ -81,6 +82,12 @@ final class Panel
 
     /** @var array<string, Widget> keyed by the widget's key */
     private array $widgets = [];
+
+    /** @var array<string, true> widget keys the app hides (withoutWidgets()) */
+    private array $hiddenWidgets = [];
+
+    /** @var Closure|class-string|array{0: class-string, 1: string}|null the app's own dashboard (dashboard()) */
+    private Closure|string|array|null $dashboard = null;
 
     /** @var array<string, list<string>> role name => permission names or patterns */
     private array $defaultRoles = ['administrator' => ['*', '!sunrice.ai.run-commands', '!sunrice.ai.error-log']];
@@ -350,6 +357,51 @@ final class Panel
             }
             $this->widgets[$widget->key] = $widget->inGroup($owner === null ? 'widgets' : "widgets-{$owner}");
         }
+
+        return $this;
+    }
+
+    /**
+     * Hides widgets from the dashboard by key, the panel's own
+     * (`sunrice.activity`, `sunrice.media`) or a plugin's (`cms.recent-edits`),
+     * whenever they're registered: `$panel->withoutWidgets('sunrice.activity', 'cms.setup')`.
+     * Keys nothing registers are ignored (a plugin that isn't installed).
+     * For the app's panel provider; plugins can't hide each other's.
+     */
+    public function withoutWidgets(string ...$keys): self
+    {
+        $this->assertConfigurable();
+        $this->assertApp('withoutWidgets()');
+        foreach ($keys as $key) {
+            $this->hiddenWidgets[$key] = true;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Replaces the dashboard (the panel's home, `/admin`) with the app's own
+     * page. It takes what a route takes: an invokable controller's class,
+     * `[Controller::class, 'method']` or a closure, and stays the route
+     * `sunrice.admin.dashboard`, behind sign-in and panel access:
+     *
+     *     $panel->dashboard(fn () => Inertia::render('App/Dashboard', [...]));   // a React page of the app's bundle
+     *     $panel->dashboard(HomeController::class);
+     *     $panel->dashboard(fn () => to_route('sunrice.admin.shop.orders.index'));
+     *
+     * For the app's panel provider; a plugin can't take the dashboard over.
+     *
+     * @param  Closure|class-string|array{0: class-string, 1: string}  $action
+     */
+    public function dashboard(Closure|string|array $action): self
+    {
+        $this->assertConfigurable();
+        $this->assertApp('dashboard()');
+        $controller = is_array($action) ? $action[0] : $action;
+        if (is_string($controller) && ! class_exists($controller)) {
+            throw new PanelMisconfigured("The dashboard \"{$controller}\" isn't a class: give dashboard() a controller class, [Controller::class, 'method'] or a closure.");
+        }
+        $this->dashboard = $action;
 
         return $this;
     }
@@ -1238,7 +1290,30 @@ final class Panel
         return $entries;
     }
 
-    /** @return array<string, Widget> keyed by key */
+    /**
+     * What the dashboard route runs: the app's own (dashboard()) or the
+     * panel's widgets page.
+     *
+     * @return Closure|class-string|array{0: class-string, 1: string}
+     */
+    public function getDashboard(): Closure|string|array
+    {
+        return $this->dashboard ?? DashboardController::class;
+    }
+
+    /** Whether the app replaced the dashboard with its own page. */
+    public function hasOwnDashboard(): bool
+    {
+        return $this->dashboard !== null;
+    }
+
+    /** @return list<string> the widget keys the app hides (withoutWidgets()) */
+    public function getHiddenWidgets(): array
+    {
+        return array_keys($this->hiddenWidgets);
+    }
+
+    /** @return array<string, Widget> every registered widget, keyed by key, hidden ones included */
     public function getWidgets(): array
     {
         return $this->widgets;
@@ -1246,13 +1321,15 @@ final class Panel
 
     /**
      * The dashboard's widgets this user may see, by sort, then in the
-     * order they were registered. Their data isn't resolved.
+     * order they were registered, without the ones the app hides. Their
+     * data isn't resolved.
      *
      * @return list<Widget>
      */
     public function widgetsFor(Authorizable $user): array
     {
-        $visible = array_values(array_filter($this->widgets, fn (Widget $widget): bool => $widget->isVisibleTo($user)));
+        $visible = array_values(array_filter($this->widgets,
+            fn (Widget $widget): bool => ! isset($this->hiddenWidgets[$widget->key]) && $widget->isVisibleTo($user)));
         usort($visible, fn (Widget $a, Widget $b): int => $a->getSort() <=> $b->getSort());
 
         return $visible;
@@ -1396,6 +1473,13 @@ final class Panel
     {
         if ($this->booted) {
             throw new PanelMisconfigured('The panel has booted: add navigation, permissions and shared data in a plugin\'s register() or your panel provider.');
+        }
+    }
+
+    private function assertApp(string $method): void
+    {
+        if ($this->registering !== null) {
+            throw new PanelMisconfigured("The plugin \"{$this->registering->id()}\" called {$method}: that's for the app's panel provider.");
         }
     }
 
