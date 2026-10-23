@@ -14,6 +14,7 @@ use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\UnpublishEntry;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Fields\Types\TermsField;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Comment;
@@ -303,6 +304,15 @@ it('sends terms fields their taxonomy and the chosen terms\' titles, and the pic
         ['id' => $news->id, 'label' => 'News', 'depth' => 0], ['id' => $local->id, 'label' => 'Local', 'depth' => 1], ['id' => $sport->id, 'label' => 'Sport', 'depth' => 0],
     ], 'more' => false]);
     $this->getJson('/admin/cms/terms/picker?taxonomy=topics&q=spo')->assertJsonPath('items', [['id' => $sport->id, 'label' => 'Sport', 'depth' => 0]]);
+    // A page at a time: from `offset` on, in tree order.
+    expect(TermsField::options($topics, limit: 2))->toBe(['items' => [
+        ['id' => $news->id, 'label' => 'News', 'depth' => 0], ['id' => $local->id, 'label' => 'Local', 'depth' => 1],
+    ], 'more' => true])
+        ->and(TermsField::options($topics, limit: 2, offset: 2))->toBe(['items' => [['id' => $sport->id, 'label' => 'Sport', 'depth' => 0]], 'more' => false]);
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics&offset=1')->assertExactJson(['items' => [
+        ['id' => $local->id, 'label' => 'Local', 'depth' => 1], ['id' => $sport->id, 'label' => 'Sport', 'depth' => 0],
+    ], 'more' => false]);
+    $this->getJson('/admin/cms/terms/picker?taxonomy=topics&offset=-1')->assertUnprocessable();
     // A taxonomy no field of theirs uses, and whose terms they may not see.
     $this->getJson("/admin/cms/terms/picker?taxonomy=other&ids[]={$sport->id}")->assertForbidden();
     $this->getJson("/admin/cms/terms/picker?taxonomy=topics&ids[]={$sport->id}")->assertJsonPath('items.0.label', 'Sport');

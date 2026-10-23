@@ -23,16 +23,16 @@ beforeEach(function () {
     Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [
         ['handle' => 'city', 'type' => 'text'],
         ['handle' => 'price', 'type' => 'number'],
-        ['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'topics', 'multiple' => true]],
     ]]);
     $this->blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'route' => '/blog/{slug}', 'listing_route' => '/blog']);
     $this->topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'hierarchical' => true, 'route' => '/topics/{slug}']);
     $this->topics->collections()->attach($this->blog);
 });
 
-function componentPost(string $title, array $data = []): EntryTranslation
+/** @param  list<int>  $topics  its terms (the editor's Taxonomies card) */
+function componentPost(string $title, array $data = [], array $topics = []): EntryTranslation
 {
-    return app(PublishEntry::class)->handle(app(CreateEntry::class)->handle(test()->blog, ['title' => $title, 'data' => $data]));
+    return app(PublishEntry::class)->handle(app(CreateEntry::class)->handle(test()->blog, ['title' => $title, 'data' => $data, 'terms' => ['topics' => $topics]]));
 }
 
 function entriesTitles(string $props, array $data = []): string
@@ -44,9 +44,9 @@ it('takes where rows with operators, terms by slug with their children, and a pa
     $news = app(SaveTerm::class)->handle($this->topics, ['title' => 'News']);
     $local = app(SaveTerm::class)->handle($this->topics, ['title' => 'Local', 'parent_id' => $news->id]);
     $tips = app(SaveTerm::class)->handle($this->topics, ['title' => 'Tips']);
-    componentPost('Alpha', ['city' => 'Jakarta', 'price' => 10, 'topics' => [$news->id]]);
-    componentPost('Beta', ['city' => 'Bandung', 'price' => 50, 'topics' => [$local->id]]);
-    componentPost('Gamma', ['city' => 'Medan', 'price' => 200, 'topics' => [$tips->id]]);
+    componentPost('Alpha', ['city' => 'Jakarta', 'price' => 10], [$news->id]);
+    componentPost('Beta', ['city' => 'Bandung', 'price' => 50], [$local->id]);
+    componentPost('Gamma', ['city' => 'Medan', 'price' => 200], [$tips->id]);
 
     expect(entriesTitles(':where="[[\'price\', \'<\', 100]]" order="alphabetical"'))->toBe('Alpha Beta')
         ->and(entriesTitles(':where="[[\'city\', \'in\', [\'Jakarta\', \'Medan\']]]" order="price"'))->toBe('Alpha Gamma')
@@ -69,8 +69,8 @@ it('takes terms under a parent, in an order, up to a limit, and tells the term s
     $zebra = app(SaveTerm::class)->handle($this->topics, ['title' => 'Zebra', 'parent_id' => $news->id]);
     app(SaveTerm::class)->handle($this->topics, ['title' => 'Apple', 'parent_id' => $news->id]);
     app(SaveTerm::class)->handle($this->topics, ['title' => 'Tips']);
-    componentPost('One', ['topics' => [$zebra->id]]);
-    componentPost('Two', ['topics' => [$zebra->id]]);
+    componentPost('One', [], [$zebra->id]);
+    componentPost('Two', [], [$zebra->id]);
     $render = fn (string $props) => trim(Blade::render('<x-sunrice-cms::terms taxonomy="topics" '.$props.'>@foreach ($component->terms as $t){{ $t->title() }}{{ $component->isCurrent($t) ? \'*\' : \'\' }} @endforeach</x-sunrice-cms::terms>'));
 
     expect($render('parent="news"'))->toBe('Zebra Apple')

@@ -32,14 +32,16 @@ beforeEach(function () {
         ['handle' => 'body', 'type' => 'rich_text'],
         ['handle' => 'tags', 'type' => 'terms', 'config' => ['taxonomy' => 'tags', 'multiple' => true]],
     ]]);
-    Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     $this->blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'route' => '/blog/{slug}', 'dated' => true]);
+    $tags->collections()->attach($this->blog);
     $this->pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'post', 'route' => '/{slug}']);
 });
 
-function sitePost(Collection $collection, string $title, array $data = [], bool $publish = true): EntryTranslation
+/** @param  list<int>|null  $tags  its own terms (the blog's tags) */
+function sitePost(Collection $collection, string $title, array $data = [], bool $publish = true, ?array $tags = null): EntryTranslation
 {
-    $translation = app(CreateEntry::class)->handle($collection, ['title' => $title, 'data' => $data]);
+    $translation = app(CreateEntry::class)->handle($collection, ['title' => $title, 'data' => $data, 'terms' => $tags === null ? null : ['tags' => $tags]]);
 
     return $publish ? app(PublishEntry::class)->handle($translation) : $translation;
 }
@@ -180,10 +182,10 @@ it('checks collection URLs in the admin', function () {
 it('queries live entries for templates', function () {
     $news = app(SaveTerm::class)->handle(Taxonomy::query()->firstOrFail(), ['title' => 'News']);
     travelTo('2026-10-01');
-    sitePost($this->blog, 'Older', ['tags' => [$news->id]]);
+    sitePost($this->blog, 'Older', tags: [$news->id]);
     travelTo('2026-10-10');
     sitePost($this->blog, 'Newer');
-    sitePost($this->blog, 'Draft', ['tags' => [$news->id]], publish: false);
+    sitePost($this->blog, 'Draft', publish: false, tags: [$news->id]);
     sitePost($this->pages, 'About');
 
     expect(Content::entries('blog')->latest()->get()->pluck('title')->all())->toBe(['Newer', 'Older'])
@@ -268,8 +270,8 @@ it('lists the main language\'s entries on listing and term pages in a language t
     $tags->update(['route' => '/tags/{slug}']);
     $news = app(SaveTerm::class)->handle($tags, ['title' => 'News']);
     $this->blog->update(['listing_route' => '/blog']);
-    $hello = sitePost($this->blog, 'Hello', ['tags' => [$news->id]]);
-    sitePost($this->blog, 'Coffee', ['tags' => [$news->id]]);
+    $hello = sitePost($this->blog, 'Hello', tags: [$news->id]);
+    sitePost($this->blog, 'Coffee', tags: [$news->id]);
     $halo = app(CreateTranslation::class)->handle($hello->entry, 'id');
     app(SaveDraft::class)->handle($halo, ['title' => 'Halo', 'slug' => 'halo']);
     app(PublishEntry::class)->handle($halo->refresh());

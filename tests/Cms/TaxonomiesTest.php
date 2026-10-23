@@ -126,21 +126,24 @@ it('gives entries terms through a terms field', function () {
         ->and(TermsField::labels([$laravel->id, $news->id]))->toBe([$laravel->id => 'Laravel', $news->id => 'News']);
 });
 
-it('keeps published entries\' terms in a table, for queries', function () {
+it('keeps published entries\' own terms in a table, for queries, not their terms fields\'', function () {
     $php = term($this->tags, 'PHP');
     $laravel = term($this->tags, 'Laravel');
     Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [['handle' => 'tags', 'type' => 'terms', 'config' => ['taxonomy' => 'tags', 'multiple' => true]]]]);
     $posts = Collection::query()->create(['handle' => 'posts', 'title' => 'Posts', 'blueprint' => 'post']);
-    $post = app(CreateEntry::class)->handle($posts, ['title' => 'Hello', 'data' => ['tags' => [$php->id]]]);
+    $this->tags->collections()->attach($posts);
+    $post = app(CreateEntry::class)->handle($posts, ['title' => 'Hello', 'data' => ['tags' => [$laravel->id]], 'terms' => ['tags' => [$php->id]]]);
 
     expect($post->entry->terms()->count())->toBe(0); // drafts don't count
 
     app(PublishEntry::class)->handle($post);
+    // The entry's own terms, not its terms field's.
     expect($post->entry->terms()->pluck('sunrice_terms.id')->all())->toBe([$php->id])
-        ->and($php->entries()->count())->toBe(1);
+        ->and($php->entries()->count())->toBe(1)
+        ->and($laravel->entries()->count())->toBe(0);
 
-    app(SaveDraft::class)->handle($post, ['data' => ['tags' => [$laravel->id]]]);
-    app(PublishEntry::class)->handle($post);
+    app(SaveDraft::class)->handle($post, ['terms' => ['tags' => [$laravel->id]]]);
+    app(PublishEntry::class)->handle($post->fresh());
     expect($post->entry->terms()->pluck('sunrice_terms.id')->all())->toBe([$laravel->id]);
 });
 
@@ -308,35 +311,64 @@ it('switches term pages on and off as collections do their pages', function () {
     expect($topics->fresh()->route)->toBeNull();
 });
 
-it('gives an attached collection\'s blueprints a terms field for the taxonomy, and takes it away only when asked', function () {
+it('attaches collections from the taxonomy\'s form, one term only or not, and leaves blueprints alone', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [['handle' => 'topics', 'type' => 'text']]]);
-    Blueprint::query()->create(['handle' => 'landing', 'title' => 'Landing', 'fields' => []]);
-    Blueprint::query()->create(['handle' => 'page', 'title' => 'Page', 'fields' => [['handle' => 'tags', 'type' => 'terms', 'config' => ['taxonomy' => 'topics']]]]);
-    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post', 'blueprints' => ['landing']]);
-    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page']);
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post']);
+    // No blueprint at all: its entries get the taxonomy's terms all the same.
+    $notes = Collection::query()->create(['handle' => 'notes', 'title' => 'Notes']);
     actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.create', 'cms.taxonomies.update'));
 
-    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $blog->id, (string) $pages->id]])->assertSessionHasNoErrors();
-    $post = Blueprint::query()->where('handle', 'post')->firstOrFail();
-    // "topics" was taken: a free variant; the field is a real one, several terms allowed.
-    expect($post->fields[1])->toMatchArray(['handle' => 'topics_terms', 'type' => 'terms', 'label' => 'Topics', 'config' => ['taxonomy' => 'topics', 'multiple' => true]])
-        ->and(Blueprint::query()->where('handle', 'landing')->firstOrFail()->fields[0]['handle'])->toBe('topics')
-        // Page had one already.
-        ->and(Blueprint::query()->where('handle', 'page')->firstOrFail()->fields)->toHaveCount(1);
+    post('/admin/cms/taxonomies', ['title' => 'Topics', 'handle' => 'topics', 'collections' => [(string) $blog->id, (string) $notes->id]])->assertSessionHasNoErrors();
+    $topics = Taxonomy::query()->where('handle', 'topics')->firstOrFail();
+    expect($topics->collections()->pluck('handle')->sort()->values()->all())->toBe(['blog', 'notes'])
+        ->and(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields)->toEqual([['handle' => 'topics', 'type' => 'text']]) // MySQL's JSON columns reorder keys.
+        ->and(Blueprint::query()->count())->toBe(1);
 
-    get('/admin/cms/taxonomies/topics/edit')->assertInertia(fn (Assert $page) => expect(collect($page->toArray()['props']['aside'][0]['blocks'] ?? [])->firstWhere('type', 'list')['items'])
-        ->toBe([['label' => 'Landing', 'meta' => 'topics', 'at' => null], ['label' => 'Page', 'meta' => 'tags', 'at' => null], ['label' => 'Post', 'meta' => 'topics_terms', 'at' => null]]));
+    // One term only in Notes; the side card lists the collections it groups.
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'collections' => [(string) $blog->id, (string) $notes->id], "single_{$notes->id}" => true])->assertSessionHasNoErrors();
+    expect(DB::table('sunrice_collection_taxonomy')->where('collection_id', $notes->id)->value('single'))->toBeTruthy()
+        ->and(DB::table('sunrice_collection_taxonomy')->where('collection_id', $blog->id)->value('single'))->toBeFalsy();
+    get('/admin/cms/taxonomies/topics/edit')->assertInertia(fn (Assert $page) => $page
+        ->where("values.single_{$notes->id}", true)->where("values.single_{$blog->id}", false)
+        ->missing('values.remove_term_fields')
+        ->where('aside.0.title', 'Collections')
+        ->where('aside.0.blocks', fn ($blocks) => collect($blocks)->firstWhere('type', 'list')['items'] === [
+            ['label' => 'Blog', 'meta' => 'Several terms', 'at' => null], ['label' => 'Notes', 'meta' => 'One term only', 'at' => null],
+        ]));
 
-    // Detached: the field stays, unless asked to go.
-    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'collections' => [(string) $pages->id]])->assertSessionHasNoErrors();
-    expect(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields)->toHaveCount(2);
-    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'collections' => [(string) $blog->id, (string) $pages->id]])->assertSessionHasNoErrors();
-    expect(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields)->toHaveCount(2);
-    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'collections' => [(string) $pages->id], 'remove_term_fields' => true])->assertSessionHasNoErrors();
-    expect(array_column(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields, 'handle'))->toBe(['topics'])
-        ->and(Blueprint::query()->where('handle', 'landing')->firstOrFail()->fields)->toBe([])
-        ->and(Blueprint::query()->where('handle', 'page')->firstOrFail()->fields)->toHaveCount(1);
+    // Detached: the collection's entries keep their live terms; blueprints never change.
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'collections' => [(string) $notes->id]])->assertSessionHasNoErrors();
+    expect($topics->collections()->pluck('handle')->all())->toBe(['notes'])
+        ->and(Blueprint::query()->where('handle', 'post')->firstOrFail()->fields)->toHaveCount(1);
+});
+
+it('attaches taxonomies from the collection\'s form, one term only or not, checking their pages\' URLs', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'listing_route' => '/blog']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.view', 'cms.collections.update'));
+    $form = fn (array $values) => put('/admin/cms/collections/blog', ['title' => 'Blog', 'handle' => 'blog', ...$values]);
+
+    $form(['taxonomies' => [(string) $this->tags->id, (string) $this->categories->id], "single_taxonomy_{$this->categories->id}" => true])->assertSessionHasNoErrors();
+    $pivots = DB::table('sunrice_collection_taxonomy')->where('collection_id', $blog->id)->get()->keyBy('taxonomy_id');
+    expect($pivots->keys()->map(fn ($id) => (int) $id)->sort()->values()->all())->toBe(collect([$this->tags->id, $this->categories->id])->sort()->values()->all())
+        ->and((bool) $pivots[$this->categories->id]->single)->toBeTrue()
+        ->and((bool) $pivots[$this->tags->id]->single)->toBeFalse()
+        // New attachments get their term and index pages there, as from the taxonomy.
+        ->and((bool) $pivots[$this->tags->id]->term_pages)->toBeTrue();
+    get('/admin/cms/collections/blog/edit')->assertInertia(fn (Assert $page) => $page
+        ->where('values.taxonomies', fn ($ids) => collect($ids)->sort()->values()->all() === collect([(string) $this->tags->id, (string) $this->categories->id])->sort()->values()->all())
+        ->where("values.single_taxonomy_{$this->categories->id}", true));
+
+    // Unticked: detached; ticked again with one term only switched off.
+    $form(['taxonomies' => [(string) $this->categories->id], "single_taxonomy_{$this->categories->id}" => false])->assertSessionHasNoErrors();
+    expect(DB::table('sunrice_collection_taxonomy')->where('collection_id', $blog->id)->pluck('single', 'taxonomy_id')->map(fn ($single) => (bool) $single)->all())
+        ->toBe([$this->categories->id => false]);
+
+    // A taxonomy whose term pages there would have an address something else has: refused, nothing saved.
+    Collection::query()->create(['handle' => 'tags_page', 'title' => 'Tags page', 'route' => '/blog/tags/{slug}']);
+    $form(['taxonomies' => [(string) $this->categories->id, (string) $this->tags->id]])->assertSessionHasErrors('taxonomies');
+    expect(DB::table('sunrice_collection_taxonomy')->where('collection_id', $blog->id)->count())->toBe(1);
 });
 
 it('links the term pages card to a term\'s page on the site', function () {
