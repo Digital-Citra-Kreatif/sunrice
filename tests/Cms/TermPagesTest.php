@@ -83,9 +83,16 @@ it('edits a term\'s page per language, and checks the template', function () {
         ->component('Cms/Terms/Edit', shouldExist: false)->where('translated', true)->where('term.title', 'Berita'));
     put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Semua berita'], 'seo' => [], 'template' => 'cms.topic'])->assertSessionHasNoErrors();
     put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'Bad!'])->assertSessionHasErrors('template');
-    // Only views under the site's prefixes: no other view of the app becomes a public page.
+    // By default only views under cms. and pages.
+    put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'topics.special'])->assertSessionHasErrors('template');
+    // With no prefixes, the app's own views, not layouts, mails and the like: they don't become public pages.
+    config(['sunrice-cms.site.template_prefixes' => null]);
     put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'layouts.app'])->assertSessionHasErrors('template');
-    expect(fn () => app(SaveTermContent::class)->handle($this->news, ['template' => 'emails.invoice']))->toThrow(ValidationException::class, 'Use a view under cms.');
+    expect(fn () => app(SaveTermContent::class)->handle($this->news, ['template' => 'emails.invoice']))->toThrow(ValidationException::class, 'Use a view of your own, not under layouts, partials');
+    put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'topics.special'])->assertSessionHasNoErrors();
+    config(['sunrice-cms.site.template_prefixes' => ['cms.']]);
+    expect(fn () => app(SaveTermContent::class)->handle($this->news->fresh(), ['template' => 'topics.other']))->toThrow(ValidationException::class, 'Use a view under cms.');
+    put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'cms.topic'])->assertSessionHasNoErrors();
 
     get('/id/topics/berita')->assertOk()->assertSee('Semua berita');
     expect($this->news->fresh()?->template)->toBe('cms.topic');

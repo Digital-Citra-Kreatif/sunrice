@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
@@ -17,6 +19,7 @@ use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\SaveEntryTerms;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Content;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
@@ -60,6 +63,14 @@ beforeEach(function () {
 function liveNote(array $terms = [], string $title = 'Hello'): EntryTranslation
 {
     return app(PublishEntry::class)->handle(app(CreateEntry::class)->handle(test()->notes, ['title' => $title, 'terms' => $terms]));
+}
+
+/** @return list<int> the entry's rows in sunrice_entry_term, whatever their taxonomy, sorted */
+function storedTerms(EntryTranslation|Entry $entry): array
+{
+    $id = $entry instanceof Entry ? $entry->id : $entry->entry_id;
+
+    return DB::table('sunrice_entry_term')->where('entry_id', $id)->orderBy('term_id')->pluck('term_id')->map(fn ($id): int => (int) $id)->all();
 }
 
 /** @return list<int> the entry's live terms, sorted */
@@ -171,14 +182,19 @@ it('refuses two terms where one only is allowed, a taxonomy the collection hasn\
     expect($note->entry->fresh()?->draftTermIds())->toEqualCanonicalizing([$this->php->id, $this->laravel->id]);
 });
 
-it('leaves terms of a taxonomy no longer attached alone, and a taxonomy not given keeps its terms', function () {
+it('leaves terms of a taxonomy no longer attached alone, unseen until attached again, and a taxonomy not given keeps its terms', function () {
     $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]]);
     $this->format->collections()->detach($this->notes);
     app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->laravel->id]]]);
     app(PublishEntry::class)->handle($note->fresh());
 
-    expect(liveTerms($note))->toBe(collect([$this->laravel->id, $this->guide->id])->sort()->values()->all());
+    expect(storedTerms($note))->toBe(collect([$this->laravel->id, $this->guide->id])->sort()->values()->all())
+        ->and(liveTerms($note))->toBe([$this->laravel->id]);
     get(entryEditUrl($note->entry_id))->assertInertia(fn (Assert $page) => $page->where('values.terms', ['tags' => [$this->laravel->id]]));
+
+    // Attached again: they're back.
+    $this->format->collections()->attach($this->notes);
+    expect(liveTerms($note))->toEqualCanonicalizing([$this->laravel->id, $this->guide->id]);
 });
 
 it('goes back to the live terms when the changes are discarded', function () {
@@ -262,11 +278,11 @@ it('moves terms fields\' values to the entry\'s own terms on upgrade, leaving th
         ->and(Entry::query()->findOrFail($same->entry_id)->draft_terms)->toBeNull()
         ->and(Entry::query()->findOrFail($never->entry_id)->draft_terms)->toBe([$this->php->id])
         // The site shows the same: the live terms stay, a taxonomy not attached's too.
-        ->and(liveTerms($changed))->toBe(collect([$this->php->id, $this->hidden->id])->sort()->values()->all());
+        ->and(storedTerms($changed))->toBe(collect([$this->php->id, $this->hidden->id])->sort()->values()->all());
 
     // Published: the fields' choices are the entry's live terms; the secret one, not attached, stays.
     app(PublishEntry::class)->handle($changed->fresh());
-    expect(liveTerms($changed))->toBe(collect([$this->laravel->id, $this->guide->id, $this->hidden->id])->sort()->values()->all());
+    expect(storedTerms($changed))->toBe(collect([$this->laravel->id, $this->guide->id, $this->hidden->id])->sort()->values()->all());
 });
 
 it('carries entries\' terms and attachments\' one term only through the structure, and reads terms fields in older files', function () {
@@ -317,4 +333,224 @@ it('takes terms through SaveEntryTerms, keeping the taxonomies not given', funct
     app(SaveEntryTerms::class)->handle($entry, ['format' => []]);
     expect($entry->fresh()?->draft_terms)->toBeNull()
         ->and(Term::query()->count())->toBe(5);
+});
+
+it('leaves the entry\'s terms alone when a translator discards, restores a revision or undoes a restore', function () {
+    $note = liveNote(['tags' => [$this->php->id]]);
+    $entryId = $note->entry_id;
+    $id = app(PublishEntry::class)->handle(app(SaveDraft::class)->handle(app(CreateTranslation::class)->handle($note->entry, 'id'), ['title' => 'Halo']));
+    $revision = Revision::query()->where('entry_translation_id', $id->id)->firstOrFail();
+    expect($revision->terms)->toBe([$this->php->id]);
+    // An editor chose other terms, not published yet.
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->laravel->id]]);
+    $pending = fn (): ?array => Entry::query()->findOrFail($entryId)->draft_terms;
+    $translator = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate', 'sunrice.ai.connect');
+    actingAs($translator);
+
+    // Discarding the Indonesian changes: its text goes back, the terms stay.
+    app(SaveDraft::class)->handle($id->fresh(), ['title' => 'Halo lagi']);
+    post("/admin/cms/entries/{$entryId}/translations/id/discard", ['version' => $id->fresh()?->version])->assertSessionHasNoErrors();
+    expect($id->fresh()?->draft_title)->toBe('Halo')->and($pending())->toBe([$this->laravel->id]);
+
+    // Restoring its revision: the text, not the terms it was published with.
+    post("/admin/cms/entries/{$entryId}/revisions/{$revision->id}/restore")->assertSessionHasNoErrors();
+    expect($pending())->toBe([$this->laravel->id]);
+    // An editor changes the terms meanwhile; the translator's undo leaves them.
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->php->id, $this->laravel->id]]);
+    session()->put('sunrice-cms.undo-restore.'.$id->id, ['title' => 'Halo', 'slug' => 'halo', 'data' => [], 'terms' => [$this->laravel->id]]);
+    post("/admin/cms/entries/{$entryId}/translations/id/undo-restore")->assertSessionHasNoErrors();
+    expect($pending())->toEqualCanonicalizing([$this->php->id, $this->laravel->id]);
+
+    // Through an AI client too.
+    $token = AiToken::issue((string) $translator->id, 'Claude')[1];
+    $restored = $this->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => ['name' => 'cms_entry_revisions', 'arguments' => ['action' => 'restore', 'revision_id' => $revision->id]]], ['Authorization' => "Bearer {$token}"]);
+    expect($restored->json('result.content.0.text'))->toContain('"restored":true')
+        ->and($pending())->toEqualCanonicalizing([$this->php->id, $this->laravel->id]);
+
+    // Someone who may edit the whole entry: the terms go back with the rest (as before).
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
+    post("/admin/cms/entries/{$entryId}/revisions/{$revision->id}/restore")->assertSessionHasNoErrors();
+    expect($pending())->toBeNull()->and(liveTerms($note))->toBe([$this->php->id]);
+});
+
+it('refuses to save terms over those another language\'s editor changed since they were loaded', function () {
+    $note = liveNote(['tags' => [$this->php->id]]);
+    $entryId = $note->entry_id;
+    $id = app(SaveDraft::class)->handle(app(CreateTranslation::class)->handle($note->entry, 'id'), ['title' => 'Halo']);
+    $draft = fn (): array => Entry::query()->findOrFail($entryId)->draftTermIds();
+    // Both editors loaded Tags: PHP. The English one adds Laravel.
+    put("/admin/cms/entries/{$entryId}", ['title' => 'Hello', 'version' => $note->fresh()?->version, 'terms' => ['tags' => [$this->php->id, $this->laravel->id]], 'terms_base' => ['tags' => [$this->php->id]]])
+        ->assertSessionHasNoErrors();
+
+    // The Indonesian one, opened before, takes PHP out: refused, nothing changes.
+    put("/admin/cms/entries/{$entryId}", ['locale' => 'id', 'title' => 'Halo lagi', 'version' => $id->version, 'terms' => ['tags' => []], 'terms_base' => ['tags' => [$this->php->id]]])
+        ->assertSessionHasErrors(['terms' => 'Someone else changed this entry\'s terms. Reload to see them.']);
+    expect($draft())->toEqualCanonicalizing([$this->php->id, $this->laravel->id])->and($id->fresh()?->draft_title)->toBe('Halo');
+
+    // Another taxonomy, untouched by the other save: fine, and Tags keep the English editor's terms.
+    put("/admin/cms/entries/{$entryId}", ['locale' => 'id', 'title' => 'Halo lagi', 'version' => $id->version, 'terms' => ['format' => [$this->guide->id]], 'terms_base' => ['format' => []]])
+        ->assertSessionHasNoErrors();
+    expect($draft())->toEqualCanonicalizing([$this->php->id, $this->laravel->id, $this->guide->id]);
+
+    // Without what was loaded (code, AI clients): saved as given.
+    app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => []]]);
+    expect($draft())->toBe([$this->guide->id]);
+});
+
+it('exports entries in as many queries for many entries as for few', function () {
+    $queries = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        app(StructureExporter::class)->export(content: true);
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+    foreach (['One', 'Two', 'Three'] as $title) {
+        liveNote(['tags' => [$this->php->id]], $title);
+    }
+    $few = $queries();
+    foreach (['Four', 'Five', 'Six', 'Seven', 'Eight'] as $title) {
+        liveNote(['tags' => [$this->laravel->id]], $title);
+    }
+
+    expect($queries())->toBe($few);
+});
+
+it('shows the terms of the taxonomies attached to the entry\'s collection only, everywhere the site reads them', function () {
+    $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]]);
+    $this->format->update(['route' => '/format/{slug}']);
+    $this->format->collections()->detach($this->notes);
+    $views = sys_get_temp_dir().'/sunrice-entry-terms-'.uniqid();
+    mkdir("{$views}/cms/collections/notes", recursive: true);
+    file_put_contents("{$views}/cms/collections/notes/show.blade.php", 'all:@foreach ($entry->terms as $t){{ $t->title() }},@endforeach format:@foreach ($entry->termsOf(\'format\') as $t){{ $t->title() }},@endforeach');
+    View::addLocation($views);
+
+    // Its page, live and in a preview, alike.
+    get('/notes/hello')->assertOk()->assertSee('all:PHP, format:', false);
+    get(URL::temporarySignedRoute('sunrice.cms.preview', now()->addMinutes(5), ['translation' => $note->id]))->assertOk()->assertSee('all:PHP, format:', false);
+    // Queries, counts and the term's page.
+    expect(Content::entries('notes')->whereTerm('format', 'guide')->get())->toHaveCount(0)
+        ->and(Content::entries('notes')->whereTerm('tags', 'php')->get())->toHaveCount(1)
+        ->and(trim(Blade::render('<x-sunrice-cms::terms taxonomy="format">@foreach ($component->terms as $t){{ $t->title() }}({{ $t->entries_count }})@endforeach</x-sunrice-cms::terms>')))->toBe('Guide(0)How-to(0)')
+        ->and(trim(Blade::render('<x-sunrice-cms::terms taxonomy="format" include-children>@foreach ($component->terms as $t){{ $t->title() }}({{ $t->entries_count }})@endforeach</x-sunrice-cms::terms>')))->toBe('Guide(0)How-to(0)')
+        ->and($this->guide->entries()->count())->toBe(0);
+    get('/format/guide')->assertOk()->assertDontSee('Hello');
+
+    // Attached again: back everywhere.
+    $this->format->collections()->attach($this->notes);
+    get('/notes/hello')->assertOk()->assertSee('all:Guide,PHP, format:Guide,', false);
+    expect(Content::entries('notes')->whereTerm('format', 'guide')->get())->toHaveCount(1)
+        ->and($this->guide->entries()->count())->toBe(1);
+});
+
+it('puts the terms of an entry published for later on the site when its time comes', function () {
+    $this->travelTo(now()->setTime(9, 0));
+    $this->artisan('sunrice:publish-scheduled')->assertSuccessful();
+    $note = liveNote(['tags' => [$this->php->id]]);
+    $saved = app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->laravel->id]]]);
+
+    app(PublishEntry::class)->handle($saved->fresh(), now()->addMinutes(30));
+    expect(liveTerms($note))->toBe([$this->php->id])
+        ->and($note->entry->fresh()?->draftTermIds())->toBe([$this->laravel->id])
+        // The revision keeps the terms it was published with.
+        ->and(Revision::query()->where('entry_translation_id', $note->id)->latest('id')->firstOrFail()->terms)->toBe([$this->laravel->id]);
+
+    $this->travelTo(now()->addMinutes(31));
+    $this->artisan('sunrice:publish-scheduled')->expectsOutput('1 scheduled entry went live.');
+    expect(liveTerms($note))->toBe([$this->laravel->id])->and($note->entry->fresh()?->draft_terms)->toBeNull();
+
+    // Published now: at once.
+    app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->php->id]]]));
+    expect(liveTerms($note))->toBe([$this->php->id]);
+});
+
+it('shows the entry\'s terms in compare dialogs and to AI clients only of the taxonomies the card shows', function () {
+    $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]]);
+    app(CreateTranslation::class)->handle($note->entry, 'id');
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->laravel->id], 'format' => [$this->howto->id]]);
+    $first = Revision::query()->where('entry_translation_id', $note->id)->firstOrFail();
+    $mcp = function (EntryTranslation $note): array {
+        $token = AiToken::issue((string) auth()->id(), 'Claude')[1];
+
+        return json_decode((string) $this->postJson('/mcp', ['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => ['name' => 'cms_get_entry', 'arguments' => ['id' => $note->entry_id]]], ['Authorization' => "Bearer {$token}"])->json('result.content.0.text'), true);
+    };
+
+    // A translator who may see Tags' terms: Tags only.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate', 'cms.terms.tags.view', 'sunrice.ai.connect'));
+    get("/admin/cms/entries/{$note->entry_id}/translations/en/compare-live")->assertOk()->assertExactJson(['fields' => [['label' => 'Tags', 'live' => 'PHP', 'draft' => 'Laravel']]]);
+    get("/admin/cms/entries/{$note->entry_id}/revisions/{$first->id}/compare")->assertOk()->assertExactJson(['fields' => [['label' => 'Tags', 'revision' => 'PHP', 'draft' => 'Laravel']]]);
+    get(entryEditUrl($note->entry_id))->assertInertia(fn (Assert $page) => $page->where('entry.live.changed', ['terms.tags']));
+    $entry = $mcp($note);
+    expect(array_column($entry['taxonomies'], 'handle'))->toBe(['tags'])
+        ->and(array_keys($entry['terms']))->toBe(['tags'])->and(array_keys($entry['live_terms']))->toBe(['tags']);
+
+    // Without any terms permission: none.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.translate', 'sunrice.ai.connect'));
+    get("/admin/cms/entries/{$note->entry_id}/translations/en/compare-live")->assertOk()->assertExactJson(['fields' => []]);
+    expect($mcp($note))->toMatchArray(['taxonomies' => [], 'terms' => [], 'live_terms' => []]);
+
+    // Who may change the entry's terms: every taxonomy.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'sunrice.ai.connect'));
+    expect(array_keys($mcp($note)['terms']))->toBe(['format', 'tags']);
+});
+
+it('attaches on upgrade the taxonomies terms fields use, without pages, keeping the site as it was and the draft terms pending', function () {
+    // As 0.1 left a site: a terms field of a taxonomy not attached to the collection, live terms from the published field, a draft choosing another.
+    $regions = Taxonomy::query()->create(['handle' => 'regions', 'title' => 'Regions']);
+    $bali = app(SaveTerm::class)->handle($regions, ['title' => 'Bali']);
+    $java = app(SaveTerm::class)->handle($regions, ['title' => 'Java']);
+    Blueprint::query()->create(['handle' => 'release', 'title' => 'Release', 'fields' => [
+        ['handle' => 'region', 'type' => 'terms', 'config' => ['taxonomy' => 'regions']],
+        ['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'tags', 'multiple' => true]],
+    ]]);
+    $press = Collection::query()->create(['handle' => 'press', 'title' => 'Press', 'blueprint' => 'release', 'route' => '/press/{slug}']);
+    $changed = app(CreateEntry::class)->handle($press, ['title' => 'News', 'data' => ['region' => $java->id, 'topics' => [$this->php->id]]]);
+    $same = app(CreateEntry::class)->handle($press, ['title' => 'Same', 'data' => ['region' => $bali->id]]);
+    foreach ([[$changed, $bali->id], [$same, $bali->id]] as [$translation, $live]) {
+        $translation->forceFill(['status' => EntryTranslation::PUBLISHED, 'title' => $translation->draft_title, 'slug' => $translation->draft_slug,
+            'data' => ['region' => $live], 'published_at' => now()->subDay()])->save();
+        DB::table('sunrice_entry_term')->insert(['entry_id' => $translation->entry_id, 'term_id' => $live]);
+    }
+    $views = sys_get_temp_dir().'/sunrice-entry-terms-'.uniqid();
+    mkdir("{$views}/cms/collections/press", recursive: true);
+    file_put_contents("{$views}/cms/collections/press/show.blade.php", 'terms:@foreach ($entry->terms as $t){{ $t->title() }},@endforeach');
+    View::addLocation($views);
+
+    $migrations = dirname(__DIR__, 2).'/packages/cms/database/migrations';
+    (require "{$migrations}/2026_10_23_000002_move_terms_fields_to_entry_terms.php")->up();
+    $attach = require "{$migrations}/2026_10_24_000001_attach_taxonomies_from_terms_fields.php";
+    $attach->up();
+    $attach->up(); // again: nothing changes
+
+    // Attached, without pages; one term only as the field took; Tags too (used by a field), once.
+    $pivot = fn (Taxonomy $taxonomy) => DB::table('sunrice_collection_taxonomy')->where('collection_id', $press->id)->where('taxonomy_id', $taxonomy->id)->get();
+    expect($pivot($regions))->toHaveCount(1)
+        ->and((array) $pivot($regions)->first())->toMatchArray(['term_pages' => false, 'index_page' => false, 'single' => true])
+        ->and((bool) $pivot($this->tags)->first()?->single)->toBeFalse()
+        ->and(DB::table('sunrice_collection_taxonomy')->where('collection_id', $this->notes->id)->count())->toBe(2);
+    // The site as it was; the draft's choice pending.
+    get('/press/news')->assertOk()->assertSee('terms:Bali,', false);
+    $entry = Entry::query()->findOrFail($changed->entry_id);
+    expect($entry->liveTermIds())->toBe([$bali->id])
+        ->and($entry->draftTermIds())->toEqualCanonicalizing([$java->id, $this->php->id])
+        ->and(Entry::query()->findOrFail($same->entry_id)->draft_terms)->toBeNull();
+    // The card shows them, to change or publish.
+    get(entryEditUrl($changed->entry_id))->assertInertia(fn (Assert $page) => $page
+        ->where('values.terms', ['regions' => [$java->id], 'tags' => [$this->php->id]]));
+    app(PublishEntry::class)->handle($changed->fresh());
+    expect(liveTerms($changed))->toEqualCanonicalizing([$java->id, $this->php->id]);
+});
+
+it('restores from a revision kept before revisions had terms the terms its terms fields held', function () {
+    Blueprint::query()->create(['handle' => 'note', 'title' => 'Note', 'fields' => [['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'tags', 'multiple' => true]]]]);
+    $this->notes->update(['blueprint' => 'note']);
+    $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]]);
+    // As 0.1 kept it: the field's value, no terms.
+    $old = Revision::query()->where('entry_translation_id', $note->id)->firstOrFail();
+    $old->forceFill(['terms' => null, 'data' => ['topics' => [$this->laravel->id, $this->hidden->id]]])->save();
+
+    app(RestoreRevision::class)->handle($old->fresh());
+    // Tags from the field (not a term of another taxonomy); Format, which no field has, as it was.
+    expect($note->entry->fresh()?->draftTermIds())->toEqualCanonicalizing([$this->laravel->id, $this->guide->id]);
 });

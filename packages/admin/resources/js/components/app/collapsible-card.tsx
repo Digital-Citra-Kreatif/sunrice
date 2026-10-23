@@ -92,7 +92,8 @@ export function CollapsibleCard({
                 </span>
             </CardHeader>
             <div id={contentId} data-state={open ? 'open' : 'closed'} className="sunrice-card-content">
-                <div className="min-h-0 overflow-clip" inert={!open} aria-hidden={!open}>
+                {/* min-w-0: a grid item is as wide as its content by default; the card's width wins. */}
+                <div className="min-h-0 min-w-0 overflow-clip" inert={!open} aria-hidden={!open}>
                     <CardContent className={cn('py-5', contentClassName)}>{children}</CardContent>
                 </div>
             </div>

@@ -17,6 +17,8 @@ test('starts expanded and exposes an accessible, non-submit toggle', () => {
     const id = /aria-controls="([^"]+)"/.exec(html)?.[1];
     assert.ok(id && html.includes(`id="${id}" data-state="open"`));
     assert.doesNotMatch(html, /inert=""/);
+    // Never wider than the card, whatever it holds.
+    assert.match(html, /class="min-h-0 min-w-0 overflow-clip"/);
 });
 
 test('keeps fields mounted but inert and hidden from assistive technology when collapsed', () => {

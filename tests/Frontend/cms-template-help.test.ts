@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import type { ComponentType } from 'react';
 import { loadCmsModule, render } from './support/render.ts';
 
-type Lookup = { own: { view: string; exists: boolean } | null; fallbacks: { view: string; exists: boolean }[]; choices?: string[] };
+type Lookup = { own: { view: string; exists: boolean } | null; fallbacks: { view: string; exists: boolean }[]; choices?: string[]; example?: string };
 type Module = {
     TemplateField: ComponentType<any>; TemplateOrder: ComponentType<any>;
     usedTemplate: (value: string, lookup: Lookup | null) => string | null; missingTemplate: (value: string, lookup: Lookup | null) => boolean; shortViewFile: (view: string) => string;
@@ -34,10 +34,16 @@ test('a template setting is a choice with two helper lines and the file in use; 
     const html = render(TemplateField, { id: 'template', value: '', onChange: () => {}, lookup, example: 'cms.demo-landing', automatic: "Automatic uses the collection's template." });
     assert.match(html, /role="combobox"[^>]*>.*Automatic/);
     // Names → files first, then what Automatic uses.
-    assert.match(html, /<p>Files are under resources\/views; a name like <code>cms.demo-landing<\/code> is <code>cms\/demo-landing.blade.php<\/code>.<\/p><p>Automatic uses the collection&#x27;s template.<\/p>/);
+    // The names wrap anywhere, so a long one never widens the card.
+    assert.match(html, /<p>A view name from resources\/views: <code class="[^"]*wrap-anywhere[^"]*">cms.demo-landing<\/code> is <code class="[^"]*wrap-anywhere[^"]*">cms\/demo-landing.blade.php<\/code>.<\/p><p>Automatic uses the collection&#x27;s template.<\/p>/);
+    // The server's example wins: any folder of the app's views.
+    assert.match(render(TemplateField, { id: 'template', value: '', onChange: () => {}, lookup: { ...lookup, example: 'pages.demo-landing' }, example: 'cms.x', automatic: '' }), /<code[^>]*>pages.demo-landing<\/code> is <code[^>]*>pages\/demo-landing.blade.php<\/code>/);
     // The file in use on one line, the whole path in a tooltip.
     assert.match(html, /Uses<\/span><code title="cms\/collections\/demo\/show.blade.php"[^>]*truncate[^>]*>cms\/collections\/demo\/show.blade.php<\/code>/);
     assert.match(html, />How is it chosen\?<\/button>/);
+    // The link goes under the file in use when they don't fit; a short phrase isn't cut short.
+    assert.match(html, /flex-wrap/);
+    assert.match(render(TemplateField, { id: 'template', value: '', onChange: () => {}, lookup: { own: null, fallbacks: [] }, example: 'cms.x', automatic: '' }), /Uses<\/span><span>the built-in template<\/span>/);
     assert.doesNotMatch(html, /<details/);
     assert.doesNotMatch(html, /No such file yet/);
     assert.match(render(TemplateField, { id: 'template', value: 'cms.nope', onChange: () => {}, lookup, example: 'cms.x', automatic: '' }), /No such file yet/);
@@ -47,4 +53,13 @@ test('a template setting is a choice with two helper lines and the file in use; 
     assert.match(order, /<li[^>]*><span[^>]*>2\.<\/span><code[^>]*>cms\/entry.blade.php<\/code><\/li>/);
     assert.match(order, /3\.<\/span><span[^>]*>the built-in template<\/span><\/li>/);
     assert.doesNotMatch(order, /resources\/views/);
+});
+
+test('adds the views to pick from to a lookup once they are loaded', async () => {
+    const { withTemplateChoices } = await loadCmsModule<{ withTemplateChoices: (lookup: Lookup | null, choices: string[] | undefined) => Lookup | null }>('components/TemplateHelp.tsx');
+    const lookup: Lookup = { own: null, fallbacks: [] };
+
+    assert.equal(withTemplateChoices(lookup, undefined), lookup);
+    assert.equal(withTemplateChoices(null, ['cms.x']), null);
+    assert.deepEqual(withTemplateChoices(lookup, ['cms.x']), { own: null, fallbacks: [], choices: ['cms.x'] });
 });
