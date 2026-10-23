@@ -39,7 +39,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { adminUrl } from '@/lib/admin-url';
 import { moveItem } from '@/lib/move-item';
 import { t } from '@/lib/i18n';
-import { registerPage } from '@/lib/page-registry';
+import { registerPage, registerPageLoader } from '@/lib/page-registry';
 import { useTablePreferences } from '@/lib/use-table-preferences';
 import { useUnsavedChanges } from '@/lib/use-unsaved-changes';
 
@@ -76,6 +76,6 @@ const modules: Record<SharedModuleName, Record<string, unknown>> = {
  * (lib/page-registry.ts): the panel's own pages never load it.
  */
 export function installRuntime(): void {
-    const runtime: SunriceRuntime = { version: SDK_VERSION, modules, registerPage, adminUrl, t };
+    const runtime: SunriceRuntime = { version: SDK_VERSION, modules, registerPage, registerPageLoader, adminUrl, t };
     Object.defineProperty(globalThis, 'Sunrice', { value: Object.freeze(runtime), writable: false, configurable: false });
 }

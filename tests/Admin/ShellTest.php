@@ -154,6 +154,9 @@ it('writes compressed copies of the published scripts and stylesheets, the panel
     mkdir($dist);
     file_put_contents($dist.'/admin.js', str_repeat('console.log("shop");', 50));
     file_put_contents($dist.'/admin.json', '{}');
+    // A bundle that splits keeps its chunks in a folder.
+    mkdir($dist.'/chunks');
+    file_put_contents($dist.'/chunks/Orders-abc123.js', str_repeat('console.log("orders");', 50));
     app()->usePublicPath($public);
     usePanel(fn (Panel $panel) => $panel->bundle(PluginBundle::make('shop')->module('/vendor/shop/admin.js')->pages('Shop/')->publishedFrom($dist, $public.'/vendor/shop')));
 
@@ -171,6 +174,7 @@ it('writes compressed copies of the published scripts and stylesheets, the panel
     (new Filesystem)->copyDirectory($dist, $public.'/vendor/shop');
     event(new VendorTagPublished('laravel-assets', [$dist => $public.'/vendor/shop']));
     expect(gzdecode((string) file_get_contents($public.'/vendor/shop/admin.js.gz')))->toBe(file_get_contents($dist.'/admin.js'))
+        ->and(gzdecode((string) file_get_contents($public.'/vendor/shop/chunks/Orders-abc123.js.gz')))->toBe(file_get_contents($dist.'/chunks/Orders-abc123.js'))
         ->and(is_file($public.'/vendor/shop/admin.json.gz'))->toBeFalse();
 
     // A copy newer than its file is kept.
@@ -220,6 +224,32 @@ it('warns super admins when the published assets are older than the installed pa
     artisan('sunrice:assets')->assertSuccessful();
     copy($dist.'/admin.js', $public.'/vendor/shop/admin.js');
     get('/admin')->assertOk()->assertDontSee($warning);
+
+    (new Filesystem)->deleteDirectory($public);
+    (new Filesystem)->deleteDirectory($dist);
+});
+
+it('counts a split bundle\'s chunks when telling whether its published copy is outdated', function () {
+    $dist = sys_get_temp_dir().'/sunrice-dist-'.uniqid();
+    $public = sys_get_temp_dir().'/sunrice-public-'.uniqid();
+    mkdir($dist.'/chunks', recursive: true);
+    file_put_contents($dist.'/admin.js', "export * from './chunks/admin-abc.js';");
+    file_put_contents($dist.'/chunks/admin-abc.js', 'main();');
+    file_put_contents($dist.'/chunks/Orders-def.js', 'orders();');
+    (new Filesystem)->copyDirectory($dist, $public);
+    $bundle = PluginBundle::make('shop')->module('/vendor/shop/admin.js')->pages('Shop/')->publishedFrom($dist, $public);
+
+    expect($bundle->outdated())->toBeFalse();
+
+    // An update brought a new chunk, not published yet.
+    file_put_contents($dist.'/chunks/Orders-ghi.js', 'orders(2);');
+    expect($bundle->outdated())->toBeTrue();
+    copy($dist.'/chunks/Orders-ghi.js', $public.'/chunks/Orders-ghi.js');
+    expect($bundle->outdated())->toBeFalse();
+
+    // A chunk changed in place.
+    file_put_contents($public.'/chunks/Orders-def.js', 'stale();');
+    expect($bundle->outdated())->toBeTrue();
 
     (new Filesystem)->deleteDirectory($public);
     (new Filesystem)->deleteDirectory($dist);

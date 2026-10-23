@@ -201,6 +201,17 @@ function OrdersIndex({ orders }: { orders: { data: { id: number; number: string;
 definePlugin({ pages: { 'Shop/Orders/Index': OrdersIndex } });
 ```
 
+With more than a page or two, give each page its own chunk, loaded the first time it opens, with `lazyPages` (see [Loading pages on demand](frontend.md#loading-pages-on-demand)):
+
+```tsx
+definePlugin({
+    lazyPages: {
+        'Shop/Orders/Index': () => import('./pages/Orders/Index'),
+        'Shop/Orders/Show': () => import('./pages/Orders/Show'),
+    },
+});
+```
+
 ## The AI tool
 
 ```php

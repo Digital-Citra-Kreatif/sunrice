@@ -113,18 +113,19 @@ final class PluginBundle
         return $this->published;
     }
 
-    /** Whether the published files differ from the package's build (one missing or changed). */
+    /** Whether the published files differ from the package's build (one missing or changed, chunks in folders included). */
     public function outdated(): bool
     {
         if ($this->source === null || $this->published === null || ! is_dir($this->source)) {
             return false;
         }
-        foreach (glob($this->source.'/*') ?: [] as $built) {
-            if (! is_file($built)) {
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->source, \FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $built) {
+            if (! $built instanceof \SplFileInfo || ! $built->isFile()) {
                 continue;
             }
-            $copy = $this->published.'/'.basename($built);
-            if (! is_file($copy) || filesize($copy) !== filesize($built) || md5_file($copy) !== md5_file($built)) {
+            $copy = $this->published.substr($built->getPathname(), strlen($this->source));
+            if (! is_file($copy) || filesize($copy) !== $built->getSize() || md5_file($copy) !== md5_file($built->getPathname())) {
                 return true;
             }
         }

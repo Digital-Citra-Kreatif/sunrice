@@ -112,7 +112,33 @@ The CMS's own bundle (`packages/cms`) is a complete example.
 
 The panel loads the bundle the first time a page under `Shop/` opens, not on every admin page. Page prefixes are folders ending in `/`; two bundles can't claim the same pages, and the panel's own folders (`Auth/`, `Users/`, `Settings/`…) are reserved.
 
-Your bundle can split: a dynamic `import()` (or `React.lazy`) becomes a chunk next to it, loaded when needed. Publish the whole build folder.
+### Loading pages on demand
+
+A bundle with many pages shouldn't make each of them download all the others. Register them with `lazyPages` instead of `pages`, each as a function that imports it:
+
+```tsx
+// resources/js/admin.tsx
+import { definePlugin } from '@imajiner/admin-sdk';
+
+definePlugin({
+    lazyPages: {
+        'Shop/Orders/Index': () => import('./pages/Orders/Index'), // the module's default export
+        'Shop/Orders/Show': () => import('./pages/Orders/Show').then((module) => module.OrderShow), // or the component itself
+    },
+});
+```
+
+Each page becomes a chunk with what it alone uses, and the panel waits for it before showing the page (once; a page that failed to load, offline say, is tried again on the next visit), so it gets its layout as any other. `pages` and `lazyPages` can be mixed. Other dynamic `import()`s and `React.lazy` split too.
+
+What the Vite plugin builds then:
+
+- `dist/admin.js`: two or three lines importing the main chunk. Keep registering this file (`->module(asset('vendor/shop/admin.js'))`, with a version query if you like): chunks import the main chunk by its own name, so it runs once whatever query admin.js was loaded with.
+- `dist/chunks/*.js`: the main chunk and the pages' and shared code's, named by their content, so they can be cached for good. Each chunk that loads others puts `<link rel="modulepreload">` in for what they import as it loads them, so a page's pieces download together. The panel's shared modules (React, Inertia, `@imajiner/admin-sdk/ui`) stay out of every chunk, as out of the single file.
+- `dist/admin.css`: still one stylesheet, for every page.
+
+A bundle without dynamic imports is one file, `dist/admin.js`, as before. Publish the whole build folder (`$this->publishes([dirname(__DIR__).'/dist' => public_path('vendor/shop')], …)` copies `chunks/` with it). `publishedFrom()`'s outdated warning and the compressed copies written at publish time cover the chunks too. Chunks of older builds stay in the published folder until you remove them; nothing loads them.
+
+`lazyPages` needs the panel version that brings it (the panel's runtime gained `registerPageLoader()`); require it in your `composer.json`. The CMS's bundle (`packages/cms/resources/js/admin.tsx`) loads all its pages this way.
 
 ## UI components
 

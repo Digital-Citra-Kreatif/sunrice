@@ -6,11 +6,15 @@ export { SDK_VERSION } from './shared.js';
 /** A page component; set `bare = true` for a page without the admin layout. */
 export type PageComponent = ComponentType<any> & { layout?: (page: ReactNode) => ReactNode; bare?: boolean };
 
+/** Loads a page on demand: `() => import('./pages/Orders/Index')` (its default export) or a function returning the component. */
+export type PageLoader = () => Promise<PageComponent | { default: PageComponent }>;
+
 /** What the panel exposes on `window.Sunrice` (internal: use the functions below). */
 export interface SunriceRuntime {
     version: number;
     modules: Record<string, Record<string, unknown>>;
     registerPage(name: string, component: PageComponent): void;
+    registerPageLoader(name: string, load: PageLoader): void;
     adminUrl(path?: string): string;
     t(text: string, replace?: Record<string, string | number | null | undefined>): string;
 }
@@ -32,6 +36,13 @@ function runtime(): SunriceRuntime {
 export interface PluginDefinition {
     /** Page components by their Inertia name: { 'Shop/Orders/Index': OrdersIndex }. */
     pages?: Record<string, PageComponent>;
+    /**
+     * Pages loaded when first opened, by their Inertia name:
+     * { 'Shop/Orders/Show': () => import('./pages/Orders/Show') }. Each
+     * becomes a chunk next to the bundle, so a page's code loads only
+     * where it's used.
+     */
+    lazyPages?: Record<string, PageLoader>;
 }
 
 /**
@@ -41,6 +52,10 @@ export interface PluginDefinition {
  *     import OrdersIndex from './pages/Orders/Index';
  *
  *     definePlugin({ pages: { 'Shop/Orders/Index': OrdersIndex } });
+ *
+ * or, loading each page only when it's opened:
+ *
+ *     definePlugin({ lazyPages: { 'Shop/Orders/Index': () => import('./pages/Orders/Index') } });
  *
  * Refuses to run in a panel with an incompatible runtime, with a clear
  * error instead of a broken page.
@@ -52,6 +67,9 @@ export function definePlugin(definition: PluginDefinition): void {
     }
     for (const [name, component] of Object.entries(definition.pages ?? {})) {
         sunrice.registerPage(name, component);
+    }
+    for (const [name, load] of Object.entries(definition.lazyPages ?? {})) {
+        sunrice.registerPageLoader(name, load);
     }
 }
 
