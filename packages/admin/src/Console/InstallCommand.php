@@ -20,7 +20,8 @@ use Sunrice\Admin\Panel;
  * the migrations, the admin's assets (and the
  * plugins', tagged laravel-assets), the storage link for media, an
  * `.htaccess` with headers for the media directory (MediaHtaccess),
- * permissions, the default roles (--roles) and a super admin.
+ * permissions, the default roles (--roles), the plugins' install steps
+ * (Panel::installStep()) and a super admin.
  *
  * @internal
  */
@@ -71,6 +72,11 @@ final class InstallCommand extends Command
             if ($this->option('roles') === true) {
                 $this->call('sunrice:roles');
             }
+        }
+
+        $output = new InstallOutput($this, $this->input->isInteractive());
+        foreach ($this->laravel->make(Panel::class)->getInstallSteps() as $step) {
+            $step($output);
         }
 
         if ($this->option('no-user') !== true && $this->input->isInteractive() && $this->confirm('Create a super admin now?', true)) {

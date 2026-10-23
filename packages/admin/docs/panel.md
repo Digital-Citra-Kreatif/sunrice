@@ -157,6 +157,8 @@ $panel->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.orders.s
 
 Search results that need the browser (an action rather than a page) use [`registerCommandSource()`](frontend.md) in the plugin's bundle.
 
+`$panel->installStep($key, fn (InstallOutput $output) => …)` adds a step to `php artisan sunrice:install`, for what a plugin needs the app to have: see [The install step](plugins.md#the-install-step).
+
 ## Help pages
 
 The sidebar's **Help** group has two reading pages, each shown when there is something to read:

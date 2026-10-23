@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Sunrice\Admin\Ai\Tool;
 use Sunrice\Admin\Assets\PluginBundle;
+use Sunrice\Admin\Console\InstallOutput;
 use Sunrice\Admin\Contracts\Plugin;
 use Sunrice\Admin\Dashboard\PanelWidgets;
 use Sunrice\Admin\Dashboard\Widget;
@@ -101,6 +102,9 @@ final class Panel
 
     /** @var array<string, array{url: Closure(): string, minLength: int}> command palette searches, keyed by id */
     private array $commandSearches = [];
+
+    /** @var array<string, Closure(InstallOutput): void> steps of sunrice:install, keyed by key */
+    private array $installSteps = [];
 
     /** @var array<string, RegisteredResource> keyed by the resource's key */
     private array $resources = [];
@@ -710,6 +714,40 @@ final class Panel
         $this->guides[$key] = ['title' => $title, 'directory' => rtrim($directory, '/')];
 
         return $this;
+    }
+
+    /**
+     * A step of `php artisan sunrice:install`, for what a plugin needs the
+     * app to have that the panel can't know about. It runs after the
+     * panel's own steps (migrations, assets, permissions, roles) and before
+     * the super admin, every time the command runs, so keep it safe to run
+     * again: check first, ask before changing the app's files ($output->confirm()
+     * answers no without interaction: then say what to change). A plugin's
+     * keys start with its id.
+     *
+     *     $panel->installStep('shop.currency', fn (InstallOutput $output) => app(CheckCurrency::class)($output));
+     *
+     * @param  Closure(InstallOutput): void  $step
+     */
+    public function installStep(string $key, Closure $step): self
+    {
+        $this->assertRegistering();
+        $owner = $this->registering?->id();
+        if ($owner !== null && ! str_starts_with($key, "{$owner}.")) {
+            throw new PanelMisconfigured("The plugin \"{$owner}\" registered the install step \"{$key}\": a plugin's keys start with its id (\"{$owner}.…\").");
+        }
+        if (isset($this->installSteps[$key])) {
+            throw new PanelMisconfigured("Two install steps have the key \"{$key}\"{$this->owner()}.");
+        }
+        $this->installSteps[$key] = $step;
+
+        return $this;
+    }
+
+    /** @return array<string, Closure(InstallOutput): void> the steps of sunrice:install, in the order they were added */
+    public function getInstallSteps(): array
+    {
+        return $this->installSteps;
     }
 
     /** A plugin's admin JavaScript, loaded when one of its pages opens. */

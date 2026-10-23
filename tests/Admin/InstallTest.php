@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Storage;
 use Sunrice\Admin\Actions\Install\AddHasRoles;
 use Sunrice\Admin\Actions\Install\AddPanelPlugins;
 use Sunrice\Admin\Actions\Install\CreatePanelProvider;
+use Sunrice\Admin\Console\InstallOutput;
+use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Panel;
 use Sunrice\Tests\Admin\Fixtures\Plugins\BlogPlugin;
 use Sunrice\Tests\Admin\Fixtures\Plugins\ShopPlugin;
@@ -454,4 +456,32 @@ it('asks nothing when the panel has every installed plugin', function () {
         ->assertSuccessful();
 
     Process::assertNothingRan();
+});
+
+it('runs the plugins\' install steps, which ask only with interaction', function (bool $interactive) {
+    Storage::fake('public');
+    app()->instance(PackageManifest::class, packagesOffering($this->dir, []));
+    $answers = new ArrayObject;
+    usePanel(fn (Panel $panel) => $panel->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->installStep('shop.currency', function (InstallOutput $output) use ($answers) {
+        $output->warn('The shop has no currency.');
+        $answers[] = [$output->interactive(), $output->confirm('Set one?')];
+        $output->detail('Currency', 'EUR');
+    }))));
+
+    $command = artisan('sunrice:install', ['--no-user' => true, ...($interactive ? [] : ['--no-interaction' => true])])
+        ->expectsOutputToContain('The shop has no currency.');
+    if ($interactive) {
+        $command->expectsConfirmation('Set one?', 'yes');
+    }
+    $command->expectsOutputToContain('Currency')->assertSuccessful()->run();
+
+    expect($answers->getArrayCopy())->toBe([[$interactive, $interactive]]);
+})->with(['interactive' => [true], 'no interaction' => [false]]);
+
+it('keeps a plugin\'s install steps under its id, once', function () {
+    expect(fn () => usePanel(fn (Panel $panel) => $panel->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p->installStep('currency', fn () => null))))->boot())
+        ->toThrow(PanelMisconfigured::class, 'start with its id');
+
+    expect(fn () => Panel::make()->installStep('app.check', fn () => null)->installStep('app.check', fn () => null))
+        ->toThrow(PanelMisconfigured::class, 'Two install steps');
 });

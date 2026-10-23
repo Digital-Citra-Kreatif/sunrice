@@ -234,6 +234,29 @@ final class ListOrders extends Tool
 
 Agents work as the token's user, with that user's permissions. See [AI access](ai.md#tools-from-plugins-and-apps).
 
+## The install step
+
+When the plugin needs the app to have something the panel can't know about, add a step to `php artisan sunrice:install` in `register()`. Steps run after the panel's own (migrations, assets, permissions, roles) and before the super admin, every time the command runs, so check first and keep them safe to run again. The key starts with the plugin's id. The step gets a `Sunrice\Admin\Console\InstallOutput`: `warn()`, `info()`, `line()`, `detail($done, $where)`, `interactive()` and `confirm($question, $default = true)`, which answers no without interaction (`--no-interaction`). So ask before changing the app's files, and when the answer is no, print what to change instead:
+
+```php
+$panel->installStep('shop.currency', function (InstallOutput $output): void {
+    if (config('shop.currency') !== null) {
+        return;
+    }
+    $output->warn('The shop has no currency.');
+    if ($output->confirm('Use EUR?')) {
+        app(SetCurrency::class)->handle('EUR');
+        $output->detail('Currency', 'EUR');
+    } else {
+        $output->line('  Set SHOP_CURRENCY in .env.');
+    }
+});
+```
+
+A plugin added to the panel provider by the same run (see [Installing a plugin later](installation.md#installing-a-plugin-later)) isn't on that run's panel yet: its steps run the next time.
+
+The CMS uses one to take Laravel's welcome route out of `routes/web.php` ([The site](../../cms/docs/site.md)).
+
 ## Testing a plugin with Testbench
 
 Test the plugin the way the panel tests itself: [Orchestra Testbench](https://packages.tools/testbench) gives a Laravel app, Pest the tests.
