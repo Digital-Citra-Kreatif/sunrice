@@ -52,7 +52,7 @@ final class RevisionList
                 'author' => $revision->user_id === null ? null : ($authors[$revision->user_id] ?? null),
                 // The oldest kept: the first published (or older ones were pruned), nothing to compare with.
                 'changed' => $before === null ? null : [
-                    ...self::changed(self::values($before->title, $before->slug, $before->data), self::values($revision->title, $revision->slug, $revision->data), $labels),
+                    ...self::changed(self::values($before->title, $before->slug, $translation->shownData($before->data)), self::values($revision->title, $revision->slug, $translation->shownData($revision->data)), $labels),
                     ...($before->terms !== null && $revision->terms !== null ? array_column($terms->compare($before->terms, $revision->terms), 'label') : []),
                 ],
             ];
@@ -134,8 +134,8 @@ final class RevisionList
             return [];
         }
 
-        return [...self::changedKeys(self::values($translation->title, $translation->slug, $translation->data),
-            self::values($translation->draft_title, $translation->draft_slug, $translation->draft_data), self::labels($translation)),
+        return [...self::changedKeys(self::values($translation->title, $translation->slug, $translation->shownData($translation->data)),
+            self::values($translation->draft_title, $translation->draft_slug, $translation->shownData($translation->draft_data)), self::labels($translation)),
             ...array_column(self::termsFromLive($translation, $taxonomies), 'key')];
     }
 
@@ -181,7 +181,9 @@ final class RevisionList
     {
         $labels = self::labels($translation);
         $schema = $translation->entry->schema();
-        $newData = $translation->draft_data;
+        // Not what another language keeps of shared fields, out of sight.
+        $oldData = $translation->shownData($oldData);
+        $newData = $translation->shownData($translation->draft_data) ?? [];
         $old = self::values($title, $slug, $oldData);
         $new = self::values($translation->draft_title, $translation->draft_slug, $newData);
         $keys = self::changedKeys($old, $new, $labels);
