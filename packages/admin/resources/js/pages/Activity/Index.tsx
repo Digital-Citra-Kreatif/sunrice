@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Columns3, History, Search, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Columns3, Search, Trash2, X } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { DatePicker } from '@/components/app/date-picker';
 import { PageHeader } from '@/components/app/page-header';
@@ -223,13 +223,6 @@ export default function ActivityIndex({ query, types, actions, people = [], sour
                                             <span className="text-muted-foreground">{row.type === 'account' ? t('for') : row.typeLabel.toLowerCase()}</span>{' '}
                                             {row.url ? <Link href={row.url} className="underline-offset-4 hover:underline">{row.subject}</Link> : <span>{row.subject}</span>}
                                         </>
-                                    )}
-                                    {row.subjectId && !(query.subject === row.subjectId && query.type === row.type) && (
-                                        <Button variant="ghost" size="icon" className="ml-1 size-6 align-middle" aria-label={row.subject ? t('History of :item', { item: row.subject }) : t('History of this item')}
-                                            title={row.subject ? t('Show only the history of :item', { item: row.subject }) : t('Show only the history of this item')}
-                                            onClick={() => visit({ type: row.type, subject: row.subjectId })}>
-                                            <History className="size-3.5" />
-                                        </Button>
                                     )}
                                 </TableCell>}
                                 {show('details') && <TableCell className="align-top text-sm text-muted-foreground">
