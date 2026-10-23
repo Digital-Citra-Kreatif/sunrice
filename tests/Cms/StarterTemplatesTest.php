@@ -99,12 +99,12 @@ it('publishes the starter templates, and the site renders with them', function (
     get('/topics/news')->assertOk()->assertViewIs('cms.taxonomies.show')->assertSee('<p class="eyebrow">Topics</p>', false)->assertSee('Hello &lt;world&gt;', false);
     commitForFullText();
     get('/search?q=hello')->assertOk()->assertViewIs('cms.search')->assertSee('1 result for “hello”')->assertSee(url('/blog/hello'));
-    // Not translated: a note, in the main language's content.
-    $page = get('/id/topics/news')->assertOk()->assertSee('This page isn\'t translated yet');
+    // Not translated: the main language's content, marked with its language, and no note.
+    $page = get('/id/topics/news')->assertOk()->assertDontSee('class="notice"', false);
     expect($page->getContent())->toMatch('~<div lang="en">\s*<h1>News</h1>~');
     expect(get('/blog/hello')->getContent())->toContain('<article class="entry">');
     expect(get('/id/blog/english-only')->assertOk()->getContent())->toContain('<article class="entry" lang="en">')
-        ->toContain('<p class="notice" role="note" lang="id">');
+        ->not->toContain('class="notice"');
     get('/nowhere')->assertNotFound()->assertSee('Page not found')->assertSee('role="search"', false);
 
     expect(view('errors.500')->render())->toContain('Something went wrong')->toContain(asset('cms/site.css'));
