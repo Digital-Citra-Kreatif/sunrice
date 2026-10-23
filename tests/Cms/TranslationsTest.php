@@ -73,10 +73,10 @@ it('stores only the translated fields in other languages, and reads the shared o
     $id = app(CreateTranslation::class)->handle($this->main->entry, 'id');
     expect($id->draft_data)->toBe(['intro' => 'Strong coffee']);
 
-    // A draft that still holds copies of shared fields (saved before) loses them on save.
+    // Values it holds of shared fields (from when they were translated) stay stored, out of sight.
     $id->forceFill(['draft_data' => ['intro' => 'Kopi', 'price' => 1, 'tagline' => 'Stale']])->save();
-    app(SaveDraft::class)->handle($id, ['data' => ['intro' => 'Kopi kental']]);
-    expect($id->fresh()?->draft_data)->toBe(['intro' => 'Kopi kental']);
+    app(SaveDraft::class)->handle($id, ['data' => ['intro' => 'Kopi kental', 'price' => 2, 'tagline' => 'Sent']]);
+    expect($id->fresh()?->draft_data)->toBe(['intro' => 'Kopi kental', 'price' => 1, 'tagline' => 'Stale']);
 
     // Search text and templates read the main language's shared fields, live and in a preview, also after they change.
     app(PublishEntry::class)->handle($this->main);
@@ -89,7 +89,7 @@ it('stores only the translated fields in other languages, and reads the shared o
         ->and($id->fresh()?->search_text)->toBe('Kopi kental Brewed daily');
     app(PublishEntry::class)->handle($this->main->fresh() ?? $this->main);
     expect($id->fresh()?->search_text)->toBe('Kopi kental Roasted here')
-        ->and(Revision::query()->where('entry_translation_id', $id->id)->firstOrFail()->data)->toBe(['intro' => 'Kopi kental']);
+        ->and(Revision::query()->where('entry_translation_id', $id->id)->firstOrFail()->data)->toBe(['intro' => 'Kopi kental', 'price' => 1, 'tagline' => 'Stale']);
 });
 
 it('keeps each language\'s slug unique on its own', function () {
