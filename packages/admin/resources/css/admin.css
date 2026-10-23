@@ -298,6 +298,8 @@
 
 .sunrice-card-content {
     display: grid;
+    /* One column no wider than the card: a long unbreakable value inside never widens it. */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 1fr;
     opacity: 1;
     transition: grid-template-rows 240ms var(--ease-out-quart), opacity 180ms ease;

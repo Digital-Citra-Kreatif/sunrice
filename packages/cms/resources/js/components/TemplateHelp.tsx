@@ -157,20 +157,23 @@ export function TemplateField({ id, value, onChange, lookup = null, example, aut
             {missing && <p className="cms:text-xs cms:text-amber-700 cms:dark:text-amber-400">{t('No such file yet: the page uses the next one until it exists.')}</p>}
             <div className="cms:flex cms:flex-col cms:gap-0.5 cms:text-xs cms:leading-relaxed cms:text-muted-foreground">
                 <p>{t('Files are under resources/views; a name like :example is :file.', { example: '\u0000', file: '\u0001' }).split(/(\u0000|\u0001)/).map((part, i) => part === '\u0000'
-                    ? <code key={i}>{example}</code>
-                    : part === '\u0001' ? <code key={i}>{shortViewFile(example)}</code> : part)}</p>
+                    ? <code key={i} className="cms:wrap-anywhere">{example}</code>
+                    : part === '\u0001' ? <code key={i} className="cms:wrap-anywhere">{shortViewFile(example)}</code> : part)}</p>
                 <p>{automatic}</p>
             </div>
-            <div className="cms:flex cms:min-w-0 cms:items-center cms:gap-2 cms:text-xs cms:text-muted-foreground">
-                <span className="cms:shrink-0">{t('Uses')}</span>
-                {used === null ? <span className="cms:min-w-0 cms:truncate">{t('the built-in template')}</span> : <FilePath view={used} />}
+            {/* The file in use, then the link; the link goes under it when they don't fit side by side. A long path is cut short, whole in its tooltip. */}
+            <div className="cms:flex cms:min-w-0 cms:flex-wrap cms:items-center cms:gap-x-3 cms:gap-y-1 cms:text-xs cms:text-muted-foreground">
+                <span className="cms:flex cms:min-w-0 cms:max-w-full cms:items-baseline cms:gap-1">
+                    <span className="cms:shrink-0">{t('Uses')}</span>
+                    {used === null ? <span>{t('the built-in template')}</span> : <FilePath view={used} />}
+                </span>
                 <Popover>
                     <PopoverTrigger asChild>
                         <button type="button" className="cms:ml-auto cms:shrink-0 cms:rounded-sm cms:underline cms:underline-offset-4 cms:hover:text-foreground cms:focus-visible:outline-2 cms:focus-visible:outline-ring">
                             {t('How is it chosen?')}
                         </button>
                     </PopoverTrigger>
-                    <PopoverContent align="end" className="cms:w-80 cms:max-w-[calc(100vw-2rem)]">
+                    <PopoverContent align="end" className="cms:w-max cms:min-w-72 cms:max-w-[min(32rem,calc(100vw-2rem))]">
                         <TemplateOrder value={value} lookup={lookup} />
                     </PopoverContent>
                 </Popover>

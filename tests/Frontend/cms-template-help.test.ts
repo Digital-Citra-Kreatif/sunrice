@@ -34,10 +34,14 @@ test('a template setting is a choice with two helper lines and the file in use; 
     const html = render(TemplateField, { id: 'template', value: '', onChange: () => {}, lookup, example: 'cms.demo-landing', automatic: "Automatic uses the collection's template." });
     assert.match(html, /role="combobox"[^>]*>.*Automatic/);
     // Names → files first, then what Automatic uses.
-    assert.match(html, /<p>Files are under resources\/views; a name like <code>cms.demo-landing<\/code> is <code>cms\/demo-landing.blade.php<\/code>.<\/p><p>Automatic uses the collection&#x27;s template.<\/p>/);
+    // The names wrap anywhere, so a long one never widens the card.
+    assert.match(html, /<p>Files are under resources\/views; a name like <code class="[^"]*wrap-anywhere[^"]*">cms.demo-landing<\/code> is <code class="[^"]*wrap-anywhere[^"]*">cms\/demo-landing.blade.php<\/code>.<\/p><p>Automatic uses the collection&#x27;s template.<\/p>/);
     // The file in use on one line, the whole path in a tooltip.
     assert.match(html, /Uses<\/span><code title="cms\/collections\/demo\/show.blade.php"[^>]*truncate[^>]*>cms\/collections\/demo\/show.blade.php<\/code>/);
     assert.match(html, />How is it chosen\?<\/button>/);
+    // The link goes under the file in use when they don't fit; a short phrase isn't cut short.
+    assert.match(html, /flex-wrap/);
+    assert.match(render(TemplateField, { id: 'template', value: '', onChange: () => {}, lookup: { own: null, fallbacks: [] }, example: 'cms.x', automatic: '' }), /Uses<\/span><span>the built-in template<\/span>/);
     assert.doesNotMatch(html, /<details/);
     assert.doesNotMatch(html, /No such file yet/);
     assert.match(render(TemplateField, { id: 'template', value: 'cms.nope', onChange: () => {}, lookup, example: 'cms.x', automatic: '' }), /No such file yet/);
