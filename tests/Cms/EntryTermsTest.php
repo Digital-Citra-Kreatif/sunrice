@@ -494,3 +494,50 @@ it('shows the entry\'s terms in compare dialogs and to AI clients only of the ta
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'sunrice.ai.connect'));
     expect(array_keys($mcp($note)['terms']))->toBe(['format', 'tags']);
 });
+
+it('attaches on upgrade the taxonomies terms fields use, without pages, keeping the site as it was and the draft terms pending', function () {
+    // As 0.1 left a site: a terms field of a taxonomy not attached to the collection, live terms from the published field, a draft choosing another.
+    $regions = Taxonomy::query()->create(['handle' => 'regions', 'title' => 'Regions']);
+    $bali = app(SaveTerm::class)->handle($regions, ['title' => 'Bali']);
+    $java = app(SaveTerm::class)->handle($regions, ['title' => 'Java']);
+    Blueprint::query()->create(['handle' => 'release', 'title' => 'Release', 'fields' => [
+        ['handle' => 'region', 'type' => 'terms', 'config' => ['taxonomy' => 'regions']],
+        ['handle' => 'topics', 'type' => 'terms', 'config' => ['taxonomy' => 'tags', 'multiple' => true]],
+    ]]);
+    $press = Collection::query()->create(['handle' => 'press', 'title' => 'Press', 'blueprint' => 'release', 'route' => '/press/{slug}']);
+    $changed = app(CreateEntry::class)->handle($press, ['title' => 'News', 'data' => ['region' => $java->id, 'topics' => [$this->php->id]]]);
+    $same = app(CreateEntry::class)->handle($press, ['title' => 'Same', 'data' => ['region' => $bali->id]]);
+    foreach ([[$changed, $bali->id], [$same, $bali->id]] as [$translation, $live]) {
+        $translation->forceFill(['status' => EntryTranslation::PUBLISHED, 'title' => $translation->draft_title, 'slug' => $translation->draft_slug,
+            'data' => ['region' => $live], 'published_at' => now()->subDay()])->save();
+        DB::table('sunrice_entry_term')->insert(['entry_id' => $translation->entry_id, 'term_id' => $live]);
+    }
+    $views = sys_get_temp_dir().'/sunrice-entry-terms-'.uniqid();
+    mkdir("{$views}/cms/collections/press", recursive: true);
+    file_put_contents("{$views}/cms/collections/press/show.blade.php", 'terms:@foreach ($entry->terms as $t){{ $t->title() }},@endforeach');
+    View::addLocation($views);
+
+    $migrations = dirname(__DIR__, 2).'/packages/cms/database/migrations';
+    (require "{$migrations}/2026_10_23_000002_move_terms_fields_to_entry_terms.php")->up();
+    $attach = require "{$migrations}/2026_10_24_000001_attach_taxonomies_from_terms_fields.php";
+    $attach->up();
+    $attach->up(); // again: nothing changes
+
+    // Attached, without pages; one term only as the field took; Tags too (used by a field), once.
+    $pivot = fn (Taxonomy $taxonomy) => DB::table('sunrice_collection_taxonomy')->where('collection_id', $press->id)->where('taxonomy_id', $taxonomy->id)->get();
+    expect($pivot($regions))->toHaveCount(1)
+        ->and((array) $pivot($regions)->first())->toMatchArray(['term_pages' => false, 'index_page' => false, 'single' => true])
+        ->and((bool) $pivot($this->tags)->first()?->single)->toBeFalse()
+        ->and(DB::table('sunrice_collection_taxonomy')->where('collection_id', $this->notes->id)->count())->toBe(2);
+    // The site as it was; the draft's choice pending.
+    get('/press/news')->assertOk()->assertSee('terms:Bali,', false);
+    $entry = Entry::query()->findOrFail($changed->entry_id);
+    expect($entry->liveTermIds())->toBe([$bali->id])
+        ->and($entry->draftTermIds())->toEqualCanonicalizing([$java->id, $this->php->id])
+        ->and(Entry::query()->findOrFail($same->entry_id)->draft_terms)->toBeNull();
+    // The card shows them, to change or publish.
+    get(entryEditUrl($changed->entry_id))->assertInertia(fn (Assert $page) => $page
+        ->where('values.terms', ['regions' => [$java->id], 'tags' => [$this->php->id]]));
+    app(PublishEntry::class)->handle($changed->fresh());
+    expect(liveTerms($changed))->toEqualCanonicalizing([$java->id, $this->php->id]);
+});
