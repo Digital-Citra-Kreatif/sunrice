@@ -55,7 +55,7 @@ Your site may come with ready-made roles to start from:
 | Role | For |
 | --- | --- |
 | **administrator** | Everything, for people who run the site. |
-| **editor** | All content: entries, terms, globals, menus, comments, media, and reading and exporting form submissions. Not structure, settings or users. |
+| **editor** | All content: entries, terms, globals' values, menus' links, comments and media. Not a global set's or a menu's **Settings** (its name, handle and fields), nor creating or deleting menus. Not form submissions either, as they hold visitors' personal details: tick *View form submissions* (or *View submissions* under one form's *Submissions:* group) for those who answer them. Not structure, settings or users. |
 | **author** | Writing entries in every collection and editing their own, uploading media and seeing drafts on the site. They can't publish. To keep authors to some collections (only the *Journal*, say), untick *View entries* and *Create entries* and tick **View** and **Create** under those collections' *Entries:* groups. |
 | **translator** | Writing the other languages of entries, in every collection they may view. To keep a translator to some collections, give the role **View** under those collections' *Entries:* groups instead of *View entries*. |
 
