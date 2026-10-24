@@ -79,7 +79,7 @@ Only `starter.json` is required. `starter.json`:
 | `--force` | Replace the app's files that differ, and save fieldsets and blueprints that lose fields. |
 | `--skip-other-languages` | Leave out its texts in languages the site doesn't have. |
 
-Running it again adds only what's missing. A starter's Settings → Site values fill in what the site hasn't set; other settings (languages, mail, comments, cache, code, branding), users and roles aren't part of a starter.
+Running it again adds only what's missing. A starter's Settings → Site values, and Settings → SEO's (the share image, the X account, structured data), fill in what the site hasn't set; other settings (languages, mail, comments, cache, code, branding), users and roles aren't part of a starter.
 
 In code: `app(\Sunrice\StarterKit\Actions\InstallStarter::class)->handle($starter, dryRun: false, force: false, content: true)` returns an `Installation`: the import's `ImportReport` (`$installation->report`), the files by result (`files(Installation::COPIED)`, `UNCHANGED`, `KEPT`) and the media files `uploaded` and `reused`.
 
@@ -123,7 +123,7 @@ A folder that isn't empty is refused unless `--force`, which replaces its conten
 - **Terms through taxonomies.** Attach each taxonomy to the collections whose entries it groups (`collections` in `site.json`, **One term only** as `collection_pages.{collection}.single`) and give entries their terms as their `terms` (`{"topics": ["news"]}`, main-language slugs); templates read them with `$entry->terms` or `$entry->termsOf('topics')`. A **Terms** field is only for a custom link (a "featured topic"), not the entry's terms. See [taxonomies](../../cms/docs/taxonomies.md#giving-entries-terms).
 - **Handles that last.** Field handles are stored with every entry; renaming them later needs `sunrice:rename-field` on every site that installed the starter.
 - **Languages.** Write `locales` for the languages its texts (its content in `site.json`) are in. A multilingual starter carries each entry's translations in `site.json`, its own words in `lang/<locale>/site.php` and the CMS's site words it changes in `lang/vendor/sunrice-cms/<locale>/site.php`. Its templates' words go through `__('site.…')`, never written into the template, with the same keys in every language's file; a starter can bring its words in more languages than its content (the Blog starter's content is English, `locales: ["en"]`, and its words English and Indonesian), so a site that adds a language shows its own words in it while the content waits for a translation.
-- **No secrets.** A starter carries only Settings → Site (no keys, mail or other settings), but check that sample content, the site's phone, address and profiles, and form notification addresses are examples (`team@example.com`).
+- **No secrets.** A starter carries only Settings → Site's and Settings → SEO's values (no keys, mail or other settings), but check that sample content, the site's phone, address and profiles, and form notification addresses are examples (`team@example.com`).
 
 ## Shipping one as a package
 

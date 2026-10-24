@@ -55,7 +55,7 @@ Situs Anda mungkin sudah memiliki peran siap pakai sebagai titik awal:
 | Peran | Untuk |
 | --- | --- |
 | **administrator** | Semuanya, bagi orang yang menjalankan situs. |
-| **editor** | Semua konten: entri, term, global, menu, komentar, media, serta membaca dan mengekspor kiriman formulir. Tidak termasuk struktur, pengaturan, atau pengguna. |
+| **editor** | Semua konten: entri, term, nilai global, tautan menu, komentar, dan media. Tidak termasuk **Pengaturan** sebuah set global atau menu (nama, handle, dan field-nya), serta membuat atau menghapus menu. Juga tidak termasuk kiriman formulir, karena berisi data pribadi pengunjung: centang *Lihat kiriman formulir* (atau *Lihat kiriman* di grup *Kiriman:* sebuah formulir) bagi mereka yang menjawabnya. Tidak termasuk struktur, pengaturan, atau pengguna. |
 | **author** | Menulis entri di setiap koleksi dan mengubah entrinya sendiri, mengunggah media, dan melihat draf di situs. Tidak bisa menerbitkan. Untuk membatasi penulis ke beberapa koleksi saja (misalnya hanya *Jurnal*), hapus centang *Lihat entri* dan *Buat entri*, lalu centang **Lihat** dan **Buat** di grup *Entri:* koleksi tersebut. |
 | **translator** | Menulis bahasa lain dari entri, di setiap koleksi yang boleh dilihatnya. Untuk membatasi penerjemah ke beberapa koleksi saja, beri peran itu **Lihat** di grup *Entri:* koleksi tersebut, bukan *Lihat entri*. |
 

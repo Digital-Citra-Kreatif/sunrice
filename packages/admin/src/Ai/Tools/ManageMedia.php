@@ -20,7 +20,7 @@ use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaFolder;
 use Sunrice\Admin\Media\MediaUsages;
 
-#[Description('Organise the media library. "folders": every folder (id, name, depth). "create_folder" (name, parent_id), "rename_folder" (folder_id, name), "delete_folder" (folder_id; what is in it moves up). "move": files ("ids") into a folder ("folder_id", none for the top level). "trash" / "restore" a file ("id"). "usages": where a file is used. "delete": delete a trashed file permanently; refused while content uses it unless "force": true. Ask the user before deleting.')]
+#[Description('Organise the media library. "folders": every folder (id, name, depth). "create_folder" (name, parent_id), "rename_folder" (folder_id, name), "delete_folder" (folder_id; what is in it moves up). "move": files ("ids") into a folder ("folder_id", none for the top level). "trash" / "restore" a file ("id"): trashing takes it offline, so its links stop working (on the site too) and its url and thumbnail are null until it\'s restored. "usages": where a file is used. "delete": delete a trashed file permanently; refused while content uses it unless "force": true. Ask the user before deleting.')]
 final class ManageMedia extends Tool
 {
     protected string $name = 'manage_media';
