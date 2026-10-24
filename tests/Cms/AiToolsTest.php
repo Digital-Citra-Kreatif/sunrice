@@ -331,7 +331,7 @@ it('lists taxonomies\' pages, and each term\'s URLs without a query per term', f
 });
 
 it('reads and saves blueprints and fieldsets, with the field types', function () {
-    expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_get_blueprint'))->toContain('permission to manage blueprints');
+    expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_get_blueprint'))->toContain('permission to view blueprints');
     $token = cmsAgent(['cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.view', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete']);
 
     expect(array_column(cmsTool($token, 'cms_field_types')['fieldTypes'], 'type'))->toContain('text', 'rich_text', 'media', 'terms')

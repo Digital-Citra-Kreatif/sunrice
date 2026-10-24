@@ -39,9 +39,9 @@ Click **Save** after changing the title, caption or alternative text.
 
 ## The trash and deleting
 
-**Move to trash** takes a file out of the library without deleting it. If the file is used somewhere, the panel asks first and names where: pages using it would show a broken image.
+**Move to trash** takes a file out of the library without deleting it, and takes it offline: its link stops working, on the website too, until it's restored. If the file is used somewhere, the panel asks first and names where: pages using it would show a broken image.
 
-In the **Trash**, **Restore** brings a file back as it was, and **Permanently delete** removes it; this can't be undone. Deleting several files permanently keeps the ones that are still in use; open each to see where it's used.
+In the **Trash**, **Restore** brings a file back as it was, at the same link, and **Permanently delete** removes it; this can't be undone. When the file is still used somewhere, the panel warns that pages using it will show a broken link; when nothing uses it, it just says so. Deleting several files permanently keeps the ones that are still in use; open each to see where it's used.
 
 ## Who may do what
 

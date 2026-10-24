@@ -39,9 +39,9 @@ Klik **Simpan** setelah mengubah judul, keterangan, atau teks alternatif.
 
 ## Tempat sampah dan menghapus
 
-**Pindahkan ke tempat sampah** mengeluarkan berkas dari pustaka tanpa menghapusnya. Jika berkas sedang dipakai, panel bertanya dulu dan menyebutkan di mana: halaman yang memakainya akan menampilkan gambar rusak.
+**Pindahkan ke tempat sampah** mengeluarkan berkas dari pustaka tanpa menghapusnya, dan membuatnya offline: tautannya tidak berfungsi lagi, di situs web juga, sampai berkas dipulihkan. Jika berkas sedang dipakai, panel bertanya dulu dan menyebutkan di mana: halaman yang memakainya akan menampilkan gambar rusak.
 
-Di **Tempat sampah**, **Pulihkan** mengembalikan berkas seperti semula, dan **Hapus permanen** menghapusnya; ini tidak dapat dibatalkan. Menghapus beberapa berkas sekaligus melewati berkas yang masih dipakai; buka masing-masing untuk melihat di mana dipakainya.
+Di **Tempat sampah**, **Pulihkan** mengembalikan berkas seperti semula, dengan tautan yang sama, dan **Hapus permanen** menghapusnya; ini tidak dapat dibatalkan. Jika berkas masih dipakai, panel memperingatkan bahwa halaman yang memakainya akan menampilkan tautan rusak; jika tidak ada yang memakainya, panel hanya menyebutkan hal itu. Menghapus beberapa berkas sekaligus melewati berkas yang masih dipakai; buka masing-masing untuk melihat di mana dipakainya.
 
 ## Siapa boleh apa
 
