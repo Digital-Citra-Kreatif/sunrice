@@ -43,3 +43,21 @@ test('the classes built on the optional responsecache are never called', functio
 
     expect($calls)->toBe([]);
 });
+
+/*
+ * mergeConfigFrom() merges only the top level, so a config file published
+ * on an older version would miss the keys added under its sections since:
+ * packages merge theirs with PackageConfig::merge().
+ */
+test('packages merge their config at every depth', function () {
+    $found = [];
+    foreach (['admin', 'cms', 'starter-kit'] as $package) {
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2).'/packages/'.$package.'/src')) as $file) {
+            if ($file->getExtension() === 'php' && str_contains((string) file_get_contents($file->getPathname()), '->mergeConfigFrom(')) {
+                $found[] = $package.'/'.$file->getBasename();
+            }
+        }
+    }
+
+    expect($found)->toBe([]);
+});
