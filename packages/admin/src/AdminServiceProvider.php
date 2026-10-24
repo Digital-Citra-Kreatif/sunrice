@@ -56,6 +56,7 @@ use Sunrice\Admin\Security\SecurityAlerts;
 use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Security\SecuritySettings;
 use Sunrice\Admin\Settings\SettingsStore;
+use Sunrice\Admin\Support\PackageConfig;
 use Throwable;
 
 /**
@@ -89,7 +90,8 @@ final class AdminServiceProvider extends ServiceProvider
         });
         $this->app->register(PermissionServiceProvider::class);
         $this->app->register(McpServiceProvider::class);
-        $this->mergeConfigFrom(dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin');
+        // Key by key at every depth, so a config file published on an older version gets the keys added since.
+        PackageConfig::merge($this->app, dirname(__DIR__).'/config/sunrice-admin.php', 'sunrice-admin', whole: ['locales', 'media.image_sizes', 'security.csp.sources', 'ai.commands']);
         // Inertia's DevTools record every page's props (users and their emails, settings) and, in
         // `local`, serve them at /_inertia/devtools to anyone, signed in or not. Off unless the app
         // turns them on itself (INERTIA_DEVTOOLS_ENABLED=true).

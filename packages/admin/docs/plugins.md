@@ -234,6 +234,19 @@ final class ListOrders extends Tool
 
 Agents work as the token's user, with that user's permissions. See [AI access](ai.md#tools-from-plugins-and-apps).
 
+## Its config file
+
+A plugin with a config file of its own merges it in its service provider's `register()` with `Sunrice\Admin\Support\PackageConfig::merge()` (`@api`) rather than Laravel's `mergeConfigFrom()`, which merges only the top-level keys: an app that published the file on an older version would miss every key added under its sections since, env variables included. `merge()` adds each key the app's file lacks, at every depth, with its default and `env()` read, and keeps every key the app set, `null` and `[]` included; nothing is merged while the configuration is cached.
+
+```php
+public function register(): void
+{
+    PackageConfig::merge($this->app, __DIR__.'/../config/shop.php', 'shop', whole: ['currencies']);
+}
+```
+
+Lists (`['EUR', 'USD']`) are values as a whole: the app's list replaces the default, never merged index by index. A map whose keys the app chooses (`'currencies' => ['EUR' => 2, 'JPY' => 0]`) is named in `whole`, by its dot path under the key, so the app's map replaces the default too and a key it removed doesn't come back. The panel's and the CMS's own files are merged this way ([Configuration](configuration.md)).
+
 ## The install step
 
 When the plugin needs the app to have something the panel can't know about, add a step to `php artisan sunrice:install` in `register()`. Steps run after the panel's own (migrations, assets, permissions, roles) and before the super admin, every time the command runs, so check first and keep them safe to run again. The key starts with the plugin's id. The step gets a `Sunrice\Admin\Console\InstallOutput`: `warn()`, `info()`, `line()`, `detail($done, $where)`, `interactive()` and `confirm($question, $default = true)`, which answers no without interaction (`--no-interaction`). So ask before changing the app's files, and when the answer is no, print what to change instead:

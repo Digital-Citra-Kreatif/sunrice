@@ -6,7 +6,7 @@ The panel's settings for developers live in `config/sunrice-admin.php` (key `sun
 php artisan vendor:publish --tag=sunrice-admin-config
 ```
 
-(`sunrice:install` publishes it when you don't have it yet.) What editors change in the panel itself (the branding, two-factor login) is in **Settings**, not here: see [Settings](settings.md). The panel's path, guard and name are set on the panel in your [panel provider](panel.md), and mail the Laravel way in `.env` ([Mail](mail.md)). The CMS has its own file: see [CMS configuration](../../cms/docs/configuration.md).
+(`sunrice:install` publishes it when you don't have it yet.) The published file is merged with the panel's at every depth: a key it doesn't have, such as one added under `auth`, `media` or `security` by a later version, takes its default and its environment variable, so those variables work with a file published on an older version, and you needn't publish it again to get new keys. Keys your file has keep their values, `null` and empty lists included, and a list or a map you set (`media.allowed_extensions`, `media.image_sizes`, `locales`, `security.csp.sources`, `ai.commands`) replaces the default as a whole. Comparing your file with the new one after an upgrade still shows you the new keys and their comments. What editors change in the panel itself (the branding, two-factor login) is in **Settings**, not here: see [Settings](settings.md). The panel's path, guard and name are set on the panel in your [panel provider](panel.md), and mail the Laravel way in `.env` ([Mail](mail.md)). The CMS has its own file: see [CMS configuration](../../cms/docs/configuration.md).
 
 A dash in the *Env* column means the key has no environment variable: change it in the published file.
 
