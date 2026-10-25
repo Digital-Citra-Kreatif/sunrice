@@ -53,7 +53,7 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
-## Unreleased
+## 0.2.0
 
 From 0.1.x to 0.2.0. Raise the constraints, as 0.1's don't allow 0.2 (see [step 2](#how-to-upgrade)): `composer require sunrice/admin:^0.2 sunrice/cms:^0.2 -W`, adding `sunrice/starter-kit:^0.2` if you use it. Then run the steps every update needs, and:
 
