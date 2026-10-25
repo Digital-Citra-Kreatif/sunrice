@@ -128,6 +128,23 @@ it('edits menus in the admin', function () {
     expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['Contact']);
 });
 
+it('requires the links when saving them: an empty list clears the menu, a missing one is refused', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    app(SaveMenu::class)->handle($this->main, [['url' => '/a', 'labels' => ['en' => 'A']], ['url' => '/b', 'labels' => ['en' => 'B']]]);
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
+
+    put('/admin/cms/menus/main/links', [])->assertSessionHasErrors('items');
+    $this->putJson('/admin/cms/menus/main/links', [])->assertStatus(422)->assertJsonValidationErrors('items');
+    $this->putJson('/admin/cms/menus/main/links', ['items' => 'nope'])->assertStatus(422)->assertJsonValidationErrors('items');
+    expect($this->main->items()->count())->toBe(2);
+
+    put('/admin/cms/menus/main/links', ['items' => [['url' => '/c', 'labels' => ['en' => 'C']]]])->assertSessionHasNoErrors();
+    expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['C']);
+
+    $this->putJson('/admin/cms/menus/main/links', ['items' => []])->assertSessionHasNoErrors();
+    expect($this->main->items()->count())->toBe(0);
+});
+
 it('shows a target\'s title in the language over a label only given in the main language', function () {
     $about = page('About');
     $tentang = app(CreateTranslation::class)->handle($about->entry, 'id');

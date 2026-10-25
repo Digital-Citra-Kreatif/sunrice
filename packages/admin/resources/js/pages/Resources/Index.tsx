@@ -111,13 +111,13 @@ export default function ResourceIndex({ resource, columns: allColumns, filters, 
     const restoreRow = (row: Row) => router.post(`${base}/${row.key}/restore`, {}, { preserveScroll: true });
     const forceDeleteRow = (row: Row) =>
         confirm(t('Permanently delete :title? This can\'t be undone.', { title: row.title }),
-            () => router.delete(`${base}/${row.key}/force`, { preserveScroll: true }), true);
+            () => router.delete(`${base}/${row.key}/force`, { preserveScroll: true }), true, [], t('Permanently delete'));
     const runBulk = (action: ActionInfo) =>
         confirm(action.confirm, (values) => action.fields.length === 0
             ? router.post(`${base}/bulk`, { action: action.key, ids: selected }, { preserveScroll: true })
             : new Promise<boolean>((resolve) => router.post(`${base}/bulk`, { ...values, action: action.key, ids: selected }, {
                 preserveScroll: true, onSuccess: () => resolve(true), onError: () => resolve(false),
-            })), action.destructive, forTargets(action.fields, selected));
+            })), action.destructive, forTargets(action.fields, selected), trashed && action.key === 'force-delete' ? t('Permanently delete') : undefined);
     // In the trash: Restore and Permanently delete, for the selected rows too.
     const shownBulkActions: ActionInfo[] = trashed
         ? [

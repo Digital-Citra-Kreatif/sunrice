@@ -366,6 +366,9 @@ it('reads and saves menus', function () {
     expect($menu['site'][0])->toMatchArray(['label' => 'Hello', 'url' => url('/blog/hello')])
         ->and(cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => $menu['items']])['items'][0]['children'][0]['labels'])->toBe(['en' => 'Elsewhere'])
         ->and(cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => [['url' => '/x']]]))->toContain('required')
+        // A missing tree is refused, not taken for "clear the menu".
+        ->and(cmsTool($token, 'cms_save_menu', ['handle' => 'main']))->toContain('items')
+        ->and(Menu::query()->where('handle', 'main')->firstOrFail()->items()->count())->toBe(2)
         ->and(cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => [['url' => 'javascript:alert(1)', 'labels' => ['en' => 'X']]]]))->toContain('Use a web address')
         ->and(cmsTool($token, 'cms_get_menu')['menus'])->toBe([['handle' => 'main', 'title' => 'Main']]);
 
