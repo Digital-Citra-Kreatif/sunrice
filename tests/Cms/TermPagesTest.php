@@ -7,6 +7,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
+use Sunrice\Cms\Actions\Entries\SaveEntrySettings;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\Actions\Terms\SaveTermContent;
 use Sunrice\Cms\Actions\Terms\TrashTerm;
@@ -110,6 +111,24 @@ it('edits a term\'s page per language, and checks the template', function () {
         ->and($this->news->fresh()?->template)->toBe('cms.topic');
     put("/admin/cms/terms/{$this->news->id}/content", ['locale' => 'id', 'data' => ['about' => 'Mine anyway']])->assertSessionHasNoErrors();
     expect(fn () => app(SaveTermContent::class)->handle($this->news, ['data' => []], 'fr'))->toThrow(ValidationException::class);
+});
+
+it('refuses as a term\'s template the views that are no page: blocks, and the search and unsubscribe pages\' own', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.update'));
+    foreach ([['cms.', 'pages.'], null] as $prefixes) {
+        config(['sunrice-cms.site.template_prefixes' => $prefixes]);
+        foreach (['cms.blocks.hero', 'pages.blocks.hero', 'cms.search', 'cms.comment-unsubscribe'] as $view) {
+            put("/admin/cms/terms/{$this->news->id}/content", ['template' => $view])->assertSessionHasErrors('template');
+            expect(fn () => app(SaveTermContent::class)->handle($this->news->fresh(), ['template' => $view]))->toThrow(ValidationException::class, 'nor named layout, search, comment-unsubscribe')
+                ->and(fn () => SaveEntrySettings::template($view, 'cms.topic'))->toThrow(ValidationException::class);
+        }
+        put("/admin/cms/terms/{$this->news->id}/content", ['template' => 'cms.topic'])->assertSessionHasNoErrors();
+    }
+    expect($this->news->fresh()?->template)->toBe('cms.topic');
+
+    // One stored from before isn't rendered: the term's page shows.
+    $this->news->forceFill(['template' => 'cms.search'])->save();
+    get('/topics/news')->assertOk();
 });
 
 it('locks a term\'s page for those who manage its taxonomy', function () {
