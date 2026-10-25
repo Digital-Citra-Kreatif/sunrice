@@ -103,6 +103,17 @@ URLs end in `?v=<version>`, so a replaced file is fetched again rather than serv
 <img src="{{ $media->url('medium') }}" srcset="{{ $media->srcset() }}" sizes="(min-width: 50rem) 50rem, 100vw" alt="{{ $media->altIn() }}">
 ```
 
+**As data for a script** (a gallery, a lightbox) or a JSON route: `$media->toData()` (`@api`) gives a plain array with the same URLs as `url()` and `srcset()`, and the alt text and caption in a language (`toData('id')`; default: the app's, as `altIn()`):
+
+```json
+{"id": 12, "url": "/storage/media/2026/10/ab12-shop.jpg?v=1", "alt": "The shop front", "title": "Shop", "caption": null,
+ "mime": "image/jpeg", "type": "image", "width": 2400, "height": 1200,
+ "sizes": {"thumbnail": {"url": "…-thumbnail.jpg?v=1", "width": 300, "height": 300}, "medium": {"url": "…-medium.jpg?v=1", "width": 800, "height": 400}},
+ "srcset": "…-medium.jpg?v=1 800w, …-large.jpg?v=1 1600w, ….jpg?v=1 2400w"}
+```
+
+`type` is image, video, audio or document (as `->types()` counts them); `width` and `height` are an image's (null for other files and for images whose size isn't known); `sizes` are the sizes it has (a queued image has none until its job ran), each one's width and height worked out as for `srcset()` (null when unknown). A file in the trash has `url: null`, no sizes and an empty `srcset`, since its files are offline. Only these keys: never its disk, path, who uploaded it or its other languages' text. `toArray()` and `toJson()` are Eloquent's own, with all of those; don't print them on a page. The CMS gives its entries' media fields this way ([Data for JavaScript](../../cms/docs/site.md#data-for-javascript)).
+
 **Alternative text and captions per language.** A plugin with content in several languages (the CMS) gives the panel its languages, main first: `$panel->contentLocales(fn (): array => ['en' => 'English', 'id' => 'Indonesian'])` (`@api`; `getContentLocales()` reads them). Each file then takes its alt text and caption in the others (`Media::$translations`, `{"id": {"alt": "…", "caption": "…"}}`). `$media->altIn($locale)` and `captionIn($locale)` give them in a language (default: the app's locale, which the CMS sets to the page's), else the file's own: write `alt="{{ $media->altIn() }}"` in templates.
 
 ## Settings
