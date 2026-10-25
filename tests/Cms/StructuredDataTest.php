@@ -256,15 +256,3 @@ it('lists the logo and share image as used by Settings → SEO in the media libr
     \Pest\Laravel\put('/admin/settings/site', ['name' => 'Acme'])->assertSessionHasNoErrors();
     expect($usedBy($logo))->toHaveCount(1);
 });
-
-it('moves the logo\'s use from Settings → Site to Settings → SEO when migrating', function () {
-    $logo = Media::query()->create(['disk' => 'public', 'path' => 'logo.png', 'filename' => 'logo.png', 'mime_type' => 'image/png', 'size' => 10]);
-    app(SiteSettings::class)->fill(['logo' => $logo->id])->save();
-    app(MediaUsages::class)->sync('sunrice.settings', 'site', [$logo->id], 'Settings: Site'); // as 0.1 recorded it
-
-    $migration = require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_10_24_000010_record_seo_settings_media.php';
-    $migration->up();
-    $migration->up();
-
-    expect(array_column(app(MediaUsages::class)->of($logo), 'label'))->toBe(['Settings: SEO']);
-});

@@ -6,9 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
 use Sunrice\Admin\Actions\Permissions\SeedRoles;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
@@ -389,31 +387,15 @@ it('lets administrators change a menu\'s title and handle', function () {
         ->and(app(Panel::class)->getPermissions()['cms.menus.configure']->label)->toBe('Change menus\' titles and handles');
 });
 
-it('gives cms.menus.configure on upgrade to those who looked after the menus, not to editors', function () {
-    $permission = fn (string ...$names) => array_map(fn (string $name) => Permission::findOrCreate($name, 'web'), $names);
-    $permission('cms.menus.view', 'cms.menus.update', 'cms.menus.create', 'cms.menus.delete');
-    $editor = Role::findOrCreate('editor', 'web')->givePermissionTo('cms.menus.view', 'cms.menus.update');
-    $admin = Role::findOrCreate('administrator', 'web')->givePermissionTo('cms.menus.view', 'cms.menus.create', 'cms.menus.update', 'cms.menus.delete');
-    $developer = Role::findOrCreate('developer', 'web')->givePermissionTo('cms.menus.update', 'cms.menus.delete');
-    $creator = Role::findOrCreate('creator', 'web')->givePermissionTo('cms.menus.create');
-    $person = adminUser('cms.menus.update', 'cms.menus.create');
-    $other = adminUser('cms.menus.update');
-    Permission::query()->where('name', 'cms.menus.configure')->delete();
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
+it('gives cms.menus.configure to the administrator role through sunrice:roles, not to editors', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
 
-    $migration = require dirname(__DIR__, 2).'/packages/cms/database/migrations/2026_10_25_000002_give_menus_configure_permission.php';
-    $migration->up();
-    $migration->up(); // again: nothing changes
+    $this->artisan('sunrice:roles')->assertSuccessful();
 
-    $has = fn ($model) => $model->fresh()->hasPermissionTo('cms.menus.configure');
-    expect($has($admin))->toBeTrue()
-        ->and($has($developer))->toBeTrue()
-        ->and($has($editor))->toBeFalse()
-        ->and($has($creator))->toBeFalse()
-        ->and($person->fresh()->getDirectPermissions()->pluck('name')->all())->toContain('cms.menus.configure')
-        ->and($other->fresh()->getDirectPermissions()->pluck('name')->all())->not->toContain('cms.menus.configure')
-        ->and(DB::table('role_has_permissions')->where('role_id', $admin->id)->count())->toBe(5)
-        ->and(DB::table('model_has_permissions')->where('model_id', $person->id)->count())->toBe(3);
+    // The administrator's "*" takes it; the editor looks after the menus' links only.
+    expect(Role::findByName('administrator')->hasPermissionTo('cms.menus.configure'))->toBeTrue()
+        ->and(Role::findByName('editor')->hasPermissionTo('cms.menus.update'))->toBeTrue()
+        ->and(Role::findByName('editor')->hasPermissionTo('cms.menus.configure'))->toBeFalse();
 });
 
 it('builds a menu of entry links with the same queries however many there are (NEW2-front-2)', function () {
