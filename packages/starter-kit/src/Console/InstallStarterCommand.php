@@ -7,6 +7,7 @@ namespace Sunrice\StarterKit\Console;
 use Illuminate\Console\Command;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Structure\ImportReport;
 use Sunrice\Cms\Structure\StructureImportFailed;
 use Sunrice\StarterKit\Actions\InstallStarter;
@@ -87,7 +88,10 @@ final class InstallStarterCommand extends Command
             $this->line("  <fg=yellow>kept</> {$file} (yours differs: --force replaces it)");
         }
         if (! $installation->dryRun) {
-            $this->components->info('Done. Choose the homepage and check Settings → Site in the admin.');
+            // The starter may have set the homepage (its site.json), or the site had one already.
+            $this->components->info((new SiteSettings)->homepage === null
+                ? 'Done. Choose the homepage and check Settings → Site in the admin.'
+                : 'Done. Check Settings → Site in the admin.');
         }
     }
 }

@@ -72,7 +72,10 @@ it('changes nothing on a dry run, saying what it would do', function () {
 });
 
 it('installs a whole site: structure, content with its dates, media with alt text, templates and assets', function () {
-    artisan('sunrice:starter', ['name' => 'blog'])->expectsOutputToContain('installed')->assertSuccessful();
+    // The starter sets the homepage, so the last line doesn't ask for one.
+    artisan('sunrice:starter', ['name' => 'blog'])->expectsOutputToContain('installed')
+        ->expectsOutputToContain('Done. Check Settings → Site in the admin.')
+        ->doesntExpectOutputToContain('Choose the homepage')->assertSuccessful();
 
     expect(Collection::query()->orderBy('handle')->pluck('handle')->all())->toBe(['pages', 'posts'])
         ->and(Menu::query()->where('handle', 'main')->firstOrFail()->items()->count())->toBe(3);
@@ -184,7 +187,9 @@ it('adds only what\'s missing when run again, keeping files changed since unless
 });
 
 it('installs the structure alone, without its entries, terms and global values', function () {
-    artisan('sunrice:starter', ['name' => 'blog', '--no-content' => true])->assertSuccessful();
+    // No entries, so no homepage yet: the last line says to choose one.
+    artisan('sunrice:starter', ['name' => 'blog', '--no-content' => true])
+        ->expectsOutputToContain('Done. Choose the homepage and check Settings → Site in the admin.')->assertSuccessful();
 
     expect(Collection::query()->count())->toBe(2)
         ->and(Entry::query()->count())->toBe(0)
