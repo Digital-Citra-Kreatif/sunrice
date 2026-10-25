@@ -184,7 +184,7 @@ function Details({ item, can, accept, locales = [], onClose }: Props & { item: M
                 ) : item.trashed && can.delete ? (
                     <div className="flex justify-between gap-2">
                         <Button type="button" variant="outline" onClick={() => router.post(`${url}/restore`, {}, { preserveScroll: true, onSuccess: onClose })}><RotateCcw />{t('Restore')}</Button>
-                        <Button type="button" variant="destructive" onClick={() => confirm(`${t('Permanently delete :name?', { name: item.filename })}${usedBy} ${item.deleteWarning ?? (usages.length > 0 ? t('Pages using it will show a broken link.') : t('Nothing uses it. This can\'t be undone.'))}`, () => router.delete(`${url}/force`, { data: { force: usages.length > 0 }, preserveScroll: true, onSuccess: onClose }), true)}>
+                        <Button type="button" variant="destructive" onClick={() => confirm(`${t('Permanently delete :name?', { name: item.filename })}${usedBy} ${item.deleteWarning ?? (usages.length > 0 ? t('Pages using it will show a broken link.') : t('Nothing uses it. This can\'t be undone.'))}`, () => router.delete(`${url}/force`, { data: { force: usages.length > 0 }, preserveScroll: true, onSuccess: onClose }), true, [], t('Permanently delete'))}>
                             <Trash2 />{t('Permanently delete')}
                         </Button>
                     </div>

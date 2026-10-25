@@ -221,7 +221,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                     {query.trash ? (
                         <>
                             <Button size="sm" variant="outline" onClick={() => bulk('restore')}><RotateCcw />{t('Restore')}</Button>
-                            <Button size="sm" variant="destructive" onClick={() => confirm(selected.length === 1 ? t('Permanently delete 1 file?') : t('Permanently delete :count files?', { count: selected.length }), () => bulk('delete'), true)}><Trash2 />{t('Permanently delete')}</Button>
+                            <Button size="sm" variant="destructive" onClick={() => confirm(selected.length === 1 ? t('Permanently delete 1 file?') : t('Permanently delete :count files?', { count: selected.length }), () => bulk('delete'), true, [], t('Permanently delete'))}><Trash2 />{t('Permanently delete')}</Button>
                         </>
                     ) : (
                         <>

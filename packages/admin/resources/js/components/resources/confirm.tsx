@@ -22,6 +22,7 @@ interface Pending {
     destructive: boolean;
     fields: FieldInfo[];
     run: ConfirmRun;
+    label: string | null;
 }
 
 /**
@@ -41,19 +42,21 @@ export function forTargets(fields: FieldInfo[], keys: (string | number)[]): Fiel
  * A confirm() that looks like the admin: `const [confirm, dialog] = useConfirm()`.
  * With fields, the dialog asks for them and gives their values to `run`;
  * it stays open while `run` resolves to false, showing the page's errors.
+ * The confirm button says "Continue" unless given a label that names what
+ * it does ("Permanently delete" in the trash).
  */
-export function useConfirm(): [(question: string | null, run: ConfirmRun, destructive?: boolean, fields?: FieldInfo[]) => void, React.ReactNode] {
+export function useConfirm(): [(question: string | null, run: ConfirmRun, destructive?: boolean, fields?: FieldInfo[], label?: string) => void, React.ReactNode] {
     const [pending, setPending] = React.useState<Pending | null>(null);
     const [values, setValues] = React.useState<Record<string, FieldValue>>({});
     const [busy, setBusy] = React.useState(false);
     const errors = (usePage().props as { errors?: Record<string, string> }).errors ?? {};
 
-    const confirm = React.useCallback((question: string | null, run: ConfirmRun, destructive = false, fields: FieldInfo[] = []) => {
+    const confirm = React.useCallback((question: string | null, run: ConfirmRun, destructive = false, fields: FieldInfo[] = [], label?: string) => {
         if (question === null && fields.length === 0) {
             void run({});
         } else {
             setValues(Object.fromEntries(fields.map((field) => [field.name, (field.default as FieldValue | undefined) ?? null])));
-            setPending({ question: question ?? t('Are you sure?'), run, destructive, fields });
+            setPending({ question: question ?? t('Are you sure?'), run, destructive, fields, label: label ?? null });
         }
     }, []);
 
@@ -96,13 +99,13 @@ export function useConfirm(): [(question: string | null, run: ConfirmRun, destru
                 <AlertDialogFooter>
                     <AlertDialogCancel disabled={busy}>{t('Cancel')}</AlertDialogCancel>
                     {pending && pending.fields.length > 0 ? (
-                        <Button variant={pending.destructive ? 'destructive' : 'default'} disabled={busy} onClick={() => void submit()}>{t('Continue')}</Button>
+                        <Button variant={pending.destructive ? 'destructive' : 'default'} disabled={busy} onClick={() => void submit()}>{pending.label ?? t('Continue')}</Button>
                     ) : (
                         <AlertDialogAction
                             className={pending?.destructive ? buttonVariants({ variant: 'destructive' }) : undefined}
                             onClick={() => void submit()}
                         >
-                            {t('Continue')}
+                            {pending?.label ?? t('Continue')}
                         </AlertDialogAction>
                     )}
                 </AlertDialogFooter>
