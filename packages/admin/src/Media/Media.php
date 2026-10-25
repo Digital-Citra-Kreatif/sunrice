@@ -50,6 +50,9 @@ use Throwable;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  *
+ * @phpstan-type MediaSizeData array{url: string, width: int|null, height: int|null}
+ * @phpstan-type MediaData array{id: int, url: string|null, alt: string|null, title: string|null, caption: string|null, mime: string, type: 'image'|'video'|'audio'|'document', width: int|null, height: int|null, sizes: array<string, MediaSizeData>, srcset: string}
+ *
  * @api
  */
 class Media extends Model
@@ -271,20 +274,89 @@ class Media extends Model
     /** How wide a size comes out, from its configuration and the original's dimensions (null: unknown). */
     private function sizeWidth(string $name): ?int
     {
+        return $this->sizeDimensions($name)[0];
+    }
+
+    /**
+     * How wide and high a size comes out, from its configuration and the
+     * original's dimensions (null: unknown).
+     *
+     * @return array{0: int|null, 1: int|null}
+     */
+    private function sizeDimensions(string $name): array
+    {
         $size = MediaConfig::imageSizes()[$name] ?? null;
         if ($size === null) {
-            return null;
+            return [null, null];
         }
         if ($size['crop']) {
-            return $size['width'];
+            return [$size['width'], $size['height']];
         }
         if ($this->width === null || $this->height === null || $this->width < 1 || $this->height < 1) {
-            return $size['width'];
+            return [$size['width'], null];
         }
         // Scaled down to fit, never up.
         $factor = min(1, $size['width'] === null ? 1 : $size['width'] / $this->width, $size['height'] === null ? 1 : $size['height'] / $this->height);
 
-        return max(1, (int) round($this->width * $factor));
+        return [max(1, (int) round($this->width * $factor)), max(1, (int) round($this->height * $factor))];
+    }
+
+    /**
+     * What kind of file it is, as whereTypes() counts them.
+     *
+     * @return 'image'|'video'|'audio'|'document'
+     */
+    private function kind(): string
+    {
+        return match (true) {
+            str_starts_with($this->mime_type, 'image/') => 'image',
+            str_starts_with($this->mime_type, 'video/') => 'video',
+            str_starts_with($this->mime_type, 'audio/') => 'audio',
+            default => 'document',
+        };
+    }
+
+    /**
+     * A plain array of it, for a script on a page (a gallery, a map) or a
+     * small JSON route of the app's: its id, URL (the original's), alt
+     * text, title and caption in a language (null: the app's, as altIn()),
+     * MIME type and kind, an image's dimensions, its sizes (name =>
+     * url, width, height) and a ready `srcset`. The same URLs as url()
+     * and srcset(). In the trash its files are offline: `url` is null and
+     * it has no sizes. Only what's listed here: never its disk, path or
+     * who uploaded it (toArray() is Eloquent's own and not meant for pages).
+     *
+     *     <div data-photos='@json($gallery->map->toData())'></div>
+     *
+     * @return MediaData
+     */
+    public function toData(?string $locale = null): array
+    {
+        $online = ! $this->trashed();
+        $sizes = [];
+        // In the config's order, whatever order the database kept them in (MySQL sorts JSON keys).
+        $names = array_keys($this->sizes);
+        $rank = array_flip(array_map(strval(...), array_keys((array) config('sunrice-admin.media.image_sizes', []))));
+        usort($names, fn (string $a, string $b): int => [$rank[$a] ?? PHP_INT_MAX, $a] <=> [$rank[$b] ?? PHP_INT_MAX, $b]);
+        foreach ($online ? $names : [] as $name) {
+            [$width, $height] = $this->sizeDimensions($name);
+            $sizes[$name] = ['url' => $this->url($name), 'width' => $width, 'height' => $height];
+        }
+        $image = $this->isImage();
+
+        return [
+            'id' => $this->id,
+            'url' => $online ? $this->url() : null,
+            'alt' => $this->altIn($locale),
+            'title' => $this->title !== null && $this->title !== '' ? $this->title : null,
+            'caption' => $this->captionIn($locale),
+            'mime' => $this->mime_type,
+            'type' => $this->kind(),
+            'width' => $image ? $this->width : null,
+            'height' => $image ? $this->height : null,
+            'sizes' => $sizes,
+            'srcset' => $online ? $this->srcset() : '',
+        ];
     }
 
     /**

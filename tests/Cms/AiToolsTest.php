@@ -486,7 +486,7 @@ it('writes templates only for super admins when the site allows it, checked and 
     expect(cmsTool(cmsAgent(['cms.entries.view']), 'cms_get_template_guide'))->toContain('permission');
     $builder = cmsAgent(['cms.blueprints.view', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.view', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete']);
     $guide = cmsTool($builder, 'cms_get_template_guide');
-    expect($guide['guide'])->toContain('resources/views/cms')
+    expect($guide['guide'])->toContain('resources/views/cms')->toContain('Cms::toData(')
         ->and($guide['current']['collections']['blog']['entry_page']['uses'])->toBe('sunrice-cms::entry')
         ->and($guide['can_write'])->toBeFalse()
         ->and($guide['write_note'])->toContain('super admins')
