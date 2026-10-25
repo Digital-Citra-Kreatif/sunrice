@@ -334,7 +334,11 @@ class Media extends Model
     {
         $online = ! $this->trashed();
         $sizes = [];
-        foreach ($online ? array_keys($this->sizes) : [] as $name) {
+        // In the config's order, whatever order the database kept them in (MySQL sorts JSON keys).
+        $names = array_keys($this->sizes);
+        $rank = array_flip(array_map(strval(...), array_keys((array) config('sunrice-admin.media.image_sizes', []))));
+        usort($names, fn (string $a, string $b): int => [$rank[$a] ?? PHP_INT_MAX, $a] <=> [$rank[$b] ?? PHP_INT_MAX, $b]);
+        foreach ($online ? $names : [] as $name) {
             [$width, $height] = $this->sizeDimensions($name);
             $sizes[$name] = ['url' => $this->url($name), 'width' => $width, 'height' => $height];
         }
