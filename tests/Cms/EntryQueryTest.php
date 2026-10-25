@@ -264,3 +264,16 @@ it('remembers matched ids in the site cache until the content changes', function
         ->and(Content::entries('blog')->remember()->alphabetical()->first()?->title)->toBe('B')
         ->and(Content::entries('blog')->remember()->preview()->count())->toBe(3);
 });
+
+it('adds a condition only when a value is given (when, unless)', function () {
+    queryPost('Cheap', ['price' => 5]);
+    queryPost('Dear', ['price' => 50]);
+    $titles = fn (?int $max) => Content::entries('blog')
+        ->when($max, fn (EntryQuery $q, int $max) => $q->where('price', '<=', $max))
+        ->alphabetical()->get()->pluck('title')->all();
+
+    expect($titles(10))->toBe(['Cheap'])
+        ->and($titles(null))->toBe(['Cheap', 'Dear'])
+        ->and(Content::entries('blog')->unless(true, fn (EntryQuery $q) => $q->where('price', '>', 10))->count())->toBe(2)
+        ->and(Content::entries('blog')->unless(false, fn (EntryQuery $q) => $q->where('price', '>', 10))->count())->toBe(1);
+});
