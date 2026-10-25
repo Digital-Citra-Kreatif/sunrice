@@ -352,7 +352,7 @@ In any view, `Cms::entries()` finds live entries in the current language (`Sunri
 {{ Cms::global('contact')['phone'] ?? '' }}
 ```
 
-`entries(...$collections)` (none: every collection), then `locale()`, `fallback()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereContains()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate($perPage, $pageName = 'page')` or `toBase()`.
+`entries(...$collections)` (none: every collection), then `when($value, $callback)` and `unless()` (Laravel's, to add a condition only when a value is given), `locale()`, `fallback()`, `preview()`, `whereTerm()`, `whereFieldTerm()`, `whereSlug()`, `childrenOf($entry)` (`null`: top-level entries), `where()`, `whereContains()`, `whereEntry()`, `except()`, `search()`, `latest()`, `oldest()`, `alphabetical()`, `ordered()` (Manual order), `orderBy()`, `limit()`, `remember()`, and `get()`, `first()`, `count()`, `paginate($perPage, $pageName = 'page')` or `toBase()`.
 
 ```php
 Cms::entries('events')->where('featured', true)->where('date', '>=', today())->orderBy('date')->get();
@@ -710,14 +710,10 @@ use Illuminate\Http\Request;
 use Sunrice\Cms\Content as Cms;
 
 Route::get('/homes.json', function (Request $request) {
-    $homes = Cms::entries('properties')->latest();
-
-    if ($request->filled('max_price')) {
-        $homes->where('price', '<=', $request->integer('max_price'));
-    }
-    if ($request->filled('location')) {
-        $homes->whereTerm('locations', $request->string('location')->toString());
-    }
+    $homes = Cms::entries('properties')
+        ->when($request->integer('max_price'), fn ($q, int $max) => $q->where('price', '<=', $max))
+        ->when($request->string('location')->toString(), fn ($q, string $slug) => $q->whereTerm('locations', $slug))
+        ->latest();
 
     return Cms::toData($homes->paginate(12), ['price', 'bedrooms', 'gallery']);
 })->middleware('throttle:60,1');
