@@ -6,7 +6,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/* Accounts an administrator locked or signed out everywhere (see AccountGuard). */
+/*
+ * Accounts an administrator locked or signed out everywhere (see
+ * AccountGuard), and those asked to choose a stronger password.
+ */
 return new class extends Migration
 {
     public function up(): void
@@ -19,6 +22,10 @@ return new class extends Migration
             $table->string('locked_reason')->nullable();
             $table->timestamp('signed_out_at')->nullable();
             $table->timestamps();
+            // Asked to choose a stronger password (WeakPasswordAtLogin): a fingerprint of the
+            // password hash they signed in with, so the request outlives the session
+            // ("Remember me") and ends when the password changes.
+            $table->string('weak_password', 64)->nullable();
         });
     }
 
