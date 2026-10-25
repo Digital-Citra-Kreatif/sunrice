@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +20,7 @@ use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\SaveEntrySettings;
 use Sunrice\Cms\Actions\Entries\TrashEntry;
 use Sunrice\Cms\Actions\Globals\SaveGlobals;
+use Sunrice\Cms\Admin\TemplateHelp;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -200,7 +202,7 @@ it('lets only the collection\'s editors pick a template, under the site\'s prefi
     }
     // A site may keep them to some prefixes.
     config(['sunrice-cms.site.template_prefixes' => ['cms.', 'pages.']]);
-    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'landing'])->assertSessionHasErrors(['template' => 'Use a view under cms., pages., not under layouts, partials, components, errors, vendor, emails, mail, auth, like cms.landing.']);
+    put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'landing'])->assertSessionHasErrors(['template' => 'Use a view under cms., pages., not under layouts, partials, components, blocks, errors, vendor, emails, mail, auth nor named layout, search, comment-unsubscribe, like cms.landing.']);
     put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'pages.landing'])->assertSessionHasNoErrors();
     expect($hello->entry->fresh()?->template)->toBe('pages.landing');
     // Under the prefixes too: no layout, partial, mail or "_" view.
@@ -223,6 +225,49 @@ it('lets only the collection\'s editors pick a template, under the site\'s prefi
     // A template stored outside the prefixes (from before, or after the config changed) isn't rendered.
     $hello->entry->forceFill(['template' => 'layouts.app'])->save();
     get('/articles/hello')->assertOk()->assertDontSee('THE APP LAYOUT')->assertSee('Hello');
+});
+
+it('refuses as a page\'s template the views that are no page: blocks, and the search and unsubscribe pages\' own', function () {
+    $hello = app(PublishEntry::class)->handle(managed('Hello'));
+    $views = (string) (config('view.paths')[0] ?? resource_path('views'));
+    // The starter templates' test wants no resources/views/cms: made here, removed after.
+    expect(is_dir("{$views}/cms"))->toBeFalse();
+    File::ensureDirectoryExists("{$views}/cms/blocks");
+    File::ensureDirectoryExists("{$views}/pages/blocks");
+    File::put("{$views}/cms/blocks/hero.blade.php", 'THE HERO BLOCK {{ $block->type }}');
+    File::put("{$views}/pages/blocks/hero.blade.php", 'hero');
+    File::put("{$views}/cms/search.blade.php", 'THE SEARCH PAGE {{ $query }}');
+    File::put("{$views}/cms/comment-unsubscribe.blade.php", 'unsubscribe {{ $comment->id }}');
+    File::put("{$views}/cms/landing.blade.php", 'THE LANDING');
+    manager('view', 'update');
+    try {
+        foreach ([['cms.', 'pages.'], null] as $prefixes) {
+            config(['sunrice-cms.site.template_prefixes' => $prefixes]);
+            foreach (['cms.blocks.hero', 'pages.blocks.hero', 'cms.search', 'cms.comment-unsubscribe', 'pages.search'] as $view) {
+                put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => $view])->assertSessionHasErrors('template');
+                expect(SaveEntrySettings::allowed($view))->toBeFalse()
+                    ->and(fn () => SaveEntrySettings::template($view))->toThrow(ValidationException::class, 'nor named layout, search, comment-unsubscribe');
+            }
+            put("/admin/cms/entries/{$hello->entry_id}/settings", ['template' => 'cms.landing'])->assertSessionHasNoErrors();
+            // The Template choice leaves them out.
+            expect(TemplateHelp::choices())->toContain('cms.landing')
+                ->not->toContain('cms.blocks.hero')->not->toContain('pages.blocks.hero')
+                ->not->toContain('cms.search')->not->toContain('cms.comment-unsubscribe');
+        }
+        expect(SaveEntrySettings::allowed('cms.collections.pages.searching'))->toBeTrue();
+
+        // One stored from before isn't rendered: the page shows (no error), with the collection's views.
+        $hello->entry->forceFill(['template' => 'cms.search'])->save();
+        get('/articles/hello')->assertOk()->assertDontSee('THE SEARCH PAGE');
+        $hello->entry->forceFill(['template' => 'cms.blocks.hero'])->save();
+        get('/articles/hello')->assertOk()->assertDontSee('THE HERO BLOCK');
+
+        // The search page still renders with the site's cms.search.
+        get('/search?q=hello')->assertOk()->assertViewIs('cms.search')->assertSee('THE SEARCH PAGE hello');
+    } finally {
+        File::deleteDirectory("{$views}/cms");
+        File::deleteDirectory("{$views}/pages");
+    }
 });
 
 it('tells the media library where entries and globals use files', function () {
