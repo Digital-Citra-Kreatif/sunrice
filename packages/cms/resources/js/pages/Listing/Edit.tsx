@@ -19,6 +19,7 @@ export default function ListingPage({ collection, ...props }: Props) {
             viewUrl={collection.url}
             empty={t('The listing page has no fields of its own: choose a listing blueprint for the collection under Structure → Collections.')}
             seoDescription={t('How the listing page appears in search results and shared links.')}
-            storageKey="cms:listing:seo" />
+            storageKey="cms:listing:seo"
+            templateHelp={t('For :title\'s listing page, in every language; also under Structure → Collections. Automatic uses the first file that exists.', { title: collection.title })} />
     );
 }

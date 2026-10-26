@@ -36,6 +36,7 @@ export default function TaxonomyIndexPage({ taxonomy, collection, url, pages, se
             empty={t('The index page has no fields of its own: choose its fields (Index page fields) in the taxonomy\'s settings under Structure → Taxonomies.')}
             seoDescription={t('How the index page appears in search results and shared links.')}
             storageKey="cms:taxonomy-index:seo"
+            templateHelp={t('For all of :taxonomy\'s index pages, the shared one and each collection\'s, in every language; also under Structure → Taxonomies. Automatic uses the first file that exists.', { taxonomy: taxonomy.title })}
             menu={settings ? [{ label: t('Taxonomy settings'), href: settings, icon: <Settings2 /> }] : []}
         >
             {pages.length > 1 && (

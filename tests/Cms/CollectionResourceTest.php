@@ -228,12 +228,17 @@ it('links the collection form\'s cards to the site and the entries, once saved',
         expect($section($page, 'Entry pages')['links'])->toBe([['label' => 'View entries', 'url' => '/admin/cms/collections/news/entries', 'newTab' => false, 'showWhen' => null]])
             ->and($section($page, 'Listing page')['links'])->toBe([
                 ['label' => 'View on site', 'url' => url('/news'), 'newTab' => true, 'showWhen' => ['field' => 'listing', 'value' => null, 'not' => false]],
-                ['label' => 'Edit listing page', 'url' => '/admin/cms/collections/news/listing/edit', 'newTab' => false, 'showWhen' => ['field' => 'listing_blueprint', 'value' => null, 'not' => false]],
+                // With or without a listing blueprint: the editor has its SEO and template too.
+                ['label' => 'Edit listing page', 'url' => '/admin/cms/collections/news/listing/edit', 'newTab' => false, 'showWhen' => ['field' => 'listing', 'value' => null, 'not' => false]],
             ]);
-        // The listing template's help: one line, the files in a "Which file?" disclosure.
+        // The listing template: a choice of the views, Automatic first; its help says which file is used, the files in a "Which file?" disclosure.
         $template = collect($section($page, 'Listing page')['fields'])->firstWhere('name', 'listing_template');
         expect($template['label'])->toBe('Listing page template')
-            ->and($template['help'])->toBe('Empty: the first template that exists.')
+            ->and($template['type'])->toBe('select')
+            ->and($template['placeholder'])->toBe('Automatic')
+            ->and($template['searchable'])->toBeTrue()
+            ->and($template['other']['label'])->toBe('Other view…')
+            ->and($template['help'])->toBe('Automatic: the first template that exists. Uses the built-in template.')
             ->and($template['helpDetails']['summary'])->toBe('Which file?')
             ->and($template['helpDetails']['text'])->toContain("1. `cms/collections/{handle}/index.blade.php`\n2. `cms/collections/index.blade.php`");
     });

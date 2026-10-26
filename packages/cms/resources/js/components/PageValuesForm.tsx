@@ -7,6 +7,7 @@ import { FieldInput, Fields } from '@/components/FieldInput.tsx';
 import { SHARED_FIELD } from '@/components/FieldSections.tsx';
 import { VersionConflict } from '@/components/VersionConflict.tsx';
 import { LanguageTabs } from '@/components/LanguageTabs.tsx';
+import { TemplateField, type TemplateLookup, withTemplateChoices } from '@/components/TemplateHelp.tsx';
 import { errorKeysAt, errorsAt, hasErrors } from '@/lib/builder.ts';
 import { localeName } from '@/lib/entries.ts';
 import { seoFields } from '@/lib/seo.ts';
@@ -33,7 +34,12 @@ export interface PageValuesProps {
     seo: FieldValues | null;
     /** The saved values' version, to refuse a save over someone else's newer one; null before the first save. */
     version: number | null;
-    can: { update: boolean };
+    can: { update: boolean; template?: boolean };
+    /** The page's template setting (its collection's or taxonomy's), when it has one here. */
+    template?: string | null;
+    templates?: TemplateLookup | null;
+    /** The views to pick a template from: loaded when the Template choice first opens. */
+    templateChoices?: string[];
 }
 
 interface FormProps extends PageValuesProps {
@@ -54,6 +60,8 @@ interface FormProps extends PageValuesProps {
     menu?: PageHeaderMenuItem[];
     /** Above the language switch: another page's fields, say. */
     children?: React.ReactNode;
+    /** Under the Template choice: what Automatic uses, and who else the setting applies to. */
+    templateHelp?: string;
 }
 
 /** A page's own fields and SEO in one language, saved live (no drafts). A fresh form per language and after each save. */
@@ -62,9 +70,14 @@ export function PageValuesForm(props: FormProps) {
 }
 
 function PageValuesEdit({ title, breadcrumbs, back, saveUrl, editUrl, params = {}, viewUrl, empty, seoDescription, storageKey, menu, children,
-    fields, locale, locales, translated = [], shared, values, seo, version, can }: FormProps) {
+    fields, locale, locales, translated = [], shared, values, seo, version, can, template, templates, templateChoices, templateHelp }: FormProps) {
     useBreadcrumbs(breadcrumbs);
-    const form = useForm<{ locale: string; data: FieldValues; seo: FieldValues; version: number | null }>({ locale, data: values, seo: seo ?? {}, version });
+    // The template is sent only by those who may change it (the collection's or taxonomy's setting).
+    const hasTemplate = templates !== undefined;
+    const templateWritable = can.update && can.template === true;
+    const form = useForm<{ locale: string; data: FieldValues; seo: FieldValues; version: number | null; template?: string }>({
+        locale, data: values, seo: seo ?? {}, version, ...(hasTemplate && templateWritable ? { template: template ?? '' } : {}),
+    });
     const errors = form.errors as Record<string, string | undefined>;
     const clearErrorsAt = (path: string) => {
         const keys = errorKeysAt(errors, path);
@@ -139,6 +152,16 @@ function PageValuesEdit({ title, breadcrumbs, back, saveUrl, editUrl, params = {
                     </Card>
                 )}
             </fieldset>
+            {hasTemplate && (
+                <Card>
+                    <CardContent className="cms:max-w-md">
+                        <TemplateField id="template" value={form.data.template ?? template ?? ''} lookup={withTemplateChoices(templates ?? null, templateChoices)}
+                            onChange={(next) => { form.setData('template', next); form.clearErrors('template' as never); }}
+                            example="cms.landing" automatic={templateHelp ?? t('Automatic uses the first file that exists.')}
+                            error={errors.template} disabled={!templateWritable} />
+                    </CardContent>
+                </Card>
+            )}
             <CollapsibleCard title={t('SEO')} description={seoDescription} titleClassName="cms:text-base" storageKey={storageKey} hasErrors={hasErrors(errors, 'seo')}>
                 <fieldset disabled={!writable} className="cms:min-w-0">
                     <Fields bare id="seo" fields={seoFields()} value={form.data.seo} errors={errorsAt(errors, 'seo')} onChange={(next) => { form.setData('seo', next); clearErrorsAt('seo'); }} />
