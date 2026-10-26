@@ -91,9 +91,9 @@ final class TaxonomyResource extends Resource
                 ...HandleField::make('taxonomy', 'A short name for this taxonomy, used by the site\'s templates.'),
                 ...TranslatedFields::make('title', fn (string $name, string $language) => TextInput::make($name)->label(__('Title in :language', ['language' => $language]))->maxLength(255)
                     ->placeholder('As the title')->help(__('What visitors read in :language on its term pages.', ['language' => $language]))),
-                Select::make('blueprint')->label('Term fields')->span(2)
+                Select::make('blueprint')->span(2)
                     ->verbatim()->options(BlueprintChoices::options(BlueprintChoices::CONTENT))
-                    ->help('Extra fields for each term, like a description or an image.'),
+                    ->help('The fields its terms have, like a description or an image. Blueprints of forms and global sets aren\'t offered.'),
                 Toggle::make('hierarchical')->label('Nested terms')->span(2)->help('Terms can sit under other terms, like subcategories.'),
             ]),
             // Like the collection form's Taxonomies: which collections, and each one's own settings under it.
@@ -116,12 +116,10 @@ final class TaxonomyResource extends Resource
                     ...self::collectionTermFields(),
                 ]),
             Section::make('Term pages')->description('A page per term listing its entries. The shared ones list every collection\'s, like /tags/featured; each collection\'s own are set under Collections.')->columns(2)
-                ->links(function (?Model $taxonomy): array {
-                    $term = $taxonomy instanceof Taxonomy && $taxonomy->route !== null ? $taxonomy->terms()->with('translations')->orderBy('id')->first() : null;
-                    $url = $term?->url(Locales::default());
-
-                    return $url !== null ? [Link::make('View a term page', $url)->newTab()->showWhen('pages')] : [];
-                })
+                // Like the collection form's View entries.
+                ->links(fn (?Model $taxonomy): array => $taxonomy instanceof Taxonomy
+                    ? [Link::make('View terms', route('sunrice.admin.cms.taxonomies.terms.index', $taxonomy->handle, false))]
+                    : [])
                 ->schema([
                     Toggle::make('pages')->label('Shared term pages')->default(false)->span(2)
                         ->help('Worth it when several collections share this taxonomy. With one, its collection\'s term pages list the same entries.')
@@ -137,13 +135,7 @@ final class TaxonomyResource extends Resource
                     ...TranslatedFields::routes('route', fn (RouteInput $input, string $code, string $language) => $input
                         ->label(__('Shared term page URL in :language', ['language' => $language]))->placeholderFrom('route', '/{handle}/{slug}')->span(2)->showWhen('pages')
                         ->rules([new RoutePatternRule(parameters: false)])
-                        ->help(__('Its own address in :language, like /topik/{slug}. Empty: the term page URL under :prefix.', ['language' => $language, 'prefix' => Locales::prefix($code) ?: '/']))
-                        ->links(function (?Model $taxonomy) use ($code): array {
-                            $term = $taxonomy instanceof Taxonomy && $taxonomy->route !== null ? $taxonomy->terms()->with('translations')->orderBy('id')->first() : null;
-                            $url = $term?->url($code);
-
-                            return $url !== null ? [Link::make('View a term page', $url)->newTab()->showWhen('pages')] : [];
-                        })),
+                        ->help(__('Its own address in :language, like /topik/{slug}. Empty: the term page URL under :prefix.', ['language' => $language, 'prefix' => Locales::prefix($code) ?: '/']))),
                     TemplateHelp::select('template', 'cms.topic', 'For shared and collections\' term pages. Automatic: the first template that exists. A term can choose its own on its page.')
                         ->label('Term page template')->span(2)
                         ->helpDetails('Which file?', TemplateHelp::files(['cms.taxonomies.{handle}.show', 'cms.taxonomies.show'], 'cms.topic')."\n".__('Before this template, :file is tried for the term with that slug in the main language.', ['file' => '`cms/taxonomies/{handle}/{slug}.blade.php`'])."\n".__('In a collection, :slug and then :file are tried first.', ['slug' => '`cms/collections/{collection}/{handle}/{slug}.blade.php`', 'file' => '`cms/collections/{collection}/{handle}/show.blade.php`'])),
@@ -152,7 +144,7 @@ final class TaxonomyResource extends Resource
             Section::make('Index pages')->description('A page listing its terms. The shared one lists all of them, like /tags; each collection\'s own are set under Collections. Their fields and template are for both.')->columns(2)
                 ->links(fn (?Model $taxonomy): array => $taxonomy instanceof Taxonomy && $taxonomy->index_route !== null ? array_values(array_filter([
                     ($index = $taxonomy->indexUrl(Locales::default())) !== null ? Link::make('View the index page', $index)->newTab()->showWhen('index') : null,
-                    // Its fields (with index page fields), SEO and template, per language.
+                    // Its fields (with an index page blueprint), SEO and template, per language.
                     Link::make('Edit index page', route('sunrice.admin.cms.taxonomies.index-page.edit', $taxonomy->handle, false))->showWhen('index'),
                 ])) : [])
                 ->schema([
@@ -169,7 +161,7 @@ final class TaxonomyResource extends Resource
                         ->help(__('Its own address in :language, like /tag. Empty: the index page URL under :prefix.', ['language' => $language, 'prefix' => Locales::prefix($code) ?: '/']))
                         ->links(fn (?Model $taxonomy): array => $taxonomy instanceof Taxonomy && $taxonomy->index_route !== null && ($url = $taxonomy->indexUrl($code)) !== null
                             ? [Link::make('View on site', $url)->newTab()->showWhen('index')] : [])),
-                    Select::make('index_blueprint')->label('Index page fields')->span(2)->placeholder('None (no editable fields)')
+                    Select::make('index_blueprint')->label('Index page blueprint')->span(2)->placeholder('None (no editable fields)')
                         ->verbatim()->options(BlueprintChoices::options(BlueprintChoices::CONTENT, 'index_blueprint'))
                         ->help('Gives its index pages (the shared one, and each collection\'s) their own fields, such as an intro. Editors fill them in under Terms → ⋮ → Index page.')
                         ->links([
