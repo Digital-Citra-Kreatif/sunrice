@@ -268,7 +268,7 @@ $panel->installStep('shop.currency', function (InstallOutput $output): void {
 
 A plugin added to the panel provider by the same run (see [Installing a plugin later](installation.md#installing-a-plugin-later)) isn't on that run's panel yet: its steps run the next time.
 
-The CMS uses one to take Laravel's welcome route out of `routes/web.php` ([The site](../../cms/docs/site.md)).
+The CMS uses them to take Laravel's welcome route out of `routes/web.php` ([The site](../../cms/docs/site.md)) and to offer Pages and Posts collections ([Collections](../../cms/docs/collections.md#pages-and-posts-to-start-with)).
 
 ## Testing a plugin with Testbench
 
