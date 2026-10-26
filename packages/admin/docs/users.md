@@ -77,4 +77,4 @@ final class AdminUserResource extends UserResource
 $panel->userResource(AdminUserResource::class)->roleResource(null);
 ```
 
-The permission names stay `sunrice.users.*` and `sunrice.roles.*` whichever class you use. Your user model needs Spatie's `HasRoles` trait (see [Roles and permissions](permissions.md)), and the users table the `name`, `email` and `password` columns the default form writes.
+`roleResource(null)` (or `userResource(null)`) leaves that screen out of the panel. The permission names stay `sunrice.users.*` and `sunrice.roles.*` whichever class you use. Your user model needs Spatie's `HasRoles` trait (see [Roles and permissions](permissions.md)), and the users table the `name`, `email` and `password` columns the default form writes.
