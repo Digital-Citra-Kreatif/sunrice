@@ -38,6 +38,7 @@ Everything a plugin adds, your app can add too, from the panel provider's `panel
 | A page of your own, in React | `$panel->routes(...)` with a permission, an Inertia page, and `$panel->bundle(...)` for its JavaScript | [Routes and pages](#routes-and-pages), [Admin pages in React](frontend.md) |
 | Tiles on the dashboard | `$panel->widgets(Widget::stat(...))` | [Dashboard widgets](#dashboard-widgets) |
 | Fewer tiles on the dashboard (the panel's or a plugin's) | `$panel->withoutWidgets('sunrice.activity', 'cms.setup')` | [Dashboard widgets](#dashboard-widgets) |
+| Without some of the panel's own parts (AI access, Media, Users, Roles, Help) | `$panel->aiAccess(false)`, `->mediaLibrary(false)`, … | [Turning built-in parts off](#turning-built-in-parts-off) |
 | A dashboard of your own | `$panel->dashboard(...)` | [Your own dashboard](#your-own-dashboard) |
 | Permissions and roles for your screens | `$panel->permissions(...)`, `$panel->defaultRole(...)` | [Permissions](permissions.md) |
 | The panel's name, logo and colours | Settings → Branding | [Branding](branding.md) |
@@ -66,6 +67,32 @@ public function panel(Panel $panel): Panel
 ```
 
 with the page `App/Reports` in the app's own bundle, built with `@imajiner/admin-sdk` as [Admin pages in React](frontend.md) shows.
+
+### Turning built-in parts off
+
+Everything the panel adds is on by default. The panel provider (or the config file, where it says so) turns parts off for everyone:
+
+| Part | Turn it off with | What goes | See |
+| --- | --- | --- | --- |
+| AI access | `$panel->aiAccess(false)` | The **AI access** page, its `sunrice.ai.*` permissions, the MCP endpoint and `sunrice:ai-token` | [AI access](ai.md) |
+| The MCP endpoint only | `ai.enabled => false` in `config/sunrice-admin.php` | The endpoint stops answering; the **AI access** page stays | [Configuration](configuration.md#ai-access) |
+| Media | `$panel->mediaLibrary(false)` | The **Media** page and its `sunrice.media.*` permissions; the library still works from code and in media fields | [Media](media.md#the-media-page) |
+| Users, Roles | `$panel->userResource(null)`, `$panel->roleResource(null)` | That screen and its permissions | [Users](users.md#changing-the-screens) |
+| Dashboard tiles | `$panel->withoutWidgets(...)`, or `$panel->dashboard(...)` for a dashboard of your own | Those tiles | [Hiding widgets](#hiding-widgets) |
+| Recording activity | `activity.enabled => false` in `config/sunrice-admin.php` | New lines in the activity log and security events (the **Activity log** page stays) | [Configuration](configuration.md#edit-locks-and-the-activity-log) |
+
+```php
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->plugin(CmsPlugin::make())
+        ->aiAccess(false)
+        ->mediaLibrary(false)
+        ->withoutWidgets('cms.setup');
+}
+```
+
+Other pages are hidden from people by their permissions, not switched off: take `sunrice.docs.view` (**Developer docs**), `sunrice.guide.view` (**Guide**) or `sunrice.activity.view` (**Activity log**) off a role in Roles, and its users no longer see the page in the sidebar or open it. Super admins have every permission, so they always see them. See [Help pages](#help-pages) and [Roles and permissions](permissions.md).
 
 ## Writing a plugin
 
