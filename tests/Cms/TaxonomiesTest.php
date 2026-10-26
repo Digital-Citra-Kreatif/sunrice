@@ -407,16 +407,33 @@ it('attaches taxonomies from the collection\'s form, one term only or not, check
     expect(DB::table('sunrice_collection_taxonomy')->where('collection_id', $blog->id)->count())->toBe(1);
 });
 
-it('links the term pages card to a term\'s page on the site', function () {
+it('links the term pages card to the terms, as the collection form links to its entries', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.create', 'cms.taxonomies.update'));
+    $links = fn (Assert $page) => collect($page->toArray()['props']['sections'])->firstWhere('title', 'Term pages')['links'] ?? null;
+
+    get('/admin/cms/taxonomies/categories/edit')->assertInertia(fn (Assert $page) => expect($links($page))
+        ->toBe([['label' => 'View terms', 'url' => '/admin/cms/taxonomies/categories/terms', 'newTab' => false, 'showWhen' => null]]));
+    get('/admin/cms/taxonomies/create')->assertInertia(fn (Assert $page) => expect($links($page))->toBeNull());
+});
+
+it('lays out the taxonomy form like the collection form: collections, term pages, index pages', function () {
     usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
     actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.view', 'cms.taxonomies.update'));
-    $links = fn (Assert $page) => collect($page->toArray()['props']['sections'])->firstWhere('title', 'Shared term pages')['links'] ?? null;
+    $this->categories->forceFill(['index_route' => '/categories'])->save();
 
-    get('/admin/cms/taxonomies/categories/edit')->assertInertia(fn (Assert $page) => expect($links($page))->toBeNull());
-    $this->categories->forceFill(['route' => '/categories/{slug}'])->save();
-    term($this->categories, 'News');
-    get('/admin/cms/taxonomies/categories/edit')->assertInertia(fn (Assert $page) => expect($links($page))
-        ->toBe([['label' => 'View a term page', 'url' => url('/categories/news'), 'newTab' => true, 'showWhen' => ['field' => 'pages', 'value' => null, 'not' => false]]]));
+    get('/admin/cms/taxonomies/categories/edit')->assertInertia(function (Assert $page) {
+        $sections = collect($page->toArray()['props']['sections']);
+        $fields = fn (string $title): array => collect($sections->firstWhere('title', $title)['fields'])->pluck('name')->all();
+        expect($sections->pluck('title')->all())->toBe(['General', 'Collections', 'Term pages', 'Index pages'])
+            ->and($fields('General'))->toContain('title', 'handle', 'blueprint', 'hierarchical')
+            ->and(collect($sections->firstWhere('title', 'General')['fields'])->firstWhere('name', 'blueprint')['label'])->toBe('Blueprint')
+            ->and(collect($sections->firstWhere('title', 'Index pages')['fields'])->firstWhere('name', 'index_blueprint')['label'])->toBe('Index page blueprint')
+            ->and($fields('Collections'))->toContain('collections')
+            ->and($fields('Term pages'))->toContain('pages', 'route', 'template')
+            ->and($fields('Index pages'))->toContain('index', 'index_route', 'index_blueprint', 'index_template')
+            ->and(collect($sections->firstWhere('title', 'Index pages')['links'])->pluck('label')->all())->toBe(['View the index page', 'Edit index page']);
+    });
 });
 
 it('gives the collections ticked on a new taxonomy term pages and an index page, still checking their URLs', function () {
