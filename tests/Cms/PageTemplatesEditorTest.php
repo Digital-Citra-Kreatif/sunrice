@@ -9,6 +9,7 @@ use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Site\Site;
+use Sunrice\Cms\Site\TemplateLookup;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -114,4 +115,16 @@ it('offers the views that exist on the collection and taxonomy forms, and says w
     } finally {
         File::deleteDirectory($dir);
     }
+});
+
+it('tries a term page\'s views in the order the docs give (site.md, Defaults and overrides)', function () {
+    $this->tags->forceFill(['template' => 'cms.topic'])->save();
+
+    // The taxonomy's Term page template is the default; the term's own comes first, and a collection's files come before the default.
+    expect(TemplateLookup::term($this->tags, null, 'featured', 'cms.special'))->toBe([
+        'cms.special', 'cms.taxonomies.tags.featured', 'cms.topic', 'cms.taxonomies.tags.show', 'cms.taxonomies.show',
+    ])->and(TemplateLookup::term($this->tags, $this->books, 'featured', 'cms.special'))->toBe([
+        'cms.special', 'cms.collections.books.tags.featured', 'cms.collections.books.tags.show',
+        'cms.taxonomies.tags.featured', 'cms.topic', 'cms.taxonomies.tags.show', 'cms.taxonomies.show',
+    ]);
 });
