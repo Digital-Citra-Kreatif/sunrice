@@ -36,7 +36,7 @@ Deleting a collection (`DeleteCollection`) doesn't erase its entries: they leave
 A new site has no collections. `php artisan sunrice:install` offers two, one question each, and `php artisan sunrice:scaffold-collections` makes them at any time (`--pages` or `--posts` for one):
 
 - **Pages** (`pages`, blueprint `page`: Intro, Image, Text): nested and ordered, at `/{slug}`.
-- **Posts** (`posts`, blueprint `post`: Excerpt, Image, Text): dated, at `/blog/{slug}`, listed at `/blog` ten to a page, as `BlogPosting` in structured data, comments off.
+- **Posts** (`posts`, blueprint `post`: Excerpt, Image, Text): dated, at `/blog/{slug}`, listed at `/blog` ten to a page, as `BlogPosting` in structured data, with [comments](comments.md) on (Pages have them off).
 
 They are ordinary collections, made through the same actions as in the admin (with their [permissions](#collections)): change them freely. A collection whose handle is taken (one in the trash too) is skipped, and a `page` or `post` blueprint the site has is used as it is. The [Blog starter](../../starter-kit/docs/starters.md) uses the same handles, so installing it later adds its fields, listing page, topics and content to them.
 

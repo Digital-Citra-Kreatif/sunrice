@@ -13,11 +13,11 @@ use Sunrice\Cms\Structure\StructureImportFailed;
 /**
  * Pages and Posts collections for a site that starts empty: Pages
  * (nested, ordered, at /{slug}) with the "page" blueprint, Posts (dated,
- * at /blog/{slug}, listed at /blog) with the "post" blueprint. Made with
- * StructureImporter, so through the admin's actions. A collection whose
- * handle is taken (in the trash too) is left out, and a blueprint that
- * exists is used as it is. The handles are the blog starter's, which
- * adds to them when it's installed later.
+ * at /blog/{slug}, listed at /blog, with comments) with the "post"
+ * blueprint. Made with StructureImporter, so through the admin's
+ * actions. A collection whose handle is taken (in the trash too) is left
+ * out, and a blueprint that exists is used as it is. The handles are the
+ * blog starter's, which adds to them when it's installed later.
  *
  * sunrice:install offers each (the "cms.collections" step);
  * sunrice:scaffold-collections makes them at any time.
@@ -108,7 +108,7 @@ final class ScaffoldCollections
                 ['handle' => 'image', 'type' => 'media', 'label' => 'Image', 'config' => ['types' => ['image']]],
                 ['handle' => 'body', 'type' => 'rich_text', 'label' => 'Text'],
             ]],
-            ['handle' => self::PAGES, 'title' => 'Pages', 'blueprint' => 'page', 'ordered' => true, 'hierarchical' => true, 'route' => '/{slug}',
+            ['handle' => self::PAGES, 'title' => 'Pages', 'blueprint' => 'page', 'ordered' => true, 'hierarchical' => true, 'route' => '/{slug}', 'comments' => false,
                 'seo_description_field' => 'intro', 'seo_image_field' => 'image'],
         ];
     }
@@ -122,7 +122,7 @@ final class ScaffoldCollections
                 ['handle' => 'image', 'type' => 'media', 'label' => 'Image', 'config' => ['types' => ['image']]],
                 ['handle' => 'body', 'type' => 'rich_text', 'label' => 'Text'],
             ]],
-            ['handle' => self::POSTS, 'title' => 'Posts', 'blueprint' => 'post', 'dated' => true, 'route' => '/blog/{slug}', 'listing_route' => '/blog', 'per_page' => 10,
+            ['handle' => self::POSTS, 'title' => 'Posts', 'blueprint' => 'post', 'dated' => true, 'route' => '/blog/{slug}', 'listing_route' => '/blog', 'per_page' => 10, 'comments' => true,
                 'schema_type' => 'BlogPosting', 'seo_description_field' => 'excerpt', 'seo_image_field' => 'image'],
         ];
     }

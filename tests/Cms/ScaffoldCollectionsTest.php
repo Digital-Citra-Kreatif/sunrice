@@ -43,6 +43,7 @@ it('offers Pages and Posts on install and makes those chosen', function () {
         ->and($pages->blueprint)->toBe('page')
         ->and($pages->hierarchical)->toBeTrue()
         ->and($pages->route)->toBe('/{slug}')
+        ->and($pages->comments)->toBeFalse()
         ->and(Blueprint::query()->pluck('handle')->all())->toBe(['page'])
         // The collection's own permissions, as when it's made in the admin.
         ->and(Permission::query()->where('name', 'cms.entries.pages.view')->exists())->toBeTrue();
@@ -57,7 +58,7 @@ it('offers Pages and Posts on install and makes those chosen', function () {
         ->and($posts->dated)->toBeTrue()
         ->and($posts->route)->toBe('/blog/{slug}')
         ->and($posts->listing_route)->toBe('/blog')
-        ->and($posts->comments)->toBeFalse();
+        ->and($posts->comments)->toBeTrue();
 
     artisan('sunrice:install', ['--no-user' => true])
         ->doesntExpectOutputToContain('Create a P')
