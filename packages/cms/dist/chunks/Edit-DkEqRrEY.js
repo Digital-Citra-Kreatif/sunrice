@@ -1,14 +1,14 @@
-import { a as i, j as a, t } from "./admin-BDMoHrGt.js";
-import { P as r } from "./PageValuesForm-CnXxlpa6.js";
-function g({ collection: e, ...l }) {
-  const s = i(`cms/collections/${e.handle}/entries`);
-  return /* @__PURE__ */ a.jsx(
-    r,
+import { a as i, t, j as n } from "./admin-B35bpkSN.js";
+import { P as o } from "./PageValuesForm-BSrTV7fL.js";
+function h({ collection: e, settings: s, ...a }) {
+  const l = s ?? i(`cms/collections/${e.handle}/entries`), r = s ? [{ label: t("Collections"), href: i("cms/collections") }, { label: e.title, href: s }, { label: t("Listing page") }] : [{ label: e.title, href: l }, { label: t("Listing page") }];
+  return /* @__PURE__ */ n.jsx(
+    o,
     {
-      ...l,
+      ...a,
       title: t(":title: listing page", { title: e.title }),
-      breadcrumbs: [{ label: e.title, href: s }, { label: t("Listing page") }],
-      back: { href: s, label: t("Back to :title", { title: e.title }) },
+      breadcrumbs: r,
+      back: { href: l, label: t("Back to :title", { title: e.title }) },
       saveUrl: i(`cms/collections/${e.handle}/listing`),
       editUrl: i(`cms/collections/${e.handle}/listing/edit`),
       viewUrl: e.url,
@@ -20,5 +20,5 @@ function g({ collection: e, ...l }) {
   );
 }
 export {
-  g as default
+  h as default
 };

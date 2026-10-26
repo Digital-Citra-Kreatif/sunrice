@@ -35,6 +35,8 @@ it('shows and saves a collection\'s listing page template on its listing page ed
 
         get('/admin/cms/collections/books/listing/edit')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('template', null)->where('can.template', true)
+            // Back to the collection's settings, where its listing page is set up.
+            ->where('settings', route('sunrice.admin.cms.collections.edit', 'books'))
             ->where('templates.own', null)
             ->where('templates.fallbacks', [['view' => 'cms.collections.books.index', 'exists' => false], ['view' => 'cms.collections.index', 'exists' => true]])
             ->missing('templateChoices'));
@@ -75,7 +77,7 @@ it('saves an index page template for all of a taxonomy\'s index pages from eithe
 it('lets only those who may change the collection or taxonomy change its template', function () {
     actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update', 'cms.terms.view', 'cms.terms.update'));
 
-    get('/admin/cms/collections/books/listing/edit')->assertInertia(fn (Assert $page) => $page->where('can.update', true)->where('can.template', false));
+    get('/admin/cms/collections/books/listing/edit')->assertInertia(fn (Assert $page) => $page->where('can.update', true)->where('can.template', false)->where('settings', null));
     get('/admin/cms/taxonomies/tags/index-page/edit')->assertInertia(fn (Assert $page) => $page->where('can.update', true)->where('can.template', false));
     // Their fields still save, without the template.
     put('/admin/cms/collections/books/listing', ['locale' => 'en', 'data' => []])->assertSessionHasNoErrors();

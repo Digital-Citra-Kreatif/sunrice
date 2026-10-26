@@ -43,6 +43,8 @@ final class ListingController
 
         return Inertia::render('Cms/Listing/Edit', [
             'collection' => ['handle' => $collection->handle, 'title' => $collection->title, 'url' => $collection->listingUrl($locale)],
+            // Where its back link and breadcrumbs go: the collection's settings (its listing page card), for those who may change them.
+            'settings' => $request->user()?->can('cms.collections.update') === true ? route('sunrice.admin.cms.collections.edit', $collection->handle) : null,
             'fields' => $schema->toAdmin(),
             'locale' => $locale,
             'locales' => Locales::all(),

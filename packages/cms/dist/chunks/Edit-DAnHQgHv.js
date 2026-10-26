@@ -1,6 +1,6 @@
-import { a as o, t as e, j as a, r as g } from "./admin-BDMoHrGt.js";
+import { a as o, t as e, j as a, r as g } from "./admin-B35bpkSN.js";
 import { u as n } from "./ui-Dh5wfMwT.js";
-import { P as p } from "./PageValuesForm-CnXxlpa6.js";
+import { P as p } from "./PageValuesForm-BSrTV7fL.js";
 import { S as f } from "./settings-2-0VUe76YZ.js";
 const i = "__shared";
 function v({ taxonomy: l, collection: s, url: x, pages: r, settings: c, ...d }) {

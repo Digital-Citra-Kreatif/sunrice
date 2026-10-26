@@ -97,29 +97,9 @@ function PageValuesEdit({ title, breadcrumbs, back, saveUrl, editUrl, params = {
     };
     useUnsavedChanges(form.isDirty, writable ? save : undefined);
 
-    return (
-        <form noValidate onSubmit={(e) => { e.preventDefault(); save(); }} className="cms:flex cms:max-w-5xl cms:flex-col cms:gap-6">
-            <Head title={title} />
-            <PageHeader
-                title={title}
-                back={back}
-                menu={menu}
-                actions={
-                    <>
-                        {viewUrl && (
-                            <Button type="button" variant="ghost" asChild><a href={viewUrl} target="_blank" rel="noopener noreferrer"><ExternalLink /> {t('View')}</a></Button>
-                        )}
-                        {writable && (
-                            <Button type="submit" disabled={form.processing}>
-                                {form.processing && <LoaderCircle className="cms:animate-spin" />} {t('Save')}
-                            </Button>
-                        )}
-                    </>
-                }
-            >
-                {form.isDirty && <span className="cms:text-sm cms:text-muted-foreground">{t('Unsaved changes')}</span>}
-            </PageHeader>
-
+    // The page's texts in this language: its fields and SEO.
+    const texts = (
+        <>
             {children}
             {/* Each language has its own texts: which one is open, which have theirs, the others a click away. */}
             <LanguageTabs current={locale} locales={locales} translated={translated} onSwitch={(next) => router.get(editUrl, { ...params, locale: next })} />
@@ -152,21 +132,52 @@ function PageValuesEdit({ title, breadcrumbs, back, saveUrl, editUrl, params = {
                     </Card>
                 )}
             </fieldset>
-            {hasTemplate && (
-                <Card>
-                    <CardContent className="cms:max-w-md">
-                        <TemplateField id="template" value={form.data.template ?? template ?? ''} lookup={withTemplateChoices(templates ?? null, templateChoices)}
-                            onChange={(next) => { form.setData('template', next); form.clearErrors('template' as never); }}
-                            example="cms.landing" automatic={templateHelp ?? t('Automatic uses the first file that exists.')}
-                            error={errors.template} disabled={!templateWritable} />
-                    </CardContent>
-                </Card>
-            )}
             <CollapsibleCard title={t('SEO')} description={seoDescription} titleClassName="cms:text-base" storageKey={storageKey} hasErrors={hasErrors(errors, 'seo')}>
                 <fieldset disabled={!writable} className="cms:min-w-0">
                     <Fields bare id="seo" fields={seoFields()} value={form.data.seo} errors={errorsAt(errors, 'seo')} onChange={(next) => { form.setData('seo', next); clearErrorsAt('seo'); }} />
                 </fieldset>
             </CollapsibleCard>
+        </>
+    );
+
+    return (
+        <form noValidate onSubmit={(e) => { e.preventDefault(); save(); }} className={`cms:flex cms:flex-col cms:gap-6 ${hasTemplate ? '' : 'cms:max-w-5xl'}`}>
+            <Head title={title} />
+            <PageHeader
+                title={title}
+                back={back}
+                menu={menu}
+                actions={
+                    <>
+                        {viewUrl && (
+                            <Button type="button" variant="ghost" asChild><a href={viewUrl} target="_blank" rel="noopener noreferrer"><ExternalLink /> {t('View')}</a></Button>
+                        )}
+                        {writable && (
+                            <Button type="submit" disabled={form.processing}>
+                                {form.processing && <LoaderCircle className="cms:animate-spin" />} {t('Save')}
+                            </Button>
+                        )}
+                    </>
+                }
+            >
+                {form.isDirty && <span className="cms:text-sm cms:text-muted-foreground">{t('Unsaved changes')}</span>}
+            </PageHeader>
+
+            {hasTemplate ? (
+                // Like the entry and term editors: the page's texts, and its settings beside them.
+                <div className="cms:grid cms:items-start cms:gap-6 cms:lg:grid-cols-[minmax(0,1fr)_20rem]">
+                    <div className="cms:flex cms:min-w-0 cms:flex-col cms:gap-6">{texts}</div>
+                    <aside className="cms:flex cms:min-w-0 cms:flex-col cms:gap-6">
+                        <CollapsibleCard title={t('Page settings')} titleClassName="cms:text-base" storageKey={`${storageKey}:page-settings`} hasErrors={errors.template !== undefined}
+                            contentClassName="cms:flex cms:flex-col cms:gap-2">
+                            <TemplateField id="template" value={form.data.template ?? template ?? ''} lookup={withTemplateChoices(templates ?? null, templateChoices)}
+                                onChange={(next) => { form.setData('template', next); form.clearErrors('template' as never); }}
+                                example="cms.landing" automatic={templateHelp ?? t('Automatic uses the first file that exists.')}
+                                error={errors.template} disabled={!templateWritable} />
+                        </CollapsibleCard>
+                    </aside>
+                </div>
+            ) : texts}
         </form>
     );
 }
