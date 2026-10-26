@@ -205,6 +205,42 @@ it('lists each term with its entry count, and the taxonomy\'s collections and se
         ->where('taxonomy.settings', url("/admin/cms/taxonomies/{$this->tags->handle}/edit")));
 });
 
+it('lists terms with their pages and where they are used in as many queries for many terms as for a few', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    $this->tags->update(['route' => '/tags/{slug}']);
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [['handle' => 'tag', 'type' => 'terms', 'config' => ['taxonomy' => 'tags']]]]);
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'blueprint' => 'post']);
+    $this->tags->collections()->attach($blog);
+    $add = function (string $title) use ($blog): void {
+        $tag = term($this->tags, $title);
+        app(CreateEntry::class)->handle($blog, ['title' => "About {$title}", 'data' => ['tag' => $tag->id]]);
+    };
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete'));
+    $count = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        get('/admin/cms/taxonomies/tags/terms')->assertOk();
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
+    };
+    $add('Laravel');
+    $add('PHP');
+    $count(); // once, for what's loaded once per process
+    $few = $count();
+    foreach (['Pest', 'Vite', 'React', 'Inertia'] as $title) {
+        $add($title);
+    }
+    $count(); // once, for what the changes made it read again (the blueprints)
+
+    expect($count())->toBe($few);
+    get('/admin/cms/taxonomies/tags/terms')->assertInertia(fn (Assert $page) => $page
+        ->where('terms.0.url', url('/tags/laravel'))
+        ->where('terms.0.usedBy', ['Blog: About Laravel (EN)'])
+        ->where('terms.5.url', url('/tags/inertia')));
+});
+
 it('explains a template setting with the files tried in order when it is empty', function () {
     expect(TemplateHelp::files(['cms.taxonomies.{handle}.show', 'cms.taxonomies.show'], 'cms.topic'))->toBe(implode("\n", [
         'The first that exists, under resources/views:',

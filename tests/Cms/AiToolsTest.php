@@ -89,6 +89,34 @@ it('tells which translations are outdated', function () {
         ->and(cmsTool($token, 'cms_get_entry', ['id' => $this->hello->entry_id, 'locale' => 'id']))->toMatchArray(['locale' => 'id', 'outdated' => true]);
 });
 
+it('lists entries with their languages in as many queries for many entries as for a few', function () {
+    $token = cmsAgent(['cms.entries.view']);
+    $count = function () use ($token): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        cmsTool($token, 'cms_list_entries', ['collection' => 'blog']);
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+    $add = function (string $title): void {
+        $post = app(CreateEntry::class)->handle($this->blog, ['title' => $title, 'data' => ['intro' => 'Hi']]);
+        app(CreateTranslation::class)->handle($post->entry, 'id');
+        app(SaveDraft::class)->handle($post, ['title' => "{$title} again"]);
+    };
+    $add('First');
+    $count(); // once, for what's loaded once per process
+    $few = $count();
+    foreach (['Second', 'Third', 'Fourth'] as $title) {
+        $add($title);
+    }
+
+    expect($count())->toBe($few)
+        ->and(cmsTool($token, 'cms_list_entries', ['collection' => 'blog'])['entries'])->each->toMatchArray(['outdated' => false]);
+    expect(collect(cmsTool($token, 'cms_list_entries', ['collection' => 'blog'])['entries'])->where('title', 'Second again')->first())
+        ->toMatchArray(['languages' => ['en' => 'draft', 'id' => 'draft'], 'outdated_languages' => ['id']]);
+});
+
 it('writes drafts and publishes them, as the editor does', function () {
     $token = cmsAgent(['cms.entries.view', 'cms.entries.create', 'cms.entries.update', 'cms.entries.publish', 'cms.terms.view', 'cms.terms.create', 'cms.terms.update', 'cms.terms.delete']);
     $tag = cmsTool($token, 'cms_save_term', ['taxonomy' => 'tags', 'title' => 'News']);

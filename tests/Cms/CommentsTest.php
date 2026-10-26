@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -271,6 +272,34 @@ it('signs a guest up for reply emails only when a moderator saw them ask', funct
     app(SetCommentStatus::class)->handle($asked, Comment::APPROVED);
     expect(commentOn($this->post, ['notify_replies' => '1', 'author_name' => 'Rina S.'])->notify_replies)->toBeTrue()
         ->and(commentOn($this->post, ['author_name' => 'Rina S.'])->notify_replies)->toBeFalse();
+});
+
+it('lists comments with their entries\' pages in as many queries for many as for a few', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.comments.view'));
+    $count = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        get('/admin/cms/comments')->assertOk();
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
+    };
+    $add = function (string $title): void {
+        $post = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->blog, ['title' => $title]));
+        commentOn($post, ['body' => "On {$title}"]);
+    };
+    $add('First');
+    $count(); // once, for what's loaded once per process
+    $few = $count();
+    foreach (['Second', 'Third', 'Fourth', 'Fifth'] as $title) {
+        $add($title);
+    }
+
+    expect($count())->toBe($few);
+    get('/admin/cms/comments')->assertInertia(fn (Assert $page) => $page
+        ->where('comments.data.0.entry.title', 'Fifth')
+        ->where('comments.data.0.entry.url', url('/blog/fifth')));
 });
 
 it('moderates in the admin, behind its permissions', function () {
