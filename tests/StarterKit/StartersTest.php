@@ -14,6 +14,7 @@ use Sunrice\Admin\Actions\Settings\SaveSettings;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
@@ -58,6 +59,18 @@ it('lists the starters, the kit\'s blog among them', function () {
     expect(blogStarter()->title)->toBe('Blog')
         ->and(blogStarter()->locales)->toBe(['en'])
         ->and(blogStarter()->mediaFiles())->toHaveCount(2);
+});
+
+it('installs over the Pages and Posts collections sunrice:install makes, adding to them', function () {
+    artisan('sunrice:scaffold-collections')->assertSuccessful();
+
+    artisan('sunrice:starter', ['name' => 'blog'])->expectsOutputToContain('installed')->assertSuccessful();
+
+    $posts = Collection::query()->where('handle', 'posts')->sole();
+    expect(Collection::query()->count())->toBe(2)
+        ->and($posts->listing_blueprint)->toBe('listing')
+        ->and(collect(Blueprint::query()->where('handle', 'post')->sole()->fields)->pluck('handle')->all())->toBe(['excerpt', 'image', 'body', 'sections']);
+    get('/blog/hello-world')->assertOk();
 });
 
 it('changes nothing on a dry run, saying what it would do', function () {
