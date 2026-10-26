@@ -22,6 +22,7 @@ use Sunrice\Cms\Actions\Terms\SaveTermContent;
 use Sunrice\Cms\Actions\Terms\TrashTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Fields\Field;
+use Sunrice\Cms\Fields\Reference;
 use Sunrice\Cms\Fields\Schema;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -147,6 +148,57 @@ it('lists where a term is used on its page and in the list', function () {
 
     get(termEditUrl($this->news->id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('usedBy.0.label', 'Pages: Home (EN)'));
     get(route('sunrice.admin.cms.taxonomies.terms.index', 'topics'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('terms.0.usedBy', ['Pages: Home (EN)']));
+});
+
+it('names only the first five uses of each term in the list, and counts them all', function () {
+    $pages = array_map(fn (int $i): Entry => refPage($this->pages, "Page {$i}", ['topics' => [$this->news->id]]), range(1, 7));
+    $sports = app(SaveTerm::class)->handle($this->topics, ['title' => 'Sports']);
+    refPage($this->pages, 'Match', ['topics' => [$sports->id]]);
+    ContentReference::query()->insert([
+        // Page 1 again in another field: still one use, where it first was.
+        ['source_type' => 'entry', 'source_id' => $pages[0]->id, 'locale' => 'en', 'target_type' => 'term', 'target_id' => $this->news->id, 'field' => 'sections.0.values.topics'],
+        // Pointing at itself, and from an entry that's gone: not uses.
+        ['source_type' => 'term', 'source_id' => $this->news->id, 'locale' => 'en', 'target_type' => 'term', 'target_id' => $this->news->id, 'field' => 'feature'],
+        ['source_type' => 'entry', 'source_id' => 999999, 'locale' => 'en', 'target_type' => 'term', 'target_id' => $this->news->id, 'field' => 'topics'],
+    ]);
+
+    $all = References::usedBy(Reference::TERM, $this->news->id);
+    expect($all)->toHaveCount(7)
+        ->and(References::usedByMany(Reference::TERM, [$this->news->id, $sports->id], 5))->toBe([
+            $this->news->id => array_slice($all, 0, 5),
+            $sports->id => References::usedBy(Reference::TERM, $sports->id),
+        ])
+        ->and(References::usedByCount(Reference::TERM, [$this->news->id, $sports->id, $this->news->id + 1000]))->toBe([$this->news->id => 7, $sports->id => 1]);
+    get(route('sunrice.admin.cms.taxonomies.terms.index', 'topics'))->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('terms.0.title', 'News')
+        ->where('terms.0.usedBy', ['Pages: Page 1 (EN)', 'Pages: Page 2 (EN)', 'Pages: Page 3 (EN)', 'Pages: Page 4 (EN)', 'Pages: Page 5 (EN)'])
+        ->where('terms.0.usedByCount', 7)
+        ->where('terms.1.title', 'Sports')
+        ->where('terms.1.usedBy', ['Pages: Match (EN)'])
+        ->where('terms.1.usedByCount', 1));
+});
+
+it('reads the terms list\'s uses in the same queries however many there are', function () {
+    $sports = app(SaveTerm::class)->handle($this->topics, ['title' => 'Sports']);
+    $queries = function (): int {
+        get(route('sunrice.admin.cms.taxonomies.terms.index', 'topics'))->assertOk();
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        get(route('sunrice.admin.cms.taxonomies.terms.index', 'topics'))->assertOk();
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
+    };
+    refPage($this->pages, 'First', ['topics' => [$this->news->id, $sports->id]]);
+    $few = $queries();
+    foreach (range(1, 15) as $i) {
+        refPage($this->pages, "Page {$i}", ['topics' => [$this->news->id, $sports->id]]);
+    }
+
+    expect($queries())->toBe($few);
+    get(route('sunrice.admin.cms.taxonomies.terms.index', 'topics'))->assertInertia(fn (Assert $page) => $page
+        ->has('terms.0.usedBy', 5)->where('terms.0.usedByCount', 16)->has('terms.1.usedBy', 5)->where('terms.1.usedByCount', 16));
 });
 
 it('refuses to delete a referenced entry permanently unless forced', function () {
