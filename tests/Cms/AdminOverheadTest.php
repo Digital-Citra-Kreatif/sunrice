@@ -94,3 +94,20 @@ it('forgets the cached account states on lock, unlock and sign out everywhere', 
     actingAs($rina)->withSession([AccountGuard::LOGIN_AT => now()->subMinute()->getTimestamp()]);
     get('/admin')->assertRedirect('/admin/login');
 });
+
+it('reads the handles from the cache store once per request', function () {
+    config(['cache.default' => 'database', 'cache.stores.database.connection' => null]);
+    app('cache')->forgetDriver('database');
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.blog.view', 'cms.terms.tags.view', 'cms.submissions.contact.view'));
+    get('/admin')->assertOk(); // warms the caches
+
+    app()->forgetScopedInstances(); // the next request
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    get('/admin')->assertOk();
+    $reads = array_filter(DB::getQueryLog(), fn (array $query): bool => str_starts_with(str_replace(['"', '`'], '', $query['query']), 'select * from cache ')
+        && in_array(config('cache.prefix').'sunrice-cms:handles:v2', $query['bindings'], true));
+    DB::disableQueryLog();
+
+    expect($reads)->toHaveCount(1);
+});

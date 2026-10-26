@@ -27,6 +27,10 @@ it('indexes what is looked up', function (string $table, array $columns) {
     ['sunrice_menu_items', ['term_id']],
     ['sunrice_menu_items', ['collection_id']],
     ['sunrice_entry_translations', ['status', 'published_at']],
+    // The admin's entries lists in their default orders, and the most recently edited.
+    ['sunrice_entry_translations', ['collection_id', 'locale', 'published_at']],
+    ['sunrice_entry_translations', ['collection_id', 'locale', 'draft_title']],
+    ['sunrice_entry_translations', ['locale', 'updated_at']],
     ['sunrice_entries', ['deleted_at']],
     ['sunrice_media', ['deleted_at']],
     ['sunrice_media', ['mime_type']],

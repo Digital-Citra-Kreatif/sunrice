@@ -121,6 +121,17 @@ it('filters by a term of an attached taxonomy, and ignores other taxonomies', fu
         ->where('filters.taxonomies.0.terms', [['value' => (string) $tea->id, 'label' => 'Tea', 'depth' => 0], ['value' => (string) $green->id, 'label' => 'Green', 'depth' => 1]]));
 });
 
+it('offers terms by their main-language title, else their first one, outside the trash', function () {
+    config(['sunrice-cms.locales' => ['en', 'id']]);
+    $tea = app(SaveTerm::class)->handle($this->topics, ['title' => 'Tea']);
+    $teh = app(SaveTerm::class)->handle($this->topics, ['title' => 'Teh', 'locale' => 'id']);
+    app(SaveTerm::class)->handle($this->topics, ['title' => 'Gone'])->delete();
+    lister();
+
+    get('/admin/cms/collections/products/entries')->assertInertia(fn (Assert $page) => $page
+        ->where('filters.taxonomies.0.terms', [['value' => (string) $tea->id, 'label' => 'Tea', 'depth' => 0], ['value' => (string) $teh->id, 'label' => 'Teh', 'depth' => 0]]));
+});
+
 it('filters by the taxonomies attached to the collection only, not those of its terms fields', function () {
     $areas = Taxonomy::query()->create(['handle' => 'areas', 'title' => 'Areas']);
     $bali = app(SaveTerm::class)->handle($areas, ['title' => 'Bali']);
