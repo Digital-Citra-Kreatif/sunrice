@@ -1325,5 +1325,7 @@
     "Automatic uses the first file that exists.": "Otomatis memakai berkas pertama yang ada.",
     "Other view…": "View lain…",
     "Uses :file.": "Memakai :file.",
-    "Uses the built-in template.": "Memakai template bawaan."
+    "Uses the built-in template.": "Memakai template bawaan.",
+    "Choose a listing blueprint": "Pilih blueprint halaman daftar",
+    "Choose index page fields": "Pilih field halaman indeks"
 }

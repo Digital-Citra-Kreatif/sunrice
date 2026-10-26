@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ExternalLink, LoaderCircle } from 'lucide-react';
 import { t } from '@imajiner/admin-sdk';
 import { Button, Card, CardContent, CollapsibleCard, PageHeader, type PageHeaderMenuItem, useBreadcrumbs, useUnsavedChanges } from '@imajiner/admin-sdk/ui';
@@ -55,6 +55,8 @@ interface FormProps extends PageValuesProps {
     viewUrl: string | null;
     /** Said when the page has no fields of its own. */
     empty: string;
+    /** Where its fields are chosen (a blueprint setting), for those who may: a button under `empty`. */
+    emptyAction?: { label: string; href: string } | null;
     seoDescription: string;
     storageKey: string;
     menu?: PageHeaderMenuItem[];
@@ -69,7 +71,7 @@ export function PageValuesForm(props: FormProps) {
     return <PageValuesEdit key={`${props.editUrl}:${JSON.stringify(props.params ?? {})}:${props.locale}:${props.version}:${JSON.stringify([props.values, props.seo])}`} {...props} />;
 }
 
-function PageValuesEdit({ title, breadcrumbs, back, saveUrl, editUrl, params = {}, viewUrl, empty, seoDescription, storageKey, menu, children,
+function PageValuesEdit({ title, breadcrumbs, back, saveUrl, editUrl, params = {}, viewUrl, empty, emptyAction = null, seoDescription, storageKey, menu, children,
     fields, locale, locales, translated = [], shared, values, seo, version, can, template, templates, templateChoices, templateHelp }: FormProps) {
     useBreadcrumbs(breadcrumbs);
     // The template is sent only by those who may change it (the collection's or taxonomy's setting).
@@ -106,7 +108,13 @@ function PageValuesEdit({ title, breadcrumbs, back, saveUrl, editUrl, params = {
             <fieldset disabled={!writable} className="cms:flex cms:flex-col cms:gap-6">
                 <VersionConflict message={errors.version} processing={form.processing} onSaveMine={saveMine} />
                 {fields.length === 0 ? (
-                    <p className="cms:text-muted-foreground">{empty}</p>
+                    // A card like the fields' would be, so it lines up with the cards beside it.
+                    <Card>
+                        <CardContent className="cms:flex cms:flex-col cms:items-start cms:gap-3">
+                            <p className="cms:text-sm cms:text-muted-foreground">{empty}</p>
+                            {emptyAction && <Button type="button" variant="outline" size="sm" asChild><Link href={emptyAction.href}>{emptyAction.label}</Link></Button>}
+                        </CardContent>
+                    </Card>
                 ) : (
                     <Card>
                         <CardContent className="cms:flex cms:flex-col cms:gap-6">

@@ -24,6 +24,8 @@ export default function ListingPage({ collection, settings, ...props }: Props) {
             editUrl={adminUrl(`cms/collections/${collection.handle}/listing/edit`)}
             viewUrl={collection.url}
             empty={t('The listing page has no fields of its own: choose a listing blueprint for the collection under Structure → Collections.')}
+            // Its blueprint setting on the collection's form (the panel's field-{name} anchor).
+            emptyAction={settings ? { label: t('Choose a listing blueprint'), href: `${settings}#field-listing_blueprint` } : null}
             seoDescription={t('How the listing page appears in search results and shared links.')}
             storageKey="cms:listing:seo"
             templateHelp={t('For :title\'s listing page, in every language; also under Structure → Collections. Automatic uses the first file that exists.', { title: collection.title })} />

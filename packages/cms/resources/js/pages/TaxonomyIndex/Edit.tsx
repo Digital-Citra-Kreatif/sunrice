@@ -38,6 +38,7 @@ export default function TaxonomyIndexPage({ taxonomy, collection, url, pages, se
             params={collection ? { collection: collection.handle } : {}}
             viewUrl={url}
             empty={t('The index page has no fields of its own: choose its fields (Index page fields) in the taxonomy\'s settings under Structure → Taxonomies.')}
+            emptyAction={settings ? { label: t('Choose index page fields'), href: `${settings}#field-index_blueprint` } : null}
             seoDescription={t('How the index page appears in search results and shared links.')}
             storageKey="cms:taxonomy-index:seo"
             templateHelp={t('For all of :taxonomy\'s index pages, the shared one and each collection\'s, in every language; also under Structure → Taxonomies. Automatic uses the first file that exists.', { taxonomy: taxonomy.title })}
