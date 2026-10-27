@@ -127,12 +127,23 @@ it('shows the main language\'s values in a global group another language has non
     app(SaveGlobals::class)->handle($set, ['hero' => ['heading' => 'Welcome', 'rank' => 5, 'dark' => true], 'strapline' => 'Hello']);
 
     // As a text at the top level; a toggle's false is a value (as at the top level).
-    expect(app(Globals::class)->get('banner', 'id'))->toBe(['hero' => ['heading' => 'Welcome', 'rank' => 5, 'dark' => false], 'strapline' => 'Hello']);
+    $banner = app(Globals::class)->get('banner', 'id');
+    // Key by key: MySQL keeps a JSON object's keys in its own order.
+    expect($banner['strapline'])->toBe('Hello')
+        ->and($banner['hero'])->toHaveCount(3)
+        ->and($banner['hero']['heading'])->toBe('Welcome')
+        ->and($banner['hero']['rank'])->toBe(5)
+        ->and($banner['hero']['dark'])->toBeFalse();
     get('/admin/cms/globals/banner/values?locale=id')->assertInertia(fn (Assert $page) => $page->where('values.hero.heading', 'Welcome'));
 
     // Its own values, false and 0 included, are its own.
     app(SaveGlobals::class)->handle($set->fresh() ?? $set, ['hero' => ['heading' => 'Selamat datang', 'rank' => 0, 'dark' => false]], 'id');
-    expect(app(Globals::class)->get('banner', 'id'))->toBe(['hero' => ['heading' => 'Selamat datang', 'rank' => 0, 'dark' => false], 'strapline' => 'Hello']);
+    $banner = app(Globals::class)->get('banner', 'id');
+    expect($banner['strapline'])->toBe('Hello')
+        ->and($banner['hero'])->toHaveCount(3)
+        ->and($banner['hero']['heading'])->toBe('Selamat datang')
+        ->and($banner['hero']['rank'])->toBe(0)
+        ->and($banner['hero']['dark'])->toBeFalse();
 });
 
 it('shares nested fields of a collection\'s listing page with the main language', function () {
