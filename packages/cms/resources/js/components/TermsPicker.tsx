@@ -158,6 +158,8 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
     };
 
     const placeholder = multiple ? t('Choose terms…') : t('Choose a term…');
+    // Set from a press in the box until its click is handled: see onInteractOutside.
+    const pressedInBox = React.useRef(false);
     const listId = `${id}-listbox`;
     const stale = list !== null && list.q !== q;
 
@@ -211,7 +213,9 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
             {/* The list is placed against the whole box, not the Add… button after the chips: under it, at its width,
                 where it opened, however many terms are chosen (it doesn't flip above near the bottom of the window). */}
             <PopoverAnchor asChild>
-            <div data-terms-box="" data-invalid={invalid || undefined}
+            <div data-terms-box="" onPointerDownCapture={() => { pressedInBox.current = true; }}
+                onClickCapture={() => { setTimeout(() => { pressedInBox.current = false; }, 0); }}
+                data-invalid={invalid || undefined}
                 className="cms:flex cms:w-full cms:max-w-xl cms:min-w-0 cms:[contain:inline-size] cms:flex-wrap cms:items-center cms:gap-1 cms:rounded-md cms:border cms:border-input/80 cms:bg-card cms:p-1 cms:shadow-xs cms:data-invalid:border-destructive cms:dark:bg-input/20">
                 {ids.map((termId) => (
                     <span key={termId} title={termPath(name(termId), known[termId]?.parents ?? parentsGiven[String(termId)])}
@@ -237,7 +241,8 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
             </PopoverAnchor>
             <PopoverContent side="bottom" align="start" sideOffset={4} avoidCollisions={false} className="cms:max-w-[calc(100vw-2rem)] cms:p-0" style={{ width: 'var(--radix-popper-anchor-width)' }}
                 // Removing a chip (its ×, in the box) keeps the list open.
-                onInteractOutside={(event: Event) => { if (event.target instanceof Element && event.target.closest('[data-terms-box]')) event.preventDefault(); }}
+                // A press inside the box (removing a chip) isn't outside the list, though Radix only checks after the click, once the × is gone.
+                onInteractOutside={(event: Event) => { if (pressedInBox.current || (event.target instanceof Element && event.target.closest('[data-terms-box]'))) event.preventDefault(); }}
                 // Focus left with a removed chip (on the page itself) isn't leaving the list.
                 onFocusOutside={(event: Event) => { const target = event.target; if (!(target instanceof Element) || target === document.body || target.closest('[data-terms-box]')) event.preventDefault(); }}
                 onOpenAutoFocus={(event: Event) => { event.preventDefault(); input.current?.focus(); }}>
