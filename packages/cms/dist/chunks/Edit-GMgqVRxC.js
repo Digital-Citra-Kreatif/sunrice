@@ -1,19 +1,20 @@
-import { j as e, a as y, t as i, r as j, l as x, h as A } from "./admin-DSUOrVvl.js";
+import { j as e, a as $, t as i, r as j, l as x, h as A } from "./admin-CSbXjtXP.js";
 import { u as l } from "./ui-Dh5wfMwT.js";
-import { F as v } from "./FieldError-Bm-Y133F.js";
-import { A as B, b as P, h as H, B as M } from "./FieldInput-BwMVnoY9.js";
-import { l as q, F as G } from "./languages-iAgARwYu.js";
-import { S as J } from "./SlugNote-CGvCDjxI.js";
-import { s as R, T as z, w as Q } from "./seo-DWrNjmbl.js";
-import { V as W } from "./VersionConflict-DfgUomFu.js";
-import { E as X } from "./external-link-CFxEu4M4.js";
-import { L as Y } from "./loader-circle-ByksABXO.js";
+import { F as v } from "./FieldError-aF_VH-xl.js";
+import { A as B, b as P, h as H, B as M } from "./FieldInput-C_ljSM3r.js";
+import { l as q, F as G } from "./languages-CbgVdwhf.js";
+import { S as J } from "./SlugNote-DIXwuFYA.js";
+import { s as R, T as z, w as Q } from "./seo-Dedbvown.js";
+import { V as W } from "./VersionConflict-wMEDaTek.js";
+import { U as X } from "./UnsavedNote-3XnZhPtY.js";
+import { E as Y } from "./external-link-CFxEu4M4.js";
+import { L as Z } from "./loader-circle-ByksABXO.js";
 const b = "__top";
-function de(r) {
-  return /* @__PURE__ */ e.jsx(Z, { ...r }, `${r.term?.id ?? "new"}:${r.locale}:${r.version}:${JSON.stringify([r.values, r.seo, r.term?.template, r.parentId])}`);
+function ge(r) {
+  return /* @__PURE__ */ e.jsx(ee, { ...r }, `${r.term?.id ?? "new"}:${r.locale}:${r.version}:${JSON.stringify([r.values, r.seo, r.term?.template, r.parentId])}`);
 }
-function Z({ taxonomy: r, term: t, parentId: S = null, terms: T = [], translated: N, fields: k, locale: m, locales: u, shared: E, sharedValues: F, values: L, seo: _, version: D, usedBy: C = [], redirectsUrl: K = null, templates: V = null, templateChoices: I }) {
-  const g = y(`cms/taxonomies/${r.handle}/terms`), f = t ? y(`cms/terms/${t.id}/content`) : g, w = t ? t.title : i("New term");
+function ee({ taxonomy: r, term: t, parentId: S = null, terms: T = [], translated: N, fields: k, locale: m, locales: u, shared: E, sharedValues: F, values: L, seo: _, version: D, usedBy: C = [], redirectsUrl: K = null, templates: V = null, templateChoices: I }) {
+  const g = $(`cms/taxonomies/${r.handle}/terms`), f = t ? $(`cms/terms/${t.id}/content`) : g, w = t ? t.title : i("New term");
   l.useBreadcrumbs([{ label: r.title, href: `${g}?locale=${m}` }, { label: w }]);
   const a = j.useForm({
     locale: m,
@@ -27,7 +28,7 @@ function Z({ taxonomy: r, term: t, parentId: S = null, terms: T = [], translated
   }), n = a.errors, p = (s) => {
     const c = M(n, s);
     c.length > 0 && a.clearErrors(...c);
-  }, $ = () => a.processing || (t ? a.put(f, { preserveScroll: !0 }) : a.post(f)), O = () => {
+  }, y = () => a.processing || (t ? a.put(f, { preserveScroll: !0 }) : a.post(f)), O = () => {
     a.transform((s) => ({ ...s, version: null })), a.put(f, { preserveScroll: !0 });
   }, d = l.useEditLock({
     type: "cms.term",
@@ -46,8 +47,8 @@ function Z({ taxonomy: r, term: t, parentId: S = null, terms: T = [], translated
       template: typeof c.template == "string" ? c.template : h.template
     }));
   };
-  return l.useUnsavedChanges(a.isDirty && !d.takenOver, o ? $ : void 0), /* @__PURE__ */ e.jsxs("form", { noValidate: !0, onSubmit: (s) => {
-    s.preventDefault(), $();
+  return l.useUnsavedChanges(a.isDirty && !d.takenOver, o ? y : void 0), /* @__PURE__ */ e.jsxs("form", { noValidate: !0, onSubmit: (s) => {
+    s.preventDefault(), y();
   }, className: "cms:flex cms:flex-col cms:gap-6", children: [
     /* @__PURE__ */ e.jsx(j.Head, { title: t ? t.title : i("New term · :taxonomy", { taxonomy: r.title }) }),
     d.dialogs,
@@ -58,17 +59,17 @@ function Z({ taxonomy: r, term: t, parentId: S = null, terms: T = [], translated
         back: { href: `${g}?locale=${m}`, label: i("Back to :title", { title: r.title }) },
         actions: /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
           t?.url && /* @__PURE__ */ e.jsx(l.Button, { type: "button", variant: "ghost", asChild: !0, children: /* @__PURE__ */ e.jsxs("a", { href: t.url, target: "_blank", rel: "noopener noreferrer", children: [
-            /* @__PURE__ */ e.jsx(X, {}),
+            /* @__PURE__ */ e.jsx(Y, {}),
             " ",
             i("View page")
           ] }) }),
           o && /* @__PURE__ */ e.jsxs(l.Button, { type: "submit", disabled: a.processing, children: [
-            a.processing && /* @__PURE__ */ e.jsx(Y, { className: "cms:animate-spin" }),
+            a.processing && /* @__PURE__ */ e.jsx(Z, { className: "cms:animate-spin" }),
             " ",
             t ? i("Save") : i("Create term")
           ] })
         ] }),
-        children: a.isDirty && /* @__PURE__ */ e.jsx("span", { className: "cms:text-sm cms:text-muted-foreground", children: i("Unsaved changes") })
+        children: /* @__PURE__ */ e.jsx(X, { dirty: a.isDirty })
       }
     ),
     /* @__PURE__ */ e.jsxs("div", { className: "cms:grid cms:items-start cms:gap-6 cms:lg:grid-cols-[minmax(0,1fr)_20rem]", children: [
@@ -209,5 +210,5 @@ function Z({ taxonomy: r, term: t, parentId: S = null, terms: T = [], translated
   ] });
 }
 export {
-  de as default
+  ge as default
 };

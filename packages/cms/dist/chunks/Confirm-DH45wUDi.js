@@ -1,5 +1,5 @@
 import { c as u, _ as d } from "./createLucideIcon-Ccbp7F45.js";
-import { j as e, t as i } from "./admin-DSUOrVvl.js";
+import { j as e, t as i } from "./admin-CSbXjtXP.js";
 import { u as n } from "./ui-Dh5wfMwT.js";
 const s = {
   name: "trash",
