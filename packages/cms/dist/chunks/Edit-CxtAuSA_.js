@@ -1,19 +1,20 @@
-import { j as e, a as S, t as i, r as j, l as x, h as B } from "./admin-GWMPPoIx.js";
+import { j as e, a as S, t as i, r as j, l as x, h as B } from "./admin-t_knV6mj.js";
 import { u as l } from "./ui-Dh5wfMwT.js";
-import { F as v } from "./FieldError-CLYcT_Wt.js";
-import { A as P, b as H, h as M, B as q } from "./FieldInput-CxUFdGRl.js";
-import { l as G, F as J } from "./languages-CVtOxb13.js";
-import { S as R } from "./SlugNote-BLum18yT.js";
-import { s as z, T as Q, w as W } from "./seo-jnYXnObG.js";
-import { V as X } from "./VersionConflict-DjcLfVMF.js";
-import { E as Y } from "./external-link-CFxEu4M4.js";
-import { L as Z } from "./loader-circle-ByksABXO.js";
-import { L as ee } from "./layout-template-RwJXNfEY.js";
+import { F as v } from "./FieldError-C0Q5-K3p.js";
+import { A as P, b as H, h as M, B as q } from "./FieldInput-CRF9KNlW.js";
+import { l as G, F as J } from "./languages-DnUzuT28.js";
+import { S as R } from "./SlugNote-S_ZJad_4.js";
+import { s as z, T as Q, w as W } from "./seo-wuxqGCqx.js";
+import { V as X } from "./VersionConflict-DbEl8z7Z.js";
+import { U as Y } from "./UnsavedNote-B_2OIytV.js";
+import { E as Z } from "./external-link-CFxEu4M4.js";
+import { L as ee } from "./loader-circle-ByksABXO.js";
+import { L as se } from "./layout-template-RwJXNfEY.js";
 const b = "__top";
-function ue(r) {
-  return /* @__PURE__ */ e.jsx(se, { ...r }, `${r.term?.id ?? "new"}:${r.locale}:${r.version}:${JSON.stringify([r.values, r.seo, r.term?.template, r.parentId])}`);
+function xe(r) {
+  return /* @__PURE__ */ e.jsx(ae, { ...r }, `${r.term?.id ?? "new"}:${r.locale}:${r.version}:${JSON.stringify([r.values, r.seo, r.term?.template, r.parentId])}`);
 }
-function se({ taxonomy: r, term: t, parentId: T = null, terms: k = [], translated: N, fields: L, locale: m, locales: u, shared: E, sharedValues: F, values: _, seo: D, version: K, usedBy: C = [], redirectsUrl: V = null, blueprint: w = null, templates: I = null, templateChoices: O }) {
+function ae({ taxonomy: r, term: t, parentId: T = null, terms: k = [], translated: N, fields: L, locale: m, locales: u, shared: E, sharedValues: F, values: _, seo: D, version: K, usedBy: C = [], redirectsUrl: V = null, blueprint: w = null, templates: I = null, templateChoices: O }) {
   const g = S(`cms/taxonomies/${r.handle}/terms`), f = t ? S(`cms/terms/${t.id}/content`) : g, y = t ? t.title : i("New term");
   l.useBreadcrumbs([{ label: r.title, href: `${g}?locale=${m}` }, { label: y }]);
   const a = j.useForm({
@@ -57,20 +58,20 @@ function se({ taxonomy: r, term: t, parentId: T = null, terms: k = [], translate
       {
         title: y,
         back: { href: `${g}?locale=${m}`, label: i("Back to :title", { title: r.title }) },
-        menu: w ? [{ label: i("Edit blueprint"), href: w, icon: /* @__PURE__ */ e.jsx(ee, {}) }] : [],
+        menu: w ? [{ label: i("Edit blueprint"), href: w, icon: /* @__PURE__ */ e.jsx(se, {}) }] : [],
         actions: /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
           t?.url && /* @__PURE__ */ e.jsx(l.Button, { type: "button", variant: "ghost", asChild: !0, children: /* @__PURE__ */ e.jsxs("a", { href: t.url, target: "_blank", rel: "noopener noreferrer", children: [
-            /* @__PURE__ */ e.jsx(Y, {}),
+            /* @__PURE__ */ e.jsx(Z, {}),
             " ",
             i("View page")
           ] }) }),
           o && /* @__PURE__ */ e.jsxs(l.Button, { type: "submit", disabled: a.processing, children: [
-            a.processing && /* @__PURE__ */ e.jsx(Z, { className: "cms:animate-spin" }),
+            a.processing && /* @__PURE__ */ e.jsx(ee, { className: "cms:animate-spin" }),
             " ",
             t ? i("Save") : i("Create term")
           ] })
         ] }),
-        children: a.isDirty && /* @__PURE__ */ e.jsx("span", { className: "cms:text-sm cms:text-muted-foreground", children: i("Unsaved changes") })
+        children: /* @__PURE__ */ e.jsx(Y, { dirty: a.isDirty })
       }
     ),
     /* @__PURE__ */ e.jsxs("div", { className: "cms:grid cms:items-start cms:gap-6 cms:lg:grid-cols-[minmax(0,1fr)_20rem]", children: [
@@ -211,5 +212,5 @@ function se({ taxonomy: r, term: t, parentId: T = null, terms: k = [], translate
   ] });
 }
 export {
-  ue as default
+  xe as default
 };
