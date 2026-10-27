@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### All changes
+
+- **Scheduled entries announced once in any timezone**: `sunrice:publish-scheduled` read the time of its last run back in UTC, whatever `app.timezone` was. Ahead of UTC (Asia/Jakarta) it announced each scheduled entry again every minute for hours, firing `EntryPublished` and clearing the site's caches each time; behind it (America/New_York) it never announced them, so their terms never went live and kept pages stayed stale until `cache.ttl`. It now reads it in the app's timezone.
+- **Scheduled entries go live on time, whatever timezone they're given in**: the editor sends the date picked as UTC (`toISOString()`), and `PublishEntry` stored the wall-clock time of the date it got as is, so with `app.timezone` Asia/Jakarta an entry scheduled for 09:30 went live at 02:30. Dates are now converted to the app's timezone before they're stored (the AI tool's and imported dates with any offset too).
+- **`sunrice:publish-scheduled` takes turns and doesn't lose a failed run**: it kept the time a run got to before doing anything, so a run that failed (a listener of `EntryPublished` throwing) never announced its entries nor published their terms, and two runs at once (several servers: the scheduler's `withoutOverlapping()` is one server's) announced the same entries twice. A lock in the site cache's store now keeps runs apart (one that finds another going on does nothing), and the time is kept only once a run is done. See [Scheduled publishing](packages/cms/docs/caching.md#scheduled-publishing).
+- **A scheduled entry's terms are those it was published with**: when its time came, the entry's terms not published yet went live as they were then, so terms chosen after scheduling (saved, not published) went live with it, and **Discard changes** before then dropped the scheduled terms altogether. The terms its revision kept go live now, and terms chosen since stay pending; a language published since and live already keeps its terms. An entry (or its collection) restored from the trash after its time came now puts its terms on the site too: they stayed pending for good.
+- **Publishing never loses a save made at the same moment**: `PublishEntry` published the draft as the translation was loaded and wrote it back as the draft, so a save that landed in between (another editor, another tab) was overwritten; publishing an entry's terms likewise put back terms not published yet that someone had just changed (and two at once could fail on the same term). The translation's and the entry's rows are now read again and locked for the publish.
+
 ## 0.2.0 (2026-10-27)
 
 **Upgrading from 0.1 needs a fresh database**: the migrations were consolidated, so a 0.1 site is rebuilt with `php artisan migrate:fresh`. Keep its content by making a starter of it on 0.1 (`sunrice:make-starter`) and installing it after the rebuild (`sunrice:starter --path=`). See [Upgrading](docs/upgrading.md#keeping-a-01-sites-content).
