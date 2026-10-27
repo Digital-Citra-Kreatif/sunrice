@@ -3,9 +3,13 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Fields\Types\TermsField;
+use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Models\TermTranslation;
@@ -122,4 +126,83 @@ it('orders a tree in one pass, leaving out terms whose parent isn\'t there', fun
         (object) ['id' => 4, 'parent_id' => 3], (object) ['id' => 7, 'parent_id' => 5], (object) ['id' => 8, 'parent_id' => 99]];
 
     expect(TermsField::order($rows))->toBe([[5, 0], [3, 1], [4, 2], [7, 1], [9, 0]]);
+});
+
+it('leaves out a term and the terms under it, when asked to (a term\'s own Under)', function () {
+    $taxonomy = Taxonomy::query()->create(['handle' => 'places', 'title' => 'Places', 'hierarchical' => true]);
+    // Term 3 is under Term 2, Term 6 under Term 5…: Term 2 and Term 3 go, Term 5 stays.
+    $ids = manyTerms($taxonomy, 9, nested: true);
+
+    $tree = $this->getJson("/admin/cms/terms/picker?taxonomy=places&except={$ids[1]}")->assertOk()->json();
+    $search = $this->getJson("/admin/cms/terms/picker?taxonomy=places&q=Term&except={$ids[1]}")->assertOk()->json();
+
+    $left = array_values(array_diff($ids, [$ids[1], $ids[2]]));
+    expect(array_column($tree['items'], 'id'))->toEqualCanonicalizing($left)
+        ->and(array_column($search['items'], 'id'))->toEqualCanonicalizing($left);
+});
+
+it('lists a small taxonomy\'s terms in the entries list\'s filter, and has a big one\'s searched', function () {
+    $collection = Collection::query()->create(['handle' => 'posts', 'title' => 'Posts']);
+    $small = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    $big = Taxonomy::query()->create(['handle' => 'places', 'title' => 'Places', 'hierarchical' => true]);
+    $collection->taxonomies()->attach([$small->id, $big->id]);
+    manyTerms($small, TermsField::LISTED, nested: false);
+    manyTerms($big, TermsField::LISTED + 1, nested: true);
+
+    [, $counts] = hydrated(fn () => $this->get('/admin/cms/collections/posts/entries')->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('filters.taxonomies.0.handle', 'places')->where('filters.taxonomies.0.search', true)->where('filters.taxonomies.0.terms', [])
+        ->where('filters.taxonomies.1.handle', 'tags')->where('filters.taxonomies.1.search', false)
+        ->where('filters.taxonomies.1.terms', fn ($terms): bool => count($terms) === TermsField::LISTED)));
+    // Read as plain rows, not models.
+    expect($counts)->toBe(['terms' => 0, 'translations' => 0]);
+    // And whoever lists the entries may search it.
+    $this->getJson('/admin/cms/terms/picker?taxonomy=places')->assertOk();
+});
+
+it('has a big taxonomy\'s term moved by searching for its new parent', function () {
+    $small = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'hierarchical' => true]);
+    $big = Taxonomy::query()->create(['handle' => 'places', 'title' => 'Places', 'hierarchical' => true]);
+    $few = manyTerms($small, 3, nested: true);
+    $many = manyTerms($big, TermsField::LISTED + 1, nested: true);
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.update'));
+
+    $this->get("/admin/cms/taxonomies/tags/terms/{$few[0]}/edit")->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('terms', fn ($terms): bool => array_column($terms->all(), 'id') === [$few[1], $few[2]]));
+    [, $counts] = hydrated(fn () => $this->get("/admin/cms/taxonomies/places/terms/{$many[0]}/edit")->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('terms', null)));
+    // The term itself, and its translations: not the taxonomy's.
+    expect($counts['terms'])->toBeLessThan(5);
+    // Who edits terms (not entries) may search for the new parent.
+    $this->getJson("/admin/cms/terms/picker?taxonomy=places&except={$many[0]}")->assertOk();
+});
+
+it('offers a menu its terms when few, and has them searched when many, by those who edit menus', function () {
+    $collection = Collection::query()->create(['handle' => 'posts', 'title' => 'Posts']);
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/tags/{slug}']);
+    $places = Taxonomy::query()->create(['handle' => 'places', 'title' => 'Places', 'hierarchical' => true]);
+    $collection->taxonomies()->attach($places->id, ['term_pages' => true]);
+    // No pages: not offered.
+    $hidden = Taxonomy::query()->create(['handle' => 'hidden', 'title' => 'Hidden']);
+    manyTerms($hidden, 3, nested: false);
+    $menu = Menu::query()->create(['handle' => 'main', 'title' => 'Main']);
+    $tagIds = manyTerms($tags, 2, nested: false);
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
+
+    $this->get('/admin/cms/menus/main/links')->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('termTaxonomies', [
+            ['id' => $places->id, 'handle' => 'places', 'title' => 'Places', 'pages' => [['collection' => $collection->id, 'title' => 'Posts']]],
+            ['id' => $tags->id, 'handle' => 'tags', 'title' => 'Tags', 'pages' => [['collection' => null, 'title' => 'Shared page (all collections)']]],
+        ])
+        ->where('terms', fn ($terms): bool => array_column($terms->all(), 'id') === [$tagIds[1], $tagIds[0]]));
+
+    // Past the list's size (they were cut at 500 before, silently): searched in their taxonomy.
+    manyTerms($places, TermsField::LISTED, nested: true);
+    $this->get('/admin/cms/menus/main/links')->assertInertia(fn (AssertableInertia $page) => $page->where('terms', null)->has('termTaxonomies', 2));
+    $this->getJson('/admin/cms/terms/picker?taxonomy=places')->assertOk();
+    $this->getJson('/admin/cms/terms/picker?taxonomy=tags&ids[]='.$tagIds[0])->assertOk()->assertJsonPath('items.0.label', 'Term 1');
+    $this->getJson('/admin/cms/terms/picker?taxonomy=hidden')->assertForbidden();
+
+    // A term link says which taxonomy to search in for another.
+    app(SaveMenu::class)->handle($menu, [['term_id' => $tagIds[0]]]);
+    $this->get('/admin/cms/menus/main/links')->assertInertia(fn (AssertableInertia $page) => $page->where('items.0.target.taxonomy', $tags->id));
 });

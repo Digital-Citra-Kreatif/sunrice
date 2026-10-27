@@ -8,7 +8,7 @@ The list shows one collection at a time; pick another one with the collection me
 
 - **Search** finds entries by title or slug; type `#12` to find the entry with number 12.
 - **Status** shows only **Drafts**, **Published**, **Scheduled** (published, going live later) or the **Trash**.
-- Filter by author, by a term (such as a category) and by **Language**: the list shows the titles and statuses in that language. With more than two author and taxonomy filters, they're together under **Filters**, which shows how many are set.
+- Filter by author, by a term (such as a category) and by **Language**: the list shows the titles and statuses in that language. With more than two author and taxonomy filters, or a taxonomy with many terms (more than 200, which you search by typing instead of scrolling a list), they're together under **Filters**, which shows how many are set.
 - Click a column's title to sort by it. **Columns** chooses which columns you see, including some of the entry's own fields (a price, a date…). The panel remembers your columns and page size.
 - The **⋮** menu beside **New entry** leads to what you might need next: the collection's listing page, its terms, its settings and its blueprint, as your role allows.
 - **Export CSV** (in the **⋮** menu) downloads the list as filtered, sorted and in its language, every page of it, for a spreadsheet. It needs its own permission: being able to see a list isn't enough to download it.
@@ -38,7 +38,7 @@ From then on, **Save draft** keeps your work (or press **Ctrl S** / **⌘ S**). 
 - **Media** fields pick images or files from the [media library](guide:panel/media), or upload new ones.
 - **Entries** and **Terms** fields link to other entries or to terms (a "featured topic", say); search by title. The entry's own categories and tags are in the **Taxonomies** card (below).
 - **Link** fields take a web address, or another entry (choose **Entry** to follow its address even if it changes).
-- **Groups**, **repeaters** and **flexible** fields hold several fields together; repeaters and flexible fields add rows or blocks, which you drag into order by their handle. Each row or block is named by its first text; click its name to fold it away (**Collapse all** folds the whole list), and switch off **Visible on site** to keep it here but leave it out of the page.
+- **Groups**, **repeaters** and **flexible** fields hold several fields together; repeaters and flexible fields add rows or blocks, which you drag into order by their handle. A new row or block starts with its fields' default values. Each row or block is named by its first text; click its name to fold it away (**Collapse all** folds the whole list), and switch off **Visible on site** to keep it here but leave it out of the page.
 
 The editor's cards (groups, **SEO**, and the cards on the right) fold away when you click their title. The panel remembers which ones you folded, and opens a card by itself when a field inside it has an error.
 

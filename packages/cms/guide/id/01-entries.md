@@ -8,7 +8,7 @@ Daftar menampilkan satu koleksi dalam satu waktu; pilih koleksi lain lewat menu 
 
 - **Cari** mencari entri berdasarkan judul atau slug; ketik `#12` untuk menemukan entri bernomor 12.
 - **Status** menampilkan hanya **Draf**, **Terbit**, **Terjadwal**, atau **Tempat sampah**.
-- Saring berdasarkan penulis, term (misalnya kategori), dan **Bahasa**: daftar menampilkan judul dan status dalam bahasa tersebut. Jika ada lebih dari dua filter penulis dan taksonomi, semuanya dikumpulkan di **Filter**, yang menunjukkan berapa yang aktif.
+- Saring berdasarkan penulis, term (misalnya kategori), dan **Bahasa**: daftar menampilkan judul dan status dalam bahasa tersebut. Jika ada lebih dari dua filter penulis dan taksonomi, atau taksonomi dengan banyak term (lebih dari 200, yang dicari dengan mengetik alih-alih menggulir daftar), semuanya dikumpulkan di **Filter**, yang menunjukkan berapa yang aktif.
 - Klik judul kolom untuk mengurutkan. **Kolom** memilih kolom yang tampil, termasuk beberapa field entri itu sendiri (harga, tanggal…). Panel mengingat pilihan kolom dan jumlah baris per halaman Anda.
 - Menu **⋮** di samping **Entri baru** mengarah ke hal yang mungkin Anda perlukan berikutnya: halaman daftar koleksi, term-nya, pengaturannya, dan blueprint-nya, sesuai izin peran Anda.
 - **Ekspor CSV** (di menu **⋮**) mengunduh daftar sesuai filter, urutan, dan bahasanya, semua halamannya, untuk dibuka di spreadsheet. Ini membutuhkan izin tersendiri: bisa melihat daftar belum berarti boleh mengunduhnya.
@@ -38,7 +38,7 @@ Selanjutnya, **Simpan draf** menyimpan pekerjaan Anda (atau tekan **Ctrl S** / *
 - Field **Media** memilih gambar atau berkas dari [pustaka media](guide:panel/media), atau mengunggah yang baru.
 - Field **Entri** dan **Term** menautkan ke entri lain atau ke term (misalnya "topik pilihan"); cari berdasarkan judul. Kategori dan tag entri itu sendiri ada di kartu **Taksonomi** (di bawah).
 - Field **Tautan** menerima alamat web, atau entri lain (pilih **Entri** agar mengikuti alamat entri itu meskipun berubah).
-- Field **Grup**, **Repeater**, dan **Konten fleksibel** menampung beberapa field sekaligus; repeater dan konten fleksibel menambahkan baris atau blok, yang Anda seret ke urutannya lewat pegangannya. Setiap baris atau blok diberi nama dari teks pertamanya; klik namanya untuk melipatnya (**Lipat semua** melipat seluruh daftar), dan matikan **Tampil di situs** untuk menyimpannya di sini tanpa menampilkannya di halaman.
+- Field **Grup**, **Repeater**, dan **Konten fleksibel** menampung beberapa field sekaligus; repeater dan konten fleksibel menambahkan baris atau blok, yang Anda seret ke urutannya lewat pegangannya. Baris atau blok baru dimulai dengan nilai bawaan field-fieldnya. Setiap baris atau blok diberi nama dari teks pertamanya; klik namanya untuk melipatnya (**Lipat semua** melipat seluruh daftar), dan matikan **Tampil di situs** untuk menyimpannya di sini tanpa menampilkannya di halaman.
 
 Kartu-kartu di penyunting (grup, **SEO**, dan kartu di kanan) bisa dilipat dengan mengeklik judulnya. Panel mengingat kartu mana yang Anda lipat, dan membuka sendiri kartu yang field di dalamnya bermasalah.
 

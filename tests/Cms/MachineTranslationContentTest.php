@@ -134,6 +134,26 @@ it('translates an entry\'s texts, nested ones and custom text types too, but not
         ->and($id->entry->fresh()?->draftTermIds())->toBe([$this->news->id]);
 });
 
+it('translates a row or block from the one of the same id, never from another one at its place', function () {
+    fakeTranslator();
+    app(SaveDraft::class)->handle($this->post, ['data' => ['more' => [
+        ['id' => 'q1', 'type' => 'quote', 'values' => ['words' => 'Lovely', 'stars' => 5]],
+        ['id' => 'q2', 'type' => 'quote', 'values' => ['words' => 'Superb', 'stars' => 4]],
+    ]]]);
+    $id = app(CreateTranslation::class)->handle($this->post->entry, 'id');
+    // Its own second block, not yet written: the main language's second block is another one.
+    app(SaveDraft::class)->handle($id, ['data' => ['more' => [
+        ['id' => 'q1', 'type' => 'quote', 'values' => ['words' => '']],
+        ['id' => 'q9', 'type' => 'quote', 'values' => ['words' => '']],
+    ]]]);
+
+    app(MachineTranslateEntry::class)->handle($id->fresh() ?? $id);
+
+    $more = ($id->fresh() ?? $id)->draft_data['more'];
+    expect($more[0]['values']['words'])->toBe('ID: Lovely')
+        ->and($more[1]['id'])->toBe('q9')->and($more[1]['values']['words'] ?? null)->toBeEmpty();
+});
+
 it('leaves collections that aren\'t translatable out, without failing or counting them', function () {
     $sent = fakeTranslator();
     $this->posts->update(['translatable' => false]);

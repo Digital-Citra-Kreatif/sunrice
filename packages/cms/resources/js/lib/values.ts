@@ -38,9 +38,9 @@ export function offersEmptyChoice(options: readonly { value: string; label: stri
     return !hasDefault || !filled;
 }
 
-/** A new repeater row: the server gives it its stable id. */
-export function newRow(): Record<string, unknown> {
-    return { _hidden: false };
+/** A new repeater row, with its fields' defaults (the field's `defaults`): the server gives it its stable id. */
+export function newRow(defaults?: unknown): Record<string, unknown> {
+    return { ...structuredClone(asRecord(defaults)), _hidden: false };
 }
 
 /**
@@ -84,9 +84,9 @@ export function decodeEntities(text: string): string {
     });
 }
 
-/** A new flexible block of a kind (a fieldset's handle). */
-export function newBlock(type: string): Record<string, unknown> {
-    return { type, hidden: false, values: {} };
+/** A new flexible block of a kind (a fieldset's handle), with its fields' defaults (the kind's `defaults`). */
+export function newBlock(type: string, defaults?: unknown): Record<string, unknown> {
+    return { type, hidden: false, values: structuredClone(asRecord(defaults)) };
 }
 
 /**
@@ -127,10 +127,12 @@ export function syncKeys(keys: readonly string[], count: number): string[] {
 }
 
 /** The term picker endpoint's query string. */
-export function termPickerQuery({ taxonomy, q, offset, ids }: { taxonomy: string; q?: string; offset?: number; ids?: number[] }): string {
+export function termPickerQuery({ taxonomy, q, offset, except, ids }: { taxonomy: string; q?: string; offset?: number; except?: number | null; ids?: number[] }): string {
     const params = new URLSearchParams({ taxonomy });
     if (q) params.set('q', q);
     if (offset) params.set('offset', String(offset));
+    // A term being moved: not it nor the terms under it.
+    if (except) params.set('except', String(except));
     for (const id of ids ?? []) params.append('ids[]', String(id));
 
     return params.toString();
