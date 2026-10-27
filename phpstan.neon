@@ -10,7 +10,8 @@ parameters:
     ignoreErrors:
         # PHPStan types filter_var() with FILTER_FLAG_GLOBAL_RANGE as never returning false, but it does for
         # every non-global address (tests/Admin/PublicAddressTest.php), which is what this check relies on.
+        # Newer PHPStan releases type it correctly, so the ignore may match nothing (reportUnmatched: false).
         -
             identifier: identical.alwaysFalse
             path: packages/admin/src/Support/PublicAddress.php
-            count: 1
+            reportUnmatched: false
