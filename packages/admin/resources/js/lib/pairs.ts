@@ -48,3 +48,18 @@ export function withFixedValue(text: string, key: string, value: string): string
 
     return lines.flatMap((line, i) => (i === index ? (next === null ? [] : [next]) : [line])).join('\n');
 }
+
+/** Whether two keys are the same one: compared trimmed and ignoring case ("pt_BR" and "pt_br"). */
+export function sameKey(a: string, b: string): boolean {
+    return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/** The keys the other rows use (not the row at `index`), for a Pairs field with ->distinctKeys(). */
+export function keysTaken(rows: Pair[], index: number): string[] {
+    return rows.flatMap((row, i) => (i !== index && row.key.trim() !== '' ? [row.key.trim()] : []));
+}
+
+/** The suggestions a row may still choose: those another row doesn't use already (its own key stays). */
+export function suggestionsFor(suggestions: Pair[], taken: string[]): Pair[] {
+    return suggestions.filter((s) => !taken.some((key) => sameKey(key, s.key)));
+}
