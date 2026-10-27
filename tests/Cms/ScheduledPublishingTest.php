@@ -1,0 +1,105 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
+use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Entries\CreateEntry;
+use Sunrice\Cms\Actions\Entries\PublishEntry;
+use Sunrice\Cms\CmsPlugin;
+use Sunrice\Cms\Events\EntryPublished;
+use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\EntryTranslation;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\artisan;
+
+/*
+ * sunrice:publish-scheduled: entries published for a later date are
+ * announced once when it comes, whatever the app's timezone, a run that
+ * failed or two runs at once.
+ */
+
+beforeEach(function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    actingAs(adminUser());
+    $this->news = Collection::query()->create(['handle' => 'news', 'title' => 'News', 'route' => '/news/{slug}']);
+    $this->timezone = date_default_timezone_get();
+});
+
+afterEach(function () {
+    date_default_timezone_set($this->timezone);
+});
+
+function scheduledNews(string $title, DateTimeInterface $at): EntryTranslation
+{
+    return app(PublishEntry::class)->handle(app(CreateEntry::class)->handle(test()->news, ['title' => $title]), $at);
+}
+
+/** @return list<string> the titles announced as gone live */
+function announced(): array
+{
+    $titles = [];
+    foreach (Event::dispatched(EntryPublished::class, fn (EntryPublished $event): bool => $event->scheduled) as [$event]) {
+        $titles[] = (string) $event->translation->title;
+    }
+
+    return $titles;
+}
+
+it('announces each scheduled entry once, in an app timezone ahead of UTC or behind it', function (string $timezone) {
+    config(['app.timezone' => $timezone]);
+    date_default_timezone_set($timezone);
+    $this->travelTo(now()->setTime(9, 0));
+    artisan('sunrice:publish-scheduled')->assertSuccessful();
+    scheduledNews('Later', now()->addMinutes(30));
+    Event::fake([EntryPublished::class]);
+
+    $this->travelTo(now()->addMinutes(29));
+    artisan('sunrice:publish-scheduled')->expectsOutput('0 scheduled entries went live.');
+    $this->travelTo(now()->addMinutes(2));
+    artisan('sunrice:publish-scheduled')->expectsOutput('1 scheduled entry went live.');
+    $this->travelTo(now()->addMinute());
+    artisan('sunrice:publish-scheduled')->expectsOutput('0 scheduled entries went live.');
+
+    expect(announced())->toBe(['Later']);
+})->with(['Asia/Jakarta', 'America/New_York']);
+
+it('announces again what a run that failed did not get to', function () {
+    $this->travelTo(now()->setTime(9, 0));
+    artisan('sunrice:publish-scheduled')->assertSuccessful();
+    scheduledNews('Later', now()->addMinutes(30));
+    // A listener of a plugin fails once (a mail server down…).
+    $failed = false;
+    Event::listen(EntryPublished::class, function (EntryPublished $event) use (&$failed): void {
+        if ($event->scheduled && ! $failed) {
+            $failed = true;
+            throw new RuntimeException('Down');
+        }
+    });
+
+    $this->travelTo(now()->addMinutes(31));
+    expect(fn () => artisan('sunrice:publish-scheduled')->run())->toThrow(RuntimeException::class);
+    $this->travelTo(now()->addMinute());
+    artisan('sunrice:publish-scheduled')->expectsOutput('1 scheduled entry went live.');
+});
+
+it('leaves the work to a run already going on (another server\'s)', function () {
+    $this->travelTo(now()->setTime(9, 0));
+    artisan('sunrice:publish-scheduled')->assertSuccessful();
+    scheduledNews('Later', now()->addMinutes(30));
+    Event::fake([EntryPublished::class]);
+    $this->travelTo(now()->addMinutes(31));
+
+    // Another run holds the lock: this one does nothing, and the window stays for the next.
+    $lock = Cache::lock('sunrice-cms:publish-scheduled', 60);
+    expect($lock->get())->toBeTrue();
+    artisan('sunrice:publish-scheduled')->expectsOutput('Another run is announcing scheduled entries.')->assertSuccessful();
+    expect(announced())->toBe([]);
+    $lock->release();
+
+    artisan('sunrice:publish-scheduled')->expectsOutput('1 scheduled entry went live.');
+    artisan('sunrice:publish-scheduled')->expectsOutput('0 scheduled entries went live.');
+    expect(announced())->toBe(['Later']);
+});
