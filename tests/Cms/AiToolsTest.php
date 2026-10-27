@@ -608,6 +608,17 @@ it('builds and renders addresses with a language\'s own URL pattern, and saves o
     expect(cmsTool($token, 'cms_render_page', ['path' => '/id/blog/halo'])['status'])->toBe(301);
 });
 
+it('refuses an entry URL pattern that would put an entry at a listing page, from save_record too', function () {
+    Collection::query()->create(['handle' => 'news', 'title' => 'News', 'blueprint' => 'post', 'route' => '/news/{slug}', 'listing_route' => '/hello']);
+    $token = cmsAgent(['cms.collections.view', 'cms.collections.update']);
+
+    // The draft "Hello" would be at /hello, News's listing page.
+    expect(cmsTool($token, 'save_record', ['resource' => 'collections', 'id' => (string) $this->blog->id, 'values' => ['title' => 'Blog', 'route' => '/{slug}']]))
+        ->toBeString()->toContain('With this URL pattern, "Hello" in Blog would be at /hello, which the News listing page has in English already.');
+    expect(Collection::query()->find($this->blog->id)?->route)->toBe('/blog/{slug}')
+        ->and(cmsTool($token, 'save_record', ['resource' => 'collections', 'id' => (string) $this->blog->id, 'values' => ['title' => 'Blog', 'route' => '/posts/{slug}']]))->toBeArray();
+});
+
 it('lists in the template guide the term pages of taxonomies whose terms have pages only in collections', function () {
     $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
     Taxonomy::query()->create(['handle' => 'labels', 'title' => 'Labels']);

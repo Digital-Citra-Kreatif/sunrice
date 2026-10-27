@@ -21,6 +21,9 @@ use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Site\Site;
+use Sunrice\Cms\Structure\StructureExporter;
+use Sunrice\Cms\Structure\StructureImporter;
+use Sunrice\Cms\Structure\StructureImportFailed;
 use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\actingAs;
@@ -186,4 +189,59 @@ it('checks terms against fixed addresses, on their shared pages and in collectio
     put('/admin/cms/collections/books', ['title' => 'Books', 'blueprint' => 'page', 'route' => '/books/{slug}', 'listing_route' => '/books', 'listing_route_id' => '/books/topics/berita'])
         ->assertSessionHasErrors(['listing_route_id' => '"Berita" in Topics has this URL in '.Locales::name('id').' already.']);
     expect(Term::withTrashed()->find($news->id)?->trashed())->toBeTrue();
+});
+
+it('refuses a new entry URL pattern that would put an entry at a fixed address', function () {
+    $this->pages->update(['route' => '/p/{slug}']);
+    $ours = clashPage('Our books', 'books');
+    app(SaveDraft::class)->handle(app(CreateTranslation::class)->handle($ours->entry, 'id'), ['title' => 'Buku kami', 'slug' => 'books']);
+    actingAs(adminUser(Panel::ACCESS, 'cms.collections.update'));
+    $edit = fn (array $input) => put('/admin/cms/collections/pages', ['title' => 'Pages', 'blueprint' => 'page', 'route' => '/p/{slug}', ...$input]);
+
+    $edit(['route' => '/{slug}'])->assertSessionHasErrors(['route' => 'With this URL pattern, "Our books" in Pages would be at /books, which the Books listing page has in English already.']);
+    // In a language's own pattern: /id/{slug} would be /id/books, Books' listing page in Indonesian too.
+    $edit(['route_id' => '/{slug}'])->assertSessionHasErrors(['route_id' => 'With this URL pattern, "Buku kami" in Pages would be at /id/books, which the Books listing page has in '.Locales::name('id').' already.']);
+
+    // Drafts and the trash too: /shelf/{slug} would put them at the listing pages /shelf/draft and /shelf/old.
+    app(CreateEntry::class)->handle($this->pages, ['title' => 'Draft', 'slug' => 'draft']);
+    $old = clashPage('Old', 'old');
+    app(TrashEntry::class)->handle($old->entry);
+    $shelf = Collection::query()->create(['handle' => 'shelf', 'title' => 'Shelf', 'blueprint' => 'page', 'route' => '/shelves/{slug}', 'listing_route' => '/shelf/draft']);
+    $edit(['route' => '/shelf/{slug}'])->assertSessionHasErrors(['route' => 'With this URL pattern, "Draft" in Pages would be at /shelf/draft, which the Shelf listing page has in English already.']);
+    $shelf->update(['listing_route' => '/shelf/old']);
+    $edit(['route' => '/shelf/{slug}'])->assertSessionHasErrors(['route' => 'With this URL pattern, "Old" in Pages would be at /shelf/old, which the Shelf listing page has in English already.']);
+    $edit(['route' => '/page/{slug}'])->assertSessionHasNoErrors();
+
+    // A pattern it has already isn't checked again: a clash made before doesn't stop other changes.
+    $this->pages->forceFill(['route' => '/{slug}'])->save();
+    $edit(['route' => '/{slug}', 'title' => 'Site pages'])->assertSessionHasNoErrors();
+});
+
+it('refuses a new term page pattern, shared or in a collection, that would put a term at a fixed address', function () {
+    $this->pages->update(['route' => '/p/{slug}']);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'route' => '/topics/{slug}']);
+    $books = app(SaveTerm::class)->handle($topics, ['title' => 'Books', 'slug' => 'books']);
+    app(SaveTermContent::class)->handle($books, ['title' => 'Buku', 'slug' => 'books'], 'id');
+    actingAs(adminUser(Panel::ACCESS, 'cms.taxonomies.update'));
+
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'route' => '/{slug}', 'route_id' => '/topik/{slug}'])
+        ->assertSessionHasErrors(['route' => 'With this URL pattern, "Books" in Topics would be at /books, which the Books listing page has in English already.']);
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'route' => '/topics/{slug}', 'route_id' => '/{slug}'])->assertSessionHasErrors('route_id');
+
+    // Its pages in a collection: /shelf/{slug} would put the term "books" at Shelf's listing page.
+    Collection::query()->create(['handle' => 'shelf', 'title' => 'Shelf', 'blueprint' => 'page', 'route' => '/shelves/{slug}', 'listing_route' => '/shelf/books']);
+    $id = $this->pages->id;
+    put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'route' => '/topics/{slug}', 'collections' => [(string) $id], "term_pages_{$id}" => true, "index_page_{$id}" => false, "term_route_{$id}" => '/shelf/{slug}'])
+        ->assertSessionHasErrors(["term_route_{$id}" => 'With this URL pattern, "Books" in Topics would be at /shelf/books, which the Shelf listing page has in English already.']);
+});
+
+it('refuses an imported pattern that would put an entry at a fixed address', function () {
+    $this->pages->update(['route' => '/p/{slug}']);
+    clashPage('Our books', 'books');
+    $exported = app(StructureExporter::class)->export();
+    $pages = array_search('pages', array_column($exported['collections'], 'handle'), true);
+    $exported['collections'][$pages]['route'] = '/{slug}';
+
+    expect(fn () => app(StructureImporter::class)->import($exported))->toThrow(StructureImportFailed::class);
+    expect(Collection::query()->find($this->pages->id)?->route)->toBe('/p/{slug}');
 });
