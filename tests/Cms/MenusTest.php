@@ -475,3 +475,31 @@ it('counts the version up when items are reordered, so an editor opened before r
         ->and(fn () => app(SaveMenu::class)->handle($menu->fresh() ?? $menu, [['url' => '/a', 'labels' => ['en' => 'A']]], $version))->toThrow(ValidationException::class, 'Someone else saved')
         ->and(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['B', 'A']);
 });
+
+it('saves a link\'s corrected address in place, with its labels, new tab and children, and checks it as a new one (CMS-005)', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    app(SaveMenu::class)->handle($this->main, [
+        ['url' => '/home', 'labels' => ['en' => 'Home']],
+        ['url' => '/oen', 'labels' => ['en' => 'One', 'id' => 'Satu'], 'new_tab' => true, 'children' => [['url' => '/one/child', 'labels' => ['en' => 'Child']]]],
+    ]);
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
+    $opened = null;
+    get('/admin/cms/menus/main/links')->assertInertia(function (Assert $page) use (&$opened) {
+        $opened = $page->toArray()['props'];
+    });
+    $items = $opened['items'];
+
+    // The editor's "Change where it links" changes only the address.
+    $unsafe = $items;
+    $unsafe[1]['url'] = 'javascript:alert(1)';
+    put('/admin/cms/menus/main/links', ['items' => $unsafe, 'version' => $opened['version']])->assertSessionHasErrors('items.1.url');
+    $items[1]['url'] = '/one';
+    put('/admin/cms/menus/main/links', ['items' => $items, 'version' => $opened['version']])->assertSessionHasNoErrors();
+
+    get('/admin/cms/menus/main/links')->assertInertia(fn (Assert $page) => $page
+        ->where('items.0.url', '/home')
+        ->where('items.1.url', '/one')->where('items.1.labels', ['en' => 'One', 'id' => 'Satu'])->where('items.1.new_tab', true)
+        ->where('items.1.children.0.url', '/one/child')->where('items.1.children.0.labels', ['en' => 'Child']));
+    expect(app(Menus::class)->get('main')[1])->toMatchArray(['label' => 'One', 'url' => '/one', 'new_tab' => true])
+        ->and(array_column(app(Menus::class)->get('main')[1]['children'], 'label'))->toBe(['Child']);
+});
