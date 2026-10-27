@@ -15,7 +15,10 @@ use Sunrice\Admin\Support\Say;
  *
  * Suggested keys are offered in a searchable list (by key or value), and
  * any other key can still be typed; picking one fills an empty value with
- * its suggestion. ->hints('en, id…', …) puts a short hint under each
+ * its suggestion. With ->distinctKeys() a key can be in one row only: each
+ * row's list leaves out the keys the other rows use (compared ignoring
+ * case), and a typed one that's used is shown as already added; validate
+ * on the server too. ->hints('en, id…', …) puts a short hint under each
  * column's heading. With
  * ->extra('Address') each row has a third, optional column, kept after a
  * bar: "id: Bahasa Indonesia | indonesia".
@@ -38,6 +41,8 @@ final class Pairs extends Field
     private array $suggestions = [];
 
     private ?string $firstBadge = null;
+
+    private bool $distinctKeys = false;
 
     private string $addLabel = 'Add';
 
@@ -69,6 +74,14 @@ final class Pairs extends Field
     public function suggest(array $suggestions): self
     {
         $this->suggestions = $suggestions;
+
+        return $this;
+    }
+
+    /** Each key in one row only: the rows' lists leave out keys other rows use (validate on the server too). */
+    public function distinctKeys(bool $distinct = true): self
+    {
+        $this->distinctKeys = $distinct;
 
         return $this;
     }
@@ -139,6 +152,7 @@ final class Pairs extends Field
             'valueLabel' => Say::it($this->valueLabel),
             'suggestions' => array_map(fn (string $key, string $value): array => ['key' => $key, 'value' => $value], array_keys($this->suggestions), $this->suggestions),
             'firstBadge' => Say::it($this->firstBadge),
+            'distinctKeys' => $this->distinctKeys,
             'addLabel' => Say::it($this->addLabel),
             'extra' => $this->extra === null ? null : array_map(fn (?string $text): ?string => Say::it($text), $this->extra),
             'hints' => array_map(fn (?string $text): ?string => Say::it($text), $this->hints),

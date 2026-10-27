@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
 import { codeLanguage } from '@/lib/code-editor';
-import { fixedValues, formatPairs, parsePairs, type Pair, withFixedValue } from '@/lib/pairs';
+import { fixedValues, formatPairs, keysTaken, parsePairs, type Pair, sameKey, suggestionsFor, withFixedValue } from '@/lib/pairs';
 import { formatList, looksValid, networkOf, parseList } from '@/lib/networks';
 import { isPasswordRules } from '@/lib/password-rules';
 import { slugInput } from '@/lib/slug';
@@ -381,8 +381,8 @@ function PairsInput({ id, field, value, disabled, invalid, onChange }: {
             {rows.map((row, index) => (
                 <div key={index} className={`grid ${columns} items-center gap-2`}>
                     {suggestions.length > 0 ? (
-                        <KeyCombobox label={`${keyLabel} ${index + 1}`} suggestions={suggestions} disabled={disabled} invalid={invalid}
-                            value={row.key} onChange={(key) => setKey(index, row, key)} />
+                        <KeyCombobox label={`${keyLabel} ${index + 1}`} suggestions={suggestions} taken={field.distinctKeys === true ? keysTaken(rows, index) : []}
+                            disabled={disabled} invalid={invalid} value={row.key} onChange={(key) => setKey(index, row, key)} />
                     ) : (
                         <Input aria-label={`${keyLabel} ${index + 1}`} disabled={disabled} className="font-mono" value={row.key}
                             onChange={(e) => setKey(index, row, e.target.value)} />
@@ -428,15 +428,18 @@ function ColumnHead({ label, hint }: { label: string; hint: string | null }) {
 
 /**
  * A Pairs key with suggestions: the panel's searchable list ("Bahasa Indonesia · id"),
- * searched by key or value, and still any key one types ("Use “xx”").
+ * searched by key or value, and still any key one types ("Use “xx”"). Keys other
+ * rows use (`taken`, ->distinctKeys()) are left out, and typed they're shown as already added.
  */
-function KeyCombobox({ label, suggestions, value, disabled, invalid, onChange }: {
-    label: string; suggestions: Pair[]; value: string; disabled: boolean; invalid: boolean; onChange: (key: string) => void;
+function KeyCombobox({ label, suggestions: all, taken, value, disabled, invalid, onChange }: {
+    label: string; suggestions: Pair[]; taken: string[]; value: string; disabled: boolean; invalid: boolean; onChange: (key: string) => void;
 }) {
     const [open, setOpen] = React.useState(false);
     const [query, setQuery] = React.useState('');
     const typed = query.trim();
+    const suggestions = suggestionsFor(all, taken);
     const exact = suggestions.some((s) => s.key === typed);
+    const used = typed !== '' && taken.some((key) => sameKey(key, typed));
     const choose = (key: string) => {
         onChange(key);
         setOpen(false);
@@ -464,7 +467,14 @@ function KeyCombobox({ label, suggestions, value, disabled, invalid, onChange }:
                                 <span className="ml-auto font-mono text-xs text-muted-foreground">{s.key}</span>
                             </CommandItem>
                         ))}
-                        {typed !== '' && !exact && (
+                        {used && (
+                            <CommandGroup>
+                                <CommandItem value="=" keywords={[typed]} disabled>
+                                    <Check className="opacity-0" />{t('“:code” is already added', { code: typed })}
+                                </CommandItem>
+                            </CommandGroup>
+                        )}
+                        {typed !== '' && !exact && !used && (
                             <CommandGroup>
                                 {/* Matched only by its keyword, so it ranks after the suggestions. */}
                                 <CommandItem value="+" keywords={[typed]} onSelect={() => choose(typed)}>

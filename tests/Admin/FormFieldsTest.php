@@ -33,6 +33,8 @@ it('describes pairs: their labels, suggestions, first badge and third column', f
         'extra' => ['label' => 'Address', 'placeholder' => '/{key}', 'firstPlaceholder' => '/'],
         'hints' => ['key' => 'en, id…', 'value' => 'As visitors read it', 'extra' => null],
     ])->and(Pairs::make('x')->validationRules(null))->toContain('string')
+        ->and(Pairs::make('x')->toArray()['distinctKeys'])->toBeFalse()
+        ->and(Pairs::make('x')->distinctKeys()->toArray()['distinctKeys'])->toBeTrue()
         ->and(Pairs::make('x')->toArray()['fixed'])->toBeNull()
         ->and(Pairs::make('x')->fixed(['id' => 'Bahasa Indonesia'])->toArray()['fixed'])->toBe([['key' => 'id', 'label' => 'Bahasa Indonesia']]);
 });
