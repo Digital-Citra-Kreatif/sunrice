@@ -361,6 +361,8 @@ export const TabsTrigger = m.TabsTrigger as AnyComponent;
 export const Textarea = m.Textarea as AnyComponent;
 /** A small panel opened by its trigger (a button), for help or a few choices: `<Popover><PopoverTrigger asChild>…</PopoverTrigger><PopoverContent align="start">…</PopoverContent></Popover>`. */
 export const Popover = m.Popover as AnyComponent;
+/** What the panel is placed against instead of its trigger (a whole field, say): `<PopoverAnchor asChild><div>…<PopoverTrigger asChild>…</PopoverTrigger></div></PopoverAnchor>`. */
+export const PopoverAnchor = m.PopoverAnchor as AnyComponent;
 export const PopoverContent = m.PopoverContent as AnyComponent;
 export const PopoverTrigger = m.PopoverTrigger as AnyComponent;
 export const Tooltip = m.Tooltip as AnyComponent;
