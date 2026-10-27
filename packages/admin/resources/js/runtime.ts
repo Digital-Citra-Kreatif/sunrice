@@ -13,6 +13,7 @@ import { deferred } from '@/components/app/deferred';
 import { CodeEditor } from '@/components/app/code-editor';
 import { DeveloperHelp } from '@/components/app/developer-help';
 import { KeptEditsNotice, useEditLock, ViewingNotice } from '@/components/app/edit-lock';
+import { LanguageTabs } from '@/components/app/language-tabs';
 import { PageHeader } from '@/components/app/page-header';
 import { RichTextEditor } from '@/components/app/rich-text';
 import { SettingsLayout, SettingsNav } from '@/components/app/settings-nav';
@@ -59,7 +60,7 @@ const ui = {
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker, DeveloperHelp,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-    FormSections, Input, KeptEditsNotice, Label, MediaPickerInput, moveItem, PageHeader, Popover, PopoverContent, PopoverTrigger, registerCommandSource, RichTextEditor,
+    FormSections, Input, KeptEditsNotice, Label, LanguageTabs, MediaPickerInput, moveItem, PageHeader, Popover, PopoverContent, PopoverTrigger, registerCommandSource, RichTextEditor,
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, SettingsLayout, SettingsNav, Skeleton, SortableHandle, SortableList, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
     Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, TrashBanner, TrashHint, TrashTitle, useBreadcrumbs, useEditLock, useTablePreferences, useUnsavedChanges, ViewingNotice,

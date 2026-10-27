@@ -36,6 +36,8 @@ interface Props {
     storageLinkMissing?: boolean;
     /** The content's other languages (Panel::contentLocales()): alt text and captions in each. */
     locales?: { code: string; name: string }[];
+    /** The content's main language (the file's own alt text and caption). */
+    mainLocale?: { code: string; name: string } | null;
 }
 
 const ALL = '__all';
@@ -50,7 +52,7 @@ function withCode(text: string, codes: Record<string, string>): React.ReactNode 
     });
 }
 
-export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false, locales = [] }: Props) {
+export default function MediaIndex({ query, folder, path, folders, tree, media, can, upload, storageLinkMissing = false, locales = [], mainLocale = null }: Props) {
     const base = adminUrl('media');
     useBreadcrumbs(path.length === 0 ? [{ label: t('Media') }] : [{ label: t('Media'), href: base }, ...path.map((f, i) => (i === path.length - 1 ? { label: f.name } : { label: f.name, href: `${base}?folder=${f.id}` }))]);
     const [confirm, confirmDialog] = useConfirm();
@@ -309,7 +311,7 @@ export default function MediaIndex({ query, folder, path, folders, tree, media, 
                 </div>
             )}
 
-            <MediaDetails item={open} can={can} accept={upload.accept} locales={locales} onClose={() => setOpenId(null)} />
+            <MediaDetails item={open} can={can} accept={upload.accept} locales={locales} mainLocale={mainLocale} onClose={() => setOpenId(null)} />
             <FolderDialog state={folderDialog} parentId={folder?.id ?? null} onClose={() => setFolderDialog(null)} />
             <MoveDialog open={moving} tree={tree} onClose={() => setMoving(false)} onMove={(folderId) => { bulk('move', { folder_id: folderId }); setMoving(false); }} />
         </div>
