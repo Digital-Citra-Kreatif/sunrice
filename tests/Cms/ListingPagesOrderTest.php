@@ -114,8 +114,9 @@ it('pages Cms::entries() the same way, cached or not', function () {
 it('sorts and skips the ids only, not the whole translations', function () {
     $sorted = [];
     DB::listen(function ($query) use (&$sorted) {
-        if (str_contains($query->sql, 'from "sunrice_entry_translations"') && str_contains($query->sql, ' offset ')) {
-            $sorted[] = $query->sql;
+        $sql = str_replace(['"', '`'], '', $query->sql); // MySQL quotes with backticks
+        if (str_contains($sql, 'from sunrice_entry_translations') && str_contains($sql, ' offset ')) {
+            $sorted[] = $sql;
         }
     });
 
@@ -124,6 +125,6 @@ it('sorts and skips the ids only, not the whole translations', function () {
     expect(Content::entries('guide')->locale('id')->ordered()->paginate(2))->toHaveCount(2);
 
     expect($sorted)->toHaveCount(3)
-        ->and(collect($sorted)->every(fn (string $sql): bool => str_starts_with($sql, 'select "sunrice_entry_translations"."id" from')))->toBeTrue();
+        ->and(collect($sorted)->every(fn (string $sql): bool => str_starts_with($sql, 'select sunrice_entry_translations.id from')))->toBeTrue();
     expect(SiteController::listed('id'))->toBe(['entry.collection', 'entry.translations']);
 });
