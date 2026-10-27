@@ -147,7 +147,7 @@ export interface LanguageTab {
     code: string;
     /** Its name ("Bahasa Indonesia"); the code when not given. */
     name?: string;
-    /** The main language: marked "Main". */
+    /** The main language: said in its tooltip ("English (main)"). */
     main?: boolean;
     /** Nothing in this language yet: muted with a plus; choosing it calls `onAdd` when given, else opens it. */
     missing?: boolean;
