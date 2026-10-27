@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { asRecord, dateInputValue, decodeEntities, dateValueFromInput, groupedNumber, hasSharedFields, itemSummary, offersEmptyChoice, newBlock, newRow } from '../../packages/cms/resources/js/lib/values.ts';
+import { asRecord, dateInputValue, decodeEntities, dateValueFromInput, groupedNumber, itemSummary, offersEmptyChoice, newBlock, newRow } from '../../packages/cms/resources/js/lib/values.ts';
 
 test('reads stored dates into date inputs', () => {
     assert.equal(dateInputValue('2026-10-19', false), '2026-10-19');
@@ -112,13 +112,6 @@ test('notes a new slug only for an address visitors have known: redirected when 
     assert.equal(slugNote('hello', 'hello-world', false), 'breaks', 'published once, a draft again');
     assert.equal(slugNote(null, 'hello-world', false), null, 'never published');
     assert.equal(slugNote('hello', '  ', true), null, 'empty: made from the title');
-});
-
-test('finds fields shared with the main language at any depth', () => {
-    assert.equal(hasSharedFields([{ fields: [{}] }]), false);
-    assert.equal(hasSharedFields([{ shared: true }]), true);
-    assert.equal(hasSharedFields([{ fields: [{ fields: [{ shared: true }] }] }]), true);
-    assert.equal(hasSharedFields([{ blocks: [{ fields: [{ shared: true }] }] }]), true);
 });
 
 test('names languages as the site does, else in the reader\'s language', async () => {
