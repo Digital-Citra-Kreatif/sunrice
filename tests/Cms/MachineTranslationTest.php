@@ -80,6 +80,11 @@ it('sends texts in batches with their HTML kept out of the model\'s hands', func
         && str_contains($request->url(), 'models/gemini-2.5-flash:generateContent')
         && ! str_contains((string) data_get($request->data(), 'contents.0.parts.0.text'), '<em>'));
 
+    // Only tags are kept out: "<12" and ">60" are words.
+    Http::assertSent(fn (Request $request) => str_contains((string) data_get($request->data(), 'contents.0.parts.0.text'), 'Two ⟦1⟧2⟦2⟧⟦3⟧'));
+    expect(app(TranslatorFactory::class)->make()->translate(['d' => 'Kids <12 eat free, adults >60 <!-- note --> too'], 'en', 'id'))->toBe(['d' => 'ID: Kids <12 eat free, adults >60 <!-- note --> too']);
+    Http::assertSent(fn (Request $request) => str_contains((string) data_get($request->data(), 'contents.0.parts.0.text'), 'Kids <12 eat free, adults >60 ⟦0⟧ too'));
+
     // Placeholders that don't come back once each: not translated.
     $drop = true;
     expect(app(TranslatorFactory::class)->make()->translate(['b' => '<p>Two <em>2</em></p>', 'c' => 'Three'], 'en', 'id'))->toBe(['c' => 'Three']);
