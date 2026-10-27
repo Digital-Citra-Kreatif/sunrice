@@ -5,12 +5,12 @@
 ## Editing a set
 
 1. Click a set in the list.
-2. Choose the language at the top, if the site has several.
+2. Choose the language with the tabs at the top, if the site has several.
 3. Change the fields and click **Save**.
 
 Globals have no drafts: saved values are live on the website straight away, on every page that shows them.
 
-Fields shared by all languages (a phone number, a logo) are edited in the main language and shown greyed out in the others, as in entries.
+Fields shared by all languages (a phone number, a logo) are edited in the main language and shown greyed out in the others, as in entries, inside groups, repeater rows and flexible blocks too.
 
 In another language, a set not saved there yet starts with the main language's values, which the website shows meanwhile: translate them, then save. A field you leave empty shows the main language's value on the website.
 

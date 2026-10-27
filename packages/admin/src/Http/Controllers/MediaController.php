@@ -69,6 +69,7 @@ final class MediaController
             ->orderByDesc('id')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
+        $contentLocales = app(Panel::class)->getContentLocales();
 
         return Inertia::render('Media/Index', [
             'query' => ['folder' => $current?->id, 'search' => $search, 'type' => $type, 'trash' => $trash],
@@ -91,7 +92,9 @@ final class MediaController
             ],
             // The public disk's link (php artisan storage:link) is missing: files can't be shown.
             // The content's other languages, for alt text and captions in each (Panel::contentLocales()).
-            'locales' => self::otherLocales(),
+            'locales' => self::otherLocales($contentLocales),
+            // The first of them, whose alt text and caption are the file's own (the language tabs' first).
+            'mainLocale' => self::mainLocale($contentLocales),
             'storageLinkMissing' => $user->can('sunrice.media.upload') && MediaConfig::storageLinkMissing(),
             'upload' => [
                 'maxKb' => MediaConfig::maxKilobytes(),
@@ -285,10 +288,27 @@ final class MediaController
         return back()->with('success', $done.$keptNote);
     }
 
-    /** @return list<array{code: string, name: string}> the content's languages besides the first */
-    private static function otherLocales(): array
+    /**
+     * The content's main language (Panel::contentLocales()'s first), or
+     * null without content languages.
+     *
+     * @param  array<string, string>  $locales
+     * @return array{code: string, name: string}|null
+     */
+    private static function mainLocale(array $locales): ?array
     {
-        $others = array_slice(app(Panel::class)->getContentLocales(), 1, null, true);
+        $code = array_key_first($locales);
+
+        return $code === null ? null : ['code' => (string) $code, 'name' => $locales[$code]];
+    }
+
+    /**
+     * @param  array<string, string>  $locales  the content's languages
+     * @return list<array{code: string, name: string}> those besides the first
+     */
+    private static function otherLocales(array $locales): array
+    {
+        $others = array_slice($locales, 1, null, true);
 
         return array_map(fn (string $code, string $name): array => ['code' => $code, 'name' => $name], array_keys($others), array_values($others));
     }

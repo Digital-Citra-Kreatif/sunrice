@@ -105,7 +105,7 @@ Setiap penerbitan menyimpan sebuah **revisi**: salinan dari yang diterbitkan, be
 ## Tindakan lain
 
 - Tombol **⋯** di samping **Simpan draf** berisi aksi lainnya.
-- **Duplikat** menyalin entri, dalam semua bahasa, sebagai draf baru berjudul "… (copy)". Selama belum pernah diterbitkan, mengganti judulnya ikut mengganti slug-nya (kecuali Anda mengetik slug sendiri).
+- **Duplikat** menyalin entri, dalam semua bahasa, sebagai draf baru berjudul "… (copy)", dengan term yang sama di kartu **Taksonomi**-nya (salinan baru tercantum di bawah term itu setelah Anda menerbitkannya). Selama belum pernah diterbitkan, mengganti judulnya ikut mengganti slug-nya (kecuali Anda mengetik slug sendiri).
 - **Ubah blueprint** membuka blueprint entri (field-nya), jika peran Anda boleh mengubah blueprint.
 - **Pindahkan ke tempat sampah** membuang entri: entri hilang dari situs web dan dari daftar, dalam semua bahasa, dan bisa dipulihkan. Jika dipakai konten lain, panel menyebutkan di mana terlebih dahulu.
 - Di tempat sampah, entri memiliki **Pulihkan** dan **Hapus permanen** (menghapus semuanya, dalam semua bahasa, beserta revisinya; tidak bisa dibatalkan).
@@ -116,7 +116,7 @@ Hanya satu orang yang bisa menyunting entri dalam satu bahasa pada satu waktu. J
 
 ## Halaman daftar
 
-Sebuah koleksi bisa memiliki **halaman daftar** yang menampilkan entrinya di situs web (misalnya `/blog`). Kata-katanya sendiri (pengantar, judul) serta pengaturan pencarian dan berbaginya disunting lewat **Ubah halaman daftar** di menu **⋮** di atas daftar entri, dan langsung tayang saat disimpan (tidak ada draf). Setiap bahasa punya kata-katanya sendiri: kode bahasa di bagian atas menunjukkan bahasa yang sedang Anda sunting dan bahasa yang sudah punya kata-katanya sendiri (tanda centang), dengan baris seperti "Menyunting: English (utama) — beralih untuk menyunting Bahasa Indonesia"; klik sebuah kode untuk beralih.
+Sebuah koleksi bisa memiliki **halaman daftar** yang menampilkan entrinya di situs web (misalnya `/blog`). Kata-katanya sendiri (pengantar, judul) serta pengaturan pencarian dan berbaginya disunting lewat **Ubah halaman daftar** di menu **⋮** di atas daftar entri, dan langsung tayang saat disimpan (tidak ada draf). Setiap bahasa punya kata-katanya sendiri: tab bahasa di bagian atas menunjukkan bahasa yang sedang Anda sunting, dan bahasa yang belum punya kata-katanya sendiri tampil pudar dengan tanda **+**; klik sebuah tab untuk beralih.
 
 Pengelola situs juga melihat **Template**-nya di sana: desain yang dipakai halaman daftar, di semua bahasa. **Otomatis** memakai desain yang dibuat developer Anda untuknya; pilih yang lain dari daftar jika mereka membuat lebih dari satu. **Bagaimana dipilih?** menampilkan berkas template yang dicoba, untuk developer Anda. Halaman indeks sebuah taksonomi (**Halaman indeks** di menu **⋮** daftar istilahnya) punya pilihan yang sama, berlaku untuk semua halaman indeksnya.
 

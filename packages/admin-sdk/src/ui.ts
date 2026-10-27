@@ -142,6 +142,43 @@ export interface KeptEdit { id: number; by: string | null; taken_by: string | nu
 export const KeptEditsNotice = m.KeptEditsNotice as ComponentType<{ kept: KeptEdit[]; onLoad: (id: number) => void; onDiscard: (id: number) => void; disabled?: boolean }>;
 export const Label = m.Label as AnyComponent;
 
+/** A language as a LanguageTabs tab shows it. */
+export interface LanguageTab {
+    code: string;
+    /** Its name ("Bahasa Indonesia"); the code when not given. */
+    name?: string;
+    /** The main language: said in its tooltip ("English (main)"). */
+    main?: boolean;
+    /** Nothing in this language yet: muted with a plus; choosing it calls `onAdd` when given, else opens it. */
+    missing?: boolean;
+    /** A dot and what it means (tooltip, screen readers): `success` green (published), `warning` amber (outdated). */
+    status?: { tone: 'success' | 'warning'; label: string } | null;
+    /** More for the tooltip and screen readers ("Draft"), without a dot. */
+    description?: string | null;
+}
+
+/**
+ * The panel's one way to choose which language's content is shown or
+ * edited: a row of tabs (the main language marked, missing ones muted with
+ * a plus, an optional status dot) with `actions` at its end; no tabs with
+ * fewer than two languages. Without children it switches pages
+ * (`onValueChange` visits `?locale=…`; tabs activate on Enter/Space);
+ * with `children(code)` it switches each language's panel in place.
+ *
+ *     <LanguageTabs value={locale} languages={[{ code: 'en', name: 'English', main: true }, { code: 'id', name: 'Bahasa Indonesia' }]}
+ *         onValueChange={(code) => router.get(url, { locale: code })} />
+ */
+export const LanguageTabs = m.LanguageTabs as ComponentType<{
+    languages: LanguageTab[];
+    value: string;
+    onValueChange: (code: string) => void;
+    onAdd?: (code: string) => void;
+    actions?: ReactNode;
+    children?: (code: string) => ReactNode;
+    label?: string;
+    className?: string;
+}>;
+
 /**
  * Choose files from the media library (folders, search, upload), as the
  * panel's own MediaPicker field does: one id, or an ordered list with

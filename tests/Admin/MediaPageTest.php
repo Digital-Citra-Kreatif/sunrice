@@ -176,7 +176,7 @@ it('warns uploaders when the public disk\'s storage link is missing', function (
 it('takes alt text and captions in the content\'s other languages, when a plugin gives them', function () {
     $media = mediaFile();
     mediaUser('view', 'update');
-    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('locales', []));
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('locales', [])->where('mainLocale', null));
     // Without content languages, translations are ignored.
     put("/admin/media/{$media->id}", ['alt' => 'A sun', 'translations' => ['id' => ['alt' => 'Matahari']]])->assertSessionHas('success');
     expect($media->fresh()?->translations)->toBeNull();
@@ -188,7 +188,9 @@ it('keeps alt text and captions per content language', function () {
     $media = mediaFile();
     $media->update(['alt' => 'A sun']);
     mediaUser('view', 'update');
-    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('locales', [['code' => 'id', 'name' => 'Indonesian']]));
+    // The main language first in the language tabs, the others after it.
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('locales', [['code' => 'id', 'name' => 'Indonesian']])
+        ->where('mainLocale', ['code' => 'en', 'name' => 'English']));
     put("/admin/media/{$media->id}", ['translations' => ['id' => ['alt' => ' Matahari ', 'caption' => ''], 'fr' => ['alt' => 'Soleil']]])->assertSessionHas('success');
     $media = $media->fresh();
     expect($media?->translations)->toBe(['id' => ['alt' => 'Matahari']])

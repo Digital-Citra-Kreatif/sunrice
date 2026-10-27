@@ -24,6 +24,7 @@ Tombol di atas daftar menambahkan tautan ke:
 
 - **Label**: teks yang tampil, per bahasa. Untuk entri, term, dan halaman daftar, label boleh kosong (judulnya yang dipakai). Di bahasa lain yang belum punya label sendiri, item menampilkan judul tujuannya dalam bahasa itu jika ada, dan jika tidak, label bahasa utama. Halaman daftar dengan **Filter** menampilkan label bahasa utama, bukan judul daftarnya, jadi beri label di setiap bahasa. **Tautan** membutuhkan label dalam bahasa utama, dan bahasa lain memakainya jika belum punya label sendiri.
 - **Tab baru**: membuka tautan di tab peramban baru. Gunakan untuk tautan ke situs web lain.
+- **Ubah tujuan tautan** (ikon pensil) memperbaiki alamat tautan, atau mengarahkannya ke entri, term, halaman daftar, atau indeks taksonomi lain (dari jenis yang sama). Label, pengaturan tab baru, posisi, dan sub-tautannya tetap, jadi tidak perlu menghapus lalu menambahkannya lagi.
 - Seret tautan lewat pegangannya untuk mengubah posisinya di antara tautan setingkat (atau dengan papan ketik: fokus ke pegangan, tekan Spasi, pindahkan dengan tombol panah, tekan Spasi lagi).
 - **Masuk satu tingkat** menempatkan tautan di bawah tautan di atasnya (sub-menu); **Keluar satu tingkat** mengeluarkannya (beserta isinya) dari sub-menu, tepat setelah sub-menu itu; tautan lain tetap di tempatnya. Menu bisa sampai tiga tingkat.
 - **Hapus, beserta yang ada di bawahnya** menghapus tautan beserta sub-tautannya.
@@ -33,6 +34,8 @@ Tautan ke entri yang tidak tayang di situs (draf, terjadwal, di tempat sampah) d
 ### Menyimpan
 
 Klik **Simpan**. Seluruh menu disimpan sekaligus, dan perubahan langsung tayang.
+
+Jika rekan menyimpan menu yang sama setelah Anda membukanya, menyimpan tidak mengembalikan tautan mereka: pilih **Muat versi mereka** (perubahan Anda yang belum disimpan dibuang) atau **Tetap simpan versi saya** (perubahan mereka diganti).
 
 > [!NOTE]
 > Alamat yang bisa menjalankan kode (misalnya `javascript:`) ditolak. Gunakan `https://`, alamat di situs, `mailto:`, atau `tel:`.
