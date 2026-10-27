@@ -21,3 +21,18 @@ test('reads and writes the values of fixed keys, keeping the other lines', async
     assert.equal(withFixedValue('fr: Maisons\nid: Lama', 'id', ''), 'fr: Maisons');
     assert.equal(withFixedValue('fr: Maisons', 'de', 'Häuser'), 'fr: Maisons\nde: Häuser');
 });
+
+test('leaves out of each row\'s list the keys the other rows use', async () => {
+    const { keysTaken, sameKey, suggestionsFor } = await import('../../packages/admin/resources/js/lib/pairs.ts');
+    const suggestions = [{ key: 'en', value: 'English' }, { key: 'id', value: 'Bahasa Indonesia' }, { key: 'ms', value: 'Bahasa Melayu' }, { key: 'pt_BR', value: 'Português (Brasil)' }];
+    const rows = [{ key: 'en', value: 'English' }, { key: ' id ', value: 'Bahasa Indonesia' }, { key: '', value: '' }];
+    // Its own key stays (listed and ticked); empty rows take nothing.
+    assert.deepEqual(keysTaken(rows, 0), ['id']);
+    assert.deepEqual(suggestionsFor(suggestions, keysTaken(rows, 0)).map((s) => s.key), ['en', 'ms', 'pt_BR']);
+    // The new row ("Add a language"): neither used code.
+    assert.deepEqual(suggestionsFor(suggestions, keysTaken(rows, 2)).map((s) => s.key), ['ms', 'pt_BR']);
+    // Compared ignoring case.
+    assert.deepEqual(suggestionsFor(suggestions, ['PT_br', 'EN']).map((s) => s.key), ['id', 'ms']);
+    assert.ok(sameKey(' pt_BR', 'pt_br'));
+    assert.ok(!sameKey('pt_BR', 'pt-BR'), 'different codes to the CMS');
+});
