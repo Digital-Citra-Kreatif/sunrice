@@ -28,6 +28,12 @@ final class MediaConfig
         'application/x-msdownload', 'application/x-executable', 'application/x-dosexec',
     ];
 
+    /** @var array{0: mixed, 1: array<string, array{width: int|null, height: int|null, crop: bool}>}|null the config value last read, and the sizes made of it */
+    private static ?array $imageSizes = null;
+
+    /** @var array{0: mixed, 1: array<string, int>}|null the config value last read, and its ranks */
+    private static ?array $imageSizeRanks = null;
+
     public static function disk(): string
     {
         $disk = config('sunrice-admin.media.disk');
@@ -103,6 +109,10 @@ final class MediaConfig
     public static function imageSizes(): array
     {
         $sizes = config('sunrice-admin.media.image_sizes');
+        // Read for every image of a list (Media::url(), srcset(), toData()): parsed once per config value.
+        if (self::$imageSizes !== null && self::$imageSizes[0] === $sizes) {
+            return self::$imageSizes[1];
+        }
         $result = [];
         foreach (is_array($sizes) ? $sizes : [] as $name => $size) {
             if (! is_string($name) || preg_match('/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/', $name) !== 1 || ! is_array($size)) {
@@ -116,8 +126,25 @@ final class MediaConfig
             }
             $result[$name] = ['width' => $width, 'height' => $height, 'crop' => $crop && $width !== null && $height !== null];
         }
+        self::$imageSizes = [$sizes, $result];
 
         return $result;
+    }
+
+    /**
+     * Where each configured size name comes in the config (image_sizes' keys, as written), for listing a
+     * file's sizes in that order whatever order the database kept them in.
+     *
+     * @return array<string, int>
+     */
+    public static function imageSizeRanks(): array
+    {
+        $sizes = config('sunrice-admin.media.image_sizes', []);
+        if (self::$imageSizeRanks === null || self::$imageSizeRanks[0] !== $sizes) {
+            self::$imageSizeRanks = [$sizes, array_flip(array_map(strval(...), array_keys((array) $sizes)))];
+        }
+
+        return self::$imageSizeRanks[1];
     }
 
     /** Make image sizes on the queue: as `media.queue` says, or (null) whenever jobs don't run in the request anyway. */

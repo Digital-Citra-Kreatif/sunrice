@@ -202,6 +202,20 @@ it('sorts by columns and by number, date and text fields, as numbers and dates',
         ->and(listed('sort=password'))->toBe(['Large', 'Medium', 'Small']);
 });
 
+it('sorts entries without a field value last both ways, and text in a number field as none, on every database', function () {
+    listProduct('Small', ['price' => 9, 'launch' => '2026-01-15']);
+    listProduct('Blank');
+    // Text kept from before the field was a number or date (Postgres failed the whole page on it).
+    listProduct('Words')->forceFill(['draft_data' => ['price' => 'abc', 'launch' => 'soon']])->save();
+    listProduct('Large', ['price' => 100, 'launch' => '2025-12-01']);
+    lister();
+
+    expect(listed('sort=field.price'))->toBe(['Small', 'Large', 'Blank', 'Words'])
+        ->and(listed('sort=-field.price'))->toBe(['Large', 'Small', 'Words', 'Blank'])
+        ->and(listed('sort=field.launch'))->toBe(['Large', 'Small', 'Blank', 'Words'])
+        ->and(listed('sort=-field.launch'))->toBe(['Small', 'Large', 'Words', 'Blank']);
+});
+
 it('sorts by dates and status', function () {
     travelTo('2026-10-01');
     listProduct('Old', publish: true);
