@@ -1,17 +1,16 @@
-import { j as e, t as a, a as xe, r as T } from "./admin-Dbw715LT.js";
+import { j as e, t as a, a as xe, r as T } from "./admin-CRooS3gE.js";
 import { c as k, _ as C } from "./createLucideIcon-Ccbp7F45.js";
 import { u as n } from "./ui-Dh5wfMwT.js";
-import { u as pe } from "./Confirm-DYiRPfKs.js";
-import { h as ge, a as P, e as F, M as fe, i as U, f as O, d as je, r as E, F as R, b as H, s as ve, c as J, g as V, j as be, k as ye, w as we, n as Ne, l as ke, m as $e, o as Se, O as A, p as B, q as W, t as Ce, T as _e, u as ze, v as Le, x as Fe, y as Ie } from "./FieldInput-CUk0-3Cn.js";
-import { E as De } from "./EntriesPicker-C3tXu3TN.js";
-import { P as X } from "./plus-COqahUZ2.js";
+import { T as P, u as pe } from "./Confirm-DxkAotfo.js";
+import { h as ge, a as U, e as F, M as fe, i as J, f as O, d as je, r as E, F as R, b as H, s as ve, c as X, g as V, j as be, k as ye, w as we, n as Ne, l as ke, m as $e, o as Se, O as A, p as B, q as W, t as Ce, T as _e, u as ze, v as Le, x as Fe, y as Ie } from "./FieldInput-B4TzwK0C.js";
+import { E as De } from "./EntriesPicker-_iMoWV0k.js";
+import { P as G } from "./plus-COqahUZ2.js";
 import { L as Me } from "./link-2-BYZeXgi5.js";
 import { T as Te, L as He } from "./tags-DR5XKR3w.js";
 import { C as Ve } from "./chevron-right-9qVV6b-Q.js";
 import { C as Ae } from "./copy-BT7TBOUx.js";
-import { T as G } from "./trash-DHN6ewjn.js";
-import { F as w } from "./FieldError-DaFwjpLk.js";
-import { X as Be } from "./EntryStatus-D0qcD5Zp.js";
+import { F as w } from "./FieldError-Bsv8P63f.js";
+import { X as Be } from "./EntryStatus-CKOSVsqg.js";
 import { L as qe } from "./loader-circle-ByksABXO.js";
 const Y = {
   name: "blocks",
@@ -258,7 +257,7 @@ function ue({ fields: t, onChange: s, types: c, errors: p, depth: m = 1, idPrefi
     t.length === 0 && /* @__PURE__ */ e.jsx("p", { className: "cms:rounded-lg cms:border cms:border-dashed cms:p-4 cms:text-sm cms:text-muted-foreground", children: a("No fields yet.") }),
     t.length > 1 && /* @__PURE__ */ e.jsx("div", { className: "cms:flex cms:justify-end", children: y.size > 0 ? /* @__PURE__ */ e.jsx(n.Button, { type: "button", variant: "ghost", size: "sm", onClick: () => r(/* @__PURE__ */ new Set()), children: a("Close all") }) : /* @__PURE__ */ e.jsx(n.Button, { type: "button", variant: "ghost", size: "sm", onClick: () => r(new Set(t.map((h) => h.key))), children: a("Open all") }) }),
     /* @__PURE__ */ e.jsx(n.SortableList, { items: t, getId: (h) => h.key, getLabel: (h) => h.label || h.handle, onReorder: (h) => s(h), children: (h, { index: f, handle: g, isOverlay: $ }) => {
-      const _ = c.find((L) => L.type === h.type), z = ge(p, String(f)) || P(h, t, o) !== null, I = !$ && (y.has(h.key) || z), M = `${u}-${h.key}`;
+      const _ = c.find((L) => L.type === h.type), z = ge(p, String(f)) || U(h, t, o) !== null, I = !$ && (y.has(h.key) || z), M = `${u}-${h.key}`;
       return /* @__PURE__ */ e.jsxs("div", { "data-invalid": z ? "true" : void 0, className: `cms:rounded-lg cms:border cms:bg-card ${z ? "cms:border-destructive" : ""}`, children: [
         /* @__PURE__ */ e.jsx(
           ns,
@@ -295,7 +294,7 @@ function ue({ fields: t, onChange: s, types: c, errors: p, depth: m = 1, idPrefi
     /* @__PURE__ */ e.jsx("p", { className: "cms:sr-only", "aria-live": "polite", children: d }),
     /* @__PURE__ */ e.jsx("div", { children: /* @__PURE__ */ e.jsxs(n.DropdownMenu, { children: [
       /* @__PURE__ */ e.jsx(n.DropdownMenuTrigger, { asChild: !0, children: /* @__PURE__ */ e.jsxs(n.Button, { type: "button", variant: "outline", size: "sm", children: [
-        /* @__PURE__ */ e.jsx(X, {}),
+        /* @__PURE__ */ e.jsx(G, {}),
         " ",
         a("Add field")
       ] }) }),
@@ -323,7 +322,7 @@ const as = {
   file: Ge
 };
 function ns({ field: t, type: s, expanded: c, controls: p, handle: m, shared: u, onToggle: o, onDuplicate: v, onRemove: y }) {
-  const r = t.label || t.handle, b = as[t.type] ?? Ke, x = t.type === "fieldset", i = x ? typeof t.config?.fieldset == "string" ? t.config.fieldset : "" : t.handle, d = u && !x && !U(t, s?.translatable ?? !1), j = x ? 100 : O(t);
+  const r = t.label || t.handle, b = as[t.type] ?? Ke, x = t.type === "fieldset", i = x ? typeof t.config?.fieldset == "string" ? t.config.fieldset : "" : t.handle, d = u && !x && !J(t, s?.translatable ?? !1), j = x ? 100 : O(t);
   return /* @__PURE__ */ e.jsxs("div", { className: "cms:flex cms:items-center cms:gap-1 cms:py-1.5 cms:pr-1.5 cms:pl-2", children: [
     /* @__PURE__ */ e.jsx(n.SortableHandle, { ...m, label: a("Move :title", { title: r }) }),
     /* @__PURE__ */ e.jsx(
@@ -381,13 +380,13 @@ function ns({ field: t, type: s, expanded: c, controls: p, handle: m, shared: u,
         "aria-label": a("Remove :title", { title: r }),
         title: a("Remove :title", { title: r }),
         onClick: y,
-        children: /* @__PURE__ */ e.jsx(G, {})
+        children: /* @__PURE__ */ e.jsx(P, {})
       }
     )
   ] });
 }
 function ls({ id: t, field: s, type: c, siblings: p, onChange: m, types: u, errors: o, depth: v, reserved: y, locales: r }) {
-  const b = s.config ?? {}, x = P(s, p, y, a);
+  const b = s.config ?? {}, x = U(s, p, y, a);
   if (s.type === "fieldset")
     return /* @__PURE__ */ e.jsxs("div", { id: t, className: "cms:flex cms:flex-col cms:gap-4 cms:border-t cms:p-4", children: [
       /* @__PURE__ */ e.jsxs("div", { className: "cms:grid cms:gap-4 cms:md:grid-cols-2", children: [
@@ -439,7 +438,7 @@ function ls({ id: t, field: s, type: c, siblings: p, onChange: m, types: u, erro
               id: `${t}-handle`,
               className: "cms:font-mono",
               value: s.handle,
-              onChange: (l) => m({ ...s, handle: J(l.target.value), handleTouched: !0 })
+              onChange: (l) => m({ ...s, handle: X(l.target.value), handleTouched: !0 })
             }
           ),
           V(s) === null && /* @__PURE__ */ e.jsx("p", { className: "cms:text-sm cms:text-muted-foreground", children: a("How templates read it. Renaming it hides values saved under the old one.") }),
@@ -513,7 +512,7 @@ function ls({ id: t, field: s, type: c, siblings: p, onChange: m, types: u, erro
               n.Switch,
               {
                 id: `${t}-translatable`,
-                checked: U(s, c?.translatable ?? !1),
+                checked: J(s, c?.translatable ?? !1),
                 "aria-describedby": `${t}-translatable-help`,
                 onCheckedChange: (l) => m(be(s, l, c?.translatable ?? !1))
               }
@@ -780,7 +779,7 @@ function os({ id: t, field: s, siblings: c, onChange: p, errors: m }) {
       }) })
     ] }),
     u.length > 0 && /* @__PURE__ */ e.jsx("div", { children: /* @__PURE__ */ e.jsxs(n.Button, { type: "button", variant: "outline", size: "sm", onClick: b, children: [
-      /* @__PURE__ */ e.jsx(X, {}),
+      /* @__PURE__ */ e.jsx(G, {}),
       " ",
       a("Add condition")
     ] }) }),
@@ -894,7 +893,7 @@ function us({ kind: t, handle: s }) {
     /* @__PURE__ */ e.jsx("code", { className: "cms:rounded cms:bg-muted cms:px-1 cms:py-0.5 cms:font-mono cms:text-[0.8125rem] cms:break-words cms:text-foreground", children: p })
   ] });
 }
-function zs({ kind: t = "blueprint", blueprint: s, fieldTypes: c, locales: p = [], usedBy: m = [], reserved: u = [] }) {
+function _s({ kind: t = "blueprint", blueprint: s, fieldTypes: c, locales: p = [], usedBy: m = [], reserved: u = [] }) {
   const o = t === "fieldset", v = xe(o ? "cms/fieldsets" : "cms/blueprints"), y = s ? s.title : o ? a("New fieldset") : a("New blueprint");
   n.useBreadcrumbs([{ label: o ? a("Fieldsets") : a("Blueprints"), href: v }, { label: y }]);
   const [r, b] = pe(), x = T.useForm({ title: s?.title ?? "", handle: s?.handle ?? "" }), [i, d] = C.useState(s !== null), [j, l] = C.useState(() => ze(s?.fields)), h = (N) => c.find((S) => S.type === N)?.hasChildren === !0, f = x.errors, [g, $] = C.useState(() => JSON.stringify(j)), _ = x.isDirty || JSON.stringify(j) !== g, z = () => {
@@ -927,7 +926,7 @@ function zs({ kind: t = "blueprint", blueprint: s, fieldTypes: c, locales: p = [
         title: y,
         back: { href: v, label: o ? a("Back to fieldsets") : a("Back to blueprints") },
         actions: /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
-          s && /* @__PURE__ */ e.jsx(n.Button, { type: "button", variant: "outline", size: "icon", className: "cms:text-destructive", "aria-label": a("Delete :title", { title: y }), onClick: L, children: /* @__PURE__ */ e.jsx(G, {}) }),
+          s && /* @__PURE__ */ e.jsx(n.Button, { type: "button", variant: "outline", size: "icon", className: "cms:text-destructive", "aria-label": a("Delete :title", { title: y }), onClick: L, children: /* @__PURE__ */ e.jsx(P, {}) }),
           /* @__PURE__ */ e.jsxs(n.Button, { type: "submit", disabled: x.processing, children: [
             x.processing && /* @__PURE__ */ e.jsx(qe, { className: "cms:animate-spin" }),
             s ? a("Save") : o ? a("Create fieldset") : a("Create blueprint")
@@ -956,7 +955,7 @@ function zs({ kind: t = "blueprint", blueprint: s, fieldTypes: c, locales: p = [
             required: !0,
             spellCheck: !1,
             onChange: (N) => {
-              d(!0), x.setData("handle", J(N.target.value));
+              d(!0), x.setData("handle", X(N.target.value));
             }
           }
         ),
@@ -975,5 +974,5 @@ function zs({ kind: t = "blueprint", blueprint: s, fieldTypes: c, locales: p = [
   ] });
 }
 export {
-  zs as default
+  _s as default
 };

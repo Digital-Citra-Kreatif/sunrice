@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flatten, indent, labelFallback, newItem, outdent, removeItem, toTree, type FlatItem } from '../../packages/cms/resources/js/lib/menu.ts';
+import { flatten, indent, kindOf, labelFallback, newItem, outdent, removeItem, retarget, toTree, type FlatItem } from '../../packages/cms/resources/js/lib/menu.ts';
 
 const item = (label: string, depth: number) => newItem({ url: `/${label}`, labels: { en: label }, depth });
 const shape = (items: FlatItem[]) => items.map((i) => `${'-'.repeat(i.depth)}${i.labels.en}`);
@@ -66,4 +66,26 @@ test('a filtered listing link falls back to the main language label, like an add
     assert.equal(labelFallback({ url: null, collection_id: 3, query: null }), 'title');
     assert.equal(labelFallback({ url: null, collection_id: null }), 'title');
     assert.equal(labelFallback({ url: '/contact', collection_id: null }), 'main');
+});
+
+test('names what an item links to', () => {
+    assert.equal(kindOf(newItem({ url: '/one' })), 'url');
+    assert.equal(kindOf(newItem({ entry_id: 3 })), 'entry');
+    assert.equal(kindOf(newItem({ term_id: 4, collection_id: 2 })), 'term');
+    assert.equal(kindOf(newItem({ taxonomy_id: 5, collection_id: 2 })), 'index');
+    assert.equal(kindOf(newItem({ collection_id: 2, query: 'a=1' })), 'listing');
+});
+
+test('changes where an item links, keeping its labels, new tab, place and children', () => {
+    const items = [item('a', 0), { ...newItem({ url: '/oen', labels: { en: 'One', id: 'Satu' }, new_tab: true }), depth: 0 }, item('c', 1), item('d', 0)];
+    const changed = retarget(items, 1, { url: '/one' });
+
+    assert.deepEqual(changed[1], { ...items[1], url: '/one' });
+    assert.equal(changed[1]!.key, items[1]!.key);
+    assert.deepEqual(shape(changed), shape(items));
+    assert.deepEqual(toTree(changed)[1]!.children.map((child) => child.labels.en), ['c']);
+    // Another kind of target clears the old one.
+    const listing = retarget(changed, 1, { collection_id: 7, query: 'a=1', target: { title: 'Blog', kind: 'Listing page', live: true } });
+    assert.deepEqual([listing[1]!.url, listing[1]!.collection_id, listing[1]!.query, listing[1]!.labels], [null, 7, 'a=1', { en: 'One', id: 'Satu' }]);
+    assert.equal(retarget(listing, 1, { entry_id: 9 })[1]!.query, null);
 });
