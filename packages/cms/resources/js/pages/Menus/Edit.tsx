@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, useForm } from '@inertiajs/react';
-import { IndentDecrease, IndentIncrease, Link2, List, LoaderCircle, Plus, Settings2, Tag, Tags, Trash2 } from 'lucide-react';
+import { IndentDecrease, IndentIncrease, Link2, List, LoaderCircle, Pencil, Plus, Settings2, Tag, Tags, Trash2 } from 'lucide-react';
 import { adminUrl, t } from '@imajiner/admin-sdk';
 import {
     Badge, Button, Card, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Label, PageHeader,
@@ -8,14 +8,17 @@ import {
 } from '@imajiner/admin-sdk/ui';
 import { EntriesPicker } from '@/components/EntriesPicker.tsx';
 import { FieldError } from '@/components/FieldError.tsx';
+import { VersionConflict } from '@/components/VersionConflict.tsx';
 import { localeName } from '@/lib/entries.ts';
-import { type FlatItem, flatten, indent, labelFallback, type MenuNode, newItem, outdent, removeItem, toTree } from '@/lib/menu.ts';
+import { type FlatItem, flatten, indent, kindOf, labelFallback, type MenuKind, type MenuNode, newItem, outdent, removeItem, retarget, toTree } from '@/lib/menu.ts';
 import { childIndexes, reorderLevel } from '@/lib/tree.ts';
 import { isSafeUrl, pickerQuery } from '@/lib/values.ts';
 
 interface Props {
     menu: { handle: string; title: string };
     items: MenuNode[];
+    /** The links' version, to refuse a save over someone else's newer one. */
+    version: number;
     locales: string[];
     limits: { depth: number; items: number };
     /** Terms with pages: the shared page (collection null) and their collections' term pages. */
@@ -28,27 +31,37 @@ interface Props {
     settings?: string | null;
 }
 
-type Kind = 'entry' | 'term' | 'listing' | 'index' | 'url';
+type Kind = MenuKind;
 
-export default function MenuEdit({ menu, items: initial, locales, limits, terms, listings, indexes = [], can, settings }: Props) {
+export default function MenuEditPage(props: Props) {
+    // A fresh editor after each save, and after "Load theirs".
+    return <MenuEdit key={props.version} {...props} />;
+}
+
+function MenuEdit({ menu, items: initial, version, locales, limits, terms, listings, indexes = [], can, settings }: Props) {
     const url = adminUrl(`cms/menus/${menu.handle}/links`);
     useBreadcrumbs([{ label: t('Menus'), href: adminUrl('cms/menus') }, { label: menu.title }]);
     const [items, setItems] = React.useState<FlatItem[]>(() => flatten(initial));
     const [adding, setAdding] = React.useState<Kind | null>(null);
+    // The item whose target (address, entry…) is being changed.
+    const [editing, setEditing] = React.useState<number | null>(null);
+    const edited = editing === null ? null : (items[editing] ?? null);
     // The tree is recursive; Inertia's form types stop recursing only at `any`.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const form = useForm<{ items: any[] }>({ items: initial });
+    const form = useForm<{ items: any[]; version: number | null }>({ items: initial, version });
     const errors = form.errors as Record<string, string | undefined>;
     const [dirty, setDirty] = React.useState(false);
     const main = locales[0] ?? 'en';
     const change = (next: FlatItem[]) => { setItems(next); setDirty(true); };
     const update = (index: number, patch: Partial<FlatItem>) => change(items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
 
-    const persist = () => {
+    /** Saves the links; without the version ("Save mine anyway") over whatever is there. */
+    const send = (checked: boolean) => {
         if (form.processing) return;
-        form.transform(() => ({ items: toTree(items).map(strip) }));
+        form.transform(() => ({ items: toTree(items).map(strip), version: checked ? version : null }));
         form.put(url, { preserveScroll: true, onSuccess: () => setDirty(false) });
     };
+    const persist = () => send(true);
     const save = (e: React.FormEvent) => {
         e.preventDefault();
         persist();
@@ -81,6 +94,7 @@ export default function MenuEdit({ menu, items: initial, locales, limits, terms,
                                         <label className="cms:mr-2 cms:flex cms:items-center cms:gap-1.5 cms:text-sm">
                                             <Checkbox checked={item.new_tab} onCheckedChange={(checked: boolean) => update(index, { new_tab: checked })} /> {t('New tab')}
                                         </label>
+                                        <Button type="button" variant="ghost" size="icon" className="cms:size-8" aria-label={t('Change where it links')} title={t('Change where it links')} onClick={() => setEditing(index)}><Pencil /></Button>
                                         <Button type="button" variant="ghost" size="icon" className="cms:size-8" aria-label={t('Outdent')} disabled={item.depth === 0} onClick={() => change(outdent(items, index))}><IndentDecrease /></Button>
                                         <Button type="button" variant="ghost" size="icon" className="cms:size-8" aria-label={t('Indent')} onClick={() => change(indent(items, index, limits.depth))}><IndentIncrease /></Button>
                                         <Button type="button" variant="ghost" size="icon" className="cms:size-8 cms:text-destructive" aria-label={t('Remove, with what\'s under it')} onClick={() => change(removeItem(items, index))}><Trash2 /></Button>
@@ -132,6 +146,7 @@ export default function MenuEdit({ menu, items: initial, locales, limits, terms,
             >
                 {dirty && <span className="cms:text-sm cms:text-muted-foreground">{t('Unsaved changes')}</span>}
             </PageHeader>
+            <VersionConflict message={errors.version} processing={form.processing} onSaveMine={() => send(false)} />
             <FieldError message={errors.items} />
             {Object.keys(errors).some((key) => key.startsWith('items.')) && (
                 <p role="alert" className="cms:text-sm cms:text-destructive">{t('Some links need fixing: :error', { error: Object.values(errors).filter(Boolean)[0] })}</p>
@@ -141,7 +156,19 @@ export default function MenuEdit({ menu, items: initial, locales, limits, terms,
                 {items.length === 0 ? <p className="cms:p-4 cms:text-center cms:text-muted-foreground">{t('No links yet. Add an entry or a link.')}</p> : level(-1)}
             </Card>
 
-            <AddDialog kind={adding} terms={terms} listings={listings} indexes={indexes} onClose={() => setAdding(null)} onAdd={(item) => { change([...items, item]); setAdding(null); }} main={main} />
+            <AddDialog kind={adding ?? (edited ? kindOf(edited) : null)} editing={adding ? null : edited} terms={terms} listings={listings} indexes={indexes}
+                onClose={() => { setAdding(null); setEditing(null); }} main={main}
+                onAdd={(item) => {
+                    if (editing !== null && !adding) {
+                        // Only where it links: its labels, new tab, place and children stay.
+                        const { entry_id, term_id, taxonomy_id, collection_id, url, query, target } = item;
+                        change(retarget(items, editing, { entry_id, term_id, taxonomy_id, collection_id, url, query, target }));
+                    } else {
+                        change([...items, item]);
+                    }
+                    setAdding(null);
+                    setEditing(null);
+                }} />
         </form>
     );
 }
@@ -164,8 +191,10 @@ const descriptions = (): Record<Kind, string> => ({
     url: t('A web address, a path on this site (/contact), mailto: or tel:.'),
 });
 
-function AddDialog({ kind, terms, listings, indexes, onClose, onAdd, main }: {
+/** Adds a link, or with `editing`, changes where an existing one links (its kind stays). */
+function AddDialog({ kind, editing = null, terms, listings, indexes, onClose, onAdd, main }: {
     kind: Kind | null;
+    editing?: FlatItem | null;
     terms: Props['terms'];
     listings: Props['listings'];
     indexes: NonNullable<Props['indexes']>;
@@ -180,8 +209,19 @@ function AddDialog({ kind, terms, listings, indexes, onClose, onAdd, main }: {
     const [query, setQuery] = React.useState('');
     // A term's page: which one, when it has several ("" for the first).
     const [page, setPage] = React.useState('');
-    React.useEffect(() => { setEntryId(null); setChoice(''); setAddress(''); setLabel(''); setQuery(''); setPage(''); }, [kind]);
-    React.useEffect(() => setPage(''), [choice]);
+    // Empty to add; the item's own target to change it.
+    React.useEffect(() => {
+        const k = editing ? kindOf(editing) : null;
+        setEntryId(editing?.entry_id ?? null);
+        setChoice(k === 'term' ? String(editing?.term_id ?? '') : k === 'index' ? String(editing?.taxonomy_id ?? '') : k === 'listing' ? String(editing?.collection_id ?? '') : '');
+        setPage(k === 'term' || k === 'index' ? String(editing?.collection_id ?? '') : '');
+        setAddress(editing?.url ?? '');
+        setLabel('');
+        setQuery(editing?.query ?? '');
+    }, [kind, editing]);
+    const choose = (value: string) => { setChoice(value); setPage(''); };
+    // Labels are kept when the target changes: only a new address needs one.
+    const needsLabel = kind === 'url' && !editing;
     const chosenTerm = kind === 'term' ? terms.find((each) => String(each.id) === choice) : undefined;
     const termPage = chosenTerm?.pages.find((each) => String(each.collection ?? '') === page) ?? chosenTerm?.pages[0];
     const chosenIndex = kind === 'index' ? indexes.find((each) => String(each.id) === choice) : undefined;
@@ -209,17 +249,17 @@ function AddDialog({ kind, terms, listings, indexes, onClose, onAdd, main }: {
         } else if (kind === 'listing' && choice !== '') {
             const listing = listings.find((l) => String(l.id) === choice);
             onAdd(newItem({ collection_id: Number(choice), target: listing ? { title: listing.title, kind: t('Listing page'), live: true } : null, labels, query: query.trim().replace(/^\?/, '') || null }));
-        } else if (kind === 'url' && address.trim() !== '' && safe && label.trim() !== '') {
+        } else if (kind === 'url' && address.trim() !== '' && safe && (label.trim() !== '' || !needsLabel)) {
             onAdd(newItem({ url: address.trim(), labels }));
         }
     };
-    const ready = kind === 'entry' ? entryId !== null : kind === 'url' ? address.trim() !== '' && safe && label.trim() !== '' : choice !== '';
+    const ready = kind === 'entry' ? entryId !== null : kind === 'url' ? address.trim() !== '' && safe && (label.trim() !== '' || !needsLabel) : choice !== '';
 
     return (
         <Dialog open={kind !== null} onOpenChange={(open: boolean) => !open && onClose()}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{kind ? titles()[kind] : ''}</DialogTitle>
+                    <DialogTitle>{editing ? t('Change where it links') : kind ? titles()[kind] : ''}</DialogTitle>
                     <DialogDescription>{kind ? descriptions()[kind] : ''}</DialogDescription>
                 </DialogHeader>
                 <div className="cms:flex cms:flex-col cms:gap-3">
@@ -230,7 +270,7 @@ function AddDialog({ kind, terms, listings, indexes, onClose, onAdd, main }: {
                     {(kind === 'term' || kind === 'listing' || kind === 'index') && (
                         <div className="cms:flex cms:flex-col cms:gap-2">
                             <Label htmlFor="menu-target">{kind === 'term' ? t('Term') : kind === 'index' ? t('Taxonomy') : t('Collection')}</Label>
-                            <Select value={choice} onValueChange={setChoice}>
+                            <Select value={choice} onValueChange={choose}>
                                 <SelectTrigger id="menu-target"><SelectValue placeholder={t('Choose…')} /></SelectTrigger>
                                 <SelectContent>
                                     {kind === 'term'
@@ -270,14 +310,14 @@ function AddDialog({ kind, terms, listings, indexes, onClose, onAdd, main }: {
                             {!safe && <p className="cms:text-sm cms:text-destructive">{t('This address could run code; use https://, a path, mailto: or tel:.')}</p>}
                         </div>
                     )}
-                    <div className="cms:flex cms:flex-col cms:gap-2">
+                    {!editing && <div className="cms:flex cms:flex-col cms:gap-2">
                         <Label htmlFor="menu-label">{kind === 'url' ? t('Label') : t('Label (optional)')}</Label>
                         <Input id="menu-label" value={label} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLabel(e.target.value)} />
-                    </div>
+                    </div>}
                 </div>
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={onClose}>{t('Cancel')}</Button>
-                    <Button type="button" onClick={() => void add()} disabled={!ready}>{t('Add')}</Button>
+                    <Button type="button" onClick={() => void add()} disabled={!ready}>{editing ? t('Change') : t('Add')}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

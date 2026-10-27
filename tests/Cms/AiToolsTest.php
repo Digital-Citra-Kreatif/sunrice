@@ -400,6 +400,14 @@ it('reads and saves menus', function () {
         ->and(cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => [['url' => 'javascript:alert(1)', 'labels' => ['en' => 'X']]]]))->toContain('Use a web address')
         ->and(cmsTool($token, 'cms_get_menu')['menus'])->toBe([['handle' => 'main', 'title' => 'Main']]);
 
+    // With the version cms_get_menu gave: a save over a newer one (the editor's, a reorder) is refused.
+    $menu = cmsTool($token, 'cms_get_menu', ['handle' => 'main']);
+    $stale = $menu['version'];
+    $saved = cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => $menu['items'], 'version' => $stale]);
+    expect($saved['version'])->toBe($stale + 1)
+        ->and(cmsTool($token, 'cms_save_menu', ['handle' => 'main', 'items' => [], 'version' => $stale]))->toContain('Someone else saved this')
+        ->and(Menu::query()->where('handle', 'main')->firstOrFail()->items()->count())->toBe(2);
+
     // A taxonomy's index pages (shared, a collection's) and a term's page in a collection.
     $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'index_route' => '/tags']);
     $tags->collections()->attach($this->blog->id);
