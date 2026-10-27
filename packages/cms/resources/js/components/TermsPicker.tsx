@@ -60,6 +60,8 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
     const [attempt, setAttempt] = React.useState(0);
     const [known, setKnown] = React.useState<Record<number, Known>>({});
     const [active, setActive] = React.useState(-1);
+    // Set from a press in the box until its click is handled: see onInteractOutside.
+    const pressedInBox = React.useRef(false);
     const input = React.useRef<HTMLInputElement>(null);
     const loaded = React.useRef<string | null>(null);
     const q = search.trim();
@@ -158,8 +160,6 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
     };
 
     const placeholder = multiple ? t('Choose terms…') : t('Choose a term…');
-    // Set from a press in the box until its click is handled: see onInteractOutside.
-    const pressedInBox = React.useRef(false);
     const listId = `${id}-listbox`;
     const stale = list !== null && list.q !== q;
 

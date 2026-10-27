@@ -1,13 +1,13 @@
-import { j as n, t as d, r as Je, a as Qe } from "./admin-pqtMwCWq.js";
+import { j as n, t as d, r as Je, a as Qe } from "./admin-Ckyrix7p.js";
 import { c as B, _ as w } from "./createLucideIcon-Ccbp7F45.js";
 import { u as f } from "./ui-Dh5wfMwT.js";
-import { t as Ze, a as O, E as $e, o as es, d as pe, b as ss, g as ts, i as _e, n as ns, c as rs, s as cs, e as as, l as ls } from "./EntriesPicker-NUIU4EOc.js";
-import { F as V } from "./FieldError-Ci5bTCxl.js";
+import { t as Ze, a as O, E as $e, o as es, d as pe, b as ss, g as ts, i as _e, n as ns, c as rs, s as cs, e as as, l as ls } from "./EntriesPicker-ilZmH8Uq.js";
+import { F as V } from "./FieldError-qKi5C9Y-.js";
 import { C as os } from "./check-OeKFYRnl.js";
-import { X as is } from "./EntryStatus-PviK_9Rr.js";
+import { X as is } from "./EntryStatus-D9dOyKZJ.js";
 import { S as ms } from "./search-3zKi7F1_.js";
 import { P as Se } from "./plus-COqahUZ2.js";
-import { T as Ae } from "./Confirm-DwY4YSfd.js";
+import { T as Ae } from "./Confirm-BNNQRizo.js";
 import { C as us } from "./chevron-right-9qVV6b-Q.js";
 const Ce = {
   name: "chevron-down",
@@ -162,14 +162,14 @@ async function te(e, s) {
   return await t.json();
 }
 function Ds({ id: e, taxonomy: s, multiple: t, max: c, required: r, invalid: l, value: o, onChange: x }) {
-  const m = w.useContext(Ts), j = Es(Je.usePage().props), g = ks(o), [y, i] = w.useState(!1), [p, h] = w.useState(""), [u, b] = w.useState(null), [N, $] = w.useState(!1), [k, A] = w.useState(!1), [q, Ue] = w.useState(0), [U, Ke] = w.useState({}), [_, K] = w.useState(-1), G = w.useRef(null), oe = w.useRef(null), W = p.trim(), H = w.useCallback((a, v) => {
+  const m = w.useContext(Ts), j = Es(Je.usePage().props), g = ks(o), [y, i] = w.useState(!1), [p, h] = w.useState(""), [u, b] = w.useState(null), [N, $] = w.useState(!1), [k, A] = w.useState(!1), [q, Ue] = w.useState(0), [U, Ke] = w.useState({}), [_, K] = w.useState(-1), G = w.useRef(!1), W = w.useRef(null), oe = w.useRef(null), X = p.trim(), H = w.useCallback((a, v) => {
     const S = v ? Cs(a) : {};
     Ke((M) => {
       const L = { ...M };
       for (const D of a) L[D.id] = { label: D.label, parents: S[D.id] ?? D.parents ?? M[D.id]?.parents };
       return L;
     });
-  }, []), C = y && s ? W : null;
+  }, []), C = y && s ? X : null;
   w.useEffect(() => {
     if (C === null || s === null || oe.current === `${s}
 ${C}`) return;
@@ -185,13 +185,13 @@ ${C}`, b({ ...S, q: C }), H(S.items, C === ""), K(C !== "" && S.items.length > 0
       window.clearTimeout(v), a.abort();
     };
   }, [s, C, q, H]);
-  const ie = (a) => m[String(a)] ?? U[a]?.label, X = g.filter((a) => ie(a) === void 0).join(",");
+  const ie = (a) => m[String(a)] ?? U[a]?.label, Y = g.filter((a) => ie(a) === void 0).join(",");
   w.useEffect(() => {
-    !s || X === "" || te({ taxonomy: s, ids: X.split(",").map(Number) }).then((a) => H(a.items, !1)).catch(() => {
+    !s || Y === "" || te({ taxonomy: s, ids: Y.split(",").map(Number) }).then((a) => H(a.items, !1)).catch(() => {
     });
-  }, [s, X, H]);
-  const Y = () => {
-    !s || !u?.more || N || u.q !== W || ($(!0), te({ taxonomy: s, q: u.q, offset: u.items.length }).then((a) => {
+  }, [s, Y, H]);
+  const J = () => {
+    !s || !u?.more || N || u.q !== X || ($(!0), te({ taxonomy: s, q: u.q, offset: u.items.length }).then((a) => {
       const v = As(u.items, a.items);
       b({ items: v, more: a.more, q: u.q }), H(v, u.q === "");
     }).catch(() => A(!0)).finally(() => $(!1)));
@@ -199,24 +199,24 @@ ${C}`, b({ ...S, q: C }), H(S.items, C === ""), K(C !== "" && S.items.length > 0
   if (w.useEffect(() => {
     _ >= 0 && u && document.getElementById(`${e}-option-${u.items[_]?.id}`)?.scrollIntoView({ block: "nearest" });
   }, [_, e, u]), !s) return /* @__PURE__ */ n.jsx("p", { className: "cms:text-sm cms:text-muted-foreground", children: d("Choose a taxonomy for this field in its blueprint.") });
-  const me = He(g, t, c), J = t || !r, Q = (a) => x(_s(a, t)), ue = (a) => {
-    Q(Ns(g, a, t, c)), t || i(!1);
-  }, E = u?.items ?? [], Z = (a) => me && !g.includes(E[a]?.id ?? -1), ee = (a) => ie(a) ?? d("Term #:id", { id: a }), Ge = (a) => {
+  const me = He(g, t, c), Q = t || !r, Z = (a) => x(_s(a, t)), ue = (a) => {
+    Z(Ns(g, a, t, c)), t || i(!1);
+  }, E = u?.items ?? [], ee = (a) => me && !g.includes(E[a]?.id ?? -1), se = (a) => ie(a) ?? d("Term #:id", { id: a }), Ge = (a) => {
     a || h(""), i(a);
   }, We = (a) => {
     if (a.key === "ArrowDown" || a.key === "ArrowUp") {
       a.preventDefault();
-      const v = Ss(_, a.key, E.length, Z);
-      a.key === "ArrowDown" && v === _ && _ === E.length - 1 && Y(), K(v);
+      const v = Ss(_, a.key, E.length, ee);
+      a.key === "ArrowDown" && v === _ && _ === E.length - 1 && J(), K(v);
     } else if (a.key === "Enter") {
       a.preventDefault();
       const v = E[_];
-      v && !Z(_) && ue(v.id);
-    } else a.key === "Backspace" && p === "" && J && g.length > 0 && (a.preventDefault(), Q($s(g)));
+      v && !ee(_) && ue(v.id);
+    } else a.key === "Backspace" && p === "" && Q && g.length > 0 && (a.preventDefault(), Z($s(g)));
   }, Xe = (a) => {
     const v = a.currentTarget;
-    v.scrollTop + v.clientHeight >= v.scrollHeight - 48 && Y();
-  }, Ye = t ? d("Choose terms…") : d("Choose a term…"), se = w.useRef(!1), de = `${e}-listbox`, fe = u !== null && u.q !== W;
+    v.scrollTop + v.clientHeight >= v.scrollHeight - 48 && J();
+  }, Ye = t ? d("Choose terms…") : d("Choose a term…"), de = `${e}-listbox`, fe = u !== null && u.q !== X;
   let I;
   return k ? I = /* @__PURE__ */ n.jsxs("div", { className: "cms:flex cms:flex-col cms:items-start cms:gap-2 cms:p-3 cms:text-sm", children: [
     /* @__PURE__ */ n.jsx("p", { className: "cms:text-destructive", children: d("Terms could not be loaded.") }),
@@ -225,7 +225,7 @@ ${C}`, b({ ...S, q: C }), H(S.items, C === ""), K(C !== "" && S.items.length > 0
     }, children: d("Try again") })
   ] }) : u === null ? I = /* @__PURE__ */ n.jsx("div", { className: "cms:flex cms:flex-col cms:gap-2 cms:p-2", "aria-busy": "true", "aria-label": d("Loading terms"), children: [70, 55, 80, 45, 65].map((a) => /* @__PURE__ */ n.jsx(f.Skeleton, { className: "cms:h-5", style: { width: `${a}%` } }, a)) }) : E.length === 0 ? I = /* @__PURE__ */ n.jsx("p", { className: "cms:p-3 cms:text-sm cms:text-muted-foreground", children: u.q ? d("No terms match “:search”.", { search: u.q }) : d("Nothing to choose from yet.") }) : I = /* @__PURE__ */ n.jsxs("div", { className: `cms:max-h-72 cms:overflow-y-auto cms:overscroll-contain cms:p-1 ${fe ? "cms:opacity-60" : ""}`, onScroll: Xe, children: [
     /* @__PURE__ */ n.jsx("div", { role: "listbox", id: de, "aria-label": d("Terms"), "aria-multiselectable": t || void 0, "aria-busy": fe || void 0, children: E.map((a, v) => {
-      const S = g.includes(a.id), M = Z(v), L = ye(a.label, U[a.id]?.parents);
+      const S = g.includes(a.id), M = ee(v), L = ye(a.label, U[a.id]?.parents);
       return /* @__PURE__ */ n.jsxs(
         "div",
         {
@@ -251,18 +251,18 @@ ${C}`, b({ ...S, q: C }), H(S.items, C === ""), K(C !== "" && S.items.length > 0
         a.id
       );
     }) }),
-    u.more && /* @__PURE__ */ n.jsx(f.Button, { type: "button", variant: "ghost", size: "sm", className: "cms:mt-1 cms:w-full", disabled: N, onMouseDown: (a) => a.preventDefault(), onClick: Y, children: N ? d("Loading…") : d("Load more") })
+    u.more && /* @__PURE__ */ n.jsx(f.Button, { type: "button", variant: "ghost", size: "sm", className: "cms:mt-1 cms:w-full", disabled: N, onMouseDown: (a) => a.preventDefault(), onClick: J, children: N ? d("Loading…") : d("Load more") })
   ] }), /* @__PURE__ */ n.jsxs(f.Popover, { open: y, onOpenChange: Ge, children: [
     /* @__PURE__ */ n.jsx(f.PopoverAnchor, { asChild: !0, children: /* @__PURE__ */ n.jsxs(
       "div",
       {
         "data-terms-box": "",
         onPointerDownCapture: () => {
-          se.current = !0;
+          G.current = !0;
         },
         onClickCapture: () => {
           setTimeout(() => {
-            se.current = !1;
+            G.current = !1;
           }, 0);
         },
         "data-invalid": l || void 0,
@@ -271,21 +271,21 @@ ${C}`, b({ ...S, q: C }), H(S.items, C === ""), K(C !== "" && S.items.length > 0
           g.map((a) => /* @__PURE__ */ n.jsxs(
             "span",
             {
-              title: ye(ee(a), U[a]?.parents ?? j[String(a)]),
+              title: ye(se(a), U[a]?.parents ?? j[String(a)]),
               className: "cms:inline-flex cms:h-7 cms:max-w-full cms:min-w-0 cms:items-center cms:gap-0.5 cms:rounded-sm cms:bg-secondary cms:pl-2 cms:text-xs cms:font-medium cms:text-secondary-foreground",
               children: [
-                /* @__PURE__ */ n.jsx("span", { className: `cms:min-w-0 cms:truncate ${J ? "" : "cms:pr-2"}`, children: ee(a) }),
-                J && /* @__PURE__ */ n.jsx(
+                /* @__PURE__ */ n.jsx("span", { className: `cms:min-w-0 cms:truncate ${Q ? "" : "cms:pr-2"}`, children: se(a) }),
+                Q && /* @__PURE__ */ n.jsx(
                   "button",
                   {
                     type: "button",
                     className: "cms:inline-flex cms:size-7 cms:shrink-0 cms:items-center cms:justify-center cms:rounded-sm cms:text-muted-foreground cms:hover:bg-muted cms:hover:text-foreground cms:focus-visible:ring-2 cms:focus-visible:ring-ring cms:focus-visible:outline-none",
-                    "aria-label": d("Remove :term", { term: ee(a) }),
+                    "aria-label": d("Remove :term", { term: se(a) }),
                     onMouseDown: (v) => {
                       y && v.preventDefault();
                     },
                     onClick: () => {
-                      Q(g.filter((v) => v !== a)), y && G.current?.focus();
+                      Z(g.filter((v) => v !== a)), y && W.current?.focus();
                     },
                     children: /* @__PURE__ */ n.jsx(is, { className: "cms:size-3", "aria-hidden": "true" })
                   }
@@ -321,14 +321,14 @@ ${C}`, b({ ...S, q: C }), H(S.items, C === ""), K(C !== "" && S.items.length > 0
         className: "cms:max-w-[calc(100vw-2rem)] cms:p-0",
         style: { width: "var(--radix-popper-anchor-width)" },
         onInteractOutside: (a) => {
-          (se.current || a.target instanceof Element && a.target.closest("[data-terms-box]")) && a.preventDefault();
+          (G.current || a.target instanceof Element && a.target.closest("[data-terms-box]")) && a.preventDefault();
         },
         onFocusOutside: (a) => {
           const v = a.target;
           (!(v instanceof Element) || v === document.body || v.closest("[data-terms-box]")) && a.preventDefault();
         },
         onOpenAutoFocus: (a) => {
-          a.preventDefault(), G.current?.focus();
+          a.preventDefault(), W.current?.focus();
         },
         children: [
           /* @__PURE__ */ n.jsxs("div", { className: "cms:relative cms:border-b cms:border-border/60", children: [
@@ -336,7 +336,7 @@ ${C}`, b({ ...S, q: C }), H(S.items, C === ""), K(C !== "" && S.items.length > 0
             /* @__PURE__ */ n.jsx(
               "input",
               {
-                ref: G,
+                ref: W,
                 type: "text",
                 role: "combobox",
                 "aria-expanded": "true",
