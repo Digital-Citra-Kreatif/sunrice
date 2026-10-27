@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Event;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
+use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Events\EntryPublished;
 use Sunrice\Cms\Models\Collection;
@@ -117,4 +118,16 @@ it('schedules for the moment given, whatever timezone it is given in', function 
         ->and($news->fresh()?->isLive())->toBeFalse();
     $this->travelTo('2026-10-19 09:30');
     expect($news->fresh()?->isLive())->toBeTrue();
+});
+
+it('publishes the draft as stored, not as an instance loaded before someone saved', function () {
+    $news = app(CreateEntry::class)->handle($this->news, ['title' => 'First']);
+    $stale = EntryTranslation::query()->findOrFail($news->id);
+    // Someone saves between the publish request loading it and publishing it.
+    app(SaveDraft::class)->handle($news->fresh(), ['title' => 'Second']);
+
+    app(PublishEntry::class)->handle($stale, now()->addHour());
+    $news->refresh();
+    expect($news->title)->toBe('Second')->and($news->draft_title)->toBe('Second')
+        ->and($news->version)->toBe(3)->and($news->live_version)->toBe(3);
 });

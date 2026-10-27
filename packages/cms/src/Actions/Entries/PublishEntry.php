@@ -46,13 +46,17 @@ final class PublishEntry
         if ($entry->collection->trashed()) {
             throw ValidationException::withMessages(['entry' => __('The collection ":title" was deleted.', ['title' => $entry->collection->title])]);
         }
-        // Where the live page was, to redirect from if its address changes.
         $site = app(Site::class);
-        $oldPath = $translation->isPublished() ? $site->path($translation, $translation->slug) : null;
-        $oldSlug = $translation->isPublished() ? $translation->slug : null;
 
         // The slug check and the write in one transaction: see EntryInput::write().
-        $values = EntryInput::write(function () use ($translation, $publishAt, $site, $oldPath, $oldSlug): array {
+        $values = EntryInput::write(function () use ($translation, $publishAt, $site): array {
+            // The draft as stored now, its row locked until the publish ends: a save made since the
+            // translation was loaded is published, not overwritten, and two publishes take turns.
+            $stored = EntryTranslation::query()->whereKey($translation->id)->lockForUpdate()->firstOrFail();
+            $translation->setRawAttributes($stored->getAttributes(), true);
+            // Where the live page was, to redirect from if its address changes.
+            $oldPath = $translation->isPublished() ? $site->path($translation, $translation->slug) : null;
+            $oldSlug = $translation->isPublished() ? $translation->slug : null;
             // As SaveDraft does: validated with the main language's shared values in rows and blocks, which ownData() drops again.
             $data = $translation->draft_data;
             $main = $translation->entry->mainTranslation();
