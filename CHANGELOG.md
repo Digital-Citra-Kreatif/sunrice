@@ -1,6 +1,20 @@
 # Changelog
 
-## 0.2.0 (2026-10-25)
+## 0.2.0 (2026-10-27)
+
+**Upgrading from 0.1 needs a fresh database**: the migrations were consolidated, so a 0.1 site is rebuilt with `php artisan migrate:fresh`. Keep its content by making a starter of it on 0.1 (`sunrice:make-starter`) and installing it after the rebuild (`sunrice:starter --path=`). See [Upgrading](docs/upgrading.md#keeping-a-01-sites-content).
+
+**Highlights.**
+
+- **Taxonomies the entries way**: a collection's taxonomies show in a **Taxonomies** card with a compact, searchable term picker; terms have pages per collection and taxonomies an index page, each with its own fields and template, and entry duplicates keep their terms.
+- **Multilingual editing, consistent**: one row of language tabs (EN, ID) everywhere content is translated; fields shared by all languages, inside groups, rows and blocks too, are read-only outside the main language with a note under each; global sets fall back to the main language field by field; untranslated pages can show in the main language.
+- **Safer editing**: menus refuse a save from a stale editor, as entries, globals and terms do; editors change menus' links and globals' values but not their handles or blueprints; the entry editor tells the live version from unpublished changes, which can be discarded.
+- **Security**: a strict Content-Security-Policy for the panel (an optional one for the site), strong passwords on by default with weak ones changed at sign-in, trashed files taken offline, sessions only where needed, and AI agents kept away from passwords.
+- **Faster on big sites**: N+1 queries removed from the terms, comments and entries lists, new indexes for the entries lists, a sitemap that peaks at a fifth of the memory, and the CMS's admin pages loaded on demand.
+- **Templates**: views from `pages/` or any folder you list, templates picked on listing and index pages, a clear order of defaults and overrides, and no layout, partial, block or search view usable as a page's template.
+- **For developers**: `toData()` for scripts on the site, `when()`/`unless()` on entry queries, a code editor and Code field, `LanguageTabs` and `PopoverAnchor` in the admin SDK, `Cms::entryLinksUsing()` for plugins' links on entries, `Pairs::distinctKeys()`, your own dashboard, and published config files that pick up new keys.
+- **Getting started**: `sunrice:install` offers Pages and Posts collections and adds plugins installed later; starters install reliably, can be made from a site (`sunrice:make-starter`), and the Blog starter has a homepage.
+- **Finding your way**: links to the blueprint wherever its content is edited or set up, a tidier taxonomy form, entries-list filters that stay on one row, and docs on turning the panel's own parts off.
 
 ### All changes
 
