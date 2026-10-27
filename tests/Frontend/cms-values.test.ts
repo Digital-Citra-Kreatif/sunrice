@@ -27,6 +27,16 @@ test('makes new rows and blocks shown', () => {
     assert.deepEqual(newBlock('quote'), { type: 'quote', hidden: false, values: {} });
 });
 
+test('starts new rows and blocks with their fields\' defaults, each its own copy', () => {
+    const defaults = { featured: true, kind: 'plain', details: { size: 'm' }, rows: [] };
+    const row = newRow(defaults);
+    assert.deepEqual(row, { featured: true, kind: 'plain', details: { size: 'm' }, rows: [], _hidden: false });
+    assert.notEqual(row.details, defaults.details);
+    assert.deepEqual(newBlock('quote', { align: 'left' }), { type: 'quote', hidden: false, values: { align: 'left' } });
+    // PHP sends no fields' defaults as an empty list.
+    assert.deepEqual(newRow([]), { _hidden: false });
+});
+
 test('checks link addresses like the server', async () => {
     const { isSafeUrl } = await import('../../packages/cms/resources/js/lib/values.ts');
 
