@@ -77,7 +77,8 @@ final class PublishEntry
                 'draft_data' => $values['data'],
                 // Without a date: the one it has (first published, or scheduled), but now for a draft once scheduled for later;
                 // never published: the entry's date (another language), else now.
-                'published_at' => $publishAt !== null ? Carbon::instance($publishAt)
+                // In the app's timezone, as dates are stored (the editor sends UTC, others any offset).
+                'published_at' => $publishAt !== null ? Carbon::instance($publishAt)->setTimezone(now()->getTimezone())
                     : ($translation->published_at === null ? (self::entryDate($translation) ?? now())
                         : (! $translation->isPublished() && $translation->published_at->isFuture() ? now() : $translation->published_at)),
                 // Counted up too, so an editor opened before this publish can't save over it unknowingly.

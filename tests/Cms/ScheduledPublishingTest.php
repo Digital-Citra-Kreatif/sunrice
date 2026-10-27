@@ -103,3 +103,18 @@ it('leaves the work to a run already going on (another server\'s)', function () 
     artisan('sunrice:publish-scheduled')->expectsOutput('0 scheduled entries went live.');
     expect(announced())->toBe(['Later']);
 });
+
+it('schedules for the moment given, whatever timezone it is given in', function () {
+    config(['app.timezone' => 'Asia/Jakarta']);
+    date_default_timezone_set('Asia/Jakarta');
+    $this->travelTo('2026-10-19 08:00');
+    // The editor sends UTC (toISOString()), an AI client or an import any offset.
+    $news = scheduledNews('Later', new DateTimeImmutable('2026-10-19T02:30:00Z'));
+    $other = scheduledNews('Other', new DateTimeImmutable('2026-10-19T10:30:00+08:00'));
+
+    expect($news->fresh()?->published_at?->format('Y-m-d H:i'))->toBe('2026-10-19 09:30')
+        ->and($other->fresh()?->published_at?->format('Y-m-d H:i'))->toBe('2026-10-19 09:30')
+        ->and($news->fresh()?->isLive())->toBeFalse();
+    $this->travelTo('2026-10-19 09:30');
+    expect($news->fresh()?->isLive())->toBeTrue();
+});
