@@ -245,6 +245,43 @@ it('reads an empty field (JSON null) as no value on every database', function ()
         ->and($titles(Content::entries('blog')->where('intro', null)))->toBe(['Blank']);
 });
 
+it('sorts entries without a value last, both ways, on every database', function () {
+    queryPost('Twenty', ['price' => 20, 'day' => '2026-01-20', 'intro' => 'b']);
+    queryPost('Hundred', ['price' => 100, 'day' => '2026-01-03T10:00:00']);
+    queryPost('None', ['price' => null, 'day' => null, 'intro' => null]);
+    queryPost('Missing');
+    queryPost('Negative', ['price' => -3.5, 'day' => '2025-12-31', 'intro' => 'a']);
+    $titles = fn (EntryQuery $query) => $query->get()->pluck('title')->all();
+
+    // SQLite and MySQL put nulls first going up, Postgres going down.
+    expect($titles(Content::entries('blog')->orderBy('price')))->toBe(['Negative', 'Twenty', 'Hundred', 'None', 'Missing'])
+        ->and($titles(Content::entries('blog')->orderBy('price', 'desc')))->toBe(['Hundred', 'Twenty', 'Negative', 'None', 'Missing'])
+        ->and($titles(Content::entries('blog')->orderBy('day')))->toBe(['Negative', 'Hundred', 'Twenty', 'None', 'Missing'])
+        ->and($titles(Content::entries('blog')->orderBy('day', 'desc')))->toBe(['Twenty', 'Hundred', 'Negative', 'None', 'Missing'])
+        ->and($titles(Content::entries('blog')->orderBy('intro')))->toBe(['Negative', 'Twenty', 'Hundred', 'None', 'Missing'])
+        ->and($titles(Content::entries('blog')->orderBy('intro', 'desc')))->toBe(['Twenty', 'Negative', 'Hundred', 'None', 'Missing'])
+        // Another language reads the main language's values: the same order.
+        ->and($titles(Content::entries('blog')->locale('id')->orderBy('price', 'desc')))->toBe(['Hundred', 'Twenty', 'Negative', 'None', 'Missing'])
+        ->and($titles(Content::entries('blog')->locale('id')->orderBy('price')))->toBe(['Negative', 'Twenty', 'Hundred', 'None', 'Missing']);
+});
+
+it('reads text that isn\'t a number or a date as no value, without failing, on every database', function () {
+    queryPost('Twenty', ['price' => 20, 'day' => '2026-01-20']);
+    // As a field that was text before its blueprint made it a number or date keeps it.
+    $words = queryPost('Words');
+    $words->forceFill(['data' => ['price' => 'abc', 'day' => 'soon'], 'draft_data' => ['price' => 'abc', 'day' => 'soon']])->save();
+    $digits = queryPost('Digits');
+    $digits->forceFill(['data' => ['price' => ' 100 ', 'day' => ''], 'draft_data' => ['price' => ' 100 ', 'day' => '']])->save();
+    $titles = fn (EntryQuery $query) => $query->get()->pluck('title')->all();
+
+    // Postgres failed the whole query ("invalid input syntax"); SQLite and MySQL read "abc" as 0.
+    expect($titles(Content::entries('blog')->orderBy('price')))->toBe(['Twenty', 'Digits', 'Words'])
+        ->and($titles(Content::entries('blog')->orderBy('day')))->toBe(['Twenty', 'Words', 'Digits'])
+        ->and($titles(Content::entries('blog')->where('price', '<', 50)))->toBe(['Twenty'])
+        ->and($titles(Content::entries('blog')->where('price', '>', 50)))->toBe(['Digits'])
+        ->and($titles(Content::entries('blog')->where('day', '>', '2026-01-01')))->toBe(['Twenty']);
+});
+
 it('remembers matched ids in the site cache until the content changes', function () {
     $a = queryPost('A');
     queryPost('B');
