@@ -240,7 +240,7 @@ it('sends the editor blocks that use their own fieldset only so deep', function 
         $depth++;
     }
     expect($depth)->toBe(Schema::MAX_DEPTH)
-        ->and($block)->toBe(['type' => 'section', 'label' => 'Section', 'fields' => []])
+        ->and($block)->toBe(['type' => 'section', 'label' => 'Section', 'fields' => [], 'defaults' => []])
         // Content still validates and stores as deep as it goes.
         ->and(fieldErrors($schema, ['sections' => [['type' => 'section', 'values' => ['columns' => ['content' => [['type' => 'card', 'values' => ['inner' => [['type' => 'nope']]]]]]]]]]))
         ->toHaveKey('data.sections.0.values.columns.content.0.values.inner.0.type');
