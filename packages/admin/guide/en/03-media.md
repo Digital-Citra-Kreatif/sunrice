@@ -25,7 +25,7 @@ Click a file to open its details:
 - A preview, the **Type**, **Size**, **Dimensions** (images) and when it was **Uploaded**.
 - **Title** and **Caption**.
 - **Alternative text**: what the image shows, for people who can't see it and for search engines. Fill it in for every image that carries meaning.
-- On a website in several languages, the alternative text and caption have a tab per language: the main language's tab (marked **Main**) holds the file's own, and each other tab what visitors read in that language; left empty, they get the main language's.
+- On a website in several languages, the alternative text and caption have a tab per language: the main language's tab (the first) holds the file's own, and each other tab what visitors read in that language; left empty, they get the main language's.
 - **Copy link** copies the file's address; **Open** shows it in a new tab.
 - **Replace file** uploads a new version in its place: everything that uses the file shows the new one, and its address stays the same.
 - **Used by** lists where the file is used (entries, globals…), with links.

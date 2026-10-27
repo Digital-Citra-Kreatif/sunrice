@@ -23,14 +23,15 @@ test('says each language with what its marks mean', async () => {
     assert.equal(languageTabTitle({ code: 'de' }, false), 'de');
 });
 
-test('a tab per language, the open one selected, the main one marked, missing ones with a plus', async () => {
+test('a tab per language by its code, the open one selected, missing ones with a plus', async () => {
     const { LanguageTabs } = await loadAdminModule<Module>('components/app/language-tabs.tsx');
     const html = render(LanguageTabs, { languages, value: 'id', onValueChange: () => {}, onAdd: () => {} });
 
     assert.match(html, /role="tablist"[^>]*aria-label="Language"/);
     assert.equal(html.match(/role="tab"/g)?.length, 3);
     assert.match(html, /aria-selected="true"[^>]*aria-label="Bahasa Indonesia: Outdated, Draft"/);
-    assert.match(html, />Main</);
+    assert.match(html, />en</);
+    assert.doesNotMatch(html, />English</); // the name is in the tooltip
     assert.match(html, /aria-label="Add French"/);
     assert.match(html, /bg-emerald-500/);
     assert.match(html, /bg-amber-500/);

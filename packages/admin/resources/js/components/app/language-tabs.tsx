@@ -9,7 +9,7 @@ export interface LanguageTab {
     code: string;
     /** Its name ("Bahasa Indonesia"); the code when not given. */
     name?: string;
-    /** The main language: marked "Main". */
+    /** The main language: said in its tooltip ("English (main)"). */
     main?: boolean;
     /**
      * Nothing in this language yet: shown muted with a plus. Choosing it calls
@@ -42,7 +42,8 @@ const DOT = { success: 'bg-emerald-500', warning: 'bg-amber-500' } as const;
 
 /**
  * The panel's one way to choose which language's content is shown or
- * edited: a row of tabs, one per language, the main one marked "Main",
+ * edited: a row of tabs, one per language by its code ("EN", its name and
+ * whether it's the main one in the tooltip),
  * missing ones muted with a plus (choosing one adds it with `onAdd`), an
  * optional status dot each, and `actions` at the end of the row. With
  * fewer than two languages there are no tabs (only `actions`).
@@ -102,10 +103,7 @@ export function LanguageTabs({ languages, value, onValueChange, onAdd, actions, 
                                 {...(children ? {} : { 'aria-controls': undefined })}
                                 className={cn('flex-none px-3', tab.missing && 'border-dashed border-muted-foreground/40 text-muted-foreground')}>
                                 {tab.missing && <Plus aria-hidden="true" />}
-                                <span>{tab.name ?? tab.code}</span>
-                                {tab.main && (
-                                    <span className="rounded-sm bg-muted-foreground/10 px-1 text-[0.6875rem] font-medium tracking-wide text-muted-foreground uppercase">{t('Main')}</span>
-                                )}
+                                <span className="font-medium uppercase">{tab.code}</span>
                                 {tab.status && !tab.missing && <span aria-hidden="true" className={cn('size-2 rounded-full', DOT[tab.status.tone])} />}
                             </TabsTrigger>
                         );
