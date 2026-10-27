@@ -3,6 +3,7 @@ import { router, useForm } from '@inertiajs/react';
 import { Copy, FileText, Music, RotateCcw, Trash2, Upload as UploadIcon, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { InputError } from '@/components/app/input-error';
+import { LanguageTabs } from '@/components/app/language-tabs';
 import { useConfirm } from '@/components/resources/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,21 +23,25 @@ interface Props {
     accept: string;
     /** The content's other languages: alt text and caption in each. */
     locales?: { code: string; name: string }[];
+    /** The content's main language: the file's own alt text and caption are in it. */
+    mainLocale?: { code: string; name: string } | null;
     onClose: () => void;
 }
 
 /** A file's preview, details and actions, in a side sheet. */
-export function MediaDetails({ item, can, accept, locales = [], onClose }: Props) {
+export function MediaDetails({ item, can, accept, locales = [], mainLocale = null, onClose }: Props) {
     return (
         <Sheet open={item !== null} onOpenChange={(open) => !open && onClose()}>
             <SheetContent className="w-full overflow-y-auto sm:max-w-md">
-                {item && <Details key={item.id} item={item} can={can} accept={accept} locales={locales} onClose={onClose} />}
+                {item && <Details key={item.id} item={item} can={can} accept={accept} locales={locales} mainLocale={mainLocale} onClose={onClose} />}
             </SheetContent>
         </Sheet>
     );
 }
 
-function Details({ item, can, accept, locales = [], onClose }: Props & { item: MediaItem }) {
+function Details({ item, can, accept, locales = [], mainLocale = null, onClose }: Props & { item: MediaItem }) {
+    const main = mainLocale?.code ?? '';
+    const [language, setLanguage] = React.useState(main);
     const [confirm, confirmDialog] = useConfirm();
     const replaceInput = React.useRef<HTMLInputElement>(null);
     const form = useForm({
@@ -141,37 +146,43 @@ function Details({ item, can, accept, locales = [], onClose }: Props & { item: M
                             <Input id="media-title" value={form.data.title} maxLength={250} onChange={(e) => form.setData('title', e.target.value)} />
                             <InputError message={form.errors.title} />
                         </div>
-                        {kind === 'image' && (
-                            <div className="grid gap-2">
-                                <Label htmlFor="media-alt">{t('Alternative text')}</Label>
-                                <Input id="media-alt" value={form.data.alt} maxLength={250} onChange={(e) => form.setData('alt', e.target.value)} />
-                                <p className="text-sm text-muted-foreground">{t('What the image shows, for people who can\'t see it.')}</p>
-                                <InputError message={form.errors.alt} />
-                            </div>
-                        )}
-                        <div className="grid gap-2">
-                            <Label htmlFor="media-caption">{t('Caption')}</Label>
-                            <Textarea id="media-caption" rows={3} value={form.data.caption} maxLength={2000} onChange={(e) => form.setData('caption', e.target.value)} />
-                            <InputError message={form.errors.caption} />
-                        </div>
-                        {locales.map(({ code, name }) => (
-                            <fieldset key={code} className="grid gap-3 rounded-md border p-3">
-                                <legend className="px-1 text-sm font-medium">In {name}</legend>
-                                {kind === 'image' && (
+                        {/* Alt text and caption in each language: the file's own in the main one, the others' with it as their placeholder. */}
+                        <LanguageTabs value={language} onValueChange={setLanguage}
+                            languages={mainLocale ? [{ ...mainLocale, main: true }, ...locales] : []}>
+                            {(code) => code === main ? (
+                                <div className="grid gap-4">
+                                    {kind === 'image' && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="media-alt">{t('Alternative text')}</Label>
+                                            <Input id="media-alt" value={form.data.alt} maxLength={250} onChange={(e) => form.setData('alt', e.target.value)} />
+                                            <p className="text-sm text-muted-foreground">{t('What the image shows, for people who can\'t see it.')}</p>
+                                            <InputError message={form.errors.alt} />
+                                        </div>
+                                    )}
                                     <div className="grid gap-2">
-                                        <Label htmlFor={`media-alt-${code}`}>{t('Alternative text (:language)', { language: name })}</Label>
-                                        <Input id={`media-alt-${code}`} value={form.data.translations[code]?.alt ?? ''} maxLength={250} placeholder={form.data.alt}
-                                            onChange={(e) => setTranslation(code, 'alt', e.target.value)} />
+                                        <Label htmlFor="media-caption">{t('Caption')}</Label>
+                                        <Textarea id="media-caption" rows={3} value={form.data.caption} maxLength={2000} onChange={(e) => form.setData('caption', e.target.value)} />
+                                        <InputError message={form.errors.caption} />
                                     </div>
-                                )}
-                                <div className="grid gap-2">
-                                    <Label htmlFor={`media-caption-${code}`}>Caption ({name})</Label>
-                                    <Textarea id={`media-caption-${code}`} rows={2} value={form.data.translations[code]?.caption ?? ''} maxLength={2000} placeholder={form.data.caption}
-                                        onChange={(e) => setTranslation(code, 'caption', e.target.value)} />
                                 </div>
-                                <p className="text-sm text-muted-foreground">Empty: as above.</p>
-                            </fieldset>
-                        ))}
+                            ) : (
+                                <div className="grid gap-4">
+                                    {kind === 'image' && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor={`media-alt-${code}`}>{t('Alternative text')}</Label>
+                                            <Input id={`media-alt-${code}`} lang={code} value={form.data.translations[code]?.alt ?? ''} maxLength={250} placeholder={form.data.alt}
+                                                onChange={(e) => setTranslation(code, 'alt', e.target.value)} />
+                                        </div>
+                                    )}
+                                    <div className="grid gap-2">
+                                        <Label htmlFor={`media-caption-${code}`}>{t('Caption')}</Label>
+                                        <Textarea id={`media-caption-${code}`} lang={code} rows={3} value={form.data.translations[code]?.caption ?? ''} maxLength={2000} placeholder={form.data.caption}
+                                            onChange={(e) => setTranslation(code, 'caption', e.target.value)} />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{t('Left empty: as in :language.', { language: mainLocale?.name ?? '' })}</p>
+                                </div>
+                            )}
+                        </LanguageTabs>
                         <div className="flex justify-between gap-2">
                             {can.delete ? (
                                 <Button type="button" variant="outline" className="text-destructive" onClick={trash}>

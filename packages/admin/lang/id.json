@@ -132,7 +132,6 @@
     "All types": "Semua jenis",
     "Also send alerts to these roles": "Kirim peringatan juga ke peran ini",
     "Alternative text": "Teks alternatif",
-    "Alternative text (:language)": "Teks alternatif (:language)",
     "An account signed in after a long time": "Sebuah akun masuk setelah lama tidak aktif",
     "An account was locked after wrong passwords": "Sebuah akun dikunci setelah kata sandi salah",
     "An AI access token was used from a new address": "Token akses AI dipakai dari alamat baru",
@@ -871,5 +870,11 @@
     "Alt text": "Teks alt",
     "Describe the image": "Jelaskan gambarnya",
     "No alt text": "Belum ada teks alt",
-    "Remove image": "Hapus gambar"
+    "Remove image": "Hapus gambar",
+    ":language (main)": ":language (utama)",
+    "Add :language": "Tambah :language",
+    ":language: not translated yet": ":language: belum diterjemahkan",
+    "Language": "Bahasa",
+    "Main": "Utama",
+    "Left empty: as in :language.": "Dibiarkan kosong: sama seperti dalam :language."
 }

@@ -25,7 +25,7 @@ Klik berkas untuk membuka detailnya:
 - Pratinjau, **Jenis**, **Ukuran**, **Dimensi** (ukuran gambar), dan kapan **Diunggah**.
 - **Judul** dan **Keterangan**.
 - **Teks alternatif**: apa yang ditampilkan gambar, untuk orang yang tidak bisa melihatnya dan untuk mesin pencari. Isilah untuk setiap gambar yang bermakna.
-- Di situs web dengan beberapa bahasa, **Dalam …** (satu per bahasa lain) berisi teks alternatif dan keterangan yang dibaca pengunjung dalam bahasa itu; jika kosong, mereka mendapat yang di atas.
+- Di situs web dengan beberapa bahasa, teks alternatif dan keterangan punya satu tab per bahasa: tab bahasa utama (ditandai **Utama**) berisi milik berkas itu sendiri, dan setiap tab lain berisi yang dibaca pengunjung dalam bahasa itu; jika dibiarkan kosong, mereka mendapat milik bahasa utama.
 - **Salin tautan** menyalin alamat berkas; **Buka** membukanya di tab baru.
 - **Ganti file** mengunggah versi baru sebagai gantinya: semua yang memakai berkas itu langsung menampilkan versi baru, dan alamatnya tetap sama.
 - **Dipakai oleh** menampilkan di mana berkas dipakai (entri, global…), beserta tautannya.
