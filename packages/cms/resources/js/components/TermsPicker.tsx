@@ -219,7 +219,8 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
                         <span className={`cms:min-w-0 cms:truncate ${removable ? '' : 'cms:pr-2'}`}>{name(termId)}</span>
                         {removable && (
                             <button type="button" className="cms:inline-flex cms:size-7 cms:shrink-0 cms:items-center cms:justify-center cms:rounded-sm cms:text-muted-foreground cms:hover:bg-muted cms:hover:text-foreground cms:focus-visible:ring-2 cms:focus-visible:ring-ring cms:focus-visible:outline-none"
-                                aria-label={t('Remove :term', { term: name(termId) })} onClick={() => set(ids.filter((other) => other !== termId))}>
+                                aria-label={t('Remove :term', { term: name(termId) })} onMouseDown={(event: React.MouseEvent) => { if (open) event.preventDefault(); }}
+                                onClick={() => { set(ids.filter((other) => other !== termId)); if (open) input.current?.focus(); }}>
                                 <X className="cms:size-3" aria-hidden="true" />
                             </button>
                         )}
@@ -237,6 +238,8 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
             <PopoverContent side="bottom" align="start" sideOffset={4} avoidCollisions={false} className="cms:max-w-[calc(100vw-2rem)] cms:p-0" style={{ width: 'var(--radix-popper-anchor-width)' }}
                 // Removing a chip (its ×, in the box) keeps the list open.
                 onInteractOutside={(event: Event) => { if (event.target instanceof Element && event.target.closest('[data-terms-box]')) event.preventDefault(); }}
+                // Focus left with a removed chip (on the page itself) isn't leaving the list.
+                onFocusOutside={(event: Event) => { const target = event.target; if (!(target instanceof Element) || target === document.body || target.closest('[data-terms-box]')) event.preventDefault(); }}
                 onOpenAutoFocus={(event: Event) => { event.preventDefault(); input.current?.focus(); }}>
                 <div className="cms:relative cms:border-b cms:border-border/60">
                     <Search className="cms:pointer-events-none cms:absolute cms:top-1/2 cms:left-3 cms:size-4 cms:-translate-y-1/2 cms:text-muted-foreground" aria-hidden="true" />
