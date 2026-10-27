@@ -72,7 +72,7 @@ final class PublishScheduledCommand extends Command
             ->whereHas('revisions', fn (Builder $q) => $q->whereColumn('sunrice_revisions.created_at', '<', 'sunrice_entry_translations.published_at'))
             ->chunkById(100, function ($translations) use (&$count, $terms): void {
                 foreach ($translations as $translation) {
-                    $terms->handle($translation->entry);
+                    $terms->scheduled($translation);
                     EntryPublished::dispatch($translation, true);
                     $count++;
                 }
