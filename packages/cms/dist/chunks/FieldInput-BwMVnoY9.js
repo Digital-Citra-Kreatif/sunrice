@@ -1,13 +1,13 @@
-import { j as n, t as d, r as Ye, a as Je } from "./admin-D59QIAdZ.js";
+import { j as n, t as d, r as Ye, a as Je } from "./admin-DSUOrVvl.js";
 import { c as B, _ as k } from "./createLucideIcon-Ccbp7F45.js";
 import { u as f } from "./ui-Dh5wfMwT.js";
-import { t as Qe, a as H, E as Ne, o as Ze, d as fe, b as es, g as ss, i as $e, n as ts, c as ns, s as rs, e as cs, l as as } from "./EntriesPicker-Cdmd1SS-.js";
-import { F as V } from "./FieldError-orc8-bJl.js";
+import { t as Qe, a as H, E as Ne, o as Ze, d as fe, b as es, g as ss, i as $e, n as ts, c as ns, s as rs, e as cs, l as as } from "./EntriesPicker-CyBizVx4.js";
+import { F as V } from "./FieldError-Bm-Y133F.js";
 import { C as ls } from "./check-OeKFYRnl.js";
-import { X as os } from "./EntryStatus-CNeQIrmU.js";
+import { X as os } from "./EntryStatus-CNmsWX9M.js";
 import { S as is } from "./search-3zKi7F1_.js";
 import { P as _e } from "./plus-COqahUZ2.js";
-import { T as Se } from "./Confirm-BjhG9xeX.js";
+import { T as Se } from "./Confirm-Dy2fxRou.js";
 import { C as ms } from "./chevron-right-9qVV6b-Q.js";
 const Ae = {
   name: "chevron-down",
@@ -47,7 +47,7 @@ const De = {
 };
 De.node;
 const fs = B(De), ps = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-function I(e) {
+function z(e) {
   return e.replace(/[&<>"']/g, (s) => ps[s] ?? s);
 }
 function hs(e) {
@@ -57,11 +57,11 @@ const pe = new RegExp("`([^`\\n]+)`|\\[([^\\]\\n]+)\\]\\(((?:[^()\\s]|\\([^()\\s
 function F(e, s = !1) {
   let t = "", c = e;
   for (let r = pe.exec(c); r !== null; r = pe.exec(c)) {
-    t += I(c.slice(0, r.index));
+    t += z(c.slice(0, r.index));
     const [a, l, x, m, v, g] = r;
-    l !== void 0 ? t += `<code>${I(l)}</code>` : x !== void 0 && m !== void 0 ? t += s || !hs(m) ? F(x, s) : `<a href="${I(m)}" target="_blank" rel="noopener noreferrer">${F(x, !0)}</a>` : v !== void 0 ? t += `<strong>${F(v, s)}</strong>` : g !== void 0 ? t += `<em>${F(g, s)}</em>` : t += I(a), c = c.slice(r.index + a.length);
+    l !== void 0 ? t += `<code>${z(l)}</code>` : x !== void 0 && m !== void 0 ? t += s || !hs(m) ? F(x, s) : `<a href="${z(m)}" target="_blank" rel="noopener noreferrer">${F(x, !0)}</a>` : v !== void 0 ? t += `<strong>${F(v, s)}</strong>` : g !== void 0 ? t += `<em>${F(g, s)}</em>` : t += z(a), c = c.slice(r.index + a.length);
   }
-  return t + I(c);
+  return t + z(c);
 }
 const xs = ["text", "number"], gs = ["group", "repeater", "flexible"], bs = ["placeholder", "prefix", "suffix"];
 function R(e) {
@@ -217,13 +217,13 @@ ${C}`, b({ ...S, q: C }), O(S.items, C === ""), K(C !== "" && S.items.length > 0
     const j = o.currentTarget;
     j.scrollTop + j.clientHeight >= j.scrollHeight - 48 && X();
   }, Xe = t ? d("Choose terms…") : d("Choose a term…"), ue = `${e}-listbox`, de = u !== null && u.q !== G;
-  let z;
-  return w ? z = /* @__PURE__ */ n.jsxs("div", { className: "cms:flex cms:flex-col cms:items-start cms:gap-2 cms:p-3 cms:text-sm", children: [
+  let I;
+  return w ? I = /* @__PURE__ */ n.jsxs("div", { className: "cms:flex cms:flex-col cms:items-start cms:gap-2 cms:p-3 cms:text-sm", children: [
     /* @__PURE__ */ n.jsx("p", { className: "cms:text-destructive", children: d("Terms could not be loaded.") }),
     /* @__PURE__ */ n.jsx(f.Button, { type: "button", variant: "outline", size: "sm", onClick: () => {
       A(!1), Ve((o) => o + 1);
     }, children: d("Try again") })
-  ] }) : u === null ? z = /* @__PURE__ */ n.jsx("div", { className: "cms:flex cms:flex-col cms:gap-2 cms:p-2", "aria-busy": "true", "aria-label": d("Loading terms"), children: [70, 55, 80, 45, 65].map((o) => /* @__PURE__ */ n.jsx(f.Skeleton, { className: "cms:h-5", style: { width: `${o}%` } }, o)) }) : E.length === 0 ? z = /* @__PURE__ */ n.jsx("p", { className: "cms:p-3 cms:text-sm cms:text-muted-foreground", children: u.q ? d("No terms match “:search”.", { search: u.q }) : d("Nothing to choose from yet.") }) : z = /* @__PURE__ */ n.jsxs("div", { className: `cms:max-h-72 cms:overflow-y-auto cms:overscroll-contain cms:p-1 ${de ? "cms:opacity-60" : ""}`, onScroll: We, children: [
+  ] }) : u === null ? I = /* @__PURE__ */ n.jsx("div", { className: "cms:flex cms:flex-col cms:gap-2 cms:p-2", "aria-busy": "true", "aria-label": d("Loading terms"), children: [70, 55, 80, 45, 65].map((o) => /* @__PURE__ */ n.jsx(f.Skeleton, { className: "cms:h-5", style: { width: `${o}%` } }, o)) }) : E.length === 0 ? I = /* @__PURE__ */ n.jsx("p", { className: "cms:p-3 cms:text-sm cms:text-muted-foreground", children: u.q ? d("No terms match “:search”.", { search: u.q }) : d("Nothing to choose from yet.") }) : I = /* @__PURE__ */ n.jsxs("div", { className: `cms:max-h-72 cms:overflow-y-auto cms:overscroll-contain cms:p-1 ${de ? "cms:opacity-60" : ""}`, onScroll: We, children: [
     /* @__PURE__ */ n.jsx("div", { role: "listbox", id: ue, "aria-label": d("Terms"), "aria-multiselectable": t || void 0, "aria-busy": de || void 0, children: E.map((o, j) => {
       const S = g.includes(o.id), q = Q(j), L = be(o.label, U[o.id]?.parents);
       return /* @__PURE__ */ n.jsxs(
@@ -256,6 +256,7 @@ ${C}`, b({ ...S, q: C }), O(S.items, C === ""), K(C !== "" && S.items.length > 0
     /* @__PURE__ */ n.jsx(f.PopoverAnchor, { asChild: !0, children: /* @__PURE__ */ n.jsxs(
       "div",
       {
+        "data-terms-box": "",
         "data-invalid": a || void 0,
         className: "cms:flex cms:w-full cms:max-w-xl cms:min-w-0 cms:[contain:inline-size] cms:flex-wrap cms:items-center cms:gap-1 cms:rounded-md cms:border cms:border-input/80 cms:bg-card cms:p-1 cms:shadow-xs cms:data-invalid:border-destructive cms:dark:bg-input/20",
         children: [
@@ -304,8 +305,11 @@ ${C}`, b({ ...S, q: C }), O(S.items, C === ""), K(C !== "" && S.items.length > 0
         align: "start",
         sideOffset: 4,
         avoidCollisions: !1,
-        className: "cms:max-w-[calc(100vw-2rem)] cms:min-w-60 cms:p-0",
+        className: "cms:max-w-[calc(100vw-2rem)] cms:p-0",
         style: { width: "var(--radix-popper-anchor-width)" },
+        onInteractOutside: (o) => {
+          o.target instanceof Element && o.target.closest("[data-terms-box]") && o.preventDefault();
+        },
         onOpenAutoFocus: (o) => {
           o.preventDefault(), ae.current?.focus();
         },
@@ -332,7 +336,7 @@ ${C}`, b({ ...S, q: C }), O(S.items, C === ""), K(C !== "" && S.items.length > 0
               }
             )
           ] }),
-          z,
+          I,
           ie && c !== null && /* @__PURE__ */ n.jsx("p", { className: "cms:border-t cms:border-border/60 cms:px-3 cms:py-2 cms:text-xs cms:text-muted-foreground", children: d("Up to :max terms.", { max: c }) })
         ]
       }
@@ -348,7 +352,7 @@ function qs(e) {
 function Hs(e) {
   return e.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^[0-9_]+/, "").replace(/_{2,}/g, "_").slice(0, 64);
 }
-function ze(e, s) {
+function Ie(e, s) {
   const t = new Set(s.map((a) => a.handle)), c = qs(e) || "field";
   let r = c;
   for (let a = 2; t.has(r); a++)
@@ -372,20 +376,20 @@ function Os(e, s) {
   }));
 }
 function xt(e, s, t) {
-  return { key: ne(), type: e, label: s, handle: ze(s, t), required: !1, config: {}, fields: [], handleTouched: !1 };
+  return { key: ne(), type: e, label: s, handle: Ie(s, t), required: !1, config: {}, fields: [], handleTouched: !1 };
 }
 function gt(e) {
   return e.type !== "fieldset" && e.savedHandle !== void 0 && e.savedHandle !== "" && e.handle !== e.savedHandle ? e.savedHandle : null;
 }
-function zs(e) {
-  return e.map((s) => ({ ...s, savedHandle: s.handle, fields: zs(s.fields) }));
+function Is(e) {
+  return e.map((s) => ({ ...s, savedHandle: s.handle, fields: Is(s.fields) }));
 }
 function bt(e, s, t) {
   if (e.handleTouched) return { ...e, label: s };
   const c = t.filter((r) => r.key !== e.key);
-  return { ...e, label: s, handle: ze(s || e.type, c) };
+  return { ...e, label: s, handle: Ie(s || e.type, c) };
 }
-function Is(e, s) {
+function zs(e, s) {
   const t = `${s}.`, c = {};
   for (const [r, a] of Object.entries(e))
     r.startsWith(t) && (c[r.slice(t.length)] = a);
@@ -393,7 +397,7 @@ function Is(e, s) {
 }
 function re(e, s) {
   const t = e[s];
-  return { ...Is(e, s), ...t !== void 0 ? { "": t } : {} };
+  return { ...zs(e, s), ...t !== void 0 ? { "": t } : {} };
 }
 function yt(e, s) {
   return Object.keys(e).filter((t) => t === s || t.startsWith(`${s}.`));
@@ -420,15 +424,15 @@ function Ps(e, s, t = []) {
     a = `${r}_${l}`;
   return a;
 }
-function Ie(e) {
+function ze(e) {
   const { key: s, savedHandle: t, fields: c, ...r } = e;
-  return { ...structuredClone(r), key: ne(), fields: c.map(Ie) };
+  return { ...structuredClone(r), key: ne(), fields: c.map(ze) };
 }
 function $t(e, s, t = [], c = Oe) {
   const r = e[s];
   if (r === void 0) return null;
   const a = r.label || r.handle, l = {
-    ...Ie(r),
+    ...ze(r),
     label: c(":label (copy)", { label: a }),
     handle: r.type === "fieldset" ? r.handle : Ps(r.handle, e, t),
     handleTouched: !0
@@ -1117,7 +1121,7 @@ export {
   re as b,
   Hs as c,
   $t as d,
-  Is as e,
+  zs as e,
   Gs as f,
   gt as g,
   vt as h,
@@ -1137,6 +1141,6 @@ export {
   qs as v,
   Et as w,
   Os as x,
-  zs as y,
+  Is as y,
   Cs as z
 };

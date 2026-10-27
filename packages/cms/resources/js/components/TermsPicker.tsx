@@ -211,7 +211,7 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
             {/* The list is placed against the whole box, not the Add… button after the chips: under it, at its width,
                 where it opened, however many terms are chosen (it doesn't flip above near the bottom of the window). */}
             <PopoverAnchor asChild>
-            <div data-invalid={invalid || undefined}
+            <div data-terms-box="" data-invalid={invalid || undefined}
                 className="cms:flex cms:w-full cms:max-w-xl cms:min-w-0 cms:[contain:inline-size] cms:flex-wrap cms:items-center cms:gap-1 cms:rounded-md cms:border cms:border-input/80 cms:bg-card cms:p-1 cms:shadow-xs cms:data-invalid:border-destructive cms:dark:bg-input/20">
                 {ids.map((termId) => (
                     <span key={termId} title={termPath(name(termId), known[termId]?.parents ?? parentsGiven[String(termId)])}
@@ -234,7 +234,9 @@ export function TermsPicker({ id, taxonomy, multiple, max, required, invalid, va
                 </PopoverTrigger>
             </div>
             </PopoverAnchor>
-            <PopoverContent side="bottom" align="start" sideOffset={4} avoidCollisions={false} className="cms:max-w-[calc(100vw-2rem)] cms:min-w-60 cms:p-0" style={{ width: 'var(--radix-popper-anchor-width)' }}
+            <PopoverContent side="bottom" align="start" sideOffset={4} avoidCollisions={false} className="cms:max-w-[calc(100vw-2rem)] cms:p-0" style={{ width: 'var(--radix-popper-anchor-width)' }}
+                // Removing a chip (its ×, in the box) keeps the list open.
+                onInteractOutside={(event: Event) => { if (event.target instanceof Element && event.target.closest('[data-terms-box]')) event.preventDefault(); }}
                 onOpenAutoFocus={(event: Event) => { event.preventDefault(); input.current?.focus(); }}>
                 <div className="cms:relative cms:border-b cms:border-border/60">
                     <Search className="cms:pointer-events-none cms:absolute cms:top-1/2 cms:left-3 cms:size-4 cms:-translate-y-1/2 cms:text-muted-foreground" aria-hidden="true" />
