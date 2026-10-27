@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### All changes
+
+- **Machine translation tells when texts don't come back**: when the translation service gave back none of an item's texts (an empty answer, or every text without its HTML placeholders), the editor's **Translate from English** said "Everything is translated already.", `cms_translate_entry` answered as if it had worked, and `sunrice:translate` failed without saying which item; when it gave back only some, the editor said they were all translated. Such an item is now reported as failed, with how many of its texts didn't come back (those stay as they were; the ones that came back are still saved into the draft), in the editor's error, the tool's answer and the command's list. See [Machine translation](packages/cms/docs/translation.md).
+- **Machine translation leaves a translation's own rows and blocks alone**: a repeater row or flexible block that only the translation has (one an editor added in that language) was matched to the main language's row or block at the same position, so `sunrice:translate --force` (or an empty text in it) replaced its text with the translation of a different block. Rows and blocks are now matched by their id only; position counts only for one without an id.
+- **Machine translation of a long title no longer fails the whole entry**: the slug made from a translated title wasn't shortened, so a title over 200 characters in the target language (well within the 255 a title may have) made a slug the entry refused, and none of the entry was translated. It's now cut to 190 characters, as a slug made from a title in the editor is.
+- **Machine translation sends "<12" and ">60" as words**: everything between a `<` and the next `>` was taken for an HTML tag and kept from the model, so a text like "Kids <12 eat free, adults >60" came back with "eat free, adults" untranslated. Only real tags (`<p>`, `</a>`) and HTML comments are kept out now.
+
 ## 0.2.0 (2026-10-27)
 
 **Upgrading from 0.1 needs a fresh database**: the migrations were consolidated, so a 0.1 site is rebuilt with `php artisan migrate:fresh`. Keep its content by making a starter of it on 0.1 (`sunrice:make-starter`) and installing it after the rebuild (`sunrice:starter --path=`). See [Upgrading](docs/upgrading.md#keeping-a-01-sites-content).
