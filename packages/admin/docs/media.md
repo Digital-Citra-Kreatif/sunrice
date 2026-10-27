@@ -17,8 +17,6 @@ The panel has one media library, shared by your app and every plugin: files on a
 
 **Move to trash** takes a file offline: its original and all its sizes move off the media disk to a private disk (`media.trash_disk`, the `local` disk by default, in `storage/app/private`) under `media.trash_directory` (`sunrice-media-trash/`), at the same path, so its links answer 404 at once (an annual report uploaded by mistake is gone from `/storage/media/…`, while it can still be restored). **Restore** moves them back to the same paths, so links work again; **Permanently delete** deletes them from wherever they are, the trash or the media disk. A move is all or nothing: every file is copied first and the originals are deleted only once all copies are there; if one can't be moved, what was done is undone, the file stays where it was and the page says so (`MediaFilesNotMoved` from code). In the trash a file shows a placeholder instead of its preview and has no link to copy. Image sizes still being made on the queue for a file moved to the trash meanwhile are deleted again, not left on the public disk.
 
-Media in the trash whose files are still on the public disk (trashed by 0.1, which kept them there) are moved by `php artisan sunrice:media-trash-offline` (it leaves files already moved alone). Upgrading from 0.1 rebuilds the database (see [Upgrading](../../../docs/upgrading.md#keeping-a-01-sites-content)), so a site upgraded that way has none.
-
 When the media disk is a local disk served through a link in `filesystems.links` that doesn't exist (`php artisan storage:link` wasn't run), the page tells those who may upload, since files' links lead nowhere until it is.
 
 Turn the page off with `$panel->mediaLibrary(false)`; the library still works from code.

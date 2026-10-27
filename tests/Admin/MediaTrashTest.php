@@ -18,7 +18,6 @@ use Sunrice\Admin\Media\MediaUsages;
 use Sunrice\Admin\Panel;
 
 use function Pest\Laravel\actingAs;
-use function Pest\Laravel\artisan;
 use function Pest\Laravel\delete;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
@@ -152,20 +151,4 @@ it('doesn\'t put back on the public disk the sizes a queued job makes for a tras
     (new GenerateImageSizes($media->id))->handle();
     expect(Storage::disk('public')->allFiles())->toBe([])
         ->and(Media::withTrashed()->findOrFail($media->id)->sizes)->toBe([]);
-});
-
-it('takes files trashed before the upgrade offline from the console, once', function () {
-    $media = trashable();
-    // Trashed by an older version: the record only, the files left where they were.
-    Media::query()->whereKey($media->id)->update(['deleted_at' => now()]);
-    $live = trashable('live.jpg');
-
-    artisan('sunrice:media-trash-offline')->expectsOutputToContain('4 files of media in the trash moved off the public disk.')->assertSuccessful();
-    Storage::disk('public')->assertMissing($media->files());
-    Storage::disk('public')->assertExists($live->files());
-    Storage::disk('local')->assertExists(inTrash($media));
-
-    artisan('sunrice:media-trash-offline')->expectsOutputToContain('0 files')->assertSuccessful();
-    app(TrashMedia::class)->restore(Media::onlyTrashed()->findOrFail($media->id));
-    Storage::disk('public')->assertExists($media->files());
 });
