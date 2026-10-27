@@ -14,6 +14,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Sunrice\Cms\Fields\HydrationContext;
 use Sunrice\Cms\Fields\Schema;
+use Sunrice\Cms\Models\Collection as ContentCollection;
 use Sunrice\Cms\Site\Site;
 use Sunrice\Cms\Support\ContentData;
 use Sunrice\Cms\Support\Locales;
@@ -71,6 +72,9 @@ class EntryTranslation extends Model
     /** The context values() hydrates with when given none: shared by a query's whole result (EntryQuery). */
     private ?HydrationContext $hydration = null;
 
+    /** @var array{0: mixed, 1: Carbon|null}|null published_at as isLive() last read it, with the stored value */
+    private ?array $publishedAt = null;
+
     protected static function booted(): void
     {
         // The live version's words for site search, whenever it changes.
@@ -108,7 +112,23 @@ class EntryTranslation extends Model
     {
         $query->where('status', self::PUBLISHED)
             ->where('published_at', '<=', now())
-            ->whereHas('entry', fn (Builder $entry) => $entry->withoutTrashed()->whereHas('collection', fn (Builder $collection) => $collection->withoutTrashed()));
+            ->notTrashed();
+    }
+
+    /**
+     * Its entry and collection not deleted. The collection is checked on
+     * the translation's own collection_id (the entry's, copied), against
+     * the collections in the trash: MySQL turns an exists nested in the
+     * entry's, or an IN of the collections kept, into a join of every
+     * collection with the rows, then sorts the rows whole in a temporary
+     * table (80 ms for a page of 1,300 entries, against 1 ms).
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeNotTrashed(Builder $query): void
+    {
+        $query->whereNotIn($query->qualifyColumn('collection_id'), ContentCollection::onlyTrashed()->select('id'))
+            ->whereHas('entry', fn (Builder $entry) => $entry->withoutTrashed());
     }
 
     /**
@@ -147,7 +167,16 @@ class EntryTranslation extends Model
     /** Published with its date reached. Doesn't look at the entry or collection being deleted. */
     public function isLive(): bool
     {
-        return $this->isPublished() && $this->published_at !== null && $this->published_at->lte(now());
+        if (! $this->isPublished()) {
+            return false;
+        }
+        // The date as read last, while it's the same: every URL and link asks (a cast date is a new Carbon on each read).
+        $stored = $this->attributes['published_at'] ?? null;
+        if ($this->publishedAt === null || $this->publishedAt[0] !== $stored) {
+            $this->publishedAt = [$stored, $this->published_at];
+        }
+
+        return $this->publishedAt[1] !== null && $this->publishedAt[1]->lte(now());
     }
 
     /** "draft", "scheduled" (published with a date to come) or "published". */

@@ -21,6 +21,9 @@ use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
+use Sunrice\Cms\Settings\LocaleSettings;
+use Sunrice\Cms\Site\Page;
+use Sunrice\Cms\Support\Locales;
 
 use function Pest\Laravel\getJson;
 
@@ -300,6 +303,93 @@ it('converts a list of entries with their media, links and terms in a fixed numb
     $make(10);
 
     expect($queries())->toBe($few)->toBeLessThanOrEqual(15);
+});
+
+it('converts a list in another language, on a collection\'s term page, in a fixed number of queries', function () {
+    // Term pages in the collection (the page shown's), the main language standing in, an own pattern in Indonesian.
+    $this->places->taxonomies()->updateExistingPivot($this->topics->id, ['term_pages' => true]);
+    $this->places->setOwnRoute('id', '/tempat/{slug}')->save();
+    $shared = dataTerm('Shared');
+    app(SaveTerm::class)->handle($this->topics, ['title' => 'Bersama', 'slug' => 'bersama', 'locale' => 'id'], $shared);
+    $make = function (int $count) use ($shared): void {
+        static $n = 0;
+        foreach (range(1, $count) as $i) {
+            $n++;
+            $term = dataTerm("Topic {$n}", $shared);
+            $agent = dataPlace("Agent {$n}", ['phone' => '1'], [$term->id, $shared->id], $this->agents);
+            $place = dataPlace("Place {$n}", ['cover' => dataMedia("c{$n}")->id, 'agent' => $agent->entry_id, 'area' => $shared->id], [$term->id, $shared->id]);
+            if ($n % 2 === 0) {
+                app(PublishEntry::class)->handle(app(SaveDraft::class)->handle(app(CreateTranslation::class)->handle($place->entry, 'id'), ['title' => "Tempat {$n}", 'slug' => "tempat-{$n}"]));
+            }
+        }
+    };
+    app()->setLocale('id');
+    $queries = function (): array {
+        (new Page(Page::LISTING, 'id', 'cms.listing', collection: $this->places))->share();
+        Cms::toData(Cms::entries('places')->get(), ['cover', 'agent', 'area']); // warm the site cache
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $data = Cms::toData(Cms::entries('places')->get(), ['cover', 'agent', 'area']);
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return [$count, $data];
+    };
+
+    $make(2);
+    [$few] = $queries();
+    $make(10);
+    [$many, $data] = $queries();
+
+    expect($many)->toBe($few)->toBeLessThanOrEqual(15)
+        ->and($data)->toHaveCount(12);
+    $bersama = ['id' => $shared->id, 'taxonomy' => 'topics', 'locale' => 'id', 'title' => 'Bersama', 'slug' => 'bersama', 'url' => url('/id/places/topics/bersama'), 'parent_id' => null];
+    foreach ($data as $place) {
+        // Its URL in Indonesian (its own, or the main one's at the Indonesian address), every term at its page in the collection.
+        expect($place['url'])->toStartWith(url('/id/tempat/'))
+            ->and($place['terms']['topics'])->toContain($bersama)
+            ->and($place['fields']['area'])->toBe($bersama)
+            ->and($place['fields']['agent']['url'])->toStartWith(url('/id/agents/'))
+            ->and($place['fields']['agent']['terms']['topics'])->toContain($bersama);
+    }
+});
+
+it('makes a term\'s data once per list, its URL following the page shown', function () {
+    $this->places->taxonomies()->updateExistingPivot($this->topics->id, ['term_pages' => true]);
+    $bali = dataTerm('Bali');
+    dataPlace('Villa', [], [$bali->id]);
+    dataPlace('Hut', [], [$bali->id]);
+    $list = Cms::entries('places')->get();
+
+    expect(collect(Cms::toData($list))->pluck('terms.topics.0.url')->all())->toBe([url('/topics/bali'), url('/topics/bali')]);
+    // The same list (and context) on the collection's page: its term pages there.
+    (new Page(Page::LISTING, 'en', 'cms.listing', collection: $this->places))->share();
+    expect(collect(Cms::toData($list))->pluck('terms.topics.0.url')->all())->toBe([url('/places/topics/bali'), url('/places/topics/bali')]);
+});
+
+it('keeps what URLs are built from for one request only, and reads it again when it changes', function () {
+    $villa = dataPlace('Villa');
+    $villa = Cms::entries('places')->whereSlug('villa')->first();
+    expect($villa?->url())->toBe(url('/places/villa'));
+
+    // In memory: a language's own pattern, the languages and a publish date, each read again once changed.
+    $this->places->setOwnRoute('id', '/tempat/{slug}');
+    expect($this->places->routeIn('id'))->toBe('/tempat/{slug}');
+    $this->places->setOwnRoute('id', '/vila/{slug}');
+    expect($this->places->routeIn('id'))->toBe('/vila/{slug}');
+    $languages = app(LocaleSettings::class);
+    $languages->languages = "en: English\nid: Indonesia";
+    expect(Locales::prefix('id'))->toBe('/id');
+    $languages->languages = "en: English\nid: Indonesia | indo";
+    expect(Locales::prefix('id'))->toBe('/indo')
+        ->and($villa?->isLive())->toBeTrue();
+    $villa->published_at = now()->addDay();
+    expect($villa->isLive())->toBeFalse();
+
+    // Saved: the next request (a fresh Site, as under Octane) builds its URLs from the new pattern.
+    $this->places->update(['route' => '/stays/{slug}']);
+    app()->forgetScopedInstances();
+    expect(Cms::entries('places')->whereSlug('villa')->first()?->url())->toBe(url('/stays/villa'));
 });
 
 it('prints data into an attribute with @json, safely', function () {
