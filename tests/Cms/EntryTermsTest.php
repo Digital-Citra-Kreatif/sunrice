@@ -13,6 +13,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\DiscardChanges;
+use Sunrice\Cms\Actions\Entries\DuplicateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\RestoreRevision;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
@@ -476,4 +477,43 @@ it('restores from a revision kept before revisions had terms the terms its terms
     app(RestoreRevision::class)->handle($old->fresh());
     // Tags from the field (not a term of another taxonomy); Format, which no field has, as it was.
     expect($note->entry->fresh()?->draftTermIds())->toEqualCanonicalizing([$this->laravel->id, $this->guide->id]);
+});
+
+it('gives a duplicate the entry\'s terms as a draft, put on the site when the copy is published', function () {
+    $this->tags->update(['route' => '/tags/{slug}']);
+    $note = liveNote(['tags' => [$this->php->id], 'format' => [$this->guide->id]], 'Source article');
+    $listed = fn (): array => Content::entries('notes')->whereTerm('tags', 'php')->get()->pluck('title')->all();
+
+    post("/admin/cms/entries/{$note->entry_id}/duplicate")->assertRedirect()->assertSessionHasNoErrors();
+    $copy = Entry::query()->whereKeyNot($note->entry_id)->sole();
+    $draft = EntryTranslation::query()->where('entry_id', $copy->id)->sole();
+
+    // The editor's card has the source's terms; the site doesn't list the copy yet.
+    get(entryEditUrl($copy->id))->assertInertia(fn (Assert $page) => $page
+        ->where('values.terms', ['format' => [$this->guide->id], 'tags' => [$this->php->id]]));
+    expect(storedTerms($copy))->toBe([])
+        ->and($listed())->toBe(['Source article']);
+    get('/tags/php')->assertOk()->assertDontSee('Source article (copy)');
+
+    // Published: listed.
+    app(PublishEntry::class)->handle($draft->fresh());
+    expect(liveTerms($copy))->toEqualCanonicalizing([$this->php->id, $this->guide->id])
+        ->and($copy->fresh()?->draft_terms)->toBeNull()
+        ->and($listed())->toEqualCanonicalizing(['Source article', 'Source article (copy)']);
+    get('/tags/php')->assertOk()->assertSee('Source article (copy)');
+
+    // The source is as it was.
+    expect(liveTerms($note))->toEqualCanonicalizing([$this->php->id, $this->guide->id])
+        ->and($note->entry->fresh()?->draft_terms)->toBeNull();
+});
+
+it('gives a duplicate the terms the entry has chosen and not published yet', function () {
+    $note = liveNote(['tags' => [$this->php->id]]);
+    app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->laravel->id]]]);
+
+    $copy = app(DuplicateEntry::class)->handle($note->entry->fresh());
+    expect($copy->draftTermIds())->toBe([$this->laravel->id])
+        ->and(storedTerms($copy))->toBe([])
+        ->and(liveTerms($note))->toBe([$this->php->id])
+        ->and($note->entry->fresh()?->draftTermIds())->toBe([$this->laravel->id]);
 });
