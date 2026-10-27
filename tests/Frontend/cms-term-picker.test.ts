@@ -74,3 +74,8 @@ test('asks the picker for the next page', () => {
     assert.equal(termPickerQuery({ taxonomy: 'tags', offset: 0 }), 'taxonomy=tags');
     assert.equal(termPickerQuery({ taxonomy: 'tags', q: 'a', offset: 100 }), 'taxonomy=tags&q=a&offset=100');
 });
+
+test('asks the picker to leave out a term being moved, and the terms under it', () => {
+    assert.equal(termPickerQuery({ taxonomy: 'places', except: 12 }), 'taxonomy=places&except=12');
+    assert.equal(termPickerQuery({ taxonomy: 'places', q: 'a', except: null }), 'taxonomy=places&q=a');
+});
