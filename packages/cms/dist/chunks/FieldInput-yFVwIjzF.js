@@ -1,11 +1,11 @@
-import { j as n, t as x } from "./admin-DuvSWrHI.js";
+import { j as n, t as x } from "./admin-B85tCaRI.js";
 import { c as O, _ as N } from "./createLucideIcon-Ccbp7F45.js";
 import { u as d } from "./ui-Dh5wfMwT.js";
-import { E as X } from "./EntriesPicker-CnJQ2k3Z.js";
-import { F as I } from "./FieldError-D5uGazqY.js";
-import { c as $, T as de, o as fe, d as z, e as pe, g as he, i as Y, n as xe, f as ge, s as ye, b as be, h as je, l as ve } from "./TermsPicker-CeWGLaBC.js";
+import { E as X } from "./EntriesPicker-AEKmze7W.js";
+import { F as I } from "./FieldError-ol5snTmU.js";
+import { c as $, T as de, o as fe, d as z, e as pe, g as he, i as Y, n as xe, f as ge, s as ye, b as be, h as je, l as ve } from "./TermsPicker-Dqxn7i5G.js";
 import { P as J } from "./plus-COqahUZ2.js";
-import { T as Z } from "./Confirm-CRf67QA2.js";
+import { T as Z } from "./Confirm-imtwkZTr.js";
 import { C as ke } from "./chevron-right-9qVV6b-Q.js";
 const Q = {
   name: "chevron-down",
@@ -750,7 +750,7 @@ function rs({ field: e, value: s, onChange: t, errors: a, id: r, content: o = !1
       }
     ),
     /* @__PURE__ */ n.jsxs("div", { className: "cms:flex cms:flex-wrap cms:items-center cms:gap-2", children: [
-      /* @__PURE__ */ n.jsxs(d.Button, { type: "button", variant: "outline", size: "sm", onClick: () => t([...f, o ? ge() : {}]), children: [
+      /* @__PURE__ */ n.jsxs(d.Button, { type: "button", variant: "outline", size: "sm", onClick: () => t([...f, o ? ge(e.defaults) : {}]), children: [
         /* @__PURE__ */ n.jsx(J, {}),
         " ",
         x("Add :item", { item: y })
@@ -815,7 +815,7 @@ function as({ field: e, value: s, onChange: t, errors: a, id: r }) {
           " ",
           x("Add block")
         ] }) }),
-        /* @__PURE__ */ n.jsx(d.DropdownMenuContent, { align: "start", children: o.map((l) => /* @__PURE__ */ n.jsx(d.DropdownMenuItem, { onSelect: () => t([...c, xe(l.type)]), children: l.label }, l.type)) })
+        /* @__PURE__ */ n.jsx(d.DropdownMenuContent, { align: "start", children: o.map((l) => /* @__PURE__ */ n.jsx(d.DropdownMenuItem, { onSelect: () => t([...c, xe(l.type, l.defaults)]), children: l.label }, l.type)) })
       ] }),
       /* @__PURE__ */ n.jsx(me, { keys: g.map((l) => l.key), folding: y })
     ] })
