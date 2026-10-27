@@ -10,14 +10,19 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Sunrice\Admin\Ai\AiToken;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Collections\DeleteCollection;
+use Sunrice\Cms\Actions\Collections\RestoreDeleted;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\DiscardChanges;
 use Sunrice\Cms\Actions\Entries\DuplicateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
+use Sunrice\Cms\Actions\Entries\RestoreEntry;
 use Sunrice\Cms\Actions\Entries\RestoreRevision;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Entries\SaveEntryTerms;
+use Sunrice\Cms\Actions\Entries\SyncEntryTerms;
+use Sunrice\Cms\Actions\Entries\TrashEntry;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Content;
@@ -433,6 +438,79 @@ it('puts the terms of an entry published for later on the site when its time com
 
     // Published now: at once.
     app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->php->id]]]));
+    expect(liveTerms($note))->toBe([$this->php->id]);
+});
+
+it('puts on the site the terms an entry was published for later with, not those chosen or discarded since', function () {
+    $this->travelTo(now()->setTime(9, 0));
+    $this->artisan('sunrice:publish-scheduled')->assertSuccessful();
+    $note = liveNote(['tags' => [$this->php->id]]);
+    app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->laravel->id]]]), now()->addMinutes(30));
+    // Chosen since and not published: they wait for a publish of their own.
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->php->id, $this->laravel->id]]);
+
+    $this->travelTo(now()->addMinutes(31));
+    $this->artisan('sunrice:publish-scheduled')->expectsOutput('1 scheduled entry went live.');
+    $draft = $note->entry->fresh()?->draftTermIds() ?? [];
+    sort($draft);
+    expect(liveTerms($note))->toBe([$this->laravel->id])->and($draft)->toBe([$this->php->id, $this->laravel->id]);
+
+    // Changes discarded before its time: its terms go live with it all the same, as its content does.
+    app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->php->id]]]), now()->addMinutes(30));
+    app(DiscardChanges::class)->handle($note->fresh());
+    $this->travelTo(now()->addMinutes(31));
+    $this->artisan('sunrice:publish-scheduled')->expectsOutput('1 scheduled entry went live.');
+    expect(liveTerms($note))->toBe([$this->php->id])->and($note->entry->fresh()?->draft_terms)->toBeNull();
+});
+
+it('keeps the terms of a language published since, when one published earlier for later goes live', function () {
+    $this->travelTo(now()->setTime(9, 0));
+    $this->artisan('sunrice:publish-scheduled')->assertSuccessful();
+    $note = liveNote(['tags' => [$this->php->id]]);
+    app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->laravel->id]]]), now()->addMinutes(30));
+    $id = app(SaveDraft::class)->handle(app(CreateTranslation::class)->handle($note->entry->fresh(), 'id'), ['title' => 'Halo', 'terms' => ['tags' => [$this->php->id, $this->laravel->id]]]);
+    app(PublishEntry::class)->handle($id->fresh(), now());
+    $both = [$this->php->id, $this->laravel->id];
+    sort($both);
+    expect(liveTerms($note))->toBe($both);
+
+    $this->travelTo(now()->addMinutes(31));
+    $this->artisan('sunrice:publish-scheduled')->expectsOutput('1 scheduled entry went live.');
+    expect(liveTerms($note))->toBe($both);
+});
+
+it('publishes the entry\'s terms as stored, not as an instance loaded before someone changed them', function () {
+    $note = liveNote(['tags' => [$this->php->id]]);
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->laravel->id]]);
+    $stale = Entry::query()->findOrFail($note->entry_id);
+    // Another editor chooses again before the publish gets to the terms.
+    app(SaveEntryTerms::class)->handle($note->entry->fresh(), ['tags' => [$this->php->id, $this->laravel->id]]);
+
+    app(SyncEntryTerms::class)->handle($stale);
+    $both = [$this->php->id, $this->laravel->id];
+    sort($both);
+    expect(liveTerms($note))->toBe($both)->and($note->entry->fresh()?->draft_terms)->toBeNull();
+});
+
+it('puts the terms of an entry on the site when it is restored after its time came in the trash', function () {
+    $this->travelTo(now()->setTime(9, 0));
+    $this->artisan('sunrice:publish-scheduled')->assertSuccessful();
+    $note = liveNote(['tags' => [$this->php->id]]);
+    app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->laravel->id]]]), now()->addMinutes(30));
+    app(TrashEntry::class)->handle($note->entry->fresh());
+
+    $this->travelTo(now()->addMinutes(31));
+    $this->artisan('sunrice:publish-scheduled')->expectsOutput('0 scheduled entries went live.');
+    $this->travelTo(now()->addMinutes(10));
+    app(RestoreEntry::class)->handle(Entry::withTrashed()->findOrFail($note->entry_id));
+    expect(liveTerms($note))->toBe([$this->laravel->id])->and($note->entry->fresh()?->draft_terms)->toBeNull();
+
+    // Its collection deleted and restored alike.
+    app(PublishEntry::class)->handle(app(SaveDraft::class)->handle($note->fresh(), ['terms' => ['tags' => [$this->php->id]]]), now()->addMinutes(30));
+    app(DeleteCollection::class)->handle($this->notes->fresh());
+    $this->travelTo(now()->addMinutes(31));
+    $this->artisan('sunrice:publish-scheduled')->expectsOutput('0 scheduled entries went live.');
+    app(RestoreDeleted::class)->collection(Collection::withTrashed()->findOrFail($this->notes->id));
     expect(liveTerms($note))->toBe([$this->php->id]);
 });
 
