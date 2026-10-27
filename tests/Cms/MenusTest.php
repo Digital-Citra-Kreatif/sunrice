@@ -13,6 +13,7 @@ use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Menus\ReorderMenuItems;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\CmsPlugin;
@@ -24,6 +25,7 @@ use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Support\SiteCache;
+use Sunrice\Cms\Support\Versioned;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -421,4 +423,55 @@ it('builds a menu of entry links with the same queries however many there are (N
     // In the main language and in another, where the main pages stand in at its addresses.
     expect($count(5, 'en'))->toBe($count(1, 'en'))
         ->and($count(5, 'id'))->toBe($count(1, 'id'));
+});
+
+it('refuses a save from an editor opened before someone else\'s save, and keeps theirs (CMS-002)', function () {
+    usePanel(fn (Panel $panel) => $panel->plugin(CmsPlugin::make()));
+    app(SaveMenu::class)->handle($this->main, [['url' => '/one', 'labels' => ['en' => 'One']], ['url' => '/two', 'labels' => ['en' => 'Two']]]);
+    actingAs(adminUser(Panel::ACCESS, 'cms.menus.view', 'cms.menus.update'));
+    // Two tabs open the links editor: the same tree and version.
+    $opened = null;
+    get('/admin/cms/menus/main/links')->assertInertia(function (Assert $page) use (&$opened) {
+        $page->component('Cms/Menus/Edit', shouldExist: false)->where('version', fn (mixed $v): bool => is_int($v));
+        $opened = $page->toArray()['props'];
+    });
+    $version = $opened['version'];
+    $items = $opened['items'];
+
+    // Tab A renames One and saves.
+    $a = $items;
+    $a[0]['labels'] = ['en' => 'One updated'];
+    put('/admin/cms/menus/main/links', ['items' => $a, 'version' => $version])->assertSessionHasNoErrors();
+
+    // Tab B, not reloaded, renames Two: refused, A's change kept.
+    $b = $items;
+    $b[1]['labels'] = ['en' => 'Two updated'];
+    put('/admin/cms/menus/main/links', ['items' => $b, 'version' => $version])->assertSessionHasErrors(['version' => Versioned::CONFLICT]);
+    $this->putJson('/admin/cms/menus/main/links', ['items' => $b, 'version' => $version])->assertStatus(422)->assertJsonValidationErrors('version');
+    expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['One updated', 'Two']);
+
+    // With the current version (after "Load theirs"), it saves and counts up.
+    get('/admin/cms/menus/main/links')->assertInertia(fn (Assert $page) => $page->where('version', $version + 1)->where('items.0.labels', ['en' => 'One updated']));
+    $b[0]['labels'] = ['en' => 'One updated'];
+    put('/admin/cms/menus/main/links', ['items' => $b, 'version' => $version + 1])->assertSessionHasNoErrors();
+    expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['One updated', 'Two updated'])
+        ->and($this->main->fresh()?->version)->toBe($version + 2);
+
+    // "Save mine anyway": sent without a version, it saves over theirs.
+    put('/admin/cms/menus/main/links', ['items' => $items, 'version' => $version])->assertSessionHasErrors('version');
+    put('/admin/cms/menus/main/links', ['items' => $items])->assertSessionHasNoErrors();
+    expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['One', 'Two'])
+        ->and(fn () => app(SaveMenu::class)->handle($this->main->fresh() ?? $this->main, [], 'nope'))->toThrow(ValidationException::class, 'The version must be a number.');
+});
+
+it('counts the version up when items are reordered, so an editor opened before refuses to save over it', function () {
+    app(SaveMenu::class)->handle($this->main, [['url' => '/a', 'labels' => ['en' => 'A']], ['url' => '/b', 'labels' => ['en' => 'B']]]);
+    $menu = $this->main->fresh() ?? $this->main;
+    $version = $menu->version;
+    $ids = $menu->items()->pluck('id')->all();
+
+    expect(app(ReorderMenuItems::class)->handle($menu, [$ids[1]]))->toBeTrue()
+        ->and($menu->fresh()?->version)->toBe($version + 1)
+        ->and(fn () => app(SaveMenu::class)->handle($menu->fresh() ?? $menu, [['url' => '/a', 'labels' => ['en' => 'A']]], $version))->toThrow(ValidationException::class, 'Someone else saved')
+        ->and(array_column(app(Menus::class)->get('main'), 'label'))->toBe(['B', 'A']);
 });
