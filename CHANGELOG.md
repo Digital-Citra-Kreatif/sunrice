@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### All changes
+
+- **Sorting by a field puts entries without a value last, the same on every database**: `Cms::entries()->orderBy('price')`, a listing page's or entry filter's sorts and the admin entries list's field columns put entries with no value (empty, or a field added after they were written) first going up on SQLite and MySQL but last on Postgres, and the other way round going down. They now come last both ways everywhere.
+- **Number and date fields holding text no longer fail on Postgres**: an entry whose number or date field still held text from before its blueprint made it a number or date (`"abc"`, `""`) made every query sorting or comparing by that field fail on Postgres ("invalid input syntax"), so a listing page or the entries list sorted by it was a server error; SQLite and MySQL read such text as 0. It now counts as no value on every database, in `orderBy()` and `where()` alike; numbers kept as text (`"100"`) still count as numbers.
+- **`Media::toData()` and `srcset()` 3–4× faster for lists of images**: each call decoded the file's stored sizes again for every URL, read the image size config again for every size and every attribute through Eloquent several times: about 0.27 ms per image (130 ms for 500, a gallery or `Cms::toData()` of entries with images). The sizes and translations are now decoded once per file (again when they change), the size config once per config value, and the disk and version read once per call: 0.07 ms per image, with exactly the same output.
+
 ## 0.2.0 (2026-10-27)
 
 **Upgrading from 0.1 needs a fresh database**: the migrations were consolidated, so a 0.1 site is rebuilt with `php artisan migrate:fresh`. Keep its content by making a starter of it on 0.1 (`sunrice:make-starter`) and installing it after the rebuild (`sunrice:starter --path=`). See [Upgrading](docs/upgrading.md#keeping-a-01-sites-content).
