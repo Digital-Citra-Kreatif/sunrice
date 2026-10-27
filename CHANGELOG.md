@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### All changes
+
+- **Big taxonomies are searched, not listed, in the admin**: the entries list's term filters, a term's **Under** and a menu's **Term** link sent every term of a taxonomy in the page (cut at 2,000 and 500 terms, so the rest couldn't be chosen; with 10,000 terms the term editor's page weighed 490 KB and took about 0.9 s). A taxonomy with more than 200 terms (`TermsField::LISTED`, `TermsField::big()`) is now searched with the term picker there instead (the entries list's **Filters** menu, the term editor, the menu editor after choosing the taxonomy, `termTaxonomies`); smaller ones keep their select. The picker (`cms/terms/picker`) takes `except` (a term and the terms under it, for **Under**), and serves those who may view entries or terms or edit menus (taxonomies with term pages). `cms_list_terms` pages its terms (500 a page, `total`, `last_page`) and searches them (`search`) instead of stopping at 1,000.
+- **Deep listing pages in another language are faster**: a collection's listing page, and `Cms::entries()->paginate()`, sorted every candidate translation whole (fields, drafts, search text) to skip to a page, which in a language standing in for untranslated entries (Settings → Site) meant the whole collection on every page (about 130 ms of SQL for page 140 of 2,000 articles in Indonesian). They now read the page's ids first, then its entries (the same entries, in the same order): about 30 ms on any page.
+
 ## 0.2.0 (2026-10-27)
 
 **Upgrading from 0.1 needs a fresh database**: the migrations were consolidated, so a 0.1 site is rebuilt with `php artisan migrate:fresh`. Keep its content by making a starter of it on 0.1 (`sunrice:make-starter`) and installing it after the rebuild (`sunrice:starter --path=`). See [Upgrading](docs/upgrading.md#keeping-a-01-sites-content).

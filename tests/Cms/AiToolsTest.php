@@ -330,6 +330,23 @@ it('reads and saves taxonomy index pages, shared and a collection\'s', function 
         ->and(cmsTool($token, 'cms_save_listing', ['taxonomy' => 'tags', 'collection' => 'blog', 'data' => []]))->toContain('switched off');
 });
 
+it('pages a big taxonomy\'s terms and searches them by title or slug, never cutting the list short', function () {
+    $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags']);
+    $now = now();
+    for ($i = 1; $i <= 501; $i++) {
+        $id = DB::table('sunrice_terms')->insertGetId(['taxonomy_id' => $tags->id, 'sort_order' => $i, 'created_at' => $now, 'updated_at' => $now]);
+        DB::table('sunrice_term_translations')->insert(['term_id' => $id, 'taxonomy_id' => $tags->id, 'locale' => 'en', 'title' => "Tag {$i}", 'slug' => "tag-{$i}", 'created_at' => $now, 'updated_at' => $now]);
+    }
+    $token = cmsAgent(['cms.terms.view']);
+
+    $first = cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags']);
+    expect($first)->toMatchArray(['total' => 501, 'page' => 1, 'last_page' => 2])->and($first['terms'])->toHaveCount(500)
+        ->and(cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags', 'page' => 2])['terms'][0]['translations']['en']['title'])->toBe('Tag 501')
+        ->and(array_map(fn (array $term): string => $term['translations']['en']['title'], cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags', 'search' => 'Tag 50'])['terms']))
+        ->toBe(['Tag 50', 'Tag 500', 'Tag 501'])
+        ->and(cmsTool($token, 'cms_list_terms', ['taxonomy' => 'tags', 'search' => 'tag-7'])['total'])->toBe(11);
+});
+
 it('lists taxonomies\' pages, and each term\'s URLs without a query per term', function () {
     $tags = Taxonomy::query()->create(['handle' => 'tags', 'title' => 'Tags', 'route' => '/topics/{slug}']);
     $tags->collections()->attach($this->blog->id);

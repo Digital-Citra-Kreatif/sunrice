@@ -161,10 +161,10 @@ it('keeps to a query budget per page', function () {
     }
     get('/sitemap.xml')->assertOk();
 
-    // However many entries: no queries in loops.
+    // However many entries: no queries in loops. A listing reads its page's ids, then those entries (Query\IdPage).
     expect(withQueries(fn () => get('/blog/post-1'))[1])->toBeLessThanOrEqual(5)
-        ->and(withQueries(fn () => get('/blog'))[1])->toBeLessThanOrEqual(6)
-        ->and(withQueries(fn () => get('/blog?page=2'))[1])->toBeLessThanOrEqual(6)
+        ->and(withQueries(fn () => get('/blog'))[1])->toBeLessThanOrEqual(7)
+        ->and(withQueries(fn () => get('/blog?page=2'))[1])->toBeLessThanOrEqual(7)
         ->and(withQueries(fn () => get('/tags/news'))[1])->toBeLessThanOrEqual(7)
         ->and(withQueries(fn () => get('/sitemap.xml'))[1])->toBe(0);
 });
