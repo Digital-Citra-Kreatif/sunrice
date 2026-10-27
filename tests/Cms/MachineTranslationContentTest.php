@@ -40,6 +40,7 @@ use Workbench\App\Models\User;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\artisan;
+use function Pest\Laravel\post;
 
 /*
  * What `sunrice:translate` and the editor's "Translate from …" send to the
@@ -131,6 +132,26 @@ it('translates an entry\'s texts, nested ones and custom text types too, but not
         ->and($id->draft_data['featured'])->toBe([$this->news->id])
         // The entry's own terms (every language's, not published yet) are left alone.
         ->and($id->entry->fresh()?->draftTermIds())->toBe([$this->news->id]);
+});
+
+it('translates a row or block from the one of the same id, never from another one at its place', function () {
+    fakeTranslator();
+    app(SaveDraft::class)->handle($this->post, ['data' => ['more' => [
+        ['id' => 'q1', 'type' => 'quote', 'values' => ['words' => 'Lovely', 'stars' => 5]],
+        ['id' => 'q2', 'type' => 'quote', 'values' => ['words' => 'Superb', 'stars' => 4]],
+    ]]]);
+    $id = app(CreateTranslation::class)->handle($this->post->entry, 'id');
+    // Its own second block, not yet written: the main language's second block is another one.
+    app(SaveDraft::class)->handle($id, ['data' => ['more' => [
+        ['id' => 'q1', 'type' => 'quote', 'values' => ['words' => '']],
+        ['id' => 'q9', 'type' => 'quote', 'values' => ['words' => '']],
+    ]]]);
+
+    app(MachineTranslateEntry::class)->handle($id->fresh() ?? $id);
+
+    $more = ($id->fresh() ?? $id)->draft_data['more'];
+    expect($more[0]['values']['words'])->toBe('ID: Lovely')
+        ->and($more[1]['id'])->toBe('q9')->and($more[1]['values']['words'] ?? null)->toBeEmpty();
 });
 
 it('leaves collections that aren\'t translatable out, without failing or counting them', function () {
@@ -302,4 +323,59 @@ it('doesn\'t add a language for an AI agent that may not fill it in', function (
     expect($answer->json('result.isError'))->toBeTrue()
         ->and((string) $answer->json('result.content.0.text'))->toContain('edit this translation')
         ->and(EntryTranslation::query()->where('locale', 'id')->exists())->toBeFalse();
+});
+
+it('tells when texts don\'t come back translated, instead of calling them translated already', function () {
+    // A service that gives back nothing, then all but the intro.
+    $drop = fn (array $strings): array => [];
+    app()->instance(Translator::class, new class($drop) implements Translator
+    {
+        public function __construct(public Closure $drop) {}
+
+        public function translate(array $strings, string $from, string $to, ?string $context = null): array
+        {
+            return ($this->drop)($strings);
+        }
+    });
+    $id = app(CreateTranslation::class)->handle($this->post->entry, 'id');
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.entries.update'));
+    $translate = fn () => post("/admin/cms/entries/{$id->entry_id}/translations/id/translate", ['version' => $id->fresh()?->version]);
+
+    $translate()->assertSessionHas('error', fn (string $error): bool => str_contains($error, 'none of its 5 texts came back translated'));
+    expect($id->fresh()?->version)->toBe($id->version);
+    artisan('sunrice:translate', ['--only' => ['entries']])->assertFailed()->expectsOutputToContain('none of its 5 texts came back translated');
+
+    app(Translator::class)->drop = fn (array $strings): array => array_map(fn (string $text): string => 'ID: '.$text, array_diff($strings, ['Welcome']));
+    $translate()->assertSessionHas('error', fn (string $error): bool => str_contains($error, '1 of its 5 texts didn\'t come back translated'));
+    expect($id->fresh()?->draft_title)->toBe('ID: Hello')
+        ->and($id->fresh()?->draft_data['intro'])->toBe('Welcome');
+});
+
+it('translates a row or block only from the main language\'s of the same id', function () {
+    fakeTranslator();
+    $id = app(CreateTranslation::class)->handle($this->post->entry, 'id');
+    // A block of the Indonesian's own, at the top.
+    $id = app(SaveDraft::class)->handle($id, ['version' => $id->version, 'data' => ['more' => [
+        ['id' => 'local', 'type' => 'quote', 'values' => ['words' => 'Khusus pembaca Indonesia', 'stars' => 4]],
+        ...$id->draft_data['more'],
+    ]]]);
+
+    artisan('sunrice:translate', ['--only' => ['entries'], '--force' => true])->assertSuccessful();
+
+    $more = $id->fresh()?->draft_data['more'];
+    expect($more[0]['values']['words'])->toBe('Khusus pembaca Indonesia')
+        ->and($more[1]['values']['words'])->toBe('ID: Lovely');
+});
+
+it('makes a slug no longer than a title\'s from a long translated title', function () {
+    fakeTranslator();
+    $title = trim(str_repeat('Lorem ipsum dolor sit amet ', 9));
+    $this->post = app(SaveDraft::class)->handle($this->post, ['title' => $title]);
+
+    artisan('sunrice:translate', ['--only' => ['entries']])->assertSuccessful();
+
+    $id = EntryTranslation::query()->where('locale', 'id')->sole();
+    expect($id->draft_title)->toBe("ID: {$title}")
+        ->and(strlen($id->draft_slug))->toBeLessThanOrEqual(190)
+        ->and($id->draft_slug)->toStartWith('id-lorem-ipsum')->not->toEndWith('-');
 });

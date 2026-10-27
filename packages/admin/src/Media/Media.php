@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\Admin\Media;
 
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -67,6 +68,9 @@ class Media extends Model
     protected $guarded = [];
 
     protected $attributes = ['sizes' => '{}', 'version' => 1];
+
+    /** @var array<string, array{0: mixed, 1: mixed}> JSON attributes as last read, and them decoded (decoded()) */
+    private array $decoded = [];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -160,7 +164,8 @@ class Media extends Model
 
     private function translatedText(string $key, ?string $locale): ?string
     {
-        $text = ($this->translations ?? [])[$locale ?? app()->getLocale()][$key] ?? null;
+        $translations = $this->decoded('translations', fn (): array => $this->translations ?? []);
+        $text = $translations[$locale ?? app()->getLocale()][$key] ?? null;
 
         return is_string($text) && trim($text) !== '' ? $text : null;
     }
@@ -218,10 +223,27 @@ class Media extends Model
     /** The public URL of the original, or of a size (the original when it has none). */
     public function url(?string $size = null): string
     {
-        $path = $size !== null && isset($this->sizes[$size]) ? $this->sizes[$size] : $this->path;
-        $url = Storage::disk($this->disk)->url($path);
+        $sizes = $size === null ? [] : $this->sizePaths();
 
-        return $url.(str_contains($url, '?') ? '&' : '?').'v='.$this->version;
+        return ($this->urls())($size !== null && isset($sizes[$size]) ? $sizes[$size] : $this->path);
+    }
+
+    /**
+     * Makes the URLs of its files (with the version), reading the disk and
+     * version once for all of them.
+     *
+     * @return Closure(string): string
+     */
+    private function urls(): Closure
+    {
+        $disk = Storage::disk($this->disk);
+        $version = $this->version;
+
+        return static function (string $path) use ($disk, $version): string {
+            $url = $disk->url($path);
+
+            return $url.(str_contains($url, '?') ? '&' : '?').'v='.$version;
+        };
     }
 
     /**
@@ -230,11 +252,12 @@ class Media extends Model
      */
     public function thumbnail(): string
     {
-        if (isset($this->sizes['thumbnail'])) {
+        $sizes = $this->sizePaths();
+        if (isset($sizes['thumbnail'])) {
             return $this->url('thumbnail');
         }
         $widths = [];
-        foreach (array_keys($this->sizes) as $name) {
+        foreach (array_keys($sizes) as $name) {
             $widths[$name] = $this->sizeWidth($name) ?? PHP_INT_MAX;
         }
         asort($widths);
@@ -258,12 +281,15 @@ class Media extends Model
         }
         $config = MediaConfig::imageSizes();
         $names = $sizes !== [] ? $sizes : array_keys(array_filter($config, fn (array $size) => ! $size['crop']));
+        $paths = $this->sizePaths();
+        $url = $this->urls();
+        [$originalWidth, $originalHeight] = [$this->width, $this->height];
         // The original first: a size as wide as it is the same picture.
-        $candidates = $this->width === null ? [] : [$this->width => $this->url().' '.$this->width.'w'];
+        $candidates = $originalWidth === null ? [] : [$originalWidth => $url($this->path).' '.$originalWidth.'w'];
         foreach ($names as $name) {
-            $width = isset($this->sizes[$name]) ? $this->sizeWidth($name) : null;
+            $width = isset($paths[$name]) ? self::dimensions($config[$name] ?? null, $originalWidth, $originalHeight)[0] : null;
             if ($width !== null) {
-                $candidates[$width] ??= $this->url($name).' '.$width.'w';
+                $candidates[$width] ??= $url($paths[$name]).' '.$width.'w';
             }
         }
         ksort($candidates);
@@ -285,20 +311,31 @@ class Media extends Model
      */
     private function sizeDimensions(string $name): array
     {
-        $size = MediaConfig::imageSizes()[$name] ?? null;
+        return self::dimensions(MediaConfig::imageSizes()[$name] ?? null, $this->width, $this->height);
+    }
+
+    /**
+     * How wide and high a size (its configuration, null: none) of an
+     * original this wide and high comes out (null: unknown).
+     *
+     * @param  array{width: int|null, height: int|null, crop: bool}|null  $size
+     * @return array{0: int|null, 1: int|null}
+     */
+    private static function dimensions(?array $size, ?int $width, ?int $height): array
+    {
         if ($size === null) {
             return [null, null];
         }
         if ($size['crop']) {
             return [$size['width'], $size['height']];
         }
-        if ($this->width === null || $this->height === null || $this->width < 1 || $this->height < 1) {
+        if ($width === null || $height === null || $width < 1 || $height < 1) {
             return [$size['width'], null];
         }
         // Scaled down to fit, never up.
-        $factor = min(1, $size['width'] === null ? 1 : $size['width'] / $this->width, $size['height'] === null ? 1 : $size['height'] / $this->height);
+        $factor = min(1, $size['width'] === null ? 1 : $size['width'] / $width, $size['height'] === null ? 1 : $size['height'] / $height);
 
-        return [max(1, (int) round($this->width * $factor)), max(1, (int) round($this->height * $factor))];
+        return [max(1, (int) round($width * $factor)), max(1, (int) round($height * $factor))];
     }
 
     /**
@@ -335,28 +372,63 @@ class Media extends Model
         $online = ! $this->trashed();
         $sizes = [];
         // In the config's order, whatever order the database kept them in (MySQL sorts JSON keys).
-        $names = array_keys($this->sizes);
-        $rank = array_flip(array_map(strval(...), array_keys((array) config('sunrice-admin.media.image_sizes', []))));
+        $paths = $online ? $this->sizePaths() : [];
+        $names = array_keys($paths);
+        $rank = MediaConfig::imageSizeRanks();
         usort($names, fn (string $a, string $b): int => [$rank[$a] ?? PHP_INT_MAX, $a] <=> [$rank[$b] ?? PHP_INT_MAX, $b]);
-        foreach ($online ? $names : [] as $name) {
-            [$width, $height] = $this->sizeDimensions($name);
-            $sizes[$name] = ['url' => $this->url($name), 'width' => $width, 'height' => $height];
+        $config = MediaConfig::imageSizes();
+        [$width, $height] = [$this->width, $this->height];
+        $url = $this->urls();
+        foreach ($names as $name) {
+            [$sizeWidth, $sizeHeight] = self::dimensions($config[$name] ?? null, $width, $height);
+            $sizes[$name] = ['url' => $url($paths[$name]), 'width' => $sizeWidth, 'height' => $sizeHeight];
         }
         $image = $this->isImage();
 
         return [
             'id' => $this->id,
-            'url' => $online ? $this->url() : null,
+            'url' => $online ? $url($this->path) : null,
             'alt' => $this->altIn($locale),
             'title' => $this->title !== null && $this->title !== '' ? $this->title : null,
             'caption' => $this->captionIn($locale),
             'mime' => $this->mime_type,
             'type' => $this->kind(),
-            'width' => $image ? $this->width : null,
-            'height' => $image ? $this->height : null,
+            'width' => $image ? $width : null,
+            'height' => $image ? $height : null,
             'sizes' => $sizes,
             'srcset' => $online ? $this->srcset() : '',
         ];
+    }
+
+    /**
+     * Its sizes (name => path), decoded once for as long as they don't
+     * change: the array cast decodes the JSON on every read, and a list of
+     * images reads them for every URL.
+     *
+     * @return array<string, string>
+     */
+    private function sizePaths(): array
+    {
+        /** @var array<string, string> */
+        return $this->decoded('sizes', fn (): array => $this->sizes);
+    }
+
+    /**
+     * A JSON attribute decoded once for as long as it isn't changed.
+     *
+     * @template TValue
+     *
+     * @param  Closure(): TValue  $read
+     * @return TValue
+     */
+    private function decoded(string $key, Closure $read): mixed
+    {
+        $stored = $this->attributes[$key] ?? null;
+        if (! isset($this->decoded[$key]) || $this->decoded[$key][0] !== $stored) {
+            $this->decoded[$key] = [$stored, $read()];
+        }
+
+        return $this->decoded[$key][1];
     }
 
     /**

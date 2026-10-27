@@ -393,7 +393,7 @@ Cms::entries('blog')->search($request->query('q', ''))->paginate(10);
 - `whereEntry($field, $entries)`: entries whose entries field links to an entry (or any of a list).
 - `whereContains($field, $values)`: entries whose list field (a select with several choices) holds any of the values.
 - `search($text)`: entries whose title or field text holds the words, as the site's search matches them; title matches first, then in the query's order.
-- `orderBy($field, 'asc'|'desc')`: a column or a field; numbers and dates sort as such.
+- `orderBy($field, 'asc'|'desc')`: a column or a field; numbers and dates sort as such. Entries without a value come last either way, on every database. A number or date field holding text that isn't one (kept from when the field was text) counts as having no value, in `where()` too.
 - `except(...$entries)`: leave these out.
 - `remember()`: keep the matched ids in the site's cache (`SiteCache`, when it's on) until the content changes, so the query runs once; the entries themselves are always read fresh.
 - `toBase()`: the Eloquent query (`Builder<EntryTranslation>`, a new one each time) for what the methods here don't do.
@@ -759,7 +759,7 @@ Route::get('/homes.json', function (Request $request) {
 
 ## Search
 
-`/search?q=…` (and `/{locale}/search`) searches the live entries that have pages, in that language (with the [main-language fallback](#untranslated-pages), the main language's of entries not live in it, linked at that language's address): their title and field text (the words only: no field handles, HTML tags, addresses or SEO), titles first, then newest first. It renders with `cms.search`, or the CMS's plain page, with [what the search page gets](#the-search-page-gets). Search pages are never indexed or kept by the page cache, and one visitor may search `per_minute` times a minute, everyone together `per_minute_global` times. Your app's own `/search` route wins; the search page wins over an entry at that address.
+`/search?q=…` (and `/{locale}/search`) searches the live entries that have pages, in that language (with the [main-language fallback](#untranslated-pages), the main language's of entries not live in it, linked at that language's address): their title and field text (the words only: no field handles, HTML tags, addresses or SEO; nor rows and blocks hidden from the site, a block's id, kind or key, or a link's kind: a link counts by its text), titles first, then newest first. It renders with `cms.search`, or the CMS's plain page, with [what the search page gets](#the-search-page-gets). Search pages are never indexed or kept by the page cache, and one visitor may search `per_minute` times a minute, everyone together `per_minute_global` times. Your app's own `/search` route wins; the search page wins over an entry at that address.
 
 Each database searches its own way, with the full-text index the CMS's migrations make on entry translations: MySQL and MariaDB by whole words with a FULLTEXT index (natural language mode, so words shorter than `innodb_ft_min_token_size`, three characters, and stopwords aren't found), Postgres by words with a GIN index (the `simple` dictionary: every language, no stemming), and SQLite, for development only, by matching what's typed anywhere (`%` and `_` aren't wildcards). The same search within a minute is answered from the [site cache](caching.md) (ids only), gone with the next change to content.
 

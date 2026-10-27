@@ -57,6 +57,7 @@ final class SaveDraft
                 $translation->collection_id,
                 $translation->locale,
                 $translation->id,
+                $translation->isMain(),
                 $translation->draft_slug,
             );
             if (array_key_exists(Seo::KEY, $input)) {

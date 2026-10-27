@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Sunrice\Admin\Actions\Media\TrashMedia;
 use Sunrice\Admin\Actions\Media\UpdateMedia;
 use Sunrice\Admin\Actions\Media\UploadMedia;
+use Sunrice\Admin\Media\Media;
 
 /*
  * Media::toData(): a plain array for scripts on a page, with the same URLs
@@ -72,4 +73,31 @@ it('gives media in the trash no URL and no sizes: its files are offline', functi
         ->and($data['sizes'])->toBe([])
         ->and($data['srcset'])->toBe('')
         ->and($data['alt'])->toBe('Gone');
+});
+
+it('gives the same data, to the byte, for a list of images, and follows changes to an image and to the sizes config', function () {
+    $media = Media::query()->create([
+        'disk' => 'public', 'path' => 'media/a.jpg', 'filename' => 'a.jpg', 'mime_type' => 'image/jpeg', 'size' => 10, 'width' => 2400, 'height' => 1600,
+        'alt' => 'A', 'translations' => ['id' => ['alt' => 'Sebuah']], 'sizes' => ['large' => 'media/a-large.jpg', 'thumbnail' => 'media/a-thumbnail.jpg', 'medium' => 'media/a-medium.jpg'],
+    ]);
+    $url = fn (string $path, int $version = 1) => Storage::disk('public')->url($path).'?v='.$version;
+
+    expect(json_encode($media->toData('id')))->toBe(json_encode([
+        'id' => $media->id, 'url' => $url('media/a.jpg'), 'alt' => 'Sebuah', 'title' => null, 'caption' => null, 'mime' => 'image/jpeg', 'type' => 'image', 'width' => 2400, 'height' => 1600,
+        'sizes' => [
+            'thumbnail' => ['url' => $url('media/a-thumbnail.jpg'), 'width' => 300, 'height' => 300],
+            'medium' => ['url' => $url('media/a-medium.jpg'), 'width' => 800, 'height' => 533],
+            'large' => ['url' => $url('media/a-large.jpg'), 'width' => 1600, 'height' => 1067],
+        ],
+        'srcset' => $url('media/a-medium.jpg').' 800w, '.$url('media/a-large.jpg').' 1600w, '.$url('media/a.jpg').' 2400w',
+    ]));
+
+    // What's read once per image (its sizes, translations) and per config (the sizes) follows changes.
+    $media->forceFill(['sizes' => ['medium' => 'media/b-medium.jpg'], 'translations' => ['id' => ['alt' => 'Lain']], 'version' => 2]);
+    config(['sunrice-admin.media.image_sizes' => ['medium' => [1200, null, 'fit']]]);
+    expect($media->toData('id'))->toMatchArray([
+        'alt' => 'Lain',
+        'sizes' => ['medium' => ['url' => $url('media/b-medium.jpg', 2), 'width' => 1200, 'height' => 800]],
+        'srcset' => $url('media/b-medium.jpg', 2).' 1200w, '.$url('media/a.jpg', 2).' 2400w',
+    ])->and($media->thumbnail())->toBe($url('media/b-medium.jpg', 2));
 });
