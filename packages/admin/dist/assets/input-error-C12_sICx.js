@@ -1,0 +1,1 @@
+import{j as e}from"./app-4wzkeOm4.js";import{a as o}from"./i18n-DXOIe7YK.js";function a({message:r,className:t}){return r?e.jsx("p",{role:"alert",className:o("text-sm text-destructive",t),children:r}):null}export{a as I};

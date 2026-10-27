@@ -763,6 +763,7 @@
     "Add address": "Tambah alamat",
     "Search by code or name…": "Cari menurut kode atau nama…",
     "Use “:code”": "Pakai “:code”",
+    "“:code” is already added": "“:code” sudah ditambahkan",
     "For developers": "Untuk developer",
     "Everyone also enters a 6-digit code sent by email. Check that email works first (Settings → Mail → Send a test email), or nobody can sign in.": "Semua orang juga memasukkan kode 6 digit yang dikirim lewat email. Pastikan email berfungsi dulu (Pengaturan → Email → Kirim email uji), atau tidak ada yang bisa masuk.",
     "Clear the IP filter": "Hapus filter IP",
