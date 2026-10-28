@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { isHexColor, normalizeHex, readableOn } from '@/lib/branding';
 import { codeLanguage } from '@/lib/code-editor';
+import { imageStylesOf } from '@/lib/image-presets';
 import { fixedValues, formatPairs, keysTaken, parsePairs, type Pair, sameKey, suggestionsFor, withFixedValue } from '@/lib/pairs';
 import { formatList, looksValid, networkOf, parseList } from '@/lib/networks';
 import { isPasswordRules } from '@/lib/password-rules';
@@ -106,6 +107,7 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
         }
         case 'richtext':
             return <RichTextEditor id={id} labelledBy={`${id}-label`} invalid={invalid} disabled={disabled} images={field.images !== false}
+                imageStyles={imageStylesOf(field.imageStyles)}
                 value={typeof value === 'string' ? value : ''} onChange={onChange} />;
         case 'pairs':
             if (Array.isArray(field.fixed)) {

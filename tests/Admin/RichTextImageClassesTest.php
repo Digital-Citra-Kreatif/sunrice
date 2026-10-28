@@ -35,3 +35,52 @@ it('filters a class attribute down to the allowed values', function () {
         ->and(RichTextImageClasses::filter('x y'))->toBeNull()
         ->and(RichTextImageClasses::filter(''))->toBeNull();
 });
+
+it('keeps the image styles in config, alongside the presets, and drops any other class', function () {
+    config(['sunrice-admin.rich_text.image_classes' => ['rounded' => 'Rounded', 'shadow' => 'Shadow']]);
+
+    expect(RichTextImageClasses::allowed())->toContain('rounded', 'shadow', 'sunrice-img-w-50')
+        ->and(RichText::sanitize('<img src="/a.jpg" class="sunrice-img sunrice-img-w-50 rounded evil shadow">'))->toContain('class="sunrice-img sunrice-img-w-50 rounded shadow"')
+        ->and(RichText::sanitize('<img src="/a.jpg" class="shadow">'))->toContain('class="shadow"')
+        ->and(RichText::sanitize('<img src="/a.jpg" class="hero">'))->not->toContain('class=')
+        // Only on images.
+        ->and(RichText::sanitize('<p class="rounded">x</p>'))->toBe('<p>x</p>');
+});
+
+it('picks up config changes, though the sanitiser is built once', function () {
+    config(['sunrice-admin.rich_text.image_classes' => ['rounded' => 'Rounded']]);
+    expect(RichText::sanitize('<img src="/a.jpg" class="rounded">'))->toContain('class="rounded"');
+
+    // Taken out of config: dropped the next time the text is saved.
+    config(['sunrice-admin.rich_text.image_classes' => []]);
+    expect(RichText::sanitize('<img src="/a.jpg" class="rounded">'))->not->toContain('class=');
+});
+
+it('ignores configured classes that are not CSS class names or are the presets\'', function () {
+    config(['sunrice-admin.rich_text.image_classes' => [
+        'rounded' => 'Rounded', '1st' => 'Digit', 'a b' => 'Space', 'x"y' => 'Quote', '-dash' => 'Dash', 'sunrice-img-w-33' => 'Preset',
+        'framed' => '', 'tilted' => ['not a label'], 7 => 'polaroid', 8 => 'not valid', 'Wide_one-2' => 'Wide',
+    ]]);
+
+    expect(RichTextImageClasses::styles())->toBe(['rounded' => 'Rounded', 'framed' => 'framed', 'tilted' => 'tilted', 'polaroid' => 'polaroid', 'Wide_one-2' => 'Wide'])
+        ->and(RichText::sanitize('<img src="/a.jpg" class="1st sunrice-img-w-33 polaroid">'))->toContain('class="polaroid"');
+
+    config(['sunrice-admin.rich_text.image_classes' => 'rounded']);
+    expect(RichTextImageClasses::styles())->toBe([]);
+    config(['sunrice-admin.rich_text.image_classes' => null]);
+    expect(RichTextImageClasses::styles())->toBe([]);
+});
+
+it('offers no styles by default', function () {
+    expect(RichTextImageClasses::styles())->toBe([])
+        ->and(RichText::make('body')->toArray())->toMatchArray(['imageStyles' => []]);
+});
+
+it('hands the image styles to the editor in the field\'s props, labels translated, and none without images', function () {
+    config(['sunrice-admin.rich_text.image_classes' => ['rounded' => 'Rounded', 'shadow' => 'Shadow']]);
+    app()->setLocale('id');
+    app('translator')->addLines(['*.Rounded' => 'Membulat'], 'id', '*');
+
+    expect(RichText::make('body')->toArray()['imageStyles'])->toBe([['class' => 'rounded', 'label' => 'Membulat'], ['class' => 'shadow', 'label' => 'Shadow']])
+        ->and(RichText::make('body')->images(false)->toArray()['imageStyles'])->toBe([]);
+});

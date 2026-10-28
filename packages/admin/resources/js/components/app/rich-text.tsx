@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { ImageStyle } from '@/lib/image-presets';
 
 export interface RichTextEditorProps {
     id: string;
@@ -12,6 +13,8 @@ export interface RichTextEditorProps {
     labelledBy?: string;
     /** Offer images from the media library (needs sunrice.media.view). */
     images?: boolean;
+    /** The image styles editors may turn on (config sunrice-admin.rich_text.image_classes, the fields' `imageStyles`); none: no Style buttons. */
+    imageStyles?: ImageStyle[];
     disabled?: boolean;
 }
 

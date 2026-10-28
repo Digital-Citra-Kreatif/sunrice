@@ -276,6 +276,8 @@ export const RichTextEditor = m.RichTextEditor as ComponentType<{
     /** The label's id, for the editing area's name. */
     labelledBy?: string;
     images?: boolean;
+    /** The image styles to offer in an image's toolbar ({class, label}; the CMS's and RichText's fields carry them as `imageStyles`). */
+    imageStyles?: { class: string; label: string }[];
     disabled?: boolean;
 }>;
 export const Select = m.Select as AnyComponent;

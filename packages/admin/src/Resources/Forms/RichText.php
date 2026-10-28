@@ -12,7 +12,8 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  * lists, quotes, code, links and, unless ->images(false), images from the
  * media library (they keep `data-media-id`, and the width and alignment
  * classes of RichTextImageClasses: `sunrice-img sunrice-img-w-50
- * sunrice-img-left`; any other class is dropped).
+ * sunrice-img-left`, and the image styles of config
+ * `sunrice-admin.rich_text.image_classes`; any other class is dropped).
  *
  * The HTML is sanitised when it's saved: only that formatting is kept, so
  * no script, style or event handler is stored; links may be http(s),
@@ -77,7 +78,11 @@ final class RichText extends Field
 
     protected function props(): array
     {
-        return ['maxLength' => $this->maxLength, 'images' => $this->images];
+        return [
+            'maxLength' => $this->maxLength,
+            'images' => $this->images,
+            'imageStyles' => $this->images ? RichTextImageClasses::options() : [],
+        ];
     }
 
     private static function sanitizer(): HtmlSanitizer
