@@ -17,32 +17,40 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { adminUrl } from '@/lib/admin-url';
 import { isSafeUrl } from '@/lib/safe-url';
 import { cn } from '@/lib/utils';
-import { IMAGE_WIDTHS, imageClass, parseImageClass, type ImageAlignment, type ImageWidth } from '@/lib/image-presets';
+import { IMAGE_WIDTHS, imageClass, imageStylesOf, isStyleClass, parseImageClass, toggleStyle, type ImageAlignment, type ImageStyle, type ImageWidth } from '@/lib/image-presets';
 import type { RichTextEditorProps } from './rich-text';
 import { t } from '@/lib/i18n';
 
 /**
  * Images keep their media library id, so the server knows which files a text
- * uses, and their width and alignment presets as classes (lib/image-presets.ts):
- * `sunrice-img sunrice-img-w-50 sunrice-img-left`.
+ * uses, and their width and alignment presets and image styles as classes
+ * (lib/image-presets.ts): `sunrice-img sunrice-img-w-50 sunrice-img-left rounded`.
  */
 const LibraryImage = Image.extend({
     addAttributes() {
         return {
             ...this.parent?.(),
             'data-media-id': { default: null },
-            // Both presets render as one class attribute (from `size`'s renderHTML, which sees every attribute).
+            // Both presets and the styles render as one class attribute (from `size`'s renderHTML, which sees every attribute).
             size: {
                 default: null,
                 parseHTML: (element: HTMLElement) => parseImageClass(element.getAttribute('class')).width,
                 renderHTML: (attributes: Record<string, unknown>) => {
-                    const className = imageClass({ width: attributes.size, align: attributes.align });
+                    const className = imageClass({ width: attributes.size, align: attributes.align, styles: attributes.styles });
                     return className === null ? {} : { class: className };
                 },
             },
             align: {
                 default: null,
                 parseHTML: (element: HTMLElement) => parseImageClass(element.getAttribute('class')).align,
+                renderHTML: () => ({}),
+            },
+            styles: {
+                default: null,
+                parseHTML: (element: HTMLElement) => {
+                    const { styles } = parseImageClass(element.getAttribute('class'));
+                    return styles.length === 0 ? null : styles;
+                },
                 renderHTML: () => ({}),
             },
         };
@@ -54,7 +62,8 @@ const LibraryImage = Image.extend({
  * clean the HTML (headings, lists, quotes, code, links, library images).
  * Loaded on demand through RichTextEditor in rich-text.tsx.
  */
-export function RichTextEditor({ id, value, onChange, invalid = false, labelledBy, images = true, disabled = false }: RichTextEditorProps) {
+export function RichTextEditor({ id, value, onChange, invalid = false, labelledBy, images = true, imageStyles, disabled = false }: RichTextEditorProps) {
+    const styles = React.useMemo(() => imageStylesOf(imageStyles), [imageStyles]);
     const [dialog, setDialog] = React.useState<'link' | 'image' | null>(null);
     const editor = useEditor({
         extensions: [
@@ -82,7 +91,7 @@ export function RichTextEditor({ id, value, onChange, invalid = false, labelledB
         <div className={cn('rounded-lg border border-input/80 bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out-quart focus-within:border-ring/70 focus-within:ring-4 focus-within:ring-ring-glow dark:bg-input/20', invalid && 'border-destructive focus-within:ring-destructive/20', disabled && 'opacity-60')}>
             {editor && !disabled && <Toolbar editor={editor} onLink={() => setDialog('link')} onImage={images ? () => setDialog('image') : null} />}
             <EditorContent editor={editor} />
-            {editor && !disabled && <ImageMenu editor={editor} />}
+            {editor && !disabled && <ImageMenu editor={editor} styles={styles} />}
             {editor && <LinkDialog editor={editor} open={dialog === 'link'} onClose={() => setDialog(null)} />}
             {editor && <ImageDialog editor={editor} open={dialog === 'image'} onClose={() => setDialog(null)} />}
         </div>
@@ -137,10 +146,12 @@ function alignments(): { value: ImageAlignment; label: string; icon: React.React
 }
 
 /**
- * The selected image's own toolbar: width and alignment presets, its alt
- * text and removing it. Tab reaches it from the text; Esc goes back.
+ * The selected image's own toolbar: width and alignment presets, the
+ * configured styles (toggles, several at once: they're independent looks
+ * such as rounded corners and a shadow), its alt text and removing it.
+ * Tab reaches it from the text; Esc goes back.
  */
-function ImageMenu({ editor }: { editor: Editor }) {
+function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] }) {
     const image = useEditorState({
         editor,
         selector: ({ editor: e }) => {
@@ -150,10 +161,12 @@ function ImageMenu({ editor }: { editor: Editor }) {
                 size: (typeof attributes.size === 'string' ? attributes.size : null) as ImageWidth | null,
                 align: (typeof attributes.align === 'string' ? attributes.align : null) as ImageAlignment | null,
                 alt: typeof attributes.alt === 'string' ? attributes.alt : '',
+                styles: Array.isArray(attributes.styles) ? attributes.styles.filter(isStyleClass) : [],
             };
         },
     });
-    const set = (attributes: Record<string, string | null>) => editor.chain().updateAttributes('image', attributes).run();
+    const set = (attributes: Record<string, string | string[] | null>) => editor.chain().updateAttributes('image', attributes).run();
+    const order = styles.map((style) => style.class);
     const back = () => editor.commands.focus();
     const noAlt = image !== null && image.alt.trim() === '';
     // Tab from the text goes straight to the first button: the menu plugin makes its wrapper focusable when it starts (after BubbleMenu's own effect, before this one).
@@ -191,6 +204,23 @@ function ImageMenu({ editor }: { editor: Editor }) {
                             </MenuButton>
                         ))}
                     </div>
+                    {styles.length > 0 && (
+                        <>
+                            <MenuSeparator />
+                            <div role="group" aria-label={t('Style')} className="flex items-center gap-0.5">
+                                <span aria-hidden className="px-1 text-xs font-medium text-muted-foreground">{t('Style')}</span>
+                                {styles.map((style) => {
+                                    const on = image.styles.includes(style.class);
+                                    return (
+                                        <MenuButton key={style.class} label={style.label} active={on}
+                                            onClick={() => { const next = toggleStyle(image.styles, style.class, order); set({ styles: next.length === 0 ? null : next }); }}>
+                                            <span className="px-1 text-xs font-medium">{style.label}</span>
+                                        </MenuButton>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
                     <MenuSeparator />
                     <AltInput value={image.alt} warn={noAlt} onChange={(alt) => set({ alt })} onEnter={back} />
                     <MenuSeparator />

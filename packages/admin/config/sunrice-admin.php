@@ -131,6 +131,18 @@ return [
         ],
     ],
 
+    'rich_text' => [
+        // Image styles editors can turn on for an image in rich text (its
+        // toolbar's Style buttons, several at once), as class => label. The
+        // class goes on the <img>: style it in your site's CSS. Classes must
+        // be CSS class names (letters, digits, - and _, not starting with a
+        // digit or `sunrice-img`); others are ignored. Empty: no Style buttons.
+        'image_classes' => [
+            // 'rounded' => 'Rounded',
+            // 'shadow' => 'Shadow',
+        ],
+    ],
+
     'locks' => [
         // The cache store edit locks live in (config/cache.php); null for the
         // default. Every server must share it.

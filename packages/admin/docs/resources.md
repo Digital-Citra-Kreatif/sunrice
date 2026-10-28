@@ -188,6 +188,20 @@ BelongsToManySelect::make('tags')->orderColumn('sort_order')
 
 A selected image gets a small toolbar of its own: width presets (25, 50, 75 or 100%), alignment (left or right with the text wrapping, centred, full width), its alt text and removing it. The presets are stored as classes on the `<img>`, never inline styles, `class="sunrice-img sunrice-img-w-50 sunrice-img-left"`, and `Sunrice\Admin\Resources\Forms\RichTextImageClasses` keeps exactly those (any other class on an image is dropped; add it to your own `HtmlSanitizerConfig` with `->withAttributeSanitizer(new RichTextImageClasses)`). Style the classes where the HTML is shown; the CMS's [site guide](../../cms/docs/site.md) lists them.
 
+Image styles of your own (rounded corners, a shadow, a frame) are listed in config, `class => label`:
+
+```php
+// config/sunrice-admin.php
+'rich_text' => [
+    'image_classes' => [
+        'rounded' => 'Rounded',
+        'shadow' => 'Shadow',
+    ],
+],
+```
+
+The image's toolbar then has a **Style** group with a button for each (none without any): editors turn on as many as they like, since styles are meant to combine (rounded *and* with a shadow; a developer who wants them exclusive lists the combination as a style of its own). Their classes are written after the presets', `class="sunrice-img sunrice-img-w-50 rounded shadow"`, and `RichTextImageClasses` keeps them along with the presets' (`RichTextImageClasses::styles()` gives the valid ones, class => label). Keys that aren't CSS class names (`/^[A-Za-z_][A-Za-z0-9_-]*$/`) or start with `sunrice-img` are ignored; a label goes through `__()`. The editor gets them as the field's `imageStyles` prop (`[{class, label}]`; a plugin's `RichTextEditor` takes the same `imageStyles`, from `RichTextImageClasses::options()`). The config is read whenever text is sanitised, so a style taken out of it is dropped from an image the next time its text is saved; text saved before shows as it was until then. The panel doesn't know your styles' CSS, so in the editor the image carries the class and the style's button shows pressed, without the look.
+
 The editor's code (TipTap) loads when an editor first shows, never with the panel's main script; plugins use the same editor as `RichTextEditor` from `@imajiner/admin-sdk/ui` (see [Frontend](frontend.md)).
 
 `Code::make('snippet')->language('html')` edits code in CodeMirror, loaded in its own chunk only when a code field shows (a plain textarea until then): an embed, a JSON setting, a script for every page. It's stored as typed and never cleaned, so print it escaped (`{{ $snippet }}`); printing it as is runs it, which is only for code its editors are trusted to run there (the CMS's Settings → Site code). Plugins use the same editor as `CodeEditor` from `@imajiner/admin-sdk/ui` (see [Frontend](frontend.md)).

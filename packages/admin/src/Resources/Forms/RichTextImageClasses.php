@@ -15,7 +15,16 @@ use Symfony\Component\HtmlSanitizer\Visitor\AttributeSanitizer\AttributeSanitize
  *
  * Widths: sunrice-img-w-25, -w-50, -w-75, -w-100. Alignment: sunrice-img-left
  * and sunrice-img-right (floated, text wraps), sunrice-img-center and
- * sunrice-img-full. Any other class on an <img> is dropped.
+ * sunrice-img-full.
+ *
+ * Plus the image styles a developer lists in config, which editors turn on
+ * and off in the image's toolbar (several at once):
+ *
+ *     // config/sunrice-admin.php
+ *     'rich_text' => ['image_classes' => ['rounded' => 'Rounded', 'shadow' => 'Shadow']],
+ *
+ * Any other class on an <img> is dropped. The config is read each time, so
+ * a style taken out of it is dropped the next time the text is saved.
  *
  *     $config = (new HtmlSanitizerConfig)
  *         ->allowElement('img', ['src', 'alt', 'class'])
@@ -29,14 +38,63 @@ final class RichTextImageClasses implements AttributeSanitizerInterface
 
     public const ALIGNMENTS = ['left', 'center', 'right', 'full'];
 
-    /** @return list<string> Every class the editor may put on an image. */
+    /** What a configured image style's class must look like. */
+    public const CLASS_PATTERN = '/^[A-Za-z_][A-Za-z0-9_-]*$/';
+
+    /** @return list<string> Every class the editor may put on an image: the presets' and the configured styles'. */
     public static function allowed(): array
     {
         return [
             'sunrice-img',
             ...array_map(fn (string $width): string => "sunrice-img-w-{$width}", self::WIDTHS),
             ...array_map(fn (string $align): string => "sunrice-img-{$align}", self::ALIGNMENTS),
+            ...array_keys(self::styles()),
         ];
+    }
+
+    /**
+     * The image styles in config `sunrice-admin.rich_text.image_classes`,
+     * class => label, in their order. A key that isn't a CSS class name
+     * (CLASS_PATTERN) or starts with `sunrice-img` (the presets') is
+     * ignored; a list of classes uses each class as its label.
+     *
+     * @return array<string, string>
+     */
+    public static function styles(): array
+    {
+        $configured = config('sunrice-admin.rich_text.image_classes', []);
+        if (! is_array($configured)) {
+            return [];
+        }
+        $styles = [];
+        foreach ($configured as $class => $label) {
+            if (is_int($class) && is_string($label)) {
+                $class = $label;
+            }
+            if (! is_string($class) || preg_match(self::CLASS_PATTERN, $class) !== 1 || str_starts_with($class, 'sunrice-img')) {
+                continue;
+            }
+            $styles[$class] = is_string($label) && trim($label) !== '' ? $label : $class;
+        }
+
+        return $styles;
+    }
+
+    /**
+     * The styles as the editor gets them (its `imageStyles` prop), labels
+     * translated.
+     *
+     * @return list<array{class: string, label: string}>
+     */
+    public static function options(): array
+    {
+        $options = [];
+        foreach (self::styles() as $class => $label) {
+            $translated = __($label);
+            $options[] = ['class' => $class, 'label' => is_string($translated) ? $translated : $label];
+        }
+
+        return $options;
     }
 
     /** The allowed classes of a class attribute, or null when none is left. */
