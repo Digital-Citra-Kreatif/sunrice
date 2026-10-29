@@ -270,3 +270,29 @@ it('carries rich text links to entries, terms and listing pages by key, and drop
         ->toContain('<a href="/posts/gone" rel="noopener noreferrer">gone</a>')
         ->and(collect($report->items())->firstWhere('handle', 'posts/hello')['notes'])->toBe(['Left empty (not on this site): entry posts/gone.']);
 });
+
+it('carries Link fields to terms and listing pages by key, with their rel choices', function () {
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [['handle' => 'topic', 'type' => 'link'], ['handle' => 'all', 'type' => 'link']]]);
+    $posts = Collection::query()->create(['handle' => 'posts', 'title' => 'Posts', 'blueprint' => 'post', 'route' => '/posts/{slug}', 'listing_route' => '/posts']);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'route' => '/topics/{slug}']);
+    $news = app(SaveTerm::class)->handle($topics, ['title' => 'News']);
+    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($posts, ['title' => 'Hello', 'data' => [
+        'topic' => ['type' => 'term', 'term_id' => $news->id, 'rel' => ['nofollow']],
+        'all' => ['type' => 'listing', 'collection_id' => $posts->id, 'label' => 'All posts'],
+    ]]));
+
+    $file = json_decode(json_encode(app(StructureExporter::class)->export(content: true), JSON_THROW_ON_ERROR), true);
+    $exported = collect($file['entries'])->firstWhere('slug', 'hello')['translations']['en']['data'];
+    expect($exported['topic'])->toBe(['term_id' => ['term' => 'topics/news'], 'type' => 'term', 'label' => null, 'new_tab' => false, 'rel' => ['nofollow']])
+        ->and($exported['all']['collection_id'])->toBe(['listing' => 'posts']);
+
+    Entry::withTrashed()->get()->each->forceDelete();
+    Term::withTrashed()->get()->each->forceDelete();
+    EntryTranslation::query()->delete();
+    TermTranslation::query()->delete();
+    app(StructureImporter::class)->import($file);
+
+    $data = entryBySlug('hello')->mainTranslation()->draft_data;
+    expect($data['topic'])->toBe(['type' => 'term', 'term_id' => Term::query()->sole()->id, 'label' => null, 'new_tab' => false, 'rel' => ['nofollow']])
+        ->and($data['all'])->toBe(['type' => 'listing', 'collection_id' => $posts->id, 'label' => 'All posts', 'new_tab' => false]);
+});

@@ -7,6 +7,7 @@ import {
 import { t } from '@imajiner/admin-sdk';
 import { EntriesPicker } from '@/components/EntriesPicker.tsx';
 import { FieldError } from '@/components/FieldError.tsx';
+import { LinkSourcePicker } from '@/components/LinkSourcePicker.tsx';
 import { AFFIXED_INPUT, Affixed, FieldHint, HelperText, SharedHint } from '@/components/FieldPresentation.tsx';
 import { TermsPicker } from '@/components/TermsPicker.tsx';
 import { errorsAt } from '@/lib/builder.ts';
@@ -14,7 +15,10 @@ import { codeLanguageOf } from '@/lib/code.ts';
 import { isShown } from '@/lib/conditions.ts';
 import { affixesOf, CONTAINER_TYPES, hintOf } from '@/lib/presentation.ts';
 import { fieldGrid, widthClass } from '@/lib/width.ts';
-import { asRecord, dateInputValue, dateValueFromInput, groupedNumber, itemSummary, linkValue, offersEmptyChoice, newBlock, newRow, switchLink, syncKeys, type LinkKind, type LinkTargets } from '@/lib/values.ts';
+import {
+    asRecord, dateInputValue, dateValueFromInput, defaultNewTab, groupedNumber, itemSummary, LINK_KINDS, LINK_REL_OPTIONS, LINK_TARGET, linkKindOf, linkRelOf, linkValue,
+    offersEmptyChoice, newBlock, newRow, switchLink, syncKeys, toggleLinkRel, type LinkKind, type LinkTargets,
+} from '@/lib/values.ts';
 import type { Errors, FieldDefinition, Option } from '@/types.ts';
 
 /** Radix's Select can't hold an empty value, so "none" is this. */
@@ -290,6 +294,15 @@ function MultiSelect({ options, value, onChange, empty, inTickOrder = false, inv
     );
 }
 
+function linkKindLabel(kind: LinkKind): string {
+    return { url: t('Link'), entry: t('Entry'), term: t('Term'), listing: t('Listing') }[kind];
+}
+
+function relHelp(option: string): string {
+    return option === 'nofollow' ? t('nofollow: search engines don\'t follow the link or count it as an endorsement.')
+        : option === 'sponsored' ? t('sponsored: a paid link, an advert or a sponsorship.') : t('ugc: a link in what visitors wrote, such as comments.');
+}
+
 function LinkInput({ label, value, onChange, errors, id, collections, placeholder, describedBy }: {
     /** The field's label: the inputs are named after it ("Map link: address"), not just "Address". */
     label: string; value: Record<string, unknown>; onChange: (value: unknown) => void; errors: Errors; id: string; collections: string[];
@@ -298,44 +311,70 @@ function LinkInput({ label, value, onChange, errors, id, collections, placeholde
     describedBy?: string;
 }) {
     // An empty link is stored as no link (null), so the kind chosen is kept here too.
-    const [chosen, setChosen] = React.useState<LinkKind>(value.type === 'entry' ? 'entry' : 'url');
-    const type: LinkKind = value.type === 'entry' || value.type === 'url' ? value.type : chosen;
-    // The address or entry of the kind not chosen, until the page is left.
+    const [chosen, setChosen] = React.useState<LinkKind>(linkKindOf(value.type) ?? 'url');
+    const type: LinkKind = linkKindOf(value.type) ?? chosen;
+    // The targets of the kinds not chosen, until the page is left.
     const remembered = React.useRef<LinkTargets>({});
-    const set = (changes: Record<string, unknown>) => onChange(linkValue({ ...value, type, ...changes }));
+    // A new link (none when the editor opened) opens in a new tab when it's an address, until the box is ticked or unticked; saved ones keep theirs.
+    const isNew = React.useRef(Object.keys(value).length === 0);
+    const [tabTouched, setTabTouched] = React.useState(false);
+    const newTab = typeof value.new_tab === 'boolean' ? value.new_tab : isNew.current && !tabTouched && defaultNewTab(type);
+    const set = (changes: Record<string, unknown>) => onChange(linkValue({ ...value, type, new_tab: newTab, ...changes }));
     const choose = (to: LinkKind) => {
         if (to === type) return;
         const next = switchLink(value, type, to, remembered.current);
         remembered.current = next.remembered;
         setChosen(to);
-        onChange(next.value);
+        // The default follows the kind on a new link not ticked by hand.
+        onChange(next.value === null || !isNew.current || tabTouched ? next.value : { ...next.value, new_tab: defaultNewTab(to) });
     };
+    const rel = linkRelOf(value.rel);
+    const target = LINK_TARGET[type];
+    const error = errors[target] ?? errors.url ?? errors.label ?? errors.type ?? errors.rel;
 
     return (
         <div className="cms:flex cms:flex-col cms:gap-2">
-            <div role="radiogroup" aria-label={t(':field: link to', { field: label })} className="cms:inline-flex cms:w-fit cms:rounded-md cms:border cms:p-0.5">
-                {(['url', 'entry'] as const).map((option) => (
-                    <Button key={option} type="button" size="sm" role="radio" aria-checked={type === option} variant={type === option ? 'secondary' : 'ghost'}
-                        onClick={() => choose(option)}>
-                        {option === 'url' ? t('Address') : t('Entry')}
-                    </Button>
-                ))}
-            </div>
-            <div className="cms:grid cms:gap-2 cms:md:grid-cols-[2fr_1fr_auto] cms:md:items-start">
-                {type === 'url'
-                    ? <Input id={id} aria-label={t(':field: address', { field: label })} placeholder={placeholder || t('https://… or /about')} aria-describedby={describedBy} value={typeof value.url === 'string' ? value.url : ''}
+            <div className="cms:grid cms:gap-2 cms:md:grid-cols-[10rem_1fr] cms:md:items-start">
+                <Select value={type} onValueChange={(next: string) => choose(linkKindOf(next) ?? 'url')}>
+                    <SelectTrigger aria-label={t(':field: link to', { field: label })} className="cms:w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        {LINK_KINDS.map((kind) => <SelectItem key={kind} value={kind}>{linkKindLabel(kind)}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                {type === 'url' && (
+                    <Input id={id} aria-label={t(':field: address', { field: label })} placeholder={placeholder || t('https://… or /about')} aria-describedby={describedBy} value={typeof value.url === 'string' ? value.url : ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ url: e.target.value })} aria-invalid={errors.url !== undefined} />
-                    : <EntriesPicker id={id} invalid={errors.entry_id !== undefined} multiple={false} max={null} collections={collections}
+                )}
+                {type === 'entry' && (
+                    <EntriesPicker id={id} invalid={errors.entry_id !== undefined} multiple={false} max={null} collections={collections}
                         value={typeof value.entry_id === 'number' ? value.entry_id : null}
-                        onChange={(next) => set({ entry_id: typeof next === 'number' ? next : undefined })} />}
-                <Input aria-label={t(':field: link text', { field: label })} placeholder={type === 'entry' ? t('Link text (the entry\'s title)') : t('Link text')} value={typeof value.label === 'string' ? value.label : ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ label: e.target.value })} />
-                <label className="cms:flex cms:h-9 cms:items-center cms:gap-2 cms:text-sm">
-                    <Checkbox checked={value.new_tab === true} onCheckedChange={(checked: boolean) => set({ new_tab: checked })} />
-                    {t('New tab')}
-                </label>
-                <div className="cms:md:col-span-3"><FieldError message={errors.url ?? errors.entry_id ?? errors.label ?? errors.type} /></div>
+                        onChange={(next) => set({ entry_id: typeof next === 'number' ? next : undefined })} />
+                )}
+                {(type === 'term' || type === 'listing') && (
+                    <LinkSourcePicker id={id} source={type} label={t(':field: search', { field: label })} invalid={errors[target] !== undefined}
+                        value={typeof value[target] === 'number' ? value[target] as number : null}
+                        onChange={(next) => set({ [target]: next ?? undefined })} />
+                )}
             </div>
+            <Input aria-label={t(':field: link text', { field: label })} placeholder={type === 'url' ? t('Link text') : t('Link text (its title)')} value={typeof value.label === 'string' ? value.label : ''}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ label: e.target.value })} />
+            <div role="group" aria-label={t(':field: link attributes', { field: label })} className="cms:flex cms:flex-wrap cms:items-center cms:gap-x-4 cms:gap-y-2">
+                <label className="cms:flex cms:items-center cms:gap-2 cms:text-sm">
+                    <Checkbox checked={newTab} onCheckedChange={(checked: boolean) => { setTabTouched(true); set({ new_tab: checked === true }); }} />
+                    {t('Open in a new tab')}
+                </label>
+                <div className="cms:flex cms:flex-wrap cms:items-center cms:gap-1">
+                    {LINK_REL_OPTIONS.map((option) => (
+                        <Button key={option} type="button" size="sm" variant={rel.includes(option) ? 'secondary' : 'outline'} className="cms:h-7 cms:px-2 cms:text-xs"
+                            title={relHelp(option)} aria-pressed={rel.includes(option)}
+                            onClick={() => { const next = toggleLinkRel(value.rel, option); set({ rel: next.length === 0 ? undefined : next }); }}>
+                            {option}
+                        </Button>
+                    ))}
+                </div>
+                <p className="cms:text-xs cms:text-muted-foreground">{t('Links that open in a new tab always do so safely (noopener noreferrer).')}</p>
+            </div>
+            <FieldError message={error} />
         </div>
     );
 }

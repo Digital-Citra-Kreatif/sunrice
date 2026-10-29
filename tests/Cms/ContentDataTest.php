@@ -168,7 +168,7 @@ it('adds only the fields asked for, converted from what templates get', function
         ->and($fields['gallery'][0]['sizes']['medium']['url'])->toBe($two->url('medium'))
         ->and($fields['area'])->toBe($bali->fresh()?->load('translations', 'taxonomy')->toData())
         ->and($fields['snippet'])->toBe('<iframe src="https://example.com"></iframe>')
-        ->and($fields['cta'])->toBe(['type' => 'url', 'url' => 'https://example.com/book', 'label' => 'Book', 'title' => null, 'new_tab' => true])
+        ->and($fields['cta'])->toBe(['type' => 'url', 'url' => 'https://example.com/book', 'label' => 'Book', 'title' => null, 'new_tab' => true, 'rel' => 'noopener noreferrer'])
         ->and($fields['location'])->toBe(['lat' => -8.5, 'lng' => 115.26, 'photo' => $pin->toData()])
         ->and($fields['stops'])->toBe([['name' => 'Market', 'photo' => $stop->toData()]])
         ->and($fields['sections'])->toBe([['type' => 'quote', 'key' => 'top', 'values' => ['text' => 'Lovely', 'photo' => $quote->toData()]]]);
