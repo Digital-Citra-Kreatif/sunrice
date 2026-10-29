@@ -237,3 +237,36 @@ it('counts files to come as in the library on a dry run, so content that require
     unlink($png);
     unlink($text);
 });
+
+it('carries rich text links to entries, terms and listing pages by key, and drops those the other site lacks', function () {
+    Blueprint::query()->create(['handle' => 'post', 'title' => 'Post', 'fields' => [['handle' => 'body', 'type' => 'rich_text']]]);
+    $posts = Collection::query()->create(['handle' => 'posts', 'title' => 'Posts', 'blueprint' => 'post', 'route' => '/posts/{slug}', 'listing_route' => '/posts']);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'route' => '/topics/{slug}']);
+    $news = app(SaveTerm::class)->handle($topics, ['title' => 'News']);
+    $second = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($posts, ['title' => 'Second']));
+    $gone = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($posts, ['title' => 'Gone']));
+    $body = '<p><a href="/posts/second" data-link="entry:'.$second->entry_id.'">second</a> <a href="/topics/news" data-link="term:'.$news->id.'">news</a> '
+        .'<a href="/posts" data-link="listing:'.$posts->id.'">all</a> <a href="/posts/gone" data-link="entry:'.$gone->entry_id.'">gone</a></p>';
+    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($posts, ['title' => 'Hello', 'data' => ['body' => $body]]));
+
+    $file = json_decode(json_encode(app(StructureExporter::class)->export(content: true), JSON_THROW_ON_ERROR), true);
+    $exported = collect($file['entries'])->firstWhere('slug', 'hello')['translations']['en']['data']['body'];
+    expect($exported)->toContain('data-link="entry:posts/second"')->toContain('data-link="term:topics/news"')->toContain('data-link="listing:posts"');
+    // Hello comes first in the file, before the entry it links to; Gone isn't in it.
+    $file['entries'] = collect($file['entries'])->reject(fn (array $entry) => $entry['slug'] === 'gone')
+        ->sortBy(fn (array $entry) => $entry['slug'] === 'hello' ? 0 : 1)->values()->all();
+
+    Entry::withTrashed()->get()->each->forceDelete();
+    Term::withTrashed()->get()->each->forceDelete();
+    EntryTranslation::query()->delete();
+    TermTranslation::query()->delete();
+    $report = app(StructureImporter::class)->import($file);
+
+    $stored = entryBySlug('hello')->mainTranslation()->draft_data['body'];
+    expect($stored)->toContain('data-link="entry:'.entryBySlug('second')->id.'"')
+        ->toContain('data-link="term:'.Term::query()->sole()->id.'"')
+        ->toContain('data-link="listing:'.$posts->id.'"')
+        // Not on this site: a plain link to its old address.
+        ->toContain('<a href="/posts/gone" rel="noopener noreferrer">gone</a>')
+        ->and(collect($report->items())->firstWhere('handle', 'posts/hello')['notes'])->toBe(['Left empty (not on this site): entry posts/gone.']);
+});
