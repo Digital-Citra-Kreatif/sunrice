@@ -23,7 +23,8 @@ final class RichTextLinkController
     public function __construct(private readonly Panel $panel) {}
 
     /**
-     * "q": what was typed; "source": one source's key, else all of them.
+     * "q": what was typed (2 characters or more for all sources; for one,
+     * anything, nothing for a few to start with); "source": one source's key.
      * Each source's items, under its label: {groups: [{key, label, items}]}.
      */
     public function search(Request $request): JsonResponse
@@ -34,7 +35,7 @@ final class RichTextLinkController
         $only = $input['source'] ?? null;
         $user = $request->user();
         $groups = [];
-        if (mb_strlen($query) >= 2 && $user instanceof Authorizable) {
+        if (($only !== null || mb_strlen($query) >= 2) && $user instanceof Authorizable) {
             foreach ($this->panel->getRichTextLinkSources() as $key => $source) {
                 if ($only !== null && $only !== $key) {
                     continue;

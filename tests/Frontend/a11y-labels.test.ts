@@ -38,7 +38,8 @@ test("a link field's inputs are named after the field, not just \"Address\"", as
     const { FieldInput } = await loadCmsModule<{ FieldInput: ComponentType<any> }>('components/FieldInput.tsx');
     const html = render(FieldInput, { field: { handle: 'map_link', label: 'Map link', type: 'link' }, value: null, onChange: () => undefined, errors: {}, id: 'f-map' });
 
-    assert.match(html, /role="radiogroup" aria-label="Map link: link to"/);
+    assert.match(html, /aria-label="Map link: link to"/);
+    assert.match(html, /role="group" aria-label="Map link: link attributes"/);
     assert.match(html, /id="f-map" aria-label="Map link: address"/);
     assert.match(html, /aria-label="Map link: link text"/);
     assert.doesNotMatch(html, /aria-label="Address"/);

@@ -201,7 +201,7 @@ it('writes templates that render every field, and nothing for empty ones', funct
         ->assertSee('21 September 1937')
         ->assertSee('Hard cover')
         ->assertSee('<span class="field-label">Signed:</span> Yes', false)
-        ->assertSee('<a href="https://example.com/hobbit" target="_blank" rel="noopener">Publisher</a>', false)
+        ->assertSee('<a href="https://example.com/hobbit" target="_blank" rel="noopener noreferrer">Publisher</a>', false)
         ->assertSee('alt="The cover"', false)
         ->assertSee('width="1200" height="800"', false)
         ->assertSee('<figcaption>Cover art</figcaption>', false)

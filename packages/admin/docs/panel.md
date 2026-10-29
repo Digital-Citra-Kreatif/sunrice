@@ -264,7 +264,7 @@ The rich text editor's link menu links to an address, or to something on the sit
 
 - `$key`: lowercase letters, numbers, `_` and `-`, starting with a letter (`entry`, `product`), unique (a second one is an error when the panel boots). Not prefixed with the plugin's id: it's part of the stored HTML.
 - `$label`: the kind, singular ("Product"), translated when shown.
-- `$search(string $query, Authorizable $user)`: what was typed (2 characters or more) and the signed-in user; returns items `['id' => 4, 'title' => 'Blue mug', 'hint' => 'In stock', 'url' => '/shop/blue-mug']`. **Only what that user may view**: the route checks sign-in and `sunrice.access`, nothing more. The first 8 are listed; an item without an id above 0 or a title, or whose `url` isn't a path on the site or an `http(s)` address, is left out.
+- `$search(string $query, Authorizable $user)`: what was typed (2 characters or more when every source is searched; when only this one is, as the CMS's Link field's picker does, anything, `''` for a few to start with) and the signed-in user; returns items `['id' => 4, 'title' => 'Blue mug', 'hint' => 'In stock', 'url' => '/shop/blue-mug']`. **Only what that user may view**: the route checks sign-in and `sunrice.access`, nothing more. The first 8 are listed; an item without an id above 0 or a title, or whose `url` isn't a path on the site or an `http(s)` address, is left out.
 - `$find(array $ids, Authorizable $user)`, optional: the same items by id, for the chip of a saved link. Without it the chip names the kind only.
 
 ```php
@@ -278,7 +278,7 @@ $panel->richTextLinkSource('product', 'Product',
         : []);
 ```
 
-The menu asks `GET admin/rich-text-links?q=…` (`&source=product` for one kind), answered as `{groups: [{key, label, items: [{link, id, title, hint, url}]}]}`, and `GET admin/rich-text-links/product:4` for a chip (`{item: {…, source}}`, or null), both behind sign-in and `sunrice.access` (`sunrice.admin.rich-text-links.search` and `.show`, 120 a minute). The editor gets the sources as the shared page data `sunrice.richTextLinks` (`[{key, label}]`). The panel stores the link as chosen; showing it with the item's current URL is the plugin's to do (the CMS does it for entries, terms and listing pages: [rich text links](../../cms/docs/fields.md#rich-text-links)). `RichTextLinkAttributes` (`Sunrice\Admin\Resources\Forms`) is the sanitiser rule that keeps `data-link` and the link's `rel` choices: see [rich text](resources.md#rich-text).
+The menu asks `GET admin/rich-text-links?q=…` (`&source=product` for one kind, where `q` may also be empty), answered as `{groups: [{key, label, items: [{link, id, title, hint, url}]}]}`, and `GET admin/rich-text-links/product:4` for a chip (`{item: {…, source}}`, or null), both behind sign-in and `sunrice.access` (`sunrice.admin.rich-text-links.search` and `.show`, 120 a minute). The editor gets the sources as the shared page data `sunrice.richTextLinks` (`[{key, label}]`). The panel stores the link as chosen; showing it with the item's current URL is the plugin's to do (the CMS does it for entries, terms and listing pages: [rich text links](../../cms/docs/fields.md#rich-text-links)). `RichTextLinkAttributes` (`Sunrice\Admin\Resources\Forms`) is the sanitiser rule that keeps `data-link` and the link's `rel` choices: see [rich text](resources.md#rich-text).
 
 `$panel->installStep($key, fn (InstallOutput $output) => …)` adds a step to `php artisan sunrice:install`, for what a plugin needs the app to have: see [The install step](plugins.md#the-install-step).
 

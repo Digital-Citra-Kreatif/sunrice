@@ -73,8 +73,10 @@ it('searches the sources for the link menu, as the signed-in user may see them',
         ['link' => 'product:4', 'id' => 4, 'title' => 'Blue mug', 'hint' => 'In stock', 'url' => '/shop/4'],
         ['link' => 'product:5', 'id' => 5, 'title' => 'Red mug', 'hint' => 'In stock', 'url' => '/shop/5'],
     ]]])
-        // One letter is too few; another source's key lists nothing.
+        // One letter is too few for every source, not for one (nothing: a few to start with); another source's key lists nothing.
         ->and(getJson('/admin/rich-text-links?q=m')->json('groups'))->toBe([])
+        ->and(collect(getJson('/admin/rich-text-links?q=t&source=product')->json('groups.0.items'))->pluck('title')->all())->toBe(['Teapot'])
+        ->and(collect(getJson('/admin/rich-text-links?source=product')->json('groups.0.items'))->pluck('id')->all())->toBe([4, 5, 6])
         ->and(getJson('/admin/rich-text-links?q=mug&source=entry')->json('groups'))->toBe([])
         ->and(getJson('/admin/rich-text-links/product:6')->json('item'))->toBe(['link' => 'product:6', 'id' => 6, 'title' => 'Teapot', 'hint' => null, 'url' => '/shop/6', 'source' => 'Product'])
         ->and(getJson('/admin/rich-text-links/product:99')->json('item'))->toBeNull()

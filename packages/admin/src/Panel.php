@@ -933,7 +933,8 @@ final class Panel
      * `data-link="<key>:<id>"` (RichTextLinkAttributes keeps it), so the
      * plugin can give the link the item's current URL when pages show it.
      *
-     * $search gets what was typed (2 characters or more) and the signed-in
+     * $search gets what was typed (2 characters or more when every source
+     * is searched; anything, '' for a few to start with, when one is) and the signed-in
      * user, and returns items `{id, title, hint?, url}`: only what that
      * user may view, a few (the first RichTextLinkSource::LIMIT are listed),
      * `url` a path on the site or an http(s) address. $find, optional,

@@ -118,7 +118,7 @@ it('never prints an unsafe link saved before', function () {
 
     expect(Schema::make([$field])->hydrate(['cta' => ['url' => 'javascript:alert(1)']], hydration()))->toBe(['cta' => null])
         ->and(Schema::make([$field])->hydrate(['cta' => ['url' => '/a', 'label' => 'A', 'new_tab' => true]], hydration()))
-        ->toBe(['cta' => ['type' => 'url', 'url' => '/a', 'label' => 'A', 'title' => null, 'new_tab' => true]]);
+        ->toBe(['cta' => ['type' => 'url', 'url' => '/a', 'label' => 'A', 'title' => null, 'new_tab' => true, 'rel' => 'noopener noreferrer']]);
 });
 
 it('accepts only existing media of the allowed kinds', function () {
