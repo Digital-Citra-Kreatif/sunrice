@@ -5,7 +5,7 @@
 ## How to upgrade
 
 1. Read this page from the version you have to the one you're going to, and `CHANGELOG.md` for everything else that changed.
-2. Update the packages. Within the version your `composer.json` allows (`^0.2` takes 0.2.1, 0.2.2…), update them:
+2. Update the packages. Within the version your `composer.json` allows (`^0.3` takes 0.3.1, 0.3.2…), update them:
 
    ```bash
    composer update "sunrice/*" -W
@@ -14,9 +14,9 @@
    **Before 1.0, each minor version is a new major one for Composer**: `^0.1` allows 0.1.x but never 0.2.0, so `composer update` finds nothing new. To move to the next minor version, raise the constraints with `composer require`, every Sunrice package you have at once (and `-W` so their dependencies may move too):
 
    ```bash
-   composer require sunrice/admin:^0.2 sunrice/cms:^0.2 -W
+   composer require sunrice/admin:^0.3 sunrice/cms:^0.3 -W
    # with the starter kit installed, add it to the same command:
-   composer require sunrice/admin:^0.2 sunrice/cms:^0.2 sunrice/starter-kit:^0.2 -W
+   composer require sunrice/admin:^0.3 sunrice/cms:^0.3 sunrice/starter-kit:^0.3 -W
    ```
 
    Plugins of your own or from others (`composer.json`'s `sunrice/admin` or `sunrice/cms` constraint) need a release allowing the new version too; Composer names any that hold the update back.
@@ -51,8 +51,12 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
-## Unreleased
+## 0.3.0
 
+From 0.2.x to 0.3.0.
+
+- **Run `php artisan migrate`.** A new migration adds two indexes on `sunrice_entry_translations` for pages in other languages (it replaces `sunrice_entry_tr_live_index`); no data changes.
+- **Run `php artisan sunrice:assets`** after updating, as after every update.
 - **Plugin bundles: let the panel version your files.** A bundle registered with `PluginBundle::publishedFrom($dist, public_path('vendor/shop'))` can name its files in that folder, `->module('admin.js')->style('admin.css')`, and the panel adds a `?v=` from the copy the browser downloads. A full URL (`->module(asset('vendor/shop/admin.js?v=…'))`) still works as before, but a version you compute from your package's `dist/` changes before the files are published, so browsers can keep an old file under the new URL: switch to the file names and drop your own hashing. See [Registering the bundle](../packages/admin/docs/frontend.md#3-registering-the-bundle).
 - **`php artisan sunrice:assets` publishes the plugin bundles too** (each with `publishedFrom()`), so `vendor:publish --tag=laravel-assets` is no longer a step of its own after an update; it keeps working.
 
