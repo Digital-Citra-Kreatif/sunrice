@@ -283,7 +283,7 @@ it('carries Link fields to terms and listing pages by key, with their rel choice
 
     $file = json_decode(json_encode(app(StructureExporter::class)->export(content: true), JSON_THROW_ON_ERROR), true);
     $exported = collect($file['entries'])->firstWhere('slug', 'hello')['translations']['en']['data'];
-    expect($exported['topic'])->toBe(['term_id' => ['term' => 'topics/news'], 'type' => 'term', 'label' => null, 'new_tab' => false, 'rel' => ['nofollow']])
+    expect($exported['topic'])->toEqual(['term_id' => ['term' => 'topics/news'], 'type' => 'term', 'label' => null, 'new_tab' => false, 'rel' => ['nofollow']])
         ->and($exported['all']['collection_id'])->toBe(['listing' => 'posts']);
 
     Entry::withTrashed()->get()->each->forceDelete();
@@ -293,6 +293,6 @@ it('carries Link fields to terms and listing pages by key, with their rel choice
     app(StructureImporter::class)->import($file);
 
     $data = entryBySlug('hello')->mainTranslation()->draft_data;
-    expect($data['topic'])->toBe(['type' => 'term', 'term_id' => Term::query()->sole()->id, 'label' => null, 'new_tab' => false, 'rel' => ['nofollow']])
-        ->and($data['all'])->toBe(['type' => 'listing', 'collection_id' => $posts->id, 'label' => 'All posts', 'new_tab' => false]);
+    expect($data['topic'])->toEqual(['type' => 'term', 'term_id' => Term::query()->sole()->id, 'label' => null, 'new_tab' => false, 'rel' => ['nofollow']])
+        ->and($data['all'])->toEqual(['type' => 'listing', 'collection_id' => $posts->id, 'label' => 'All posts', 'new_tab' => false]);
 });
