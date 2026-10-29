@@ -31,6 +31,7 @@ use Sunrice\Admin\Actions\Permissions\SyncPermissions;
 use Sunrice\Admin\Activity\ActivityLog;
 use Sunrice\Admin\Ai\TokenScope;
 use Sunrice\Admin\Assets\AdminAssets;
+use Sunrice\Admin\Assets\AssetVersions;
 use Sunrice\Admin\Assets\Precompress;
 use Sunrice\Admin\Auth\WeakPasswordAtLogin;
 use Sunrice\Admin\Console\AiTokenCommand;
@@ -104,6 +105,8 @@ final class AdminServiceProvider extends ServiceProvider
         $this->app->scoped(AccountGuard::class);
         $this->app->scoped(WeakPasswordAtLogin::class);
         $this->app->scoped(TokenScope::class);
+        // The built files' versions: stat'ed once per request, so a long-lived worker sees a new publish.
+        $this->app->scoped(AssetVersions::class);
     }
 
     public function boot(): void

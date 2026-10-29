@@ -68,22 +68,31 @@ Messages flashed as `success` or `error` (`back()->with('success', 'Saved.')`) b
 
 ## 3. Registering the bundle
 
-Publish the built file to `public/` (for example with `$this->publishes([...], 'shop-assets')`) and tell the panel which pages it provides:
+Tell the panel where the built files are, where they're served from, and which pages they provide:
 
 ```php
 use Sunrice\Admin\Assets\PluginBundle;
 
 $panel->bundle(
     PluginBundle::make('shop')
-        ->module(asset('vendor/shop/admin.js'))
-        ->style(asset('vendor/shop/admin.css'))
-        ->pages('Shop/')
         ->named('Acme Shop')
-        ->publishedFrom(__DIR__.'/../dist', public_path('vendor/shop')),
+        ->publishedFrom(dirname(__DIR__).'/dist', public_path('vendor/shop'))
+        ->module('admin.js')
+        ->style('admin.css')
+        ->pages('Shop/'),
 );
 ```
 
-`publishedFrom()` (optional) says where the package's built files are and where they're published: when a published file is missing or differs from the build (an update that didn't publish them, as when a package symlinked from a path changes without `composer update`), super admins see a warning at the top of the panel naming the bundle by `named()` ("Acme Shop"; its id without it), with the commands to run. The warning is part of the page (the sidebar and header start below it), and it's plain Blade, since the panel's React code may be the stale one. Publish under the `laravel-assets` tag too (`$this->publishes([...], ['shop-assets', 'laravel-assets'])`), which Laravel apps publish after every `composer update`.
+`publishedFrom($source, $published)` names the package's build and the folder under `public/` it's copied to. Then:
+
+- **`php artisan sunrice:assets` publishes it**: it copies the build over the published folder (an old file there goes), with the panel's own assets, and lists each one it published. A published folder that is a link to the build (a symlinked `public/vendor/shop`) is left as it is, with a note: nothing is deleted through it, and no compressed copies are written into the build.
+- **Files named in the folder (`module('admin.js')`, `style('admin.css')`, `chunks/…`) are versioned by the panel**: their URL is `asset('vendor/shop/admin.js')` with a `?v=` taken from the file the browser downloads, the published copy (the build only while there's none). So a build that changed but isn't published yet (a `git pull` of a package symlinked from a path) doesn't change the URL, and publishing it does: the browser never keeps an old file under a new URL. Don't hash files yourself. A folder outside `public/` needs its URL as a third argument (`publishedFrom($dist, '/srv/cdn/shop', 'https://cdn.example.com/shop')`). A full URL (`module(asset('vendor/shop/admin.js'))`, a CDN's) is used as given, without a version of the panel's.
+- **Open tabs reload after an update**: the panel's Inertia version includes every bundle's URLs, so publishing a new build of only your bundle makes the next visit in an open tab load the page in full, with the new code.
+- **Super admins are warned when it's stale**: when a published file is missing, or of another size, or older than the build and different (an update that didn't publish it), they see a warning at the top of the pages they load in full, naming the bundle by `named()` ("Acme Shop"; its id without it), saying to run `php artisan sunrice:assets`. The warning is part of the page (the sidebar and header start below it), and it's plain Blade, since the panel's React code may be the stale one.
+
+The version is the md5 of the file's content. Each file is stat'ed when a page needs its URL (never at boot), once per request, and read again only when its modification time, size or inode changed, so a long-lived worker (Octane, a queue worker) picks up a published file on its next request, and republishing the same build keeps the version (no needless reload). A file replaced within the same second by one of the same size and inode keeps its old version until it's touched; publishing a build always writes new files, so this is no concern in practice.
+
+Publish it with `vendor:publish` too, under the `laravel-assets` tag (`$this->publishes([dirname(__DIR__).'/dist' => public_path('vendor/shop')], ['shop-assets', 'laravel-assets'])`), which Laravel apps publish after every `composer update`.
 
 ### Styles
 
@@ -235,6 +244,6 @@ The panel ships its built JavaScript and CSS in `vendor/sunrice/admin/dist`. Pub
 php artisan sunrice:assets
 ```
 
-Until they are published, admin pages show a notice saying so. When the published copy differs from the package's build (an update that didn't publish them), super admins see a warning at the top of every page they load naming what's stale (`Sunrice`, and the plugins whose bundles say where they're published from), until `sunrice:assets` and `vendor:publish --tag=laravel-assets --force` have run.
+Until they are published, admin pages show a notice saying so. When the published copy differs from the package's build (an update that didn't publish them), super admins see a warning at the top of every page they load naming what's stale (`Sunrice`, and the plugins whose bundles say where they're published from), until `sunrice:assets` has run (it publishes the plugin bundles that say where they're published from too).
 
 The panel's main script carries only what every page needs. Its own pages, the admin layout, and the runtime plugins use (`window.Sunrice`, installed before the first plugin bundle loads) are chunks loaded when needed; `DatePicker`, `MediaPickerInput`, `FormSections`, `SortableList` and `SortableHandle` load their code (date-fns, the media library, dnd-kit) the first time one shows, with a placeholder for a moment, so a plugin page uses them as always. The fonts are built in too ([Branding](branding.md#fonts)), and publishing writes compressed copies of the scripts and stylesheets for the web server ([Installation](installation.md#compression-and-caching)).

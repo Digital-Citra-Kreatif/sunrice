@@ -29,7 +29,7 @@ final class HandleInertiaRequests extends Middleware
 
     public function version(Request $request): ?string
     {
-        return AdminAssets::version();
+        return AdminAssets::inertiaVersion($this->panel);
     }
 
     /** @return array<string, mixed> */

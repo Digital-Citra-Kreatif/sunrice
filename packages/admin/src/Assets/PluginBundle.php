@@ -13,9 +13,15 @@ use InvalidArgumentException;
  * loads it only when a page under one of its prefixes is opened.
  *
  *     PluginBundle::make('shop')
- *         ->module(asset('vendor/shop/admin.js'))
- *         ->style(asset('vendor/shop/admin.css'))
+ *         ->publishedFrom(dirname(__DIR__).'/dist', public_path('vendor/shop'))
+ *         ->module('admin.js')
+ *         ->style('admin.css')
  *         ->pages('Shop/');
+ *
+ * Files named relative to publishedFrom() are served from the published
+ * folder, with a `?v=` the panel takes from the file the browser gets (the
+ * published copy, else the build), looked at when a page needs it, not at
+ * boot. A full URL (`asset('vendor/shop/admin.js')`, a CDN's) is used as is.
  *
  * @api
  */
@@ -35,6 +41,9 @@ final class PluginBundle
 
     private ?string $name = null;
 
+    /** The published folder's URL (publishedFrom()'s, or asset() of its path under public/). */
+    private ?string $publishedUrl = null;
+
     private function __construct(public readonly string $id) {}
 
     public static function make(string $id): self
@@ -46,18 +55,21 @@ final class PluginBundle
         return new self($id);
     }
 
-    /** The URL of the ES module (usually under public/vendor/<plugin>). */
-    public function module(string $url): self
+    /**
+     * The ES module: a file of the published folder ("admin.js", with
+     * publishedFrom(), versioned by the panel), or a full URL used as is.
+     */
+    public function module(string $file): self
     {
-        $this->module = $url;
+        $this->module = $this->checked($file);
 
         return $this;
     }
 
-    /** A stylesheet loaded with the module. */
-    public function style(string $url): self
+    /** A stylesheet loaded with the module: a file of the published folder ("admin.css"), or a full URL. */
+    public function style(string $file): self
     {
-        $this->styles[] = $url;
+        $this->styles[] = $this->checked($file);
 
         return $this;
     }
@@ -93,16 +105,25 @@ final class PluginBundle
     }
 
     /**
-     * Where the package's built files are and where the app publishes
-     * them (`vendor:publish`): the panel warns admins when the published
-     * copy differs from the build, after an update that didn't publish.
+     * Where the package's built files are and the folder the app serves
+     * them from: `php artisan sunrice:assets` copies them there, files
+     * named relative to it (module('admin.js')) are versioned by the copy
+     * served, and super admins are warned when it's older than the build.
+     * A folder outside public/ needs its URL.
      *
-     *     ->publishedFrom(__DIR__.'/../dist', public_path('vendor/shop'))
+     *     ->publishedFrom(dirname(__DIR__).'/dist', public_path('vendor/shop'))
      */
-    public function publishedFrom(string $source, string $published): self
+    public function publishedFrom(string $source, string $published, ?string $url = null): self
     {
         $this->source = rtrim($source, '/');
         $this->published = rtrim($published, '/');
+        $this->publishedUrl = $url === null ? null : rtrim($url, '/');
+        if ($url === null) {
+            $public = rtrim(public_path(), '/').'/';
+            if (str_starts_with($this->published.'/', $public)) {
+                $this->publishedUrl = substr($this->published, strlen($public));
+            }
+        }
 
         return $this;
     }
@@ -113,7 +134,18 @@ final class PluginBundle
         return $this->published;
     }
 
-    /** Whether the published files differ from the package's build (one missing or changed, chunks in folders included). */
+    /** The package's built files (publishedFrom()), if it said. */
+    public function sourcePath(): ?string
+    {
+        return $this->source;
+    }
+
+    /**
+     * Whether the published files are older than the package's build: one
+     * missing, of another size, or older and with other content (chunks in
+     * folders included). A stat of each file; the content is read only
+     * for a copy older than its build of the same size.
+     */
     public function outdated(): bool
     {
         if ($this->source === null || $this->published === null || ! is_dir($this->source)) {
@@ -125,7 +157,9 @@ final class PluginBundle
                 continue;
             }
             $copy = $this->published.substr($built->getPathname(), strlen($this->source));
-            if (! is_file($copy) || filesize($copy) !== $built->getSize() || md5_file($copy) !== md5_file($built->getPathname())) {
+            clearstatcache(true, $copy);
+            if (! is_file($copy) || filesize($copy) !== $built->getSize()
+                || (filemtime($copy) < $built->getMTime() && md5_file($copy) !== md5_file($built->getPathname()))) {
                 return true;
             }
         }
@@ -133,15 +167,47 @@ final class PluginBundle
         return false;
     }
 
-    public function getModule(): ?string
+    /**
+     * What's wrong with how it's set up, for Panel::bundle(), or null.
+     *
+     * @internal
+     */
+    public function misconfiguration(): ?string
     {
-        return $this->module;
+        if ($this->module === null) {
+            return "The bundle \"{$this->id}\" has no module: set one with ->module('admin.js') and ->publishedFrom(), or ->module(url).";
+        }
+        foreach ([$this->module, ...$this->styles] as $file) {
+            if (self::relative($file) && $this->published === null) {
+                return "The bundle \"{$this->id}\" names \"{$file}\" in its published folder but doesn't say where that is: add ->publishedFrom(\$dist, public_path('vendor/{$this->id}')), or give a full URL.";
+            }
+            if (self::relative($file) && $this->publishedUrl === null) {
+                return "The bundle \"{$this->id}\" is published to {$this->published}, outside public/: give its URL as publishedFrom()'s third argument.";
+            }
+        }
+
+        return null;
     }
 
-    /** @return list<string> */
+    /** The module's URL, versioned by the file served when it's a file of the published folder. */
+    public function getModule(): ?string
+    {
+        return $this->module === null ? null : $this->url($this->module);
+    }
+
+    /** @return list<string> the stylesheets' URLs, versioned likewise */
     public function getStyles(): array
     {
-        return $this->styles;
+        return array_map(fn (string $style): string => $this->url($style), $this->styles);
+    }
+
+    /**
+     * The bundle's version, for the panel's Inertia version: changes with
+     * its URLs, so with each file of the published folder it names.
+     */
+    public function version(): string
+    {
+        return substr(md5(implode("\n", [(string) $this->getModule(), ...$this->getStyles()])), 0, 12);
     }
 
     /** @return list<string> */
@@ -153,6 +219,38 @@ final class PluginBundle
     /** @return array{id: string, module: string|null, styles: list<string>, pages: list<string>} */
     public function toArray(): array
     {
-        return ['id' => $this->id, 'module' => $this->module, 'styles' => $this->styles, 'pages' => $this->pages];
+        return ['id' => $this->id, 'module' => $this->getModule(), 'styles' => $this->getStyles(), 'pages' => $this->pages];
+    }
+
+    /** A file of the published folder ("admin.js", "chunks/x.css"), not a URL. */
+    private static function relative(string $file): bool
+    {
+        return preg_match('#^([a-z][a-z0-9+.-]*:|/)#i', $file) !== 1;
+    }
+
+    private function checked(string $file): string
+    {
+        if (self::relative($file) && preg_match('#^(?!\.\.?/)[A-Za-z0-9_-][A-Za-z0-9._-]*(?:/(?!\.\.?/)[A-Za-z0-9_-][A-Za-z0-9._-]*)*$#', $file) !== 1) {
+            throw new InvalidArgumentException("Bundle \"{$this->id}\": \"{$file}\" is neither a file of the published folder (\"admin.js\") nor a URL.");
+        }
+
+        return $file;
+    }
+
+    private function url(string $file): string
+    {
+        if (! self::relative($file) || $this->published === null || $this->publishedUrl === null) {
+            return $file;
+        }
+        $base = preg_match('#^([a-z][a-z0-9+.-]*:)?//#i', $this->publishedUrl) === 1 || str_starts_with($this->publishedUrl, '/')
+            ? $this->publishedUrl.'/'.$file
+            : asset($this->publishedUrl.'/'.$file);
+        $paths = [$this->published.'/'.$file];
+        if ($this->source !== null) {
+            $paths[] = $this->source.'/'.$file;
+        }
+        $version = app(AssetVersions::class)->first(...$paths);
+
+        return $version === null ? $base : $base.'?v='.substr($version, 0, 12);
     }
 }

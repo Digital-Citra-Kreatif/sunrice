@@ -861,8 +861,9 @@ final class Panel
         if (isset($this->bundles[$bundle->id])) {
             throw new PanelMisconfigured("Two bundles have the id \"{$bundle->id}\"{$this->owner()}.");
         }
-        if ($bundle->getModule() === null) {
-            throw new PanelMisconfigured("The bundle \"{$bundle->id}\" has no module: set one with ->module(url).");
+        // Only what it was given: its files are looked at when a page needs their URLs.
+        if (($problem = $bundle->misconfiguration()) !== null) {
+            throw new PanelMisconfigured($problem);
         }
         foreach ($bundle->getPages() as $prefix) {
             foreach (self::RESERVED_PAGES as $reserved) {

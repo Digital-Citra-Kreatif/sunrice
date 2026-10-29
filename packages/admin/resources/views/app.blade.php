@@ -62,14 +62,14 @@
     @endif
     @if (($sunriceUser = auth(app(\Sunrice\Admin\Panel::class)->getGuard())->user()) instanceof \Illuminate\Database\Eloquent\Model
         && app(\Sunrice\Admin\Users\PermissionRank::class)->isSuperAdmin($sunriceUser) && ($sunriceStale = \Sunrice\Admin\Assets\AdminAssets::stale()) !== [])
-        {{-- Only on full page loads, for super admins: the assets published are older than the packages installed.
+        {{-- Only on full page loads, for super admins: the assets published are older than the packages installed
+             (a stat of each file of the builds, AdminAssets::stale(); no one else pays for it).
              In Blade, not React, since the React code may be the old one. It stays at the top, in the page's flow:
              the sidebar (fixed) and the sticky header start below it (--sunrice-banner, its height). --}}
         <div id="sunrice-stale-assets" role="alert" style="position: sticky; top: 0; z-index: 40; font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: .6rem 1rem; background: #fef3c7; color: #78350f; border-bottom: 1px solid #f59e0b; overflow-wrap: anywhere">
-            {!! __('The admin assets of :list are older than the installed packages, so the panel may run old code. On the server, run :assets and :publish.', [
+            {!! __('The admin assets of :list are older than the installed packages, so the panel may run old code. On the server, run :assets.', [
                 'list' => e(\Illuminate\Support\Arr::join($sunriceStale, ', ', ' '.__('and').' ')),
                 'assets' => '<code>php artisan sunrice:assets</code>',
-                'publish' => '<code>php artisan vendor:publish --tag=laravel-assets --force</code>',
             ]) !!}
         </div>
         <style @if (Vite::cspNonce()) nonce="{{ Vite::cspNonce() }}" @endif>
