@@ -5,11 +5,13 @@ declare(strict_types=1);
 use Illuminate\Database\Eloquent\Model;
 use Sunrice\Admin\Permissions\Permission;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
+use Sunrice\Admin\Resources\Forms\Link;
 use Sunrice\Admin\Resources\Forms\ListInput;
 use Sunrice\Admin\Resources\Forms\Pairs;
 use Sunrice\Admin\Resources\Forms\Select;
 use Sunrice\Admin\Resources\Forms\TextInput;
 use Sunrice\Admin\Resources\Forms\Toggle;
+use Sunrice\Admin\Resources\Forms\Warning;
 use Sunrice\Admin\Resources\Tables\Action;
 
 it('sends a field\'s condition and slug source to the form', function () {
@@ -51,6 +53,33 @@ it('sends a field\'s change warning to edit forms only, in the panel\'s language
 
     app()->setLocale('id');
     expect($field->toArray($saved)['warnWhenChanged'])->toStartWith('Pengguna tetap');
+});
+
+it('sends a field\'s warning about the saved record to edit forms only, with its links', function () {
+    $asked = 0;
+    $field = TextInput::make('path')->warning(function (Model $record) use (&$asked): Warning|string|null {
+        $asked++;
+
+        return match ($record->getAttribute('path')) {
+            '/taken' => Warning::make('"About" is live at /taken.')->links([Link::make('Edit "About"', '/admin/about')]),
+            '/plain' => 'Only text.',
+            default => null,
+        };
+    });
+    $saved = fn (string $path): Model => tap(new class extends Model {}, function (Model $record) use ($path): void {
+        $record->setAttribute('path', $path);
+        $record->exists = true;
+    });
+
+    expect($field->toArray($saved('/taken'))['warning'])->toBe(['text' => '"About" is live at /taken.', 'links' => [['label' => 'Edit "About"', 'url' => '/admin/about', 'newTab' => false, 'showWhen' => null]]])
+        ->and($field->toArray($saved('/plain'))['warning'])->toBe(['text' => 'Only text.', 'links' => []])
+        ->and($field->toArray($saved('/free'))['warning'])->toBeNull()
+        ->and($asked)->toBe(3)
+        // Creating: nothing saved to warn about, and the closure isn't asked.
+        ->and($field->toArray()['warning'])->toBeNull()
+        ->and($field->toArray(new class extends Model {})['warning'])->toBeNull()
+        ->and($asked)->toBe(3)
+        ->and(TextInput::make('title')->toArray($saved('/taken'))['warning'])->toBeNull();
 });
 
 it('gives a field\'s help the record being edited when it is a closure', function () {

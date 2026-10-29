@@ -54,6 +54,12 @@ export interface Row {
     deletedAt?: string | null;
 }
 
+/** Field::warning() (Sunrice\Admin\Resources\Forms\Warning): its text and links. */
+export interface SavedWarning {
+    text: string;
+    links: FormLink[];
+}
+
 export interface FieldInfo {
     kind: 'field';
     type: 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'date' | 'password' | 'checkboxes' | 'belongs_to' | 'belongs_to_many' | 'richtext' | string;
@@ -65,6 +71,8 @@ export interface FieldInfo {
     placeholder: string | null;
     /** Field::warnWhenChanged(): shown on an edit form once the value differs from the saved one. */
     warnWhenChanged?: string | null;
+    /** Field::warning(): about the record as saved, shown while the field holds its saved value. */
+    warning?: SavedWarning | null;
     span: number;
     /** Field::group(): shown under this heading with the fields next to it in the same group. */
     group?: string;
