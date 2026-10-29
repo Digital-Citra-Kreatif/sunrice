@@ -4,7 +4,7 @@ import { PasswordChecklist } from '@/components/app/password-checklist';
 import { CollapsibleCard } from '@/components/app/collapsible-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { TriangleAlert } from 'lucide-react';
-import { changeWarning } from '@/lib/change-warning';
+import { changeWarning, savedWarning } from '@/lib/change-warning';
 import { livePlaceholder, type HelpValue } from '@/lib/live-help';
 import { isPasswordRules } from '@/lib/password-rules';
 import { fieldGroups } from '@/lib/field-groups';
@@ -12,7 +12,7 @@ import { isShownBy, type ShowWhen } from '@/lib/show-when';
 import { Label } from '@/components/ui/label';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { FieldHelp, SectionLinks } from './field-help';
+import { FieldHelp, FormLinks, SectionLinks } from './field-help';
 import { FieldInput, type FieldValue } from './fields';
 import type { FieldInfo, SectionInfo } from './types';
 
@@ -41,6 +41,7 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
             // A section's only field named like the section: the card's title says it already.
             const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
             const warning = changeWarning(field.warnWhenChanged, data[field.name], saved, field.name);
+            const onSaved = savedWarning(field.warning, data[field.name], saved, field.name);
             const input = <FieldInput field={{ ...field, placeholder: livePlaceholder(field.placeholder, field.placeholderFrom as HelpValue | null | undefined, data) }} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
 
             return (
@@ -66,7 +67,16 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
                             value={typeof data[field.name] === 'string' ? String(data[field.name]) : ''} />
                     )}
                     <FieldHelp field={field} data={data} />
-                    <div aria-live="polite">
+                    <div aria-live="polite" className="grid gap-2">
+                        {onSaved && (
+                            <div id={`field-${field.name}-saved-warning`} className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+                                <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                                <div className="grid min-w-0 gap-1">
+                                    <span className="whitespace-pre-line">{onSaved.text}</span>
+                                    {onSaved.links.length > 0 && <FormLinks links={onSaved.links} />}
+                                </div>
+                            </div>
+                        )}
                         {warning && (
                             <p id={`field-${field.name}-warning`} className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm whitespace-pre-line text-amber-900 dark:text-amber-200">
                                 <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />

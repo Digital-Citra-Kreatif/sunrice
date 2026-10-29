@@ -127,6 +127,12 @@ Every field takes `->label()`, `->required()`, `->help()` (text, or a closure gi
 TextInput::make('code')->warnWhenChanged('Invoices printed before keep ":old"; reports that filter by it need ":new".'),
 ```
 
+`->warning(fn (Model $record) => …)` warns under a field on the edit form about the record as it's saved: a value that's allowed but won't do what it seems to. The closure gets the record and gives a `Warning` (`Sunrice\Admin\Resources\Forms\Warning::make($text)->links([Link::make(...)])`, its text with links in it), its text alone, or null for none. It's worked out once when the edit form opens (keep it cheap) and never when creating; as the create form saves and then opens the edit form, it shows right after saving. It's shown while the field holds its saved value, and hidden once it's changed, as it may not hold for another. The text is shown as given, since it usually names records: wrap your own words in `__()`. The CMS's redirects warn this way when a live page has the From address.
+
+```php
+TextInput::make('path')->warning(fn (Model $page) => $page->isShadowed() ? Warning::make(__('Another page has this address.'))->links([Link::make(__('Edit it'), $page->shadowUrl())]) : null),
+```
+
 Under its help, a field can say more, following the form as it's edited:
 
 - `->placeholderFrom('route', '/{handle}/{slug}')` makes the placeholder follow another field as it's edited: that field's value, or while it's empty the fallback (with `{name}` as above), for an input that defaults to another's when left empty.

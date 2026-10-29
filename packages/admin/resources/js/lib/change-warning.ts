@@ -14,3 +14,14 @@ export function changeWarning(warning: unknown, value: unknown, saved: Record<st
 
     return warning.replace(/:old\b/g, old).replace(/:new\b/g, next === '' ? '…' : next);
 }
+
+/**
+ * A field's warning about the record as saved (Field::warning()): shown
+ * while the field holds its saved value, as it may not hold for another;
+ * null when creating, or once the value is changed.
+ */
+export function savedWarning<T extends { text: string }>(warning: T | null | undefined, value: unknown, saved: Record<string, unknown> | undefined, name: string): T | null {
+    if (!warning || warning.text === '' || saved === undefined) return null;
+
+    return comparable(saved[name]) === comparable(value) ? warning : null;
+}

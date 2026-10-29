@@ -39,6 +39,9 @@ abstract class Field implements Component
 
     protected ?string $warnWhenChanged = null;
 
+    /** @var (Closure(Model): (Warning|string|null))|null */
+    protected ?Closure $warning = null;
+
     protected mixed $default = null;
 
     /** @var list<string|object> */
@@ -146,6 +149,24 @@ abstract class Field implements Component
     public function warnWhenChanged(?string $text): static
     {
         $this->warnWhenChanged = $text;
+
+        return $this;
+    }
+
+    /**
+     * A warning under the field on the edit form about the record as it's
+     * saved (a value that's allowed but won't do what it seems to): the
+     * closure gets the record and gives a Warning (text and links), its
+     * text alone, or null for none. Worked out once when the form opens
+     * (keep it cheap); shown while the field holds its saved value, as it
+     * may not hold for another. Never when creating: the record is saved
+     * first, then edited, so it shows right after saving.
+     *
+     * @param  (Closure(Model): (Warning|string|null))|null  $warning
+     */
+    public function warning(?Closure $warning): static
+    {
+        $this->warning = $warning;
 
         return $this;
     }
@@ -398,11 +419,28 @@ abstract class Field implements Component
             'placeholderFrom' => $this->placeholderFrom,
             // Only on an edit form: a new record has nothing saved to change.
             'warnWhenChanged' => $record !== null && $record->exists ? Say::it($this->warnWhenChanged) : null,
+            'warning' => $this->warningFor($record),
             'span' => $this->span,
             'showWhen' => $this->showWhen,
             ...$this->helpExtras($record),
             ...$this->props(),
         ] + ($this->group !== null ? ['group' => $this->group] : []);
+    }
+
+    /**
+     * Field::warning() for the record being edited, as the form shows it.
+     *
+     * @return array{text: string, links: list<array<string, mixed>>}|null
+     */
+    private function warningFor(?Model $record): ?array
+    {
+        $warning = $this->warning === null || $record === null || ! $record->exists ? null : ($this->warning)($record);
+
+        return match (true) {
+            $warning instanceof Warning => $warning->toArray(),
+            is_string($warning) && $warning !== '' => Warning::make($warning)->toArray(),
+            default => null,
+        };
     }
 
     /**

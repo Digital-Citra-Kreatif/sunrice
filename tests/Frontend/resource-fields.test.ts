@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createElement, type ComponentType } from 'react';
 import { formatDateRange, parseDateRange } from '../../packages/admin/resources/js/lib/date-range.ts';
-import { changeWarning } from '../../packages/admin/resources/js/lib/change-warning.ts';
+import { changeWarning, savedWarning } from '../../packages/admin/resources/js/lib/change-warning.ts';
 import { isSafeUrl } from '../../packages/admin/resources/js/lib/safe-url.ts';
 import { slugInput } from '../../packages/admin/resources/js/lib/slug.ts';
 import { loadAdminModule, render } from './support/render.ts';
@@ -25,6 +25,28 @@ test('warns about a changed value only on an edit form, once it differs from the
     assert.equal(changeWarning(warning, 'journal', undefined, 'handle'), null, 'creating: nothing saved');
     assert.equal(changeWarning(null, 'journal', { handle: 'news' }, 'handle'), null);
     assert.equal(changeWarning(warning, null, { handle: '' }, 'handle'), null, 'empty and missing alike');
+});
+
+test('shows a warning about the saved record only while the field holds the saved value', () => {
+    const warning = { text: '"About" is live at /about.', links: [] };
+    assert.equal(savedWarning(warning, '/about', { path: '/about' }, 'path'), warning);
+    assert.equal(savedWarning(warning, '/elsewhere', { path: '/about' }, 'path'), null, 'another value: it may not hold');
+    assert.equal(savedWarning(warning, '/about', undefined, 'path'), null, 'creating: nothing saved');
+    assert.equal(savedWarning(null, '/about', { path: '/about' }, 'path'), null);
+    assert.equal(savedWarning({ text: '', links: [] }, '/about', { path: '/about' }, 'path'), null);
+});
+
+test('shows a field\'s warning about the saved record under it, with its links', async () => {
+    const { FormSections } = await loadAdminModule<{ FormSections: ComponentType<any> }>('components/resources/form-sections.tsx');
+    const warning = { text: '"About" is live at /about.', links: [{ label: 'Edit "About"', url: '/admin/about', newTab: false, showWhen: null }] };
+    const field = { kind: 'field', type: 'text', name: 'path', label: 'From', required: false, disabled: false, help: null, placeholder: null, span: 1, warning };
+    const sections = [{ kind: 'section', title: null, description: null, columns: 1, fields: [field] }];
+    const props = { sections, errors: {}, onChange: () => undefined };
+
+    const html = render(FormSections, { ...props, data: { path: '/about' }, saved: { path: '/about' } });
+    assert.match(html, /&quot;About&quot; is live at \/about\./);
+    assert.match(html, /href="\/admin\/about"/);
+    assert.doesNotMatch(render(FormSections, { ...props, data: { path: '/other' }, saved: { path: '/about' } }), /is live at/);
 });
 
 test('shows a field\'s change warning under it on an edit form', async () => {
