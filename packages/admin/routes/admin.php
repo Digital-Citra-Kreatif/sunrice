@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Sunrice\Admin\Help\HelpPages;
 use Sunrice\Admin\Http\Controllers\AccountController;
 use Sunrice\Admin\Http\Controllers\ActivityController;
+use Sunrice\Admin\Http\Controllers\BrandingPreviewController;
 use Sunrice\Admin\Http\Controllers\EditLocksController;
 use Sunrice\Admin\Http\Controllers\HelpController;
 use Sunrice\Admin\Http\Controllers\LanguageController;
@@ -24,6 +25,8 @@ use Sunrice\Admin\Preferences\Preferences;
 Route::get('/', app(Panel::class)->getDashboard())->name('dashboard');
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+// Settings → Branding's preview of the sidebar with the form's unsaved values.
+Route::get('branding/preview', BrandingPreviewController::class)->middleware('can:sunrice.settings.branding')->name('branding.preview');
 Route::post('settings/mail/test', [SettingsController::class, 'testMail'])->middleware('can:sunrice.settings.mail')->name('settings.mail.test');
 // Plugins' own pages among the sections (Panel::settingsPage()), before settings/{section} catches their address.
 foreach (app(Panel::class)->getSettingsPages() as $key => $page) {

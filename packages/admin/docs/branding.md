@@ -6,8 +6,9 @@
 | --- | --- | --- |
 | Panel name | The sidebar, the sign-in page, browser tabs, emails (login codes, password resets, test emails, security alerts) and the AI server's name | `$panel->brand()` |
 | Tagline | Under the name in the sidebar and above the sign-in form | Nothing |
-| Logo (an image from the media library) | The sidebar and the sign-in page: a square-ish logo beside the name, a wide one (a wordmark, more than 1.25 times as wide as tall) instead of the name, at its own proportions (the collapsed sidebar then shows the lettermark) | The name's first letter on the brand colour |
-| Browser icon (an image: ICO, PNG or SVG) | Browser tabs and bookmarks, on every panel page including sign-in | The logo when it is square-ish, else the name's first letter on the brand colour |
+| Logo (an image from the media library) | The sidebar and the sign-in page, as **Sidebar shows** says | The name's first letter on the brand colour |
+| Browser icon (an image: ICO, PNG or SVG) | Browser tabs and bookmarks, on every panel page including sign-in, and the collapsed sidebar | The logo when it is square-ish, else the name's first letter on the brand colour |
+| Sidebar shows | What the top of the sidebar and the sign-in page show: see [below](#what-the-sidebar-shows) | Automatic |
 | Font | Everywhere in the admin | The `sunrice-admin.font` config (Instrument Sans) |
 | Brand colour (`#rrggbb`) | Primary buttons, the active menu item, focus rings | The neutral palette |
 | Sign-in page: layout | A side panel next to the form (`split`), or the form alone (`centered`) | `split` |
@@ -16,9 +17,25 @@
 
 The log-in, two-factor code, forgot-password and reset-password pages all use the same layout.
 
+## What the sidebar shows
+
+**Sidebar shows** (`brandDisplay`) chooses the top of the sidebar, and the brand above the sign-in form and in its side panel. A logo is *wide* when it is more than 1.25 times as wide as tall (a wordmark); the *square mark* is the browser icon, else the logo when it is square-ish, else the lettermark (the name's first letter on the brand colour), the same order as the [browser icon](#the-browser-icon).
+
+| Choice | Expanded sidebar | For |
+| --- | --- | --- |
+| Automatic (`auto`, the default) | A wide logo alone, at its own proportions; otherwise the logo (or the square mark) beside the name and tagline | Installs from before the setting look as they did |
+| Logo and name (`logo_name`) | The logo beside the name and tagline; a wide logo gives way to the square mark | A square logo, or a wide one with the name written out |
+| Logo only (`logo`) | The logo alone, at its own proportions | A wordmark that holds the name. Without a logo it is *Logo and name* |
+| Icon and name (`icon_name`) | The square mark (the browser icon first) beside the name and tagline | A wide logo for the website, the icon in the admin |
+| Name only (`name`) | The name and tagline, no image | A name that's brand enough |
+
+**The collapsed sidebar** (the icon rail) has room for a square only, so whatever the choice it shows the square mark: the browser icon, else a square-ish logo, else the lettermark. It is the same image as the browser tab, never blank and never a squashed wide logo. On a phone the sidebar opens as a drawer, expanded, so it follows the choice.
+
+The form draws each choice with the form's own, unsaved name, logo, icon and colour, and the collapsed square beside them. The images come from `GET admin/branding/preview` (route `sunrice.admin.branding.preview`, needs `sunrice.settings.branding`), which runs the same code as the sidebar and the favicon and saves nothing.
+
 ## The browser icon
 
-The admin layout links the icon (`<link rel="icon">`) on every panel page, the sign-in pages included. It is the **Browser icon** when one is chosen; otherwise the logo, when its width and height are within a quarter of each other (an SVG's size is read from its `viewBox`, or its `width` and `height`, when it's uploaded; an older SVG without a known size is taken as square); otherwise a lettermark: the branded name's first letter on the brand colour (the neutral one without), drawn as SVG by `GET admin/branding/icon.svg` (route `sunrice.admin.branding.icon`). That route needs no sign-in, because the sign-in page uses it, and runs without the session, so browsers and proxies may cache it: the layout's URL carries a version that changes with the letter and colour, and is cached for good. It shows nothing but that letter and colour.
+The admin layout links the icon (`<link rel="icon">`) on every panel page, the sign-in pages included. It is the square mark, as in the collapsed sidebar: the **Browser icon** when one is chosen; otherwise the logo, when its width and height are within a quarter of each other (an SVG's size is read from its `viewBox`, or its `width` and `height`, when it's uploaded; an older SVG without a known size is taken as square); otherwise a lettermark: the branded name's first letter on the brand colour (the neutral one without), drawn as SVG by `GET admin/branding/icon.svg` (route `sunrice.admin.branding.icon`). That route needs no sign-in, because the sign-in page uses it, and runs without the session, so browsers and proxies may cache it: the layout's URL carries a version that changes with the letter and colour, and is cached for good. It shows nothing but that letter and colour.
 
 When the chosen icon or the square logo is a raster image (PNG, JPEG, WebP…), the layout also links it as the `apple-touch-icon` for home screens.
 
@@ -76,7 +93,10 @@ Every admin page receives the branding with the defaults filled in, as `sunrice.
 
 ```ts
 const { branding } = usePage<{ sunrice: { branding: Branding } }>().props.sunrice;
-// { name, tagline, logo: url | null, logoWide: bool, lettermark: 'A', color: '#1e66f5' | null,
+// { name, tagline, logo: url | null, logoWide: bool,
+//   display: 'logo_name' | 'logo' | 'icon_name' | 'name',   // Sidebar shows, resolved against the logo
+//   mark: url | null,   // the square mark (browser icon, else a square logo); null: the lettermark
+//   lettermark: 'A', color: '#1e66f5' | null,
 //   login: { layout, eyebrow, headline, text, footer, image: url | null } }
 ```
 

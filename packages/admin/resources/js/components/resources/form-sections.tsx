@@ -42,7 +42,7 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
             const label = section.fields.length === 1 && field.label === section.title ? null : field.label;
             const warning = changeWarning(field.warnWhenChanged, data[field.name], saved, field.name);
             const onSaved = savedWarning(field.warning, data[field.name], saved, field.name);
-            const input = <FieldInput field={{ ...field, placeholder: livePlaceholder(field.placeholder, field.placeholderFrom as HelpValue | null | undefined, data) }} value={data[field.name] ?? null} invalid={!!error} onChange={(value) => onChange(field.name, value)} />;
+            const input = <FieldInput field={{ ...field, placeholder: livePlaceholder(field.placeholder, field.placeholderFrom as HelpValue | null | undefined, data) }} value={data[field.name] ?? null} invalid={!!error} data={data} onChange={(value) => onChange(field.name, value)} />;
 
             return (
                 <div key={field.name} className={cn('grid min-w-0 grid-cols-1 content-start gap-2', spans[Math.min(field.span, section.columns)])}>

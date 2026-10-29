@@ -1,5 +1,7 @@
 /** Page data every admin page receives (see HandleInertiaRequests). */
 
+import type { BrandDisplay } from '@/lib/branding';
+
 export interface NavLink {
     key: string;
     label: string;
@@ -33,6 +35,10 @@ export interface Branding {
     logo: string | null;
     /** The logo is wider than square (a wordmark): shown instead of the name. */
     logoWide?: boolean;
+    /** What the top of the sidebar shows: Settings → Branding → Sidebar shows, resolved (Branding::display()). */
+    display: BrandDisplay;
+    /** The square mark, as the favicon and the collapsed sidebar show it: the browser icon, else a square logo; null for the lettermark. */
+    mark: string | null;
     /** The name's first letter, shown without a logo. */
     lettermark: string;
     color: string | null;

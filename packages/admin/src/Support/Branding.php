@@ -161,22 +161,56 @@ final class Branding
     }
 
     /**
-     * The browser icon: the chosen favicon, else the logo when it is
-     * square-ish (or an SVG), else the lettermark (`lettermarkSvg()`).
-     * `apple` is a square raster image for home screens, when there is
-     * one. Runs at most one query, shared with toArray().
+     * The square mark: the chosen browser icon, else the logo when it is
+     * square-ish (or an SVG of unknown size), else none (the lettermark).
+     * The favicon (icon()) and the collapsed sidebar (`mark` in toArray())
+     * both show it, so they can't disagree.
+     */
+    public function mark(): ?Media
+    {
+        return $this->image($this->settings->favicon) ?? $this->squareLogo();
+    }
+
+    /**
+     * What the top of the sidebar shows, Settings → Branding → Sidebar
+     * shows resolved against the logo: `logo_name`, `logo`, `icon_name`
+     * or `name`.
+     */
+    public function display(): string
+    {
+        $logo = $this->image($this->settings->logo);
+
+        return self::resolveDisplay($this->settings->brandDisplay, $logo !== null, $this->isWide($logo));
+    }
+
+    /**
+     * A display choice (a key of BrandingSettings::DISPLAYS) as shown:
+     * `auto` (or anything unknown) is the logo alone when it is wide, else
+     * the logo beside the name; `logo` without a logo is the mark beside
+     * the name.
+     */
+    public static function resolveDisplay(string $choice, bool $hasLogo, bool $logoWide): string
+    {
+        return match ($choice) {
+            'logo' => $hasLogo ? 'logo' : 'logo_name',
+            'logo_name', 'icon_name', 'name' => $choice,
+            default => $hasLogo && $logoWide ? 'logo' : 'logo_name',
+        };
+    }
+
+    /**
+     * The browser icon: the square mark (mark()), else the lettermark
+     * (`lettermarkSvg()`). `apple` is a square raster image for home
+     * screens, when there is one. Runs at most one query, shared with
+     * toArray().
      *
      * @return array{href: string, type: string, apple: string|null}
      */
     public function icon(): array
     {
-        $favicon = $this->image($this->settings->favicon);
-        $logo = $this->image($this->settings->logo);
-        // An SVG without known dimensions is taken at its word.
-        $squareLogo = $logo !== null && (self::squareish($logo) || (self::isSvg($logo) && ($logo->width === null || $logo->height === null))) ? $logo : null;
-        $icon = $favicon ?? $squareLogo;
+        $icon = $this->mark();
         $apple = null;
-        foreach ([$favicon, $squareLogo] as $candidate) {
+        foreach ([$this->image($this->settings->favicon), $this->squareLogo()] as $candidate) {
             if ($candidate !== null && $candidate->isResizable() && self::squareish($candidate)) {
                 $apple = $candidate->url();
                 break;
@@ -216,7 +250,7 @@ final class Branding
      * For the frontend (`sunrice.branding`); runs one query for the logo,
      * sign-in image and browser icon, and only when one is set.
      *
-     * @return array{name: string, tagline: string, logo: string|null, logoWide: bool, lettermark: string, color: string|null, login: array{layout: string, eyebrow: string, headline: string, text: string, footer: string, image: string|null}}
+     * @return array{name: string, tagline: string, logo: string|null, logoWide: bool, display: string, mark: string|null, lettermark: string, color: string|null, login: array{layout: string, eyebrow: string, headline: string, text: string, footer: string, image: string|null}}
      */
     public function toArray(): array
     {
@@ -229,6 +263,9 @@ final class Branding
             'logo' => $url($this->settings->logo),
             // Wider than square (a wordmark): shown instead of the name, at its own proportions.
             'logoWide' => $this->isWide($this->image($this->settings->logo)),
+            // What the sidebar's top shows (display()), and the square mark of the collapsed sidebar and the favicon.
+            'display' => $this->display(),
+            'mark' => $this->mark()?->url(),
             'lettermark' => $this->lettermark(),
             'color' => $this->color(),
             'login' => [
@@ -255,6 +292,14 @@ final class Branding
         $file = $this->media->get($id);
 
         return $file instanceof Media && $file->isImage() ? $file : null;
+    }
+
+    /** The logo when it is square-ish, or an SVG without known dimensions (taken at its word). */
+    private function squareLogo(): ?Media
+    {
+        $logo = $this->image($this->settings->logo);
+
+        return $logo !== null && (self::squareish($logo) || (self::isSvg($logo) && ($logo->width === null || $logo->height === null))) ? $logo : null;
     }
 
     /** Clearly wider than tall: a wordmark rather than an icon. */
