@@ -57,7 +57,7 @@ export interface FlashAction { label: string; url: string; method: 'get' | 'post
 
 export interface SharedProps {
     /** locale: the panel's language; locales: those a user may pick (code => name). */
-    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[]; commandSearches?: { id: string; url: string; minLength: number }[]; locale: string; locales: Record<string, string> };
+    sunrice: { brand: string; branding: Branding; path: string; bundles: BundleInfo[]; commandSearches?: { id: string; url: string; minLength: number }[]; richTextLinks?: { key: string; label: string }[]; locale: string; locales: Record<string, string> };
     auth: { user: { id: string | number; name: string | null; email: string | null } | null };
     navigation: NavGroup[];
     /** `id` is new for each message shown, so the same text twice toasts twice. */

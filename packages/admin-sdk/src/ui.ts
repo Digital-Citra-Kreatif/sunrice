@@ -6,7 +6,7 @@
  * In a bundle built with the Vite plugin these come straight from the
  * panel; this module is the fallback for other bundlers.
  */
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType, ReactNode, Ref } from 'react';
 
 type AnyComponent = ComponentType<any>;
 
@@ -176,6 +176,44 @@ export const LanguageTabs = m.LanguageTabs as ComponentType<{
     actions?: ReactNode;
     children?: (code: string) => ReactNode;
     label?: string;
+    className?: string;
+}>;
+
+/**
+ * A link's "Open in a new tab" box and its nofollow, sponsored and ugc
+ * toggles (with tooltips), then a note that new tabs always open safely
+ * (noopener noreferrer): as the rich text editor's link menu shows them.
+ */
+export const LinkAttributes = m.LinkAttributes as ComponentType<{
+    newTab: boolean;
+    onNewTabChange: (newTab: boolean) => void;
+    /** The rel choices on. */
+    rel: readonly string[];
+    onRelChange: (rel: ('nofollow' | 'sponsored' | 'ugc')[]) => void;
+    /** The group's name for screen readers. */
+    label?: string;
+    disabled?: boolean;
+    className?: string;
+}>;
+
+/** An item of a rich text link source, as its search gives it. */
+export interface LinkSourceItem { link: string; id: number; title: string; hint: string | null; url: string }
+
+/**
+ * Choose one item of a rich text link source ($panel->richTextLinkSource():
+ * the CMS's "entry", "term", "listing"): a few on focus, typing searches
+ * titles; the chosen one shows as a chip with ✕ (onChange(null)).
+ */
+export const LinkSourcePicker = m.LinkSourcePicker as ComponentType<{
+    id?: string;
+    source: string;
+    value: number | null;
+    onChange: (item: LinkSourceItem | null) => void;
+    /** The search input's name for screen readers. */
+    label: string;
+    invalid?: boolean;
+    onEscape?: () => void;
+    inputRef?: Ref<HTMLInputElement>;
     className?: string;
 }>;
 
