@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Plus, Trash2 } from 'lucide-react';
 import {
-    Badge, Button, Checkbox, CodeEditor, DatePicker, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MediaPickerInput,
+    Badge, Button, Checkbox, CodeEditor, DatePicker, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, LinkAttributes, LinkSourcePicker, MediaPickerInput,
     moveItem, RichTextEditor, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SortableHandle, type SortableHandleProps, SortableList, Switch, Textarea,
 } from '@imajiner/admin-sdk/ui';
 import { t } from '@imajiner/admin-sdk';
 import { EntriesPicker } from '@/components/EntriesPicker.tsx';
 import { FieldError } from '@/components/FieldError.tsx';
-import { LinkSourcePicker } from '@/components/LinkSourcePicker.tsx';
 import { AFFIXED_INPUT, Affixed, FieldHint, HelperText, SharedHint } from '@/components/FieldPresentation.tsx';
 import { TermsPicker } from '@/components/TermsPicker.tsx';
 import { errorsAt } from '@/lib/builder.ts';
@@ -16,8 +15,8 @@ import { isShown } from '@/lib/conditions.ts';
 import { affixesOf, CONTAINER_TYPES, hintOf } from '@/lib/presentation.ts';
 import { fieldGrid, widthClass } from '@/lib/width.ts';
 import {
-    asRecord, dateInputValue, dateValueFromInput, defaultNewTab, groupedNumber, itemSummary, LINK_KINDS, LINK_REL_OPTIONS, LINK_TARGET, linkKindOf, linkRelOf, linkValue,
-    offersEmptyChoice, newBlock, newRow, switchLink, syncKeys, toggleLinkRel, type LinkKind, type LinkTargets,
+    asRecord, dateInputValue, dateValueFromInput, defaultNewTab, groupedNumber, itemSummary, LINK_KINDS, LINK_TARGET, linkKindOf, linkRelOf, linkValue,
+    offersEmptyChoice, newBlock, newRow, switchLink, syncKeys, type LinkKind, type LinkTargets,
 } from '@/lib/values.ts';
 import type { Errors, FieldDefinition, Option } from '@/types.ts';
 
@@ -298,11 +297,6 @@ function linkKindLabel(kind: LinkKind): string {
     return { url: t('Link'), entry: t('Entry'), term: t('Term'), listing: t('Listing') }[kind];
 }
 
-function relHelp(option: string): string {
-    return option === 'nofollow' ? t('nofollow: search engines don\'t follow the link or count it as an endorsement.')
-        : option === 'sponsored' ? t('sponsored: a paid link, an advert or a sponsorship.') : t('ugc: a link in what visitors wrote, such as comments.');
-}
-
 function LinkInput({ label, value, onChange, errors, id, collections, placeholder, describedBy }: {
     /** The field's label: the inputs are named after it ("Map link: address"), not just "Address". */
     label: string; value: Record<string, unknown>; onChange: (value: unknown) => void; errors: Errors; id: string; collections: string[];
@@ -353,27 +347,15 @@ function LinkInput({ label, value, onChange, errors, id, collections, placeholde
                 {(type === 'term' || type === 'listing') && (
                     <LinkSourcePicker id={id} source={type} label={t(':field: search', { field: label })} invalid={errors[target] !== undefined}
                         value={typeof value[target] === 'number' ? value[target] as number : null}
-                        onChange={(next) => set({ [target]: next ?? undefined })} />
+                        onChange={(item) => set({ [target]: item?.id ?? undefined })} />
                 )}
             </div>
             <Input aria-label={t(':field: link text', { field: label })} placeholder={type === 'url' ? t('Link text') : t('Link text (its title)')} value={typeof value.label === 'string' ? value.label : ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ label: e.target.value })} />
-            <div role="group" aria-label={t(':field: link attributes', { field: label })} className="cms:flex cms:flex-wrap cms:items-center cms:gap-x-4 cms:gap-y-2">
-                <label className="cms:flex cms:items-center cms:gap-2 cms:text-sm">
-                    <Checkbox checked={newTab} onCheckedChange={(checked: boolean) => { setTabTouched(true); set({ new_tab: checked === true }); }} />
-                    {t('Open in a new tab')}
-                </label>
-                <div className="cms:flex cms:flex-wrap cms:items-center cms:gap-1">
-                    {LINK_REL_OPTIONS.map((option) => (
-                        <Button key={option} type="button" size="sm" variant={rel.includes(option) ? 'secondary' : 'outline'} className="cms:h-7 cms:px-2 cms:text-xs"
-                            title={relHelp(option)} aria-pressed={rel.includes(option)}
-                            onClick={() => { const next = toggleLinkRel(value.rel, option); set({ rel: next.length === 0 ? undefined : next }); }}>
-                            {option}
-                        </Button>
-                    ))}
-                </div>
-                <p className="cms:text-xs cms:text-muted-foreground">{t('Links that open in a new tab always do so safely (noopener noreferrer).')}</p>
-            </div>
+            {/* The same as the rich text editor's link menu (the panel's LinkAttributes). */}
+            <LinkAttributes label={t(':field: link attributes', { field: label })} newTab={newTab} rel={rel}
+                onNewTabChange={(checked: boolean) => { setTabTouched(true); set({ new_tab: checked }); }}
+                onRelChange={(next: string[]) => set({ rel: next.length === 0 ? undefined : next })} />
             <FieldError message={error} />
         </div>
     );

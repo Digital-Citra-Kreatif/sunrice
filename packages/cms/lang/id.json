@@ -1359,7 +1359,5 @@
     "{slug} can be in the URL only once.": "{slug} hanya bisa ada sekali di URL.",
     ":field: link attributes": ":field: atribut tautan",
     "Link text (its title)": "Teks tautan (judulnya)",
-    "Links that open in a new tab always do so safely (noopener noreferrer).": "Tautan yang dibuka di tab baru selalu dibuka dengan aman (noopener noreferrer).",
-    "Not found": "Tidak ditemukan",
     ":field: search": ":field: cari"
 }

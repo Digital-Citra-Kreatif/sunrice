@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultNewTab, linkKindOf, linkRelOf, linkValue, switchLink, toggleLinkRel } from '../../packages/cms/resources/js/lib/values.ts';
+import { defaultNewTab, linkKindOf, linkRelOf, linkValue, switchLink } from '../../packages/cms/resources/js/lib/values.ts';
 
 const none = { url: undefined, entry_id: undefined, term_id: undefined, collection_id: undefined };
 
@@ -65,6 +65,4 @@ test('rel choices are nofollow, sponsored and ugc, each once, in order', () => {
     assert.deepEqual(linkRelOf(['ugc', 'nofollow', 'junk', 'nofollow']), ['nofollow', 'ugc']);
     assert.deepEqual(linkRelOf('sponsored noopener'), ['sponsored']);
     assert.deepEqual(linkRelOf(null), []);
-    assert.deepEqual(toggleLinkRel(['ugc'], 'nofollow'), ['nofollow', 'ugc']);
-    assert.deepEqual(toggleLinkRel(['nofollow'], 'nofollow'), []);
 });

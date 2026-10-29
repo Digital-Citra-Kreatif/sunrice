@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isAddressInput, isSearchInput, linkGroupsOf, linkSearchQuery, parseDataLink, relTokens, toggleRel } from '../../packages/admin/resources/js/lib/rich-link.ts';
+import type { ComponentType } from 'react';
+import { defaultNewTab, linkGroupsOf, linkSearchQuery, parseDataLink, relAttribute, relTokens, toggleRel } from '../../packages/admin/resources/js/lib/rich-link.ts';
+import { loadAdminModule, render } from './support/render.ts';
 
 test('a link\'s rel reads back as the editor\'s choices, ignoring what the server adds', () => {
     assert.deepEqual(relTokens('nofollow noopener noreferrer'), ['nofollow']);
@@ -25,18 +27,27 @@ test('data-link reads as a source and an id, or not at all', () => {
     assert.equal(parseDataLink(null), null);
 });
 
-test('what is typed is an address with a slash, a scheme, # or ?; other words are a search', () => {
-    for (const address of ['/about', 'https://example.com', 'mailto:hi@example.com', 'tel:+62123', '#prices', '?page=2', 'example.com/a']) {
-        assert.equal(isAddressInput(address), true, address);
-        assert.equal(isSearchInput(address), false, address);
-    }
-    for (const words of ['about us', 'coffee', 'example.com']) {
-        assert.equal(isAddressInput(words), false, words);
-        assert.equal(isSearchInput(words), true, words);
-    }
-    assert.equal(isSearchInput('a'), false);
-    assert.equal(isAddressInput('  '), false);
-    assert.equal(isSearchInput('  '), false);
+test('the rel to store holds the choices alone, in order, or nothing', () => {
+    assert.equal(relAttribute(['ugc', 'nofollow']), 'nofollow ugc');
+    assert.equal(relAttribute(['junk']), null);
+    assert.equal(relAttribute([]), null);
+});
+
+test('a new address link opens in a new tab; links to the site\'s own pages don\'t', () => {
+    assert.equal(defaultNewTab('url'), true);
+    for (const kind of ['entry', 'term', 'listing']) assert.equal(defaultNewTab(kind), false, kind);
+});
+
+test('the link attributes show the new-tab box, the rel toggles with what each is for, and the safety note', async () => {
+    const { LinkAttributes } = await loadAdminModule<{ LinkAttributes: ComponentType<any> }>('components/app/link-attributes.tsx');
+    const html = render(LinkAttributes, { newTab: true, rel: ['sponsored'], onNewTabChange: () => undefined, onRelChange: () => undefined, label: 'Cta: link attributes' });
+
+    assert.match(html, /role="group" aria-label="Cta: link attributes"/);
+    assert.match(html, /role="checkbox" aria-checked="true"/);
+    assert.match(html, /aria-pressed="false"[^>]*>nofollow</);
+    assert.match(html, /aria-pressed="true"[^>]*>sponsored</);
+    assert.match(html, /search engines don&#x27;t follow the link/);
+    assert.match(html, /always do so safely \(noopener noreferrer\)/);
 });
 
 test('the search asks for one source or all of them, and keeps only well-formed results', () => {

@@ -189,11 +189,3 @@ export function linkRelOf(rel: unknown): string[] {
 
     return LINK_REL_OPTIONS.filter((option) => tokens.includes(option));
 }
-
-/** The rel choices after turning one on or off. */
-export function toggleLinkRel(rel: unknown, option: string): string[] {
-    const current = linkRelOf(rel);
-    const next = current.includes(option) ? current.filter((token) => token !== option) : [...current, option];
-
-    return LINK_REL_OPTIONS.filter((token) => next.includes(token));
-}
