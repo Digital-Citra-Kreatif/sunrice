@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 (2026-10-29)
+
+**Upgrading from 0.3.0**: `composer update "sunrice/*" -W`, then `php artisan sunrice:assets`. No migrations. Blueprints can no longer get a new field named `handle` (an existing one keeps working).
+
+**Highlights.**
+
+- **`{handle}` in URL patterns**: `/{project}/{handle}/{slug}` is saved as `/{project}/units/{slug}`, the hints show the real handle, and each mistake in a pattern gets its own message.
+- **Branding: what the sidebar shows**: Automatic, Logo and name, Logo only, Icon and name or Name only, previewed in Settings → Branding; the collapsed sidebar shows the same square as the browser tab.
 
 ### All changes
 

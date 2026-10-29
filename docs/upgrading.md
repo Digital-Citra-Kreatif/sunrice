@@ -51,6 +51,12 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.3.1
+
+From 0.3.0 to 0.3.1: `composer update "sunrice/*" -W` and `php artisan sunrice:assets`; no migrations.
+
+- **`handle` is a reserved field handle**, like `slug`: a blueprint can't get a new field named `handle`, so `{handle}` in a URL always means the collection's (or taxonomy's) handle. A blueprint that already has such a field keeps it, and a single-value Entries field named `handle` still fills `{handle}` in its collection's URLs; rename the field to use `{handle}` for the handle.
+
 ## 0.3.0
 
 From 0.2.x to 0.3.0.
