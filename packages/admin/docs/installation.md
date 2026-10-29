@@ -128,7 +128,7 @@ The media library stores files on the `public` disk (`sunrice-admin.media.disk`)
 
 ### Assets
 
-The panel's built assets are copied to `public/vendor/sunrice-admin` by `php artisan sunrice:assets`, and the CMS's (and other plugins') to `public/vendor/…` by `php artisan vendor:publish --tag=laravel-assets --force`, which Laravel's own `composer.json` already runs after every `composer update`. Add the panel's to the same script, so an update never leaves old assets behind:
+`php artisan sunrice:assets` copies the panel's built assets to `public/vendor/sunrice-admin`, and the CMS's and other plugins' bundles to their folders (`public/vendor/sunrice-cms` …, every bundle with `PluginBundle::publishedFrom()`), listing each. **Run it after every update**, and in your deploy script. `php artisan vendor:publish --tag=laravel-assets --force`, which Laravel's own `composer.json` runs after every `composer update`, still publishes the plugins' bundles too. Add `sunrice:assets` to the same script, so an update never leaves old assets behind:
 
 ```json
 "post-update-cmd": [
@@ -137,11 +137,11 @@ The panel's built assets are copied to `public/vendor/sunrice-admin` by `php art
 ]
 ```
 
-Until the panel's are published, admin pages show only a notice saying so. After an update without publishing, the panel keeps running the old ones, and super admins see a warning at the top of each page saying which are older than the installed packages (the panel's and the CMS's, compared with the packages' builds) and what to run. With packages installed from a path (a symlinked `"type": "path"` repository), a change to them doesn't go through `composer update`, so its scripts don't run: run both commands yourself after changing them, or in your deploy script.
+Until the panel's are published, admin pages show only a notice saying so. After an update without publishing, the panel keeps running the old ones, and super admins see a warning at the top of each page saying which are older than the installed packages (the panel's and the CMS's, compared with the packages' builds) and to run `sunrice:assets`. With packages installed from a path (a symlinked `"type": "path"` repository), a change to them (a `git pull`) doesn't go through `composer update`, so its scripts don't run: run `php artisan sunrice:assets` yourself after changing them. Until then the browser keeps the published files, under the same URLs (a bundle's `?v=` comes from the file served, not the package's build); once they're published, open admin tabs load the new code on their next click. A published folder that is itself a symlink to a package's `dist/` is left alone by `sunrice:assets` (it's never emptied through the link).
 
 #### Compression and caching
 
-The web server serves these files, not PHP. When they're published, `sunrice:assets` (for the panel's, and the plugin bundles' already there) and `vendor:publish` (for the CMS's and other plugin bundles' that say where they're published, `PluginBundle::publishedFrom()`) write a gzip copy (`.gz`, level 9) next to every script and stylesheet, and a Brotli one (`.br`) when PHP has the `brotli` extension, so the server can send them compressed without compressing on each request: the panel's main script is 368 kB, 118 kB gzipped and 101 kB with Brotli. A copy newer than its file is left as it is. The files under `vendor/sunrice-admin/assets/` have a hash in their name that changes with their content, so browsers may keep them for a year. With nginx:
+The web server serves these files, not PHP. When they're published, `sunrice:assets` (for the panel's and the plugin bundles' it copies) and `vendor:publish` (for the CMS's and other plugin bundles' that say where they're published, `PluginBundle::publishedFrom()`) write a gzip copy (`.gz`, level 9) next to every script and stylesheet, and a Brotli one (`.br`) when PHP has the `brotli` extension, so the server can send them compressed without compressing on each request: the panel's main script is 368 kB, 118 kB gzipped and 101 kB with Brotli. A copy newer than its file is left as it is. The files under `vendor/sunrice-admin/assets/` have a hash in their name that changes with their content, so browsers may keep them for a year. With nginx:
 
 ```nginx
 location /vendor/ {
@@ -179,7 +179,7 @@ After `composer update`:
 
 ```bash
 php artisan migrate               # new tables and columns; also syncs the permissions
-php artisan sunrice:assets        # the panel's assets (and laravel-assets, if composer didn't)
+php artisan sunrice:assets        # the panel's and the plugins' (the CMS's) admin assets
 php artisan sunrice:roles         # optional: give the default roles new permissions
 php artisan view:clear            # compiled views of components that changed
 php artisan cache:clear           # with the CMS: also its caches and pages kept with the old templates

@@ -72,21 +72,30 @@ final class AdminAssets
         return $stale;
     }
 
-    /** @var array<string, string|null> the manifests' hashes, once per process */
-    private static array $versions = [];
-
-    /** The asset version Inertia sends with every page, so browsers reload after an update (hashed once per process). */
+    /**
+     * The panel's own asset version: the md5 of its manifest, the published
+     * copy's or the build's (stat'ed once per request, AssetVersions).
+     */
     public static function version(): ?string
     {
         $manifest = self::manifestPath();
-        if ($manifest === null) {
-            return null;
-        }
-        if (! array_key_exists($manifest, self::$versions)) {
-            self::$versions[$manifest] = md5_file($manifest) ?: null;
+
+        return $manifest === null ? null : app(AssetVersions::class)->file($manifest);
+    }
+
+    /**
+     * The version Inertia sends with every page: the panel's manifest and
+     * each plugin bundle's files (PluginBundle::version()), so an update of
+     * only a plugin's bundle reloads open tabs on their next visit too.
+     */
+    public static function inertiaVersion(Panel $panel): ?string
+    {
+        $bundles = $panel->getBundles();
+        if ($bundles === []) {
+            return self::version();
         }
 
-        return self::$versions[$manifest];
+        return md5(implode('|', [(string) self::version(), ...array_map(fn (PluginBundle $bundle): string => $bundle->id.':'.$bundle->version(), array_values($bundles))]));
     }
 
     /** The web font's stylesheet (config `sunrice-admin.font.stylesheet`), if one is loaded. */

@@ -173,5 +173,14 @@ it('checks plugin bundles', function () {
     expect(fn () => Panel::make()->bundle($bundle('shop', 'Shop/'))->bundle($bundle('shop', 'Store/')))
         ->toThrow(PanelMisconfigured::class, 'Two bundles');
     expect(fn () => PluginBundle::make('shop')->pages('shop'))->toThrow(InvalidArgumentException::class);
+    // A file of the published folder needs publishedFrom(), under public/ or with its URL; never a path out of it.
+    expect(fn () => Panel::make()->bundle(PluginBundle::make('shop')->module('admin.js')->pages('Shop/')))
+        ->toThrow(PanelMisconfigured::class, 'add ->publishedFrom(');
+    expect(fn () => Panel::make()->bundle(PluginBundle::make('shop')->module('admin.js')->pages('Shop/')->publishedFrom('/tmp/shop-dist', '/srv/elsewhere/shop')))
+        ->toThrow(PanelMisconfigured::class, 'outside public/');
+    expect(Panel::make()->bundle(PluginBundle::make('shop')->module('admin.js')->pages('Shop/')->publishedFrom('/tmp/shop-dist', '/srv/elsewhere/shop', 'https://cdn.example.com/shop'))->getBundles()['shop']->getModule())
+        ->toBe('https://cdn.example.com/shop/admin.js');
+    expect(fn () => PluginBundle::make('shop')->module('../secrets.js'))->toThrow(InvalidArgumentException::class);
+    expect(fn () => PluginBundle::make('shop')->style('chunks/../../x.css'))->toThrow(InvalidArgumentException::class);
     expect(fn () => Panel::make()->share('auth', fn () => null))->toThrow(PanelMisconfigured::class, 'belongs to the panel');
 });

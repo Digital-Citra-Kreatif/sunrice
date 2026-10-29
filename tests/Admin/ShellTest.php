@@ -212,7 +212,7 @@ it('warns super admins when the published assets are older than the installed pa
     // Named by the bundle's display name, with the commands to run as code; in the page's flow, above the shell (NEW2-front-3).
     get('/admin')->assertOk()
         ->assertSee('The admin assets of Sunrice and Acme &lt;Shop&gt; are older than the installed packages, so the panel may run old code.', false)
-        ->assertSee('On the server, run <code>php artisan sunrice:assets</code> and <code>php artisan vendor:publish --tag=laravel-assets --force</code>.', false)
+        ->assertSee('On the server, run <code>php artisan sunrice:assets</code>.', false)
         ->assertSee('id="sunrice-stale-assets"', false)
         ->assertSee('--sunrice-banner', false);
     expect(PluginBundle::make('shop')->displayName())->toBe('shop');

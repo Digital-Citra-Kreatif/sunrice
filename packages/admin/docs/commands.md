@@ -14,7 +14,7 @@ The panel's Artisan commands. The CMS has its own: see [CMS commands](../../cms/
 | `mcp:start sunrice` | Serves the panel's AI tools over stdio for an agent on the same machine, as the user in `sunrice-admin.ai.local_user` (`SUNRICE_AI_USER`); refuses to start without one. See [AI access](ai.md#an-agent-on-the-server-itself). |
 | `sunrice:media-sizes [--id=*]` | Makes the media library's image sizes again (after changing `media.image_sizes`), for every image or the ids given. |
 | `sunrice:optimize-images [--id=*] [--max-width=] [--max-height=] [--quality=] [--no-backup] [--dry-run] [--restore]` | Scales down and compresses images in place, keeping the first originals; `--restore` puts them back. See [Media](media.md#optimizing-images). |
-| `sunrice:assets` | Publishes the panel's built JavaScript and CSS to `public/vendor/sunrice-admin`. Run it after every update. See [Installation](installation.md#assets). |
+| `sunrice:assets` | Publishes the panel's built JavaScript and CSS to `public/vendor/sunrice-admin`, and every plugin bundle's that says where it's published (`PluginBundle::publishedFrom()`: the CMS's to `public/vendor/sunrice-cms`), listing each, with compressed copies. A published folder that is a symlink to the build is left alone. Run it after every update. See [Installation](installation.md#assets). |
 | `sunrice:activity-prune [--days=]` | Deletes activity log lines older than `activity.keep_days` (or `--days`). Scheduled daily. See [Activity log](activity.md#keeping-it-small). |
 
 ## Scheduled

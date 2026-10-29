@@ -96,7 +96,7 @@ final class ShopPlugin extends BasePlugin
 
 The app adds it in its panel provider: `$panel->plugin(ShopPlugin::make())`. A plugin that needs another one says so in `requires()` (`return ['cms'];`), and the panel registers that one first.
 
-The service provider does what any Laravel package does: migrations, and the built assets to publish (tag them `laravel-assets` too, so `composer update` publishes them):
+The service provider does what any Laravel package does: migrations, and the built assets to publish (tag them `laravel-assets` too, so `composer update` publishes them; `sunrice:assets` publishes them as well, from the bundle's `publishedFrom()`, see [Registering the bundle](frontend.md#3-registering-the-bundle)):
 
 ```php
 final class ShopServiceProvider extends ServiceProvider

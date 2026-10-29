@@ -25,8 +25,7 @@
 
    ```bash
    php artisan migrate               # also syncs the permissions
-   php artisan sunrice:assets        # the panel's built assets
-   php artisan vendor:publish --tag=laravel-assets --force   # the CMS's and other plugins' (composer usually runs it)
+   php artisan sunrice:assets        # the panel's and the plugins' (the CMS's) built admin assets
    php artisan view:clear
    php artisan cache:clear           # also the site's caches and kept pages, wherever they're kept
    php artisan queue:restart
@@ -39,7 +38,6 @@
    composer install --no-dev --optimize-autoloader   # with the composer.lock you updated and tested
    php artisan migrate --force
    php artisan sunrice:assets
-   php artisan vendor:publish --tag=laravel-assets --force
    php artisan optimize:clear        # config, routes, views, events and the cache (the site's caches and kept pages too)
    php artisan optimize              # if you cache config and routes
    php artisan queue:restart         # workers pick up the new code
@@ -52,6 +50,11 @@
 5. If you build plugin bundles with `@imajiner/admin-sdk`, update it to the version matching the panel and rebuild them.
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
+
+## Unreleased
+
+- **Plugin bundles: let the panel version your files.** A bundle registered with `PluginBundle::publishedFrom($dist, public_path('vendor/shop'))` can name its files in that folder, `->module('admin.js')->style('admin.css')`, and the panel adds a `?v=` from the copy the browser downloads. A full URL (`->module(asset('vendor/shop/admin.js?v=…'))`) still works as before, but a version you compute from your package's `dist/` changes before the files are published, so browsers can keep an old file under the new URL: switch to the file names and drop your own hashing. See [Registering the bundle](../packages/admin/docs/frontend.md#3-registering-the-bundle).
+- **`php artisan sunrice:assets` publishes the plugin bundles too** (each with `publishedFrom()`), so `vendor:publish --tag=laravel-assets` is no longer a step of its own after an update; it keeps working.
 
 ## 0.2.0
 
