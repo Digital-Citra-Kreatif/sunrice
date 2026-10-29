@@ -60,7 +60,8 @@ final class RedirectResource extends Resource
             TextInput::make('to_url')->label('To')->required()->maxLength(2048)->placeholder('/new-page')
                 ->rules([SafeUrl::rule(), new RedirectRule('from_path')])
                 ->help('A path on this site, or a web address. With a From ending in /*, a * here is the rest of the address: /blog/* → /journal/* sends /blog/2024/hello to /journal/2024/hello; without a *, all of them go to one page.'),
-            Select::make('status')->label('Type')->options(self::TYPES)->required()->default('301'),
+            Select::make('status')->label('Type')->options(self::TYPES)->required()->default('301')
+                ->help('Browsers remember a permanent redirect and stop asking the site, so a change to it may not show in a browser that followed it: try a temporary one while setting it up, then make it permanent.'),
             ...(count(Locales::all()) > 1 ? [
                 Toggle::make('every_language')->label('In every language')
                     ->help('Also from the same path in each language: /id/old-page goes to /id/new-page.'),

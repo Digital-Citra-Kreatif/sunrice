@@ -1338,5 +1338,6 @@
     ":path is the index page of :taxonomy in :collection, and a live page wins over a redirect: this redirect applies only once that index page has another address, or none.": ":path adalah halaman indeks :taxonomy di :collection, dan halaman yang tayang menang atas pengalihan: pengalihan ini baru berlaku setelah halaman indeks itu punya alamat lain, atau tidak ada lagi.",
     ":path is the site search page, which wins over a redirect.": ":path adalah halaman pencarian situs, yang menang atas pengalihan.",
     "Addresses without a language prefix go to the main language's (:to) before any redirect: start From with :prefix.": "Alamat tanpa awalan bahasa diarahkan ke alamat bahasa utama (:to) sebelum pengalihan apa pun: awali Dari dengan :prefix.",
-    "Edit \":title\"": "Ubah \":title\""
+    "Edit \":title\"": "Ubah \":title\"",
+    "Browsers remember a permanent redirect and stop asking the site, so a change to it may not show in a browser that followed it: try a temporary one while setting it up, then make it permanent.": "Peramban mengingat pengalihan permanen dan tidak lagi bertanya ke situs, jadi perubahannya mungkin tidak terlihat di peramban yang pernah mengikutinya: gunakan pengalihan sementara selama menyiapkannya, lalu jadikan permanen."
 }
