@@ -692,3 +692,15 @@ it('reads and changes Settings → SEO\'s structured data as the settings sectio
         ->and(cmsTool($other, 'get_settings', ['section' => 'seo']))->toContain('No such settings section')
         ->and(cmsTool($other, 'update_settings', ['section' => 'seo', 'values' => ['telephone' => '1']]))->toContain('No such settings section');
 });
+
+it('writes the handle into a URL pattern saved with save_record', function () {
+    $token = cmsAgent(['cms.collections.view', 'cms.collections.create', 'cms.collections.update']);
+
+    expect(cmsTool($token, 'save_record', ['resource' => 'collections', 'values' => ['title' => 'Units', 'handle' => 'units', 'pages' => true, 'route' => '/{handle}/{slug}', 'route_id' => '/unit-{handle}/{slug}']]))->toMatchArray(['saved' => true]);
+    $units = Collection::query()->where('handle', 'units')->firstOrFail();
+    expect($units->route)->toBe('/units/{slug}')->and($units->ownRoute('id'))->toBe('/unit-units/{slug}');
+
+    expect(cmsTool($token, 'save_record', ['resource' => 'collections', 'id' => (string) $this->blog->id, 'values' => ['route' => '/news/{handle}/{slug}']]))->toMatchArray(['saved' => true])
+        ->and(Collection::query()->find($this->blog->id)?->route)->toBe('/news/blog/{slug}')
+        ->and(cmsTool($token, 'save_record', ['resource' => 'collections', 'id' => (string) $this->blog->id, 'values' => ['route' => '/{slug}/{slug}']]))->toContain('{slug} can be in the URL only once.');
+});
