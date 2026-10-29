@@ -270,8 +270,8 @@ it('offers each other language\'s URL fields in the collection and taxonomy form
 
     get('/admin/cms/collections/books/edit')->assertOk()->assertInertia(function (Assert $page) use ($fields) {
         $all = $fields($page->toArray()['props']['sections']);
-        expect($all['route_id'])->toMatchArray(['label' => 'Entry URL in '.Locales::name('id'), 'placeholderFrom' => ['field' => 'route', 'fallback' => '/{handle}/{slug}'], 'showWhen' => ['field' => 'pages', 'value' => null]])
-            ->and($all['listing_route_id'])->toMatchArray(['label' => 'Listing page URL in '.Locales::name('id'), 'placeholderFrom' => ['field' => 'listing_route', 'fallback' => '/{handle}']])
+        expect($all['route_id'])->toMatchArray(['label' => 'Entry URL in '.Locales::name('id'), 'placeholderFrom' => ['field' => 'route', 'fallback' => '/books/{slug}'], 'showWhen' => ['field' => 'pages', 'value' => null]])
+            ->and($all['listing_route_id'])->toMatchArray(['label' => 'Listing page URL in '.Locales::name('id'), 'placeholderFrom' => ['field' => 'listing_route', 'fallback' => '/books']])
             ->and($all['listing_route_id']['links'][0])->toMatchArray(['label' => 'View on site', 'url' => url('/id/books')])
             ->and($page->toArray()['props']['values'])->toMatchArray(['route_id' => null, 'listing_route_id' => null]);
     });

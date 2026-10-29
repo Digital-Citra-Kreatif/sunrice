@@ -337,7 +337,7 @@ it('switches term pages on and off as collections do their pages', function () {
     $field = fn (Assert $page, string $name): array => collect($page->toArray()['props']['sections'])->flatMap(fn ($section) => $section['fields'])->firstWhere('name', $name);
     get('/admin/cms/taxonomies/topics/edit')->assertInertia(fn (Assert $page) => expect($page->toArray()['props']['values']['pages'])->toBeTrue()
         ->and($field($page, 'route')['showWhen'])->toBe(['field' => 'pages', 'value' => null])
-        ->and($field($page, 'route')['placeholder'])->toBe('/{handle}/{slug}')
+        ->and($field($page, 'route')['placeholder'])->toBe('/topics/{slug}')
         ->and($field($page, 'template')['showWhen'])->toBeNull());
 
     put('/admin/cms/taxonomies/topics', ['title' => 'Topics', 'pages' => true, 'route' => '/themes'])->assertSessionHasErrors('route');

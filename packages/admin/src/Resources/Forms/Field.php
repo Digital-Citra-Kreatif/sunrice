@@ -34,7 +34,7 @@ abstract class Field implements Component
 
     protected ?string $placeholder = null;
 
-    /** @var array{field: string, fallback: string|null}|null */
+    /** @var array{field: string|null, fallback: string|null}|null */
     protected ?array $placeholderFrom = null;
 
     protected ?string $warnWhenChanged = null;
@@ -183,9 +183,12 @@ abstract class Field implements Component
      * ->placeholderFrom('route', '/{handle}/{slug}') shows the route field's
      * value, or while that's empty the fallback with `{name}` as the field
      * `name`'s value (else the placeholder()). For a value that defaults to
-     * another field's when left empty.
+     * another field's when left empty. Without a field (null), always the
+     * fallback with the form's values: ->placeholderFrom(null, '/{handle}')
+     * shows "/blog" as the handle "blog" is typed (`{name}` stays while
+     * that field is empty).
      */
-    public function placeholderFrom(string $field, ?string $fallback = null): static
+    public function placeholderFrom(?string $field, ?string $fallback = null): static
     {
         $this->placeholderFrom = ['field' => $field, 'fallback' => $fallback];
 
