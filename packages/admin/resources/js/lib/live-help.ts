@@ -1,8 +1,8 @@
 import type { ShowWhen } from './show-when';
 
-/** Field::helpValues(): a placeholder in the help filled from another field, else a fallback with {name} as field values. */
+/** Field::helpValues(): a placeholder in the help filled from another field, else (or without one) a fallback with {name} as field values. */
 export interface HelpValue {
-    field: string;
+    field: string | null;
     fallback: string | null;
 }
 
@@ -16,9 +16,9 @@ export interface FormLink {
 
 const text = (value: unknown): string => (typeof value === 'string' || typeof value === 'number' ? String(value) : '');
 
-/** "/{handle}" with the form's values: "/blog". */
-export function withValues(template: string, data: Record<string, unknown>): string {
-    return template.replace(/\{([a-z_][a-z0-9_]*)\}/gi, (match, name: string) => (name in data ? text(data[name]) : match));
+/** "/{handle}" with the form's values: "/blog". With keepEmpty, a {name} whose field is empty stays as it is ("/{handle}" until a handle is typed). */
+export function withValues(template: string, data: Record<string, unknown>, keepEmpty = false): string {
+    return template.replace(/\{([a-z_][a-z0-9_]*)\}/gi, (match, name: string) => (name in data && !(keepEmpty && text(data[name]) === '') ? text(data[name]) : match));
 }
 
 /** The help with its :placeholders filled from the form as it's edited (Field::helpValues()). */
@@ -28,19 +28,19 @@ export function liveHelp(help: string, values: Record<string, HelpValue> | undef
     return help.replace(/:([a-z_]+)/gi, (match, name: string) => {
         const value = values[name];
         if (!value) return match;
-        const own = text(data[value.field]);
+        const own = value.field ? text(data[value.field]) : '';
 
-        return own !== '' ? own : withValues(value.fallback ?? '', data);
+        return own !== '' ? own : withValues(value.fallback ?? '', data, true);
     });
 }
 
 /** The placeholder to show (Field::placeholderFrom()): another field's value as it's typed, else the fallback with the form's values, else the field's own. */
 export function livePlaceholder(placeholder: string | null | undefined, from: HelpValue | null | undefined, data: Record<string, unknown>): string | null {
     if (!from) return placeholder ?? null;
-    const own = text(data[from.field]);
+    const own = from.field ? text(data[from.field]) : '';
     if (own !== '') return own;
 
-    return from.fallback !== null ? withValues(from.fallback, data) : (placeholder ?? null);
+    return from.fallback !== null ? withValues(from.fallback, data, true) : (placeholder ?? null);
 }
 
 /** Field::developerHelp()'s text with :value as the field's value, or the example while it's empty. */

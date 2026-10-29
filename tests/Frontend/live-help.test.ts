@@ -36,3 +36,14 @@ test('a placeholder follows another field, else its fallback, else its own', () 
     assert.equal(livePlaceholder('Own', null, { route: '/x' }), 'Own');
     assert.equal(livePlaceholder(undefined, undefined, {}), null);
 });
+
+test('a placeholder or help value without a field is its fallback with the form\'s values, a {name} kept while that field is empty', () => {
+    const from = { field: null, fallback: '/{handle}/{slug}' };
+    assert.equal(livePlaceholder('/{handle}/{slug}', from, { route: '/typed/{slug}', handle: 'units' }), '/units/{slug}');
+    assert.equal(livePlaceholder('/{handle}/{slug}', from, { handle: '' }), '/{handle}/{slug}');
+    assert.equal(liveHelp('Empty: :default.', { default: from }, { handle: 'units' }), 'Empty: /units/{slug}.');
+    assert.equal(liveHelp('Empty: :default.', { default: from }, { handle: '' }), 'Empty: /{handle}/{slug}.');
+    // Links still fill an empty value as empty.
+    assert.equal(withValues('/{handle}', { handle: '' }), '/');
+    assert.equal(withValues('/{handle}', { handle: '' }, true), '/{handle}');
+});

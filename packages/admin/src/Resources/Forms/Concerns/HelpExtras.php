@@ -18,7 +18,7 @@ use Sunrice\Admin\Support\Say;
  */
 trait HelpExtras
 {
-    /** @var array<string, array{field: string, fallback: string|null}> */
+    /** @var array<string, array{field: string|null, fallback: string|null}> */
     private array $helpValues = [];
 
     /** @var array{text: string, example: string|null, code: string|null}|null */
@@ -34,9 +34,10 @@ trait HelpExtras
      * Placeholders in the help filled from the form as it's edited:
      * ->help("Its page is :url.")->helpValues(['url' => ['route', '/{handle}']])
      * says the route field's value, or while that's empty the fallback with
-     * `{name}` as the field `name`'s value.
+     * `{name}` as the field `name`'s value. Without a field (null), always
+     * the fallback: ['default' => [null, '/{handle}']].
      *
-     * @param  array<string, array{0: string, 1?: string}>  $values  placeholder => [field, fallback]
+     * @param  array<string, array{0: string|null, 1?: string}>  $values  placeholder => [field, fallback]
      */
     public function helpValues(array $values): static
     {
