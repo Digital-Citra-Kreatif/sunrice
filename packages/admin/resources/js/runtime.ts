@@ -39,6 +39,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { LinkAttributes } from '@/components/app/link-attributes';
+import { LinkSourcePicker } from '@/components/app/link-source-picker';
 import { adminUrl } from '@/lib/admin-url';
 import { moveItem } from '@/lib/move-item';
 import { t } from '@/lib/i18n';
@@ -60,7 +62,7 @@ const ui = {
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker, DeveloperHelp,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-    FormSections, Input, KeptEditsNotice, Label, LanguageTabs, MediaPickerInput, moveItem, PageHeader, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, registerCommandSource, RichTextEditor,
+    FormSections, Input, KeptEditsNotice, Label, LanguageTabs, LinkAttributes, LinkSourcePicker, MediaPickerInput, moveItem, PageHeader, Popover, PopoverAnchor, PopoverContent, PopoverTrigger, registerCommandSource, RichTextEditor,
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator, SettingsLayout, SettingsNav, Skeleton, SortableHandle, SortableList, Switch,
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, TabsContent, TabsList, TabsTrigger,
     Textarea, Tooltip, TooltipContent, TooltipTrigger, toast, TrashBanner, TrashHint, TrashTitle, useBreadcrumbs, useEditLock, useTablePreferences, useUnsavedChanges, ViewingNotice,

@@ -2,7 +2,7 @@
  * The rich text editor's link menu: the rel choices a link keeps (the
  * server always adds noopener noreferrer, RichTextLinkAttributes), what it
  * points at on the site (data-link="entry:12", Panel::richTextLinkSource())
- * and whether what's typed is an address or a search.
+ * and the search of what it can point at.
  */
 
 /** The rel tokens editors may turn on, in the order they're written. */
@@ -34,21 +34,16 @@ export function parseDataLink(value: unknown): { source: string; id: number } | 
     return match ? { source: match[1]!, id: Number(match[2]) } : null;
 }
 
-/**
- * Whether what was typed in the link's input is an address (kept as the
- * link) rather than words to search the site for: it has a slash, a
- * scheme (https:, mailto:, tel:) or starts with # or ?. Empty is neither.
- */
-export function isAddressInput(text: string): boolean {
-    const value = text.trim();
-    if (value === '') return false;
+/** The rel to store for these choices (the server adds the rest), or null for none. */
+export function relAttribute(tokens: readonly string[]): string | null {
+    const ordered = REL_OPTIONS.filter((token) => tokens.includes(token));
 
-    return value.includes('/') || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value) || value.startsWith('#') || value.startsWith('?');
+    return ordered.length === 0 ? null : ordered.join(' ');
 }
 
-/** Words worth searching for: not an address, and at least 2 characters (as the server asks). */
-export function isSearchInput(text: string): boolean {
-    return !isAddressInput(text) && text.trim().length >= 2;
+/** A new link opens in a new tab when it's an address (another site, usually); the site's own pages (an entry, a term…) don't. */
+export function defaultNewTab(kind: string): boolean {
+    return kind === 'url';
 }
 
 export interface LinkItem { link: string; id: number; title: string; hint: string | null; url: string }

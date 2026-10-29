@@ -893,20 +893,17 @@
     "The name and tagline, no image.": "Nama dan tagline, tanpa gambar.",
     "Collapsed sidebar": "Sidebar diciutkan",
     "The same square as the browser tab.": "Persegi yang sama dengan tab browser.",
-    "An address": "Sebuah alamat",
     "Link attributes": "Atribut tautan",
     "Link options": "Opsi tautan",
     "Link to": "Tautan ke",
-    "Links always open safely (noopener noreferrer).": "Tautan selalu dibuka dengan aman (noopener noreferrer).",
     "Loading…": "Memuat…",
     "Not a safe address": "Alamat tidak aman",
     "Not found: shows as text": "Tidak ditemukan: tampil sebagai teks",
     "Open the link": "Buka tautan",
     "Remove link": "Hapus tautan",
-    "Search results": "Hasil pencarian",
-    "Use an address instead": "Pakai alamat saja",
-    "https://…, /about or search": "https://…, /tentang atau cari",
     "nofollow: search engines don't follow the link or count it as an endorsement.": "nofollow: mesin pencari tidak mengikuti tautan ini atau menganggapnya sebagai dukungan.",
     "sponsored: a paid link, an advert or a sponsorship.": "sponsored: tautan berbayar, iklan, atau sponsor.",
-    "ugc: a link in what visitors wrote, such as comments.": "ugc: tautan dalam tulisan pengunjung, seperti komentar."
+    "ugc: a link in what visitors wrote, such as comments.": "ugc: tautan dalam tulisan pengunjung, seperti komentar.",
+    "Links that open in a new tab always do so safely (noopener noreferrer).": "Tautan yang dibuka di tab baru selalu dibuka dengan aman (noopener noreferrer).",
+    "Link text": "Teks tautan"
 }
