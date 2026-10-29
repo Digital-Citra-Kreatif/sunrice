@@ -51,6 +51,19 @@ final class BrandingSettings extends Settings
     /** The settings the page's <head> shows (stylesheet, colours, icon): changing one reloads the page after saving. */
     public const IN_HEAD = ['name', 'logo', 'favicon', 'font', 'color'];
 
+    /**
+     * What the top of the sidebar (and the sign-in page) shows, resolved by
+     * `Support\Branding::display()`. `auto` (the default) shows a wide logo
+     * instead of the name and a square one beside it.
+     */
+    public const DISPLAYS = [
+        'auto' => 'Automatic',
+        'logo_name' => 'Logo and name',
+        'logo' => 'Logo only',
+        'icon_name' => 'Icon and name',
+        'name' => 'Name only',
+    ];
+
     public const LOGIN_LAYOUTS = ['split' => 'Side panel next to the form', 'centered' => 'Form only, centered'];
 
     /** The sign-in page's built-in wording, used for the texts left empty. */
@@ -68,6 +81,9 @@ final class BrandingSettings extends Settings
 
     /** A media id (an image); without one the sidebar shows the name's first letter. */
     public ?int $logo = null;
+
+    /** A key of DISPLAYS: what the sidebar shows; `auto` keeps a wide logo in place of the name. */
+    public string $brandDisplay = 'auto';
 
     /**
      * A media id (an image: ICO, PNG, SVG…) for the browser tab; without
@@ -116,13 +132,15 @@ final class BrandingSettings extends Settings
                 TextInput::make('name')->label('Panel name')->maxLength(60)->placeholder(app(Panel::class)->getBrand()),
                 TextInput::make('tagline')->maxLength(80)->placeholder('Shown under the name'),
                 MediaPicker::make('logo')->images()
-                    ->help('SVG or PNG. A square logo sits beside the name; a wide one (a wordmark) replaces it. Empty: the name\'s first letter.'),
+                    ->help('SVG or PNG: a square mark, or a wide logo (a wordmark) that holds the name. Empty: the name\'s first letter.'),
+                MediaPicker::make('favicon')->label('Browser icon')->images()
+                    ->help('A square ICO, PNG or SVG, also shown when the sidebar is collapsed. Empty: a square logo, else the name\'s first letter.'),
+                BrandDisplayChoice::make('brandDisplay')->label('Sidebar shows')->span(2)
+                    ->help('The top of the sidebar and the sign-in page. "Logo only" needs a logo: without one the icon or letter shows beside the name. The collapsed sidebar always shows the browser icon (else a square logo, else the first letter).'),
                 Select::make('font')->options($fonts)->placeholder('Default')
                     ->help('Empty: the default, Instrument Sans. Instrument Sans is built in and System uses the computer\'s own; every other font is loaded from Bunny Fonts (fonts.bunny.net) by each browser, so for an intranet, a server without internet access or to keep browsers from contacting another company choose one of those two.'),
                 TextInput::make('color')->label('Brand colour')->color()->placeholder('#1e66f5')
                     ->help('Buttons, the active menu item and focus rings. Empty: neutral.'),
-                MediaPicker::make('favicon')->label('Browser icon')->images()
-                    ->help('A square ICO, PNG or SVG. Empty: the logo or the name\'s first letter.'),
             ]),
             Section::make('Sign-in page')->description('Texts left empty keep the built-in wording.')->columns(2)->schema([
                 Select::make('loginLayout')->label('Layout')->options(self::LOGIN_LAYOUTS)->required(),

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### All changes
+
+- **Choose what the sidebar shows, and a collapsed sidebar that matches the browser tab**: the top of the sidebar followed the logo's shape only (a wide logo replaced the name, a square one sat beside it), so a client with a wide logo couldn't keep the name written out, and the collapsed sidebar showed the lettermark for a wide logo even when a browser icon was set. Settings → Branding has a new **Sidebar shows** (`brandDisplay`): **Automatic** (the default, so existing panels look as before), **Logo and name**, **Logo only** (for a wordmark; without a logo it is Logo and name), **Icon and name** (the browser icon beside the name) and **Name only**, each drawn in the form as a small sidebar with the form's unsaved name, images and colour (from `GET admin/branding/preview`, `sunrice.admin.branding.preview`, guarded by `sunrice.settings.branding`). The sign-in page's brand follows the same choice. The collapsed sidebar now always shows the favicon's square mark: the browser icon, else a square logo, else the lettermark, never blank or a squashed wide logo; the favicon's order is unchanged and both come from one `Branding::mark()`. `sunrice.branding` gains `display` (the choice resolved against the logo: `logo_name`, `logo`, `icon_name` or `name`) and `mark` (the square mark's URL, null for the lettermark); the frontend lays them out with `brandHeader()` (`lib/branding.ts`). See [Branding](packages/admin/docs/branding.md#what-the-sidebar-shows).
+
 ## 0.3.0 (2026-10-29)
 
 **Upgrading from 0.2**: raise the constraints (`composer require sunrice/admin:^0.3 sunrice/cms:^0.3 -W`, with `sunrice/starter-kit:^0.3` if you use it), then run `php artisan migrate` (new indexes for listings in other languages) and `php artisan sunrice:assets` (it now publishes the plugins' bundles too). Plugin authors: see [Upgrading](docs/upgrading.md#030).

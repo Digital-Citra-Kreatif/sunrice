@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ArrowDown, ArrowUp, Check, ChevronsUpDown, Globe, Mail, Plus, X } from 'lucide-react';
+import { BrandDisplayInput, type BrandDisplayOption } from '@/components/app/brand-display-input';
 import { CodeEditor } from '@/components/app/code-editor';
 import { DatePicker } from '@/components/app/date-picker';
 import { RichTextEditor } from '@/components/app/rich-text';
@@ -42,12 +43,14 @@ interface FieldProps {
     value: FieldValue;
     onChange: (value: FieldValue) => void;
     invalid: boolean;
+    /** The whole form's values, for inputs that show more than their own (Settings → Branding's preview). */
+    data?: Record<string, FieldValue>;
 }
 
 const NONE = '__none';
 
 /** The input for one form field, by its type. */
-export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
+export function FieldInput({ field, value, onChange, invalid, data }: FieldProps) {
     const id = `field-${field.name}`;
     const disabled = field.disabled === true;
     const common = { id, disabled, 'aria-invalid': invalid, required: field.required, placeholder: field.placeholder ?? undefined };
@@ -62,6 +65,9 @@ export function FieldInput({ field, value, onChange, invalid }: FieldProps) {
                 max={typeof field.max === 'number' ? field.max : null} types={(field.types as string[] | undefined) ?? []}
                 value={typeof value === 'number' || (Array.isArray(value) && value.every((v) => typeof v === 'number')) ? value as number | number[] : null}
                 onChange={onChange} />;
+        case 'brand_display':
+            return <BrandDisplayInput id={id} options={(field.options as BrandDisplayOption[] | undefined) ?? []} previewUrl={String(field.previewUrl ?? '')}
+                value={typeof value === 'string' ? value : null} data={data ?? {}} disabled={disabled} invalid={invalid} onChange={onChange} />;
         case 'checkboxes':
             if (field.matrix === true) {
                 return <PermissionMatrix id={id} options={(field.options as CheckboxOption[] | undefined) ?? []} disabled={disabled}

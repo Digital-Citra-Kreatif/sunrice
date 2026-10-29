@@ -52,7 +52,7 @@ it('is a settings section of every panel, guarded by its permission', function (
         ->component('Settings/Edit', shouldExist: false)
         ->where('section.key', 'branding')
         ->where('values.loginLayout', 'split')
-        ->where('form.0.fields.4.inputType', 'color'));
+        ->where('form.0.fields.6.inputType', 'color'));
 });
 
 it('refuses another section with the key "branding"', function () {
@@ -204,6 +204,8 @@ it('shares the branding with every page, with the panel\'s defaults for what is 
             'tagline' => '',
             'logo' => null,
             'logoWide' => false,
+            'display' => 'logo_name',
+            'mark' => null,
             'lettermark' => 'A',
             'color' => null,
             'login' => [
@@ -236,7 +238,7 @@ it('shares the branding with every page, with the panel\'s defaults for what is 
 
     // A logo that went to the trash falls back to the lettermark.
     $logo->delete();
-    get('/admin/login')->assertInertia(fn (Assert $page) => $page->where('sunrice.branding.logo', null));
+    get('/admin/login')->assertInertia(fn (Assert $page) => $page->where('sunrice.branding.logo', null)->where('sunrice.branding.mark', null));
 });
 
 it('says where the fonts come from, and that System loads nothing', function () {

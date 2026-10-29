@@ -10,10 +10,21 @@ Tampilan **Terang**, **Gelap**, atau **Sistem** milik Anda sendiri dipilih di me
 | --- | --- | --- |
 | **Nama panel** | Bilah samping, halaman masuk, tab peramban, dan panduan ini | Nama yang diberikan developer |
 | **Tagline** | Di bawah nama di bilah samping, dan di atas formulir masuk | Tidak ada |
-| **Logo** | Bilah samping dan halaman masuk; pilih gambar dari pustaka media. Logo persegi tampil di samping nama; logo melebar (wordmark) menggantikan nama | Huruf pertama nama di atas warna merek |
-| **Ikon browser** | Gambar kecil di tab peramban dan penanda; ICO, PNG, atau SVG persegi dari pustaka media | Logo persegi, atau huruf pertama nama di atas warna merek |
+| **Logo** | Bilah samping dan halaman masuk, sesuai **Sidebar menampilkan**; pilih gambar dari pustaka media: tanda persegi, atau logo melebar (wordmark) | Huruf pertama nama di atas warna merek |
+| **Ikon browser** | Gambar kecil di tab peramban dan penanda, serta bagian atas bilah samping yang diciutkan; ICO, PNG, atau SVG persegi dari pustaka media | Logo persegi, atau huruf pertama nama di atas warna merek |
+| **Sidebar menampilkan** | Bagian atas bilah samping dan halaman masuk: lihat di bawah | **Otomatis** |
 | **Font** | Semua halaman panel; pilih salah satu jenis huruf dalam daftar, atau **Sistem** untuk huruf bawaan komputer. Jenis huruf dalam daftar diambil dari Bunny Fonts di internet: di jaringan pribadi tanpa internet, atau jika Anda tidak ingin peramban menghubungi perusahaan lain, pilih **Sistem** | Huruf bawaan panel (Instrument Sans, juga dari Bunny Fonts) |
 | **Warna brand** | Tombol utama, menu yang sedang aktif, garis fokus | Abu-abu netral |
+
+**Sidebar menampilkan** punya gambar kecil bilah samping untuk tiap pilihan, digambar dengan isi formulir sebelum Anda menyimpan:
+
+- **Otomatis**: logo melebar menggantikan nama, logo persegi di sampingnya. Begitulah tampilan panel sebelum pilihan ini ada.
+- **Logo dan nama**: logo di samping nama dan tagline. Logo melebar tidak muat di samping nama, jadi ikon browser (atau huruf pertama) menggantikannya.
+- **Logo saja**: logo saja, dengan bentuk aslinya. Pilih ini untuk logo yang sudah memuat nama. Tanpa logo, nama tampil dengan huruf pertama di sampingnya.
+- **Ikon dan nama**: ikon browser di samping nama dan tagline, untuk logo melebar bila nama tetap ingin ditulis.
+- **Nama saja**: nama dan tagline, tanpa gambar.
+
+Saat bilah samping diciutkan menjadi deretan ikon, bagian atasnya selalu menampilkan persegi yang sama dengan tab peramban: ikon browser, atau logo persegi, atau huruf pertama nama.
 
 Untuk warna merek, ketik kode warna seperti `#2563eb` atau gunakan pemilih warna. Panel memberi teks hitam atau putih di atasnya, mana yang lebih mudah dibaca, dan warna yang lebih terang di mode gelap. Contoh di samping field menunjukkan tampilan tombolnya.
 

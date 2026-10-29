@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Head, usePage } from '@inertiajs/react';
-import { AppLogoIcon, AppWordmark, useBranding } from '@/components/app/app-logo';
+import { AuthBrand, useBranding } from '@/components/app/app-logo';
 import { AtmosphereArt } from '@/components/app/atmosphere-art';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
@@ -16,14 +16,8 @@ export default function AuthLayout({ title, description, children }: { title: st
     const { login } = brand;
     const split = login.layout !== 'centered';
     const [firstLine, ...moreLines] = login.headline.split('\n');
-    const mark = brand.logo && brand.logoWide ? (
-        <div className="flex items-center"><AppWordmark className="h-9" /></div>
-    ) : (
-        <div className="flex items-center gap-2.5 text-lg font-semibold tracking-tight">
-            <AppLogoIcon />
-            <span className="truncate">{brand.name}</span>
-        </div>
-    );
+    // The logo and name as Settings → Branding → Sidebar shows says.
+    const mark = <AuthBrand />;
 
     return (
         <div className={cn('sunrice-shell grid min-h-svh bg-background p-4', split && 'lg:grid-cols-2 lg:gap-4')}>
