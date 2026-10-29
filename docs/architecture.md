@@ -72,6 +72,12 @@ Every push to `main` updates each repository's `main` (`dev-main` on
 Packagist), and a `v*` tag pushed here (`git tag v0.1.0 && git push origin
 v0.1.0`) is pushed to all of them, so every package gets the release.
 **Run workflow** on the Actions tab publishes `main` again by hand. The
+`release` workflow (`.github/workflows/release.yml`) does the tagging from
+the Actions tab instead: **Run workflow** with the version (`0.3.1`, no `v`)
+and, if not the latest, the commit of `main`. It refuses a commit that isn't
+on `main`, one whose `CHANGELOG.md` has no `## 0.3.1 (date)` section, and a
+tag that's already on another commit; it then tags and publishes the
+packages (run again for a tag already on that commit, it only publishes). The
 packages require each other at `self.version`, which only works because
 they're tagged together (`tests/Arch/SplitTest.php` checks both). Changes
 and pull requests go to this repository, never to the read-only copies,
