@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Release from the Actions tab**: the new `release` workflow (Run workflow, with the version and optionally a commit of `main`) makes the `v*` tag and publishes the packages at it, refusing a commit off `main`, a version without its CHANGELOG section, or a tag already on another commit. `split.yml` can be called with a tag for it. Pushing a tag by hand works as before. See `docs/architecture.md`.
+
 ## 0.3.1 (2026-10-29)
 
 **Upgrading from 0.3.0**: `composer update "sunrice/*" -W`, then `php artisan sunrice:assets`. No migrations. Blueprints can no longer get a new field named `handle` (an existing one keeps working).

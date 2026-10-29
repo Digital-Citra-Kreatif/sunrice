@@ -6,6 +6,8 @@ declare(strict_types=1);
  * Every Composer package in packages/ is published to its own read-only
  * repository by .github/workflows/split.yml, and the packages require each
  * other at `self.version`, since they're tagged together.
+ * .github/workflows/release.yml makes a tag from the Actions tab and hands
+ * it to split.yml, because a tag pushed by a workflow starts no workflows.
  * Each package also carries the repository's MIT license, which its read-only
  * copy and Packagist show.
  */
@@ -30,6 +32,21 @@ it('publishes every Composer package to its own repository', function () {
     sort($published);
 
     expect($published)->toBe(array_keys(composerPackages()));
+});
+
+it('publishes the tag the release workflow makes', function () {
+    $root = dirname(__DIR__, 2).'/.github/workflows';
+    $release = (string) file_get_contents("{$root}/release.yml");
+    $split = (string) file_get_contents("{$root}/split.yml");
+
+    expect($release)->toContain('workflow_dispatch:')
+        ->toContain('git push origin "refs/tags/${tag}"')
+        ->toContain('uses: ./.github/workflows/split.yml')
+        ->toContain('tag: ${{ needs.tag.outputs.tag }}')
+        ->toContain('secrets: inherit')
+        ->and($split)->toContain("workflow_call:\n    inputs:\n      tag:")
+        ->toContain('ref: ${{ inputs.tag }}')
+        ->toContain('git push "$remote" "split:refs/tags/${TAG}"');
 });
 
 it('requires the other packages at the same version', function () {
