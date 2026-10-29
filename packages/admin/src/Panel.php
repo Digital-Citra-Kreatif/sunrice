@@ -20,6 +20,8 @@ use Sunrice\Admin\Http\Controllers\DashboardController;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
+use Sunrice\Admin\Resources\Forms\RichTextLinkAttributes;
+use Sunrice\Admin\Resources\Forms\RichTextLinkSource;
 use Sunrice\Admin\Resources\RegisteredResource;
 use Sunrice\Admin\Resources\Resource;
 use Sunrice\Admin\Security\SecuritySettings;
@@ -110,6 +112,9 @@ final class Panel
 
     /** @var array<string, array{url: Closure(): string, minLength: int}> command palette searches, keyed by id */
     private array $commandSearches = [];
+
+    /** @var array<string, RichTextLinkSource> what rich text links can point at, keyed by key */
+    private array $richTextLinkSources = [];
 
     /** @var array<string, Closure(InstallOutput): void> steps of sunrice:install, keyed by key */
     private array $installSteps = [];
@@ -919,6 +924,53 @@ final class Panel
             array_keys($this->commandSearches),
             $this->commandSearches,
         );
+    }
+
+    /**
+     * Something rich text links can point at, such as a CMS's entries: the
+     * editor's link menu searches it when what's typed isn't an address,
+     * and a chosen item's link gets its URL as `href` and
+     * `data-link="<key>:<id>"` (RichTextLinkAttributes keeps it), so the
+     * plugin can give the link the item's current URL when pages show it.
+     *
+     * $search gets what was typed (2 characters or more) and the signed-in
+     * user, and returns items `{id, title, hint?, url}`: only what that
+     * user may view, a few (the first RichTextLinkSource::LIMIT are listed),
+     * `url` a path on the site or an http(s) address. $find, optional,
+     * gets ids and the user and returns the same, for the menu to name a
+     * saved link's item ("→ About us · Entries").
+     *
+     *     $panel->richTextLinkSource('product', 'Products',
+     *         fn (string $query, Authorizable $user) => $user->can('shop.products.view')
+     *             ? Product::query()->whereLike('name', "%{$query}%")->limit(8)->get()
+     *                 ->map(fn (Product $p) => ['id' => $p->id, 'title' => $p->name, 'hint' => $p->sku, 'url' => $p->path()])
+     *             : [],
+     *         fn (array $ids, Authorizable $user) => …);
+     *
+     * Keys are lowercase letters, numbers, `_` and `-`, starting with a
+     * letter (RichTextLinkAttributes::LINK_PATTERN), and unique.
+     *
+     * @param  Closure(string, Authorizable): iterable<mixed>  $search
+     * @param  (Closure(list<int>, Authorizable): iterable<mixed>)|null  $find
+     */
+    public function richTextLinkSource(string $key, string $label, Closure $search, ?Closure $find = null): self
+    {
+        $this->assertRegistering();
+        if (RichTextLinkAttributes::link($key.':1') !== $key.':1') {
+            throw new PanelMisconfigured("The rich text link source \"{$key}\": use lowercase letters, numbers, _ and -, starting with a letter.");
+        }
+        if (isset($this->richTextLinkSources[$key])) {
+            throw new PanelMisconfigured("The rich text link source \"{$key}\" is registered twice{$this->owner()}.");
+        }
+        $this->richTextLinkSources[$key] = new RichTextLinkSource($key, $label, $search, $find);
+
+        return $this;
+    }
+
+    /** @return array<string, RichTextLinkSource> what rich text links can point at (richTextLinkSource()), by key */
+    public function getRichTextLinkSources(): array
+    {
+        return $this->richTextLinkSources;
     }
 
     // Boot ----------------------------------------------------------------

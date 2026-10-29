@@ -17,7 +17,9 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  *
  * The HTML is sanitised when it's saved: only that formatting is kept, so
  * no script, style or event handler is stored; links may be http(s),
- * mailto, tel or relative. Still print it unescaped only where you would
+ * mailto, tel or relative, and keep the editor's rel choices (nofollow,
+ * sponsored, ugc) and data-link, always with rel="noopener noreferrer"
+ * (RichTextLinkAttributes). Still print it unescaped only where you would
  * trust its authors' text.
  *
  *     RichText::make('description')->maxLength(20_000);
@@ -73,7 +75,7 @@ final class RichText extends Field
     /** The HTML with only the editor's formatting kept. */
     public static function sanitize(string $html): string
     {
-        return $html === '' ? '' : self::sanitizer()->sanitize($html);
+        return $html === '' ? '' : RichTextLinkAttributes::secure(self::sanitizer()->sanitize($html));
     }
 
     protected function props(): array
@@ -91,14 +93,14 @@ final class RichText extends Field
             return self::$sanitizer;
         }
         $config = (new HtmlSanitizerConfig)
-            ->allowElement('a', ['href', 'title', 'target'])
+            ->allowElement('a', ['href', 'title', 'target', 'rel', 'data-link'])
+            ->withAttributeSanitizer(new RichTextLinkAttributes)
             ->allowElement('img', ['src', 'alt', 'title', 'width', 'height', 'data-media-id', 'class'])
             ->withAttributeSanitizer(new RichTextImageClasses)
             ->allowLinkSchemes(['http', 'https', 'mailto', 'tel'])
             ->allowMediaSchemes(['http', 'https'])
             ->allowRelativeLinks()
             ->allowRelativeMedias()
-            ->forceAttribute('a', 'rel', 'noopener noreferrer')
             ->withMaxInputLength(self::MAX_LENGTH);
         foreach (['p', 'br', 'hr', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li'] as $element) {
             $config = $config->allowElement($element);

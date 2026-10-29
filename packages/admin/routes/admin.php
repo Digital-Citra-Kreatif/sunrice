@@ -11,6 +11,7 @@ use Sunrice\Admin\Http\Controllers\EditLocksController;
 use Sunrice\Admin\Http\Controllers\HelpController;
 use Sunrice\Admin\Http\Controllers\LanguageController;
 use Sunrice\Admin\Http\Controllers\PreferencesController;
+use Sunrice\Admin\Http\Controllers\RichTextLinkController;
 use Sunrice\Admin\Http\Controllers\SettingsController;
 use Sunrice\Admin\Http\Controllers\StrongerPasswordController;
 use Sunrice\Admin\Panel;
@@ -50,6 +51,10 @@ Route::prefix('locks/{type}/{id}')->name('locks.')->controller(EditLocksControll
 });
 Route::get('kept-edits/{kept}', [EditLocksController::class, 'show'])->name('kept-edits.show');
 Route::delete('kept-edits/{kept}', [EditLocksController::class, 'destroy'])->name('kept-edits.destroy');
+
+// The rich text editor's link menu: what links can point at (Panel::richTextLinkSource()); each source lists what the user may view.
+Route::get('rich-text-links', [RichTextLinkController::class, 'search'])->middleware('throttle:120,1')->name('rich-text-links.search');
+Route::get('rich-text-links/{link}', [RichTextLinkController::class, 'show'])->middleware('throttle:120,1')->name('rich-text-links.show')->where('link', '[a-z][a-z0-9_-]*:\d{1,18}');
 
 // The signed-in user's own account: name, email and password; nobody else's.
 Route::get('account', [AccountController::class, 'edit'])->name('account.edit');

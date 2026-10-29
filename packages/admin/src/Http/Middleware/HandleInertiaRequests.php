@@ -45,6 +45,8 @@ final class HandleInertiaRequests extends Middleware
                 'path' => '/'.$this->panel->getPath(),
                 'bundles' => array_values(array_map(fn (PluginBundle $bundle) => $bundle->toArray(), $this->panel->getBundles())),
                 'commandSearches' => $user === null ? [] : $this->panel->getCommandSearches(),
+                // What rich text links can point at (Panel::richTextLinkSource()): the editor's link menu searches them.
+                'richTextLinks' => $user === null ? [] : array_values(array_map(fn ($source): array => ['key' => $source->key, 'label' => $source->label()], $this->panel->getRichTextLinkSources())),
                 // The panel's language and those to pick from (the words themselves are in the page, PanelLocale::dictionary()).
                 'locale' => app()->getLocale(),
                 'locales' => PanelLocale::available(),

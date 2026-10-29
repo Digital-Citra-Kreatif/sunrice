@@ -1,21 +1,22 @@
 import * as React from 'react';
-import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
+import { usePage } from '@inertiajs/react';
+import { EditorContent, Extension, useEditor, useEditorState, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import {
-    AlignCenter, AlignLeft, AlignRight, Bold, Code, Heading2, Heading3, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Quote, Redo2,
-    StretchHorizontal, Strikethrough, Trash2, TriangleAlert, Underline, Undo2,
+    AlignCenter, AlignLeft, AlignRight, ArrowRight, Bold, Code, ExternalLink, Heading2, Heading3, ImagePlus, Italic, Link2, List, ListOrdered, LoaderCircle, Minus, Quote, Redo2,
+    SquareArrowOutUpRight, StretchHorizontal, Strikethrough, Trash2, TriangleAlert, Underline, Undo2, Unlink, X,
 } from 'lucide-react';
 import { MediaPickerInput } from '@/components/media/media-picker';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { adminUrl } from '@/lib/admin-url';
 import { isSafeUrl } from '@/lib/safe-url';
+import { REL_OPTIONS, isAddressInput, isSearchInput, linkGroupsOf, linkSearchQuery, parseDataLink, relTokens, toggleRel, type LinkGroup, type LinkItem, type RelOption } from '@/lib/rich-link';
+import type { SharedProps } from '@/types';
 import { cn } from '@/lib/utils';
 import { IMAGE_WIDTHS, imageClass, imageStylesOf, isStyleClass, parseImageClass, toggleStyle, type ImageAlignment, type ImageStyle, type ImageWidth } from '@/lib/image-presets';
 import type { RichTextEditorProps } from './rich-text';
@@ -58,18 +59,43 @@ const LibraryImage = Image.extend({
 });
 
 /**
+ * What a link points at on the site, kept as data-link="entry:12"
+ * (Panel::richTextLinkSource()): the CMS gives it the item's current URL
+ * when pages show it. Its rel (nofollow, sponsored, ugc) round-trips as the
+ * link's own attribute; the servers add noopener noreferrer.
+ */
+const LinkTarget = Extension.create({
+    name: 'sunriceLinkTarget',
+    addGlobalAttributes() {
+        return [{
+            types: ['link'],
+            attributes: {
+                'data-link': {
+                    default: null,
+                    parseHTML: (element: HTMLElement) => (parseDataLink(element.getAttribute('data-link')) ? element.getAttribute('data-link') : null),
+                    renderHTML: (attributes: Record<string, unknown>) => (typeof attributes['data-link'] === 'string' ? { 'data-link': attributes['data-link'] } : {}),
+                },
+            },
+        }];
+    },
+});
+
+/**
  * The rich text editor (TipTap): the formatting the servers keep when they
  * clean the HTML (headings, lists, quotes, code, links, library images).
  * Loaded on demand through RichTextEditor in rich-text.tsx.
  */
 export function RichTextEditor({ id, value, onChange, invalid = false, labelledBy, images = true, imageStyles, disabled = false }: RichTextEditorProps) {
     const styles = React.useMemo(() => imageStylesOf(imageStyles), [imageStyles]);
-    const [dialog, setDialog] = React.useState<'link' | 'image' | null>(null);
+    const [dialog, setDialog] = React.useState<'image' | null>(null);
+    const linkSources = usePage<SharedProps>().props.sunrice?.richTextLinks ?? [];
+    const linkMenu = React.useRef<LinkMenuHandle | null>(null);
     const editor = useEditor({
         extensions: [
             StarterKit.configure({ heading: { levels: [2, 3, 4] },
-                // No rel="nofollow" (TipTap's default) on the site's own links: the servers set rel="noopener noreferrer" themselves.
+                // No rel="nofollow" (TipTap's default) unless chosen in the link menu: the servers add rel="noopener noreferrer" themselves.
                 link: { openOnClick: false, autolink: true, HTMLAttributes: { rel: null, target: null } } }),
+            LinkTarget,
             LibraryImage,
         ],
         content: value,
@@ -89,10 +115,10 @@ export function RichTextEditor({ id, value, onChange, invalid = false, labelledB
 
     return (
         <div className={cn('rounded-lg border border-input/80 bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out-quart focus-within:border-ring/70 focus-within:ring-4 focus-within:ring-ring-glow dark:bg-input/20', invalid && 'border-destructive focus-within:ring-destructive/20', disabled && 'opacity-60')}>
-            {editor && !disabled && <Toolbar editor={editor} onLink={() => setDialog('link')} onImage={images ? () => setDialog('image') : null} />}
+            {editor && !disabled && <Toolbar editor={editor} onLink={() => linkMenu.current?.open()} onImage={images ? () => setDialog('image') : null} />}
             <EditorContent editor={editor} />
             {editor && !disabled && <ImageMenu editor={editor} styles={styles} />}
-            {editor && <LinkDialog editor={editor} open={dialog === 'link'} onClose={() => setDialog(null)} />}
+            {editor && !disabled && <LinkMenu ref={linkMenu} editor={editor} sources={linkSources} />}
             {editor && <ImageDialog editor={editor} open={dialog === 'image'} onClose={() => setDialog(null)} />}
         </div>
     );
@@ -169,24 +195,7 @@ function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] })
     const order = styles.map((style) => style.class);
     const back = () => editor.commands.focus();
     const noAlt = image !== null && image.alt.trim() === '';
-    // Tab from the text goes straight to the first button: the menu plugin makes its wrapper focusable when it starts (after BubbleMenu's own effect, before this one).
-    const wrapper = React.useRef<HTMLDivElement | null>(null);
-    React.useEffect(() => { if (wrapper.current) wrapper.current.tabIndex = -1; }, [editor]);
-    // The menu stays within the editor: no wider than its text area (the groups wrap onto more rows), and moved along to stay over it.
-    const [area, setArea] = React.useState<{ element: HTMLElement; width: number } | null>(null);
-    React.useEffect(() => {
-        const element = editor.isDestroyed ? null : editor.view.dom.parentElement;
-        if (!element) return;
-        const measure = () => setArea({ element, width: element.clientWidth });
-        measure();
-        const observer = new ResizeObserver(measure);
-        observer.observe(element);
-        return () => observer.disconnect();
-    }, [editor]);
-    const options = React.useMemo(
-        () => ({ placement: 'bottom' as const, offset: 8, flip: true, shift: { padding: MENU_INSET, ...(area ? { boundary: area.element } : {}) } }),
-        [area?.element],
-    );
+    const { wrapper, area, options } = useMenuPlacement(editor);
 
     return (
         <BubbleMenu editor={editor} pluginKey={IMAGE_MENU} options={options}
@@ -248,6 +257,316 @@ function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] })
     );
 }
 
+/**
+ * Where a bubble menu shows: Tab from the text goes straight to its first
+ * control, and it stays within the editor, no wider than its text area
+ * (its groups wrap onto more rows) and moved along to stay over it.
+ */
+function useMenuPlacement(editor: Editor) {
+    // The menu plugin makes its wrapper focusable when it starts (after BubbleMenu's own effect, before this one).
+    const wrapper = React.useRef<HTMLDivElement | null>(null);
+    React.useEffect(() => { if (wrapper.current) wrapper.current.tabIndex = -1; }, [editor]);
+    const [area, setArea] = React.useState<{ element: HTMLElement; width: number } | null>(null);
+    React.useEffect(() => {
+        const element = editor.isDestroyed ? null : editor.view.dom.parentElement;
+        if (!element) return;
+        const measure = () => setArea({ element, width: element.clientWidth });
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [editor]);
+    const options = React.useMemo(
+        () => ({ placement: 'bottom' as const, offset: 8, flip: true, shift: { padding: MENU_INSET, ...(area ? { boundary: area.element } : {}) } }),
+        [area?.element],
+    );
+
+    return { wrapper, area, options };
+}
+
+const LINK_MENU = 'sunriceLinkMenu';
+
+const SEARCH_DEBOUNCE_MS = 200;
+
+/** Saved links' items by data-link, once asked (null: gone, or not the user's to see). */
+const linkItems = new Map<string, { title: string; source: string } | null>();
+
+interface LinkMenuHandle {
+    /** The toolbar's Link: the menu of the link at the cursor, or a new one for the selection, its address focused. */
+    open: () => void;
+}
+
+interface LinkState { href: string; newTab: boolean; rel: string | null; dataLink: string | null }
+
+function relHelp(option: RelOption): string {
+    return {
+        nofollow: t('nofollow: search engines don\'t follow the link or count it as an endorsement.'),
+        sponsored: t('sponsored: a paid link, an advert or a sponsorship.'),
+        ugc: t('ugc: a link in what visitors wrote, such as comments.'),
+    }[option];
+}
+
+/**
+ * The link at the cursor's own toolbar, like an image's: where it goes (an
+ * address, or with link sources a search of the site's entries, terms…,
+ * Panel::richTextLinkSource()), opening in a new tab, the rel choices,
+ * opening it and removing it. Clicking a link puts the cursor in it, which
+ * shows the menu; the toolbar's Link opens it for the selection. Tab
+ * reaches it from the text; Esc goes back.
+ */
+function LinkMenu({ editor, sources, ref }: { editor: Editor; sources: { key: string; label: string }[]; ref: React.Ref<LinkMenuHandle> }) {
+    const link = useEditorState({
+        editor,
+        selector: ({ editor: e }): LinkState | null => {
+            if (!e.isActive('link') || e.isActive('image')) return null;
+            const attributes = e.getAttributes('link');
+            return {
+                href: typeof attributes.href === 'string' ? attributes.href : '',
+                newTab: attributes.target === '_blank',
+                rel: typeof attributes.rel === 'string' ? attributes.rel : null,
+                dataLink: parseDataLink(attributes['data-link']) ? (attributes['data-link'] as string) : null,
+            };
+        },
+    });
+    // A new link for the selection (the toolbar's Link): shown until the selection moves.
+    const [adding, setAdding] = React.useState<{ from: number; to: number } | null>(null);
+    const addingRef = React.useRef(adding);
+    addingRef.current = adding;
+    const input = React.useRef<HTMLInputElement | null>(null);
+    const [draft, setDraft] = React.useState('');
+    const [kind, setKind] = React.useState('url');
+    const [groups, setGroups] = React.useState<LinkGroup[]>([]);
+    const [searching, setSearching] = React.useState(false);
+    const [active, setActive] = React.useState(0);
+    const [, setNamed] = React.useState(0);
+    const { wrapper, area, options } = useMenuPlacement(editor);
+    const listId = React.useId();
+    const inputId = React.useId();
+    const shown = link !== null || adding !== null;
+
+    // Another link (or none): its address in the input, the kind it points at.
+    const target = link ? parseDataLink(link.dataLink) : null;
+    React.useEffect(() => {
+        setDraft(link?.href ?? '');
+        setKind(target && sources.some((source) => source.key === target.source) ? target.source : 'url');
+        setGroups([]);
+    }, [link?.href, link?.dataLink, adding === null]);
+
+    // A move away from the selection ends a new link.
+    React.useEffect(() => {
+        const moved = () => {
+            const current = addingRef.current;
+            const { from, to } = editor.state.selection;
+            if (current && (current.from !== from || current.to !== to)) setAdding(null);
+        };
+        editor.on('selectionUpdate', moved);
+        return () => { editor.off('selectionUpdate', moved); };
+    }, [editor]);
+
+    React.useImperativeHandle(ref, () => ({
+        open: () => {
+            if (!editor.isActive('link')) {
+                const { from, to } = editor.state.selection;
+                setAdding({ from, to });
+                addingRef.current = { from, to };
+            }
+            // Once its content has rendered: shown where it fits, then focused.
+            requestAnimationFrame(() => {
+                if (addingRef.current !== null) editor.view.dispatch(editor.state.tr.setMeta(LINK_MENU, 'show'));
+                input.current?.focus();
+            });
+        },
+    }), [editor]);
+
+    // A saved link's item, for its chip: asked once per link.
+    React.useEffect(() => {
+        const key = link?.dataLink;
+        if (!key || linkItems.has(key)) return;
+        const controller = new AbortController();
+        void fetch(adminUrl(`rich-text-links/${key}`), { signal: controller.signal, headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+            .then(async (response) => {
+                const item = response.ok ? ((await response.json()) as { item?: { title?: unknown; source?: unknown } | null }).item : null;
+                linkItems.set(key, item && typeof item.title === 'string' && typeof item.source === 'string' ? { title: item.title, source: item.source } : null);
+                setNamed((n) => n + 1);
+            })
+            .catch(() => undefined);
+        return () => controller.abort();
+    }, [link?.dataLink]);
+
+    // Searching: the chosen kind's items, or with "Link" words that aren't an address, every kind's.
+    const query = draft.trim();
+    const search = sources.length > 0 && (kind === 'url' ? isSearchInput(draft) : query.length >= 2) && (link === null || query !== link.href);
+    React.useEffect(() => {
+        if (!search) { setGroups([]); setSearching(false); return; }
+        const controller = new AbortController();
+        setSearching(true);
+        const timer = setTimeout(() => {
+            void fetch(`${adminUrl('rich-text-links')}?${linkSearchQuery(query, kind === 'url' ? null : kind)}`, { signal: controller.signal, headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+                .then(async (response) => { setGroups(response.ok ? linkGroupsOf(await response.json()) : []); setActive(0); setSearching(false); })
+                .catch(() => undefined);
+        }, SEARCH_DEBOUNCE_MS);
+        return () => { clearTimeout(timer); controller.abort(); };
+    }, [search, query, kind]);
+
+    const results = groups.flatMap((group) => group.items.map((item) => ({ item, group })));
+    const back = () => editor.commands.focus();
+    const sourceLabel = (key: string) => sources.find((source) => source.key === key)?.label ?? key;
+
+    /** Sets the link's attributes: on the link at the cursor, on the selection, or as new text where nothing is selected. */
+    const setLink = (attributes: Record<string, string | null>, text: string) => {
+        if (editor.isActive('link')) {
+            editor.chain().focus().extendMarkRange('link').updateAttributes('link', attributes).run();
+        } else if (editor.state.selection.empty) {
+            const { from } = editor.state.selection;
+            editor.chain().focus().insertContent({ type: 'text', text, marks: [{ type: 'link', attrs: attributes }] }).setTextSelection({ from, to: from + text.length }).run();
+        } else {
+            editor.chain().focus().setMark('link', attributes).run();
+        }
+        setAdding(null);
+        setGroups([]);
+    };
+    /** Changes the link at the cursor without moving the cursor or the focus. */
+    const update = (attributes: Record<string, string | null>) => {
+        const { from, to } = editor.state.selection;
+        editor.chain().extendMarkRange('link').updateAttributes('link', attributes).setTextSelection({ from, to }).run();
+    };
+    const invalid = kind === 'url' && query !== '' && !isSafeUrl(query);
+    const applyAddress = () => {
+        if (query === '') {
+            if (link) editor.chain().focus().extendMarkRange('link').unsetLink().run();
+            else back();
+            setAdding(null);
+            return;
+        }
+        if (invalid) return;
+        setLink({ href: query, 'data-link': null }, query);
+    };
+    const choose = (item: LinkItem, group: LinkGroup) => {
+        linkItems.set(item.link, { title: item.title, source: group.label });
+        setLink({ href: item.url, 'data-link': item.link }, item.title);
+    };
+    const remove = () => { editor.chain().focus().extendMarkRange('link').unsetLink().run(); setAdding(null); };
+
+    const named = link?.dataLink ? linkItems.get(link.dataLink) : undefined;
+    const rel = relTokens(link?.rel);
+    const opens = link !== null && link.href !== '' && isSafeUrl(link.href);
+    const kinds = [{ key: 'url', label: t('Link') }, ...sources];
+
+    return (
+        <BubbleMenu editor={editor} pluginKey={LINK_MENU} options={options}
+            shouldShow={({ editor: e, view, element }) => e.isEditable && !e.isActive('image') && (e.isActive('link') || addingRef.current !== null)
+                && (view.hasFocus() || element.contains(document.activeElement))}
+            ref={wrapper} className="z-20">
+            {shown && (
+                <div role="toolbar" aria-label={t('Link options')}
+                    className="max-w-[calc(100vw-2rem)] rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
+                    style={area ? { maxWidth: Math.max(area.width - 2 * MENU_INSET, 160) } : undefined}
+                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setAdding(null); back(); } }}
+                    onBlur={(e: React.FocusEvent) => {
+                        const next = e.relatedTarget;
+                        if (next instanceof Node && (e.currentTarget.contains(next) || editor.view.dom.contains(next))) return;
+                        setAdding(null);
+                        editor.view.dispatch(editor.state.tr.setMeta(LINK_MENU, 'hide'));
+                    }}>
+                    <MenuRows>
+                    {sources.length > 0 && (
+                        <div role="group" aria-label={t('Link to')} className="flex gap-0.5">
+                            {kinds.map((option) => (
+                                <MenuButton key={option.key} label={option.key === 'url' ? t('An address') : option.label} active={kind === option.key}
+                                    onClick={() => { setKind(option.key); setDraft(option.key === 'url' ? (link?.href ?? '') : ''); setGroups([]); input.current?.focus(); }}>
+                                    <span className="px-1 text-xs font-medium">{option.label}</span>
+                                </MenuButton>
+                            ))}
+                        </div>
+                    )}
+                    <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 px-1', sources.length > 0 && MENU_SEPARATED)}>
+                        {link?.dataLink && target && kind === target.source ? (
+                            <span className={cn('flex h-8 min-w-0 items-center gap-1 rounded-md border bg-muted/50 pr-0.5 pl-2 text-sm', named === null && 'border-amber-500/70')}>
+                                <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                                <span className="truncate">
+                                    {named === undefined ? t('Loading…') : named === null ? t('Not found: shows as text') : named.title}
+                                    <span className="text-muted-foreground"> · {named?.source ?? sourceLabel(target?.source ?? '')}</span>
+                                </span>
+                                <MenuButton label={t('Use an address instead')} onClick={() => { update({ 'data-link': null }); setKind('url'); input.current?.focus(); }}><X /></MenuButton>
+                            </span>
+                        ) : (
+                            <>
+                                <label htmlFor={inputId} className="sr-only">{kind === 'url' ? t('Address') : t('Search')}</label>
+                                <Input ref={input} id={inputId} value={draft} autoComplete="off"
+                                    className={cn('h-8 w-52 min-w-0 shrink text-sm', invalid && 'border-destructive focus-visible:ring-destructive/20')}
+                                    placeholder={kind === 'url' ? (sources.length > 0 ? t('https://…, /about or search') : 'https://…') : t('Search…')}
+                                    role={sources.length > 0 ? 'combobox' : undefined} aria-expanded={sources.length > 0 ? results.length > 0 : undefined}
+                                    aria-controls={results.length > 0 ? listId : undefined} aria-activedescendant={results.length > 0 ? `${listId}-${active}` : undefined}
+                                    aria-invalid={invalid || undefined} aria-describedby={invalid ? `${inputId}-error` : undefined}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+                                    onBlur={() => { if (link && kind === 'url' && query !== '' && query !== link.href && !invalid && isAddressInput(query)) update({ href: query, 'data-link': null }); }}
+                                    onKeyDown={(e: React.KeyboardEvent) => {
+                                        if (e.key === 'ArrowDown' && results.length > 0) { e.preventDefault(); setActive((i) => (i + 1) % results.length); }
+                                        else if (e.key === 'ArrowUp' && results.length > 0) { e.preventDefault(); setActive((i) => (i - 1 + results.length) % results.length); }
+                                        else if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            const picked = results[active];
+                                            if (picked && (kind !== 'url' || !isAddressInput(query))) choose(picked.item, picked.group);
+                                            else if (kind === 'url') applyAddress();
+                                        }
+                                    }} />
+                                {searching && <LoaderCircle className="size-3.5 animate-spin text-muted-foreground" aria-label={t('Searching…')} />}
+                                {invalid && <span id={`${inputId}-error`} className="flex items-center gap-1 text-xs text-destructive"><TriangleAlert className="size-3.5" aria-hidden /> {t('Not a safe address')}</span>}
+                            </>
+                        )}
+                    </div>
+                    {link && (
+                        <div role="group" aria-label={t('Link attributes')} className={cn('flex flex-wrap items-center gap-0.5', MENU_SEPARATED)}>
+                            <MenuButton label={t('Open in a new tab')} tip={[t('Open in a new tab'), t('Links always open safely (noopener noreferrer).')]} active={link.newTab}
+                                onClick={() => update({ target: link.newTab ? null : '_blank' })}><SquareArrowOutUpRight /></MenuButton>
+                            {REL_OPTIONS.map((option) => (
+                                <MenuButton key={option} label={option} tip={[relHelp(option)]} active={rel.includes(option)} onClick={() => update({ rel: toggleRel(link.rel, option) })}>
+                                    <span className="px-1 text-xs font-medium">{option}</span>
+                                </MenuButton>
+                            ))}
+                        </div>
+                    )}
+                    {link && (
+                        <div className={cn('flex items-center gap-0.5', MENU_SEPARATED)}>
+                            {opens && (
+                                <Button asChild variant="ghost" size="icon" className="size-8">
+                                    <a href={link.href} target="_blank" rel="noopener noreferrer" aria-label={t('Open the link')} title={t('Open the link')}
+                                        onMouseDown={(e: React.MouseEvent) => e.preventDefault()}><ExternalLink /></a>
+                                </Button>
+                            )}
+                            <MenuButton label={t('Remove link')} onClick={remove}><Unlink /></MenuButton>
+                        </div>
+                    )}
+                    </MenuRows>
+                    {results.length > 0 && (
+                        <div id={listId} role="listbox" aria-label={t('Search results')} className="mt-1 max-h-64 overflow-y-auto border-t pt-1">
+                            {groups.map((group) => (
+                                <div key={group.key} role="group" aria-label={group.label}>
+                                    <div aria-hidden className="px-2 pt-1 pb-0.5 text-xs font-medium text-muted-foreground">{group.label}</div>
+                                    {group.items.map((item) => {
+                                        const index = results.findIndex((result) => result.item === item);
+                                        return (
+                                            <div key={item.link} id={`${listId}-${index}`} role="option" aria-selected={index === active}
+                                                className={cn('flex cursor-pointer items-baseline gap-2 rounded-md px-2 py-1 text-sm', index === active && 'bg-accent text-accent-foreground')}
+                                                onMouseDown={(e: React.MouseEvent) => e.preventDefault()} onMouseEnter={() => setActive(index)} onClick={() => choose(item, group)}>
+                                                <span className="truncate">{item.title}</span>
+                                                {item.hint && <span className="shrink-0 truncate text-xs text-muted-foreground">{item.hint}</span>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {search && !searching && results.length === 0 && (
+                        <p className="mt-1 border-t px-2 pt-1.5 pb-0.5 text-xs text-muted-foreground">{t('Nothing found.')}</p>
+                    )}
+                </div>
+            )}
+        </BubbleMenu>
+    );
+}
+
 function AltInput({ value, warn, onChange, onEnter, className }: { value: string; warn: boolean; onChange: (alt: string) => void; onEnter: () => void; className?: string }) {
     const id = React.useId();
 
@@ -267,14 +586,23 @@ function AltInput({ value, warn, onChange, onEnter, className }: { value: string
     );
 }
 
-function MenuButton({ label, active, onClick, children }: { label: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
-    return (
-        <Button type="button" variant={active ? 'secondary' : 'ghost'} size="icon" className="size-8 w-auto min-w-8" aria-label={label} title={label}
+/** A menu's button; with `tip`, its tooltip's lines (else the label shows as its title). */
+function MenuButton({ label, active, onClick, tip, children }: { label: string; active?: boolean; onClick: () => void; tip?: string[]; children: React.ReactNode }) {
+    const button = (
+        <Button type="button" variant={active ? 'secondary' : 'ghost'} size="icon" className="size-8 w-auto min-w-8" aria-label={label} title={tip ? undefined : label}
             aria-pressed={active === undefined ? undefined : active} onClick={onClick}
-            // A click keeps the image selected and the text focused.
+            // A click keeps the image or link selected and the text focused.
             onMouseDown={(e: React.MouseEvent) => e.preventDefault()}>
             {children}
         </Button>
+    );
+    if (!tip) return button;
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>{button}</TooltipTrigger>
+            <TooltipContent className="max-w-64">{tip.map((line) => <p key={line}>{line}</p>)}</TooltipContent>
+        </Tooltip>
     );
 }
 
@@ -313,52 +641,6 @@ function Tool({ label, active, disabled, onClick, children }: { label: string; a
             </TooltipTrigger>
             <TooltipContent>{label}</TooltipContent>
         </Tooltip>
-    );
-}
-
-function LinkDialog({ editor, open, onClose }: { editor: Editor; open: boolean; onClose: () => void }) {
-    const [url, setUrl] = React.useState('');
-    const [newTab, setNewTab] = React.useState(false);
-    React.useEffect(() => {
-        if (!open) return;
-        const attributes = editor.getAttributes('link');
-        setUrl(typeof attributes.href === 'string' ? attributes.href : '');
-        setNewTab(attributes.target === '_blank');
-    }, [open, editor]);
-    const safe = url.trim() === '' || isSafeUrl(url.trim());
-
-    const apply = () => {
-        const href = url.trim();
-        const chain = editor.chain().focus().extendMarkRange('link');
-        (href === '' ? chain.unsetLink() : chain.setLink({ href, target: newTab ? '_blank' : null })).run();
-        onClose();
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={(next: boolean) => !next && onClose()}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{t('Link')}</DialogTitle>
-                    <DialogDescription>{t('A web address, a path on this site (/about), mailto: or tel:. Empty removes the link.')}</DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="rich-link-url">{t('Address')}</Label>
-                        <Input id="rich-link-url" value={url} placeholder="https://…" aria-invalid={!safe}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
-                            onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); if (safe) apply(); } }} />
-                        {!safe && <p className="text-sm text-destructive">{t('This address could run code; use https://, a path, mailto: or tel:.')}</p>}
-                    </div>
-                    <label className="flex items-center gap-2 text-sm">
-                        <Checkbox checked={newTab} onCheckedChange={(checked) => setNewTab(checked === true)} /> {t('Open in a new tab')}
-                    </label>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={onClose}>{t('Cancel')}</Button>
-                    <Button type="button" disabled={!safe} onClick={apply}>{t('Apply')}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     );
 }
 
