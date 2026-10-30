@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { usePage } from '@inertiajs/react';
-import { EditorContent, Extension, getMarkRange, useEditor, useEditorState, type Editor } from '@tiptap/react';
+import { EditorContent, Extension, getMarkRange, mergeAttributes, useEditor, useEditorState, type Editor } from '@tiptap/react';
 import { TextSelection } from '@tiptap/pm/state';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { BubbleMenu } from '@tiptap/react/menus';
@@ -23,24 +23,78 @@ import { LinkSourcePicker } from '@/components/app/link-source-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { SharedProps } from '@/types';
 import { cn } from '@/lib/utils';
-import { IMAGE_WIDTHS, imageClass, imageStylesOf, isStyleClass, parseImageClass, toggleStyle, type ImageAlignment, type ImageStyle, type ImageWidth } from '@/lib/image-presets';
+import { IMAGE_WIDTHS, captionText, figureClasses, imageClass, imageStylesOf, isStyleClass, parseImageClass, toggleStyle, type ImageAlignment, type ImageStyle, type ImageWidth } from '@/lib/image-presets';
 import type { RichTextEditorProps } from './rich-text';
 import { t } from '@/lib/i18n';
+
+/**
+ * The image of a figure holding one (a captioned image, the editor's or pasted from elsewhere), or null:
+ * `<figure class="sunrice-img sunrice-img-w-50"><img class="rounded" …><figcaption>…</figcaption></figure>`.
+ */
+function figureImage(element: HTMLElement): HTMLImageElement | null {
+    if (element.tagName !== 'FIGURE') return null;
+    const images = element.querySelectorAll('img');
+    const src = images.length === 1 ? images[0]!.getAttribute('src') : null;
+
+    return src && !src.startsWith('data:') ? images[0]! : null;
+}
+
+/** The classes an image's presets and styles are read from: a figure's and its image's together. */
+function classesOf(element: HTMLElement): string {
+    const image = figureImage(element);
+
+    return image ? `${element.getAttribute('class') ?? ''} ${image.getAttribute('class') ?? ''}` : element.getAttribute('class') ?? '';
+}
 
 /**
  * Images keep their media library id, so the server knows which files a text
  * uses, and their width and alignment presets and image styles as classes
  * (lib/image-presets.ts): `sunrice-img sunrice-img-w-50 sunrice-img-left rounded`.
+ *
+ * An image may have a caption (plain text, set in its menu), saved as a
+ * figure with the presets on the <figure> and the styles on the <img>
+ * (figureClasses()); without one it stays a plain <img>. It's still one
+ * node, so it's selected, moved and removed as before.
  */
 const LibraryImage = Image.extend({
+    parseHTML() {
+        return [
+            {
+                tag: 'figure',
+                getAttrs: (element: HTMLElement) => {
+                    const image = figureImage(element);
+                    if (!image) return false;
+                    const attributes: Record<string, string> = {};
+                    for (const name of ['src', 'alt', 'title', 'width', 'height']) {
+                        const value = image.getAttribute(name);
+                        if (value !== null) attributes[name] = value;
+                    }
+                    return attributes;
+                },
+            },
+            ...(this.parent?.() ?? []),
+        ];
+    },
+    renderHTML({ node, HTMLAttributes }) {
+        const attributes = mergeAttributes(this.options.HTMLAttributes, HTMLAttributes);
+        const caption = captionText(node.attrs.caption);
+        if (caption === null) return ['img', attributes];
+        const { class: _class, ...rest } = attributes;
+        const classes = figureClasses({ width: node.attrs.size, align: node.attrs.align, styles: node.attrs.styles });
+
+        return ['figure', classes.figure === null ? {} : { class: classes.figure }, ['img', classes.img === null ? rest : { ...rest, class: classes.img }], ['figcaption', caption]];
+    },
     addAttributes() {
         return {
             ...this.parent?.(),
-            'data-media-id': { default: null },
+            'data-media-id': {
+                default: null,
+                parseHTML: (element: HTMLElement) => (figureImage(element) ?? element).getAttribute('data-media-id'),
+            },
             // Both presets and the styles render as one class attribute (from `size`'s renderHTML, which sees every attribute).
             size: {
                 default: null,
-                parseHTML: (element: HTMLElement) => parseImageClass(element.getAttribute('class')).width,
+                parseHTML: (element: HTMLElement) => parseImageClass(classesOf(element)).width,
                 renderHTML: (attributes: Record<string, unknown>) => {
                     const className = imageClass({ width: attributes.size, align: attributes.align, styles: attributes.styles });
                     return className === null ? {} : { class: className };
@@ -48,15 +102,21 @@ const LibraryImage = Image.extend({
             },
             align: {
                 default: null,
-                parseHTML: (element: HTMLElement) => parseImageClass(element.getAttribute('class')).align,
+                parseHTML: (element: HTMLElement) => parseImageClass(classesOf(element)).align,
                 renderHTML: () => ({}),
             },
             styles: {
                 default: null,
                 parseHTML: (element: HTMLElement) => {
-                    const { styles } = parseImageClass(element.getAttribute('class'));
+                    const { styles } = parseImageClass(classesOf(element));
                     return styles.length === 0 ? null : styles;
                 },
+                renderHTML: () => ({}),
+            },
+            // The caption's text (renderHTML above writes the figure), null for none.
+            caption: {
+                default: null,
+                parseHTML: (element: HTMLElement) => (figureImage(element) ? captionText(element.querySelector('figcaption')?.textContent) : null),
                 renderHTML: () => ({}),
             },
         };
@@ -179,7 +239,8 @@ function alignments(): { value: ImageAlignment; label: string; icon: React.React
 /**
  * The selected image's own toolbar: width and alignment presets, the
  * configured styles (toggles, several at once: they're independent looks
- * such as rounded corners and a shadow), its alt text and removing it.
+ * such as rounded corners and a shadow), its caption (shown under it;
+ * emptied, the image is a plain image again), its alt text and removing it.
  * Tab reaches it from the text; Esc goes back.
  */
 function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] }) {
@@ -193,6 +254,7 @@ function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] })
                 align: (typeof attributes.align === 'string' ? attributes.align : null) as ImageAlignment | null,
                 alt: typeof attributes.alt === 'string' ? attributes.alt : '',
                 styles: Array.isArray(attributes.styles) ? attributes.styles.filter(isStyleClass) : [],
+                caption: typeof attributes.caption === 'string' ? attributes.caption : '',
             };
         },
     });
@@ -248,9 +310,14 @@ function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] })
                             })}
                         </div>
                     )}
+                    <div className={cn('flex min-w-0 items-center', MENU_SEPARATED)}>
+                        <MenuInput label={t('Caption')} value={image.caption} placeholder={t('Add a caption')} className="w-48"
+                            onChange={(caption) => set({ caption: captionText(caption) === null ? null : caption })} onEnter={back} />
+                    </div>
                     {/* The alt text and removing the image stay on one row. */}
                     <div className={cn('flex min-w-0 items-center', MENU_SEPARATED)}>
-                        <AltInput value={image.alt} warn={noAlt} onChange={(alt) => set({ alt })} onEnter={back} />
+                        <MenuInput label={t('Alt text')} value={image.alt} placeholder={t('Describe the image')} warning={noAlt ? t('No alt text') : null}
+                            onChange={(alt) => set({ alt })} onEnter={back} />
                         <div className={MENU_SEPARATED}>
                             <MenuButton label={t('Remove image')} onClick={() => editor.chain().focus().deleteSelection().run()}><Trash2 /></MenuButton>
                         </div>
@@ -530,19 +597,22 @@ function LinkMenu({ editor, sources, ref }: { editor: Editor; sources: { key: st
     );
 }
 
-function AltInput({ value, warn, onChange, onEnter, className }: { value: string; warn: boolean; onChange: (alt: string) => void; onEnter: () => void; className?: string }) {
+/** A text input of the image menu (its caption, its alt text): Enter goes back to the text, as Esc does. */
+function MenuInput({ label, value, placeholder, warning = null, onChange, onEnter, className }: {
+    label: string; value: string; placeholder: string; warning?: string | null; onChange: (value: string) => void; onEnter: () => void; className?: string;
+}) {
     const id = React.useId();
 
     return (
-        <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 px-1', className)}>
-            <label htmlFor={id} className="text-xs font-medium text-muted-foreground">{t('Alt text')}</label>
-            <Input id={id} value={value} className={cn('h-8 w-36 min-w-0 shrink text-sm', warn && 'border-amber-500/70')} placeholder={t('Describe the image')}
-                aria-describedby={warn ? `${id}-warning` : undefined}
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 px-1">
+            <label htmlFor={id} className="text-xs font-medium text-muted-foreground">{label}</label>
+            <Input id={id} value={value} className={cn('h-8 w-36 min-w-0 shrink text-sm', className, warning !== null && 'border-amber-500/70')} placeholder={placeholder}
+                aria-describedby={warning !== null ? `${id}-warning` : undefined}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
                 onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } }} />
-            {warn && (
+            {warning !== null && (
                 <span id={`${id}-warning`} className="flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300">
-                    <TriangleAlert className="size-3.5" aria-hidden /> {t('No alt text')}
+                    <TriangleAlert className="size-3.5" aria-hidden /> {warning}
                 </span>
             )}
         </div>

@@ -14,6 +14,9 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  * classes of RichTextImageClasses: `sunrice-img sunrice-img-w-50
  * sunrice-img-left`, and the image styles of config
  * `sunrice-admin.rich_text.image_classes`; any other class is dropped).
+ * A captioned image is kept as `<figure class="…"><img …><figcaption>…
+ * </figcaption></figure>`, the figure's class held to the same classes and
+ * the caption to plain text and the inline formatting (bold, italic, links…).
  *
  * The HTML is sanitised when it's saved: only that formatting is kept, so
  * no script, style or event handler is stored; links may be http(s),
@@ -96,13 +99,14 @@ final class RichText extends Field
             ->allowElement('a', ['href', 'title', 'target', 'rel', 'data-link'])
             ->withAttributeSanitizer(new RichTextLinkAttributes)
             ->allowElement('img', ['src', 'alt', 'title', 'width', 'height', 'data-media-id', 'class'])
+            ->allowElement('figure', ['class'])
             ->withAttributeSanitizer(new RichTextImageClasses)
             ->allowLinkSchemes(['http', 'https', 'mailto', 'tel'])
             ->allowMediaSchemes(['http', 'https'])
             ->allowRelativeLinks()
             ->allowRelativeMedias()
             ->withMaxInputLength(self::MAX_LENGTH);
-        foreach (['p', 'br', 'hr', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li'] as $element) {
+        foreach (['p', 'br', 'hr', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'figcaption'] as $element) {
             $config = $config->allowElement($element);
         }
 

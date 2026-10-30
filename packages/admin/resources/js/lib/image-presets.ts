@@ -85,3 +85,24 @@ export function parseImageClass(className: string | null | undefined): ImagePres
 
     return presets;
 }
+
+/**
+ * A captioned image is saved as a figure, the layout presets on the <figure>
+ * (so the caption floats and sizes with the picture) and the image styles,
+ * which are looks of the picture itself, on the <img>:
+ *
+ *     <figure class="sunrice-img sunrice-img-w-50 sunrice-img-left"><img class="rounded" …><figcaption>…</figcaption></figure>
+ *
+ * Without a caption everything stays on the <img> (imageClass()).
+ */
+export function figureClasses(presets: { width?: unknown; align?: unknown; styles?: unknown }): { figure: string | null; img: string | null } {
+    return { figure: imageClass({ width: presets.width, align: presets.align }), img: imageClass({ styles: presets.styles }) };
+}
+
+/** An image's caption as it's saved: plain text on one line, its spaces collapsed, or null for none. */
+export function captionText(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const text = value.replace(/\s+/g, ' ').trim();
+
+    return text === '' ? null : text;
+}

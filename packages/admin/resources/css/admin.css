@@ -576,18 +576,25 @@
     .sunrice-prose pre code { background: none; padding: 0; }
     .sunrice-prose hr { border: 0; border-top: 1px solid var(--border); }
     .sunrice-prose img { max-width: 100%; height: auto; border-radius: calc(var(--radius) - 2px); }
-    .sunrice-prose img.ProseMirror-selectednode { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .sunrice-prose :is(img, figure).ProseMirror-selectednode { outline: 2px solid var(--ring); outline-offset: 2px; }
+    /* A captioned image (a <figure>, the presets on it and the picture filling it), as a site's CSS would show it. */
+    :where(.sunrice-prose figure) { margin: 0; max-width: 100%; }
+    .sunrice-prose figure > img { display: block; }
+    .sunrice-prose figure:is([class*="sunrice-img-w-"], .sunrice-img-full) > img { width: 100%; }
+    .sunrice-prose figure.sunrice-img-center:not([class*="sunrice-img-w-"]) { width: fit-content; }
+    .sunrice-prose figure.sunrice-img-center > img { margin-inline: auto; }
+    .sunrice-prose figcaption { margin-top: 0.4em; font-size: 0.875em; color: var(--muted-foreground); }
     /* The image presets (lib/image-presets.ts), as a site's CSS would show them. */
     .sunrice-prose::after { content: ""; display: block; clear: both; }
-    .sunrice-prose img.sunrice-img { display: block; }
-    .sunrice-prose img.sunrice-img-w-25 { width: 25%; }
-    .sunrice-prose img.sunrice-img-w-50 { width: 50%; }
-    .sunrice-prose img.sunrice-img-w-75 { width: 75%; }
-    .sunrice-prose img.sunrice-img-w-100, .sunrice-prose img.sunrice-img-full { width: 100%; }
-    .sunrice-prose img.sunrice-img-center { margin-inline: auto; }
-    .sunrice-prose img.sunrice-img-left { float: left; margin: 0.25em 1.25em 0.75em 0; }
-    .sunrice-prose img.sunrice-img-right { float: right; margin: 0.25em 0 0.75em 1.25em; }
-    .sunrice-prose img:is(.sunrice-img-left, .sunrice-img-right):not([class*="sunrice-img-w-"]) { max-width: 50%; }
+    .sunrice-prose :is(img, figure).sunrice-img { display: block; }
+    .sunrice-prose :is(img, figure).sunrice-img-w-25 { width: 25%; }
+    .sunrice-prose :is(img, figure).sunrice-img-w-50 { width: 50%; }
+    .sunrice-prose :is(img, figure).sunrice-img-w-75 { width: 75%; }
+    .sunrice-prose :is(img, figure):is(.sunrice-img-w-100, .sunrice-img-full) { width: 100%; }
+    .sunrice-prose :is(img, figure).sunrice-img-center { margin-inline: auto; }
+    .sunrice-prose :is(img, figure).sunrice-img-left { float: left; margin: 0.25em 1.25em 0.75em 0; }
+    .sunrice-prose :is(img, figure).sunrice-img-right { float: right; margin: 0.25em 0 0.75em 1.25em; }
+    .sunrice-prose :is(img, figure):is(.sunrice-img-left, .sunrice-img-right):not([class*="sunrice-img-w-"]) { max-width: 50%; }
     .sunrice-prose :is(h2, h3, h4, hr, pre, blockquote) { clear: both; }
     .sunrice-prose p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--muted-foreground); float: left; height: 0; pointer-events: none; }
 }

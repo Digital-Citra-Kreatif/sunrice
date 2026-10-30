@@ -84,3 +84,29 @@ it('hands the image styles to the editor in the field\'s props, labels translate
     expect(RichText::make('body')->toArray()['imageStyles'])->toBe([['class' => 'rounded', 'label' => 'Membulat'], ['class' => 'shadow', 'label' => 'Shadow']])
         ->and(RichText::make('body')->images(false)->toArray()['imageStyles'])->toBe([]);
 });
+
+it('keeps a captioned image\'s figure, its presets on the figure and its styles on the image', function () {
+    config(['sunrice-admin.rich_text.image_classes' => ['rounded' => 'Rounded']]);
+    $html = '<figure class="sunrice-img sunrice-img-w-50 sunrice-img-left"><img src="/media/a.jpg" alt="A saw" class="rounded" data-media-id="7"><figcaption>The <strong>old</strong> saw, <em>1920</em> <a href="https://example.com/saw">source</a></figcaption></figure>';
+
+    expect(RichText::sanitize($html))->toBe(
+        '<figure class="sunrice-img sunrice-img-w-50 sunrice-img-left"><img src="/media/a.jpg" alt="A saw" class="rounded" data-media-id="7" />'
+        .'<figcaption>The <strong>old</strong> saw, <em>1920</em> <a href="https://example.com/saw" rel="noopener noreferrer">source</a></figcaption></figure>'
+    )
+        // Saved again: the same.
+        ->and(RichText::sanitize(RichText::sanitize($html)))->toBe(RichText::sanitize($html));
+});
+
+it('holds a figure\'s classes to the image classes and its caption to inline formatting', function () {
+    $sanitized = RichText::sanitize('<figure class="sunrice-img evil sunrice-img-right" style="position:fixed" onclick="x()"><img src="/a.jpg" class="sunrice-img-w-33 junk">'
+        .'<figcaption class="huge" onmouseover="x()">Caption <script>alert(1)</script><img src=x onerror="alert(1)"><a href="javascript:alert(1)">bad</a> <iframe src="https://example.com"></iframe></figcaption></figure>');
+
+    expect($sanitized)->toContain('<figure class="sunrice-img sunrice-img-right"><img src="/a.jpg" />')
+        ->toContain('<figcaption>Caption ')
+        ->not->toContain('evil')->not->toContain('junk')->not->toContain('huge')->not->toContain('style')
+        ->not->toContain('onclick')->not->toContain('onmouseover')->not->toContain('onerror')->not->toContain('script')
+        ->not->toContain('javascript')->not->toContain('iframe')
+        // A figure without an allowed class is a plain figure.
+        ->and(RichText::sanitize('<figure class="wp-block-image"><img src="/a.jpg"><figcaption>Hi</figcaption></figure>'))
+        ->toBe('<figure><img src="/a.jpg" /><figcaption>Hi</figcaption></figure>');
+});

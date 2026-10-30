@@ -51,6 +51,21 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## Unreleased
+
+- **Captioned rich text images: add the figure rules to your site's CSS.** Editors can now give an image a caption; it's saved as `<figure class="sunrice-img sunrice-img-w-50 sunrice-img-left"><img class="rounded" …><figcaption>…</figcaption></figure>`, the width and alignment classes on the `<figure>` and the image styles on the `<img>`. The preset rules (`.sunrice-img-w-50 { width: 50% }`…) already apply to the figure; add these so the picture fills it and the caption shows under it (from the starter templates' `site.css`; `.prose` is their wrapper of rich text). Images without a caption are stored as before, so nothing changes until someone adds one:
+
+  ```css
+  figure.sunrice-img > img { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+  figure:is([class*="sunrice-img-w-"], .sunrice-img-full) > img { width: 100%; }
+  figure.sunrice-img-center:not([class*="sunrice-img-w-"]) { width: fit-content; }
+  .prose figure:is(.sunrice-img-left, .sunrice-img-right) { clear: none; }
+  .prose figcaption { margin-top: 0.5rem; font-size: 0.875rem; color: var(--muted); }
+  ```
+
+  If your CSS styles image styles as `img.rounded`, nothing changes: they stay on the `<img>`.
+- **The CMS's rich text sanitiser no longer lists `class` on `p`, `figcaption`, `blockquote`, `pre`, `code` or `table`.** It never actually kept it there (the allowance came before those elements were allowed, so it didn't apply); only images and, now, a captioned image's `<figure>` keep classes, held to the image classes. Stored content is unchanged.
+
 ## 0.3.1
 
 From 0.3.0 to 0.3.1: `composer update "sunrice/*" -W` and `php artisan sunrice:assets`; no migrations.

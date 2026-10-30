@@ -99,6 +99,22 @@ it('works sizes out from the width and alignment presets and the text\'s width',
     'no preset' => ['', '(min-width: 46rem) 46rem, 100vw'],
 ]);
 
+it('makes a captioned image responsive, its sizes from the presets on its figure, the figure and caption as stored', function () {
+    config(['sunrice-admin.rich_text.image_classes' => ['rounded' => 'Rounded']]);
+    $media = richImage();
+    $stored = Schema::make([Field::make('body', 'rich_text')])->normalize(['body' => '<p>Before</p><figure class="sunrice-img sunrice-img-w-25 sunrice-img-right evil">'
+        .'<img src="'.e($media->url()).'" alt="A saw" class="rounded junk" data-media-id="'.$media->id.'"><figcaption>An <em>old</em> saw</figcaption></figure><p>After</p>'])['body'];
+    $hydrated = richHydrate($stored);
+
+    expect($stored)->toContain('<figure class="sunrice-img sunrice-img-w-25 sunrice-img-right"><img ')->toContain('class="rounded"')->not->toContain('evil')->not->toContain('junk')
+        ->and(addedAttributes($stored, $hydrated))->toBe(
+            'srcset="'.e($media->srcset()).'" sizes="(min-width: 46rem) 11.5rem, (min-width: 40em) 25vw, 100vw" width="2400" height="1600" loading="lazy" decoding="async"'
+        )
+        ->and($hydrated)->toContain('<figure class="sunrice-img sunrice-img-w-25 sunrice-img-right"><img ')->toContain('<figcaption>An <em>old</em> saw</figcaption></figure><p>After</p>')
+        // A figure without presets: the image's own classes count, as for an image without a caption.
+        ->and(richHydrate(str_replace(' class="sunrice-img sunrice-img-w-25 sunrice-img-right"', '', $stored)))->toContain(' sizes="(min-width: 46rem) 46rem, 100vw"');
+});
+
 it('takes the text\'s width or one sizes for all from the config', function () {
     $stored = richHtml(richImage(), 'sunrice-img sunrice-img-w-50');
 
