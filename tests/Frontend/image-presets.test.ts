@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { IMAGE_ALIGNMENTS, IMAGE_WIDTHS, imageClass, imageStylesOf, isStyleClass, parseImageClass, toggleStyle } from '../../packages/admin/resources/js/lib/image-presets.ts';
+import { IMAGE_ALIGNMENTS, IMAGE_WIDTHS, captionText, figureClasses, imageClass, imageStylesOf, isStyleClass, parseImageClass, toggleStyle } from '../../packages/admin/resources/js/lib/image-presets.ts';
 
 test('image presets become classes on the <img>, and none leaves it as it was', () => {
     assert.equal(imageClass({ width: '50', align: 'left' }), 'sunrice-img sunrice-img-w-50 sunrice-img-left');
@@ -86,4 +86,24 @@ test('the selected image has its own labelled toolbar with pressed states and an
     assert.match(editor, /e\.key === 'Escape'/);
     // A library image is inserted as one node with its alt and media id (setImage() then updateAttributes() lost the id).
     assert.match(editor, /insertContent\(\{ type: 'image', attrs: \{ src: item\.url, alt: item\.alt \?\? item\.title \?\? '', title: item\.title \?\? null, 'data-media-id': String\(item\.id\) \} \}\)/);
+});
+
+test('a captioned image has its presets on the figure and its styles on the image', () => {
+    assert.deepEqual(figureClasses({ width: '50', align: 'left', styles: ['rounded', 'shadow'] }), { figure: 'sunrice-img sunrice-img-w-50 sunrice-img-left', img: 'rounded shadow' });
+    assert.deepEqual(figureClasses({ width: '25', align: null, styles: null }), { figure: 'sunrice-img sunrice-img-w-25', img: null });
+    assert.deepEqual(figureClasses({ styles: ['rounded'] }), { figure: null, img: 'rounded' });
+    assert.deepEqual(figureClasses({}), { figure: null, img: null });
+    // Read back from the figure's and the image's classes together: the same presets and styles.
+    assert.deepEqual(parseImageClass('sunrice-img sunrice-img-w-50 sunrice-img-left rounded shadow'), { width: '50', align: 'left', styles: ['rounded', 'shadow'] });
+});
+
+test('a caption is saved as one line of text, and an empty one is none', () => {
+    assert.equal(captionText('  An old\n  saw  '), 'An old saw');
+    assert.equal(captionText('Typing a '), 'Typing a');
+    assert.equal(captionText('   '), null);
+    assert.equal(captionText(''), null);
+    assert.equal(captionText(null), null);
+    assert.equal(captionText(42), null);
+    // Its text as typed: the editor escapes it when it writes the HTML.
+    assert.equal(captionText('<b>"A & B"</b>'), '<b>"A & B"</b>');
 });

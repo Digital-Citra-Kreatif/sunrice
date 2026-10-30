@@ -26,8 +26,15 @@ use Symfony\Component\HtmlSanitizer\Visitor\AttributeSanitizer\AttributeSanitize
  * Any other class on an <img> is dropped. The config is read each time, so
  * a style taken out of it is dropped the next time the text is saved.
  *
+ * A captioned image is a <figure> whose class holds the presets (so the
+ * caption floats and sizes with the picture) and whose <img> holds the
+ * styles; the same rule keeps only these classes on the <figure>:
+ *
+ *     <figure class="sunrice-img sunrice-img-w-50 sunrice-img-left"><img class="rounded" …><figcaption>…</figcaption></figure>
+ *
  *     $config = (new HtmlSanitizerConfig)
  *         ->allowElement('img', ['src', 'alt', 'class'])
+ *         ->allowElement('figure', ['class'])
  *         ->withAttributeSanitizer(new RichTextImageClasses);
  *
  * @api
@@ -41,7 +48,7 @@ final class RichTextImageClasses implements AttributeSanitizerInterface
     /** What a configured image style's class must look like. */
     public const CLASS_PATTERN = '/^[A-Za-z_][A-Za-z0-9_-]*$/';
 
-    /** @return list<string> Every class the editor may put on an image: the presets' and the configured styles'. */
+    /** @return list<string> Every class the editor may put on an image or a captioned image's figure: the presets' and the configured styles'. */
     public static function allowed(): array
     {
         return [
@@ -111,7 +118,7 @@ final class RichTextImageClasses implements AttributeSanitizerInterface
 
     public function getSupportedElements(): array
     {
-        return ['img'];
+        return ['img', 'figure'];
     }
 
     public function getSupportedAttributes(): array

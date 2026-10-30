@@ -56,7 +56,7 @@ See [Media](media.md).
 
 | Key | Default | Env | |
 | --- | --- | --- | --- |
-| `rich_text.image_classes` | `[]` | — | Image styles editors turn on in an image's toolbar (**Style**, several at once): `class => label`, such as `['rounded' => 'Rounded', 'shadow' => 'Shadow']`. The class goes on the `<img>` and is kept when the text is sanitised; style it in your site's CSS. Keys that aren't CSS class names (`/^[A-Za-z_][A-Za-z0-9_-]*$/`) or start with `sunrice-img` are ignored. Empty: no **Style** buttons. |
+| `rich_text.image_classes` | `[]` | — | Image styles editors turn on in an image's toolbar (**Style**, several at once): `class => label`, such as `['rounded' => 'Rounded', 'shadow' => 'Shadow']`. The class goes on the `<img>` (a captioned image's too) and is kept when the text is sanitised; style it in your site's CSS. Keys that aren't CSS class names (`/^[A-Za-z_][A-Za-z0-9_-]*$/`) or start with `sunrice-img` are ignored. Empty: no **Style** buttons. |
 
 See [Resources → Rich text](resources.md#rich-text).
 
