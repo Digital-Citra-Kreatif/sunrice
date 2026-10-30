@@ -115,6 +115,29 @@ test('a finished write drops the prefetched pages, a read keeps them', () => {
     assert.equal(listener, undefined);
 });
 
+test('after "Leave without saving", a full page load the visit ends in does not ask again', () => {
+    const guard = createUnloadGuard();
+    guard.leave();
+    guard.start({ method: 'get' });
+    // Inertia answers a visit with a full page load when the admin's assets changed.
+    guard.finish({ method: 'get', completed: false });
+    assert.equal(guard.shouldWarn(true), false);
+    // The next page shown: guarded again.
+    guard.navigate();
+    assert.equal(guard.shouldWarn(true), true);
+
+    // A cancelled, interrupted or failed visit stays on the page: guarded again.
+    guard.leave();
+    guard.finish({ method: 'get', cancelled: true });
+    assert.equal(guard.shouldWarn(true), true);
+    guard.leave();
+    guard.finish({ method: 'get', interrupted: true });
+    assert.equal(guard.shouldWarn(true), true);
+    guard.leave();
+    guard.error();
+    assert.equal(guard.shouldWarn(true), true);
+});
+
 test('closing the tab warns about unsaved edits, but not during or right after a save the app reloads after', () => {
     const guard = createUnloadGuard();
     assert.equal(guard.shouldWarn(true), true);
