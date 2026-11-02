@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Deferred, Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, ArrowUpRight, CircleAlert, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CircleAlert, OctagonAlert, Sparkles, TrendingDown, TrendingUp, TriangleAlert } from 'lucide-react';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
 import { CollapseRegion, CollapseToggle } from '@/components/app/collapse';
 import { navIcon } from '@/components/app/nav-icon';
@@ -11,7 +11,7 @@ import { adminUrl } from '@/lib/admin-url';
 import { panelLocale, t } from '@/lib/i18n';
 import {
     COLLAPSED_PREFERENCE, formatStat, greeting, isExternal, parseCollapsed, quickLinks, relativeTime, spanClass, widgetHref, withCollapsed,
-    type CardsData, type ListData, type ListRow, type StatData, type Tone, type WidgetDefinition, type WidgetResult,
+    type CardsData, type ListData, type ListRow, type Notice, type StatData, type Tone, type WidgetDefinition, type WidgetResult,
 } from '@/lib/dashboard';
 import { savePreference } from '@/lib/preferences';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,8 @@ import type { SharedProps } from '@/types';
 
 interface Props {
     widgets: WidgetDefinition[];
+    /** Notices with something to say, shown above everything else. */
+    notices?: Notice[];
     /** The keys of the widgets this user folded away (a preference, so it follows them across devices). */
     collapsed?: string[];
 }
@@ -26,7 +28,7 @@ interface Props {
 const BADGE: Record<Tone, 'outline' | 'success' | 'warning' | 'destructive'> = { neutral: 'outline', success: 'success', warning: 'warning', danger: 'destructive' };
 
 /** The dashboard: a greeting, then the widgets the panel and its plugins registered, their data arriving after the page. */
-export default function Dashboard({ widgets, collapsed: saved }: Props) {
+export default function Dashboard({ widgets, notices = [], collapsed: saved }: Props) {
     const { auth, sunrice, navigation } = usePage<SharedProps>().props;
     useBreadcrumbs([{ label: t('Dashboard') }]);
     const now = React.useMemo(() => new Date(), []);
@@ -46,6 +48,11 @@ export default function Dashboard({ widgets, collapsed: saved }: Props) {
         <>
             <Head title={t('Dashboard')} />
             <div className="space-y-6">
+                {notices.length > 0 && (
+                    <div className="space-y-3">
+                        {notices.map((notice) => <NoticeAlert key={notice.key} notice={notice} />)}
+                    </div>
+                )}
                 <section className="sunrice-atmosphere relative isolate overflow-hidden rounded-xl px-6 py-7 shadow-card sm:px-8 sm:py-9">
                     <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 -z-10 hidden w-80 sm:block">
                         <div className="sunrice-orbit -top-20 -right-16" />
@@ -77,6 +84,32 @@ export default function Dashboard({ widgets, collapsed: saved }: Props) {
                 )}
             </div>
         </>
+    );
+}
+
+const NOTICE_TONE: Record<Notice['tone'], { box: string; icon: string }> = {
+    warning: { box: 'border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100', icon: 'text-amber-600 dark:text-amber-400' },
+    danger: { box: 'border-destructive/40 bg-destructive/10 text-red-950 dark:text-red-100', icon: 'text-destructive' },
+};
+
+/** A notice: a full-width alert with its title, text and link. */
+function NoticeAlert({ notice }: { notice: Notice }) {
+    const Icon = notice.tone === 'danger' ? OctagonAlert : TriangleAlert;
+
+    return (
+        <div role="alert" className={cn('flex flex-wrap items-start gap-x-4 gap-y-2 rounded-xl border px-5 py-4 shadow-card', NOTICE_TONE[notice.tone].box)}>
+            <Icon aria-hidden="true" className={cn('mt-0.5 size-5 shrink-0', NOTICE_TONE[notice.tone].icon)} />
+            <div className="min-w-0 flex-1 basis-64">
+                {notice.title && <p className="text-sm font-semibold">{notice.title}</p>}
+                <p className={cn('text-[13px] leading-relaxed', notice.title && 'mt-0.5 opacity-90')}>{notice.text}</p>
+            </div>
+            {notice.link && (
+                <SmartLink url={notice.link.url} className="inline-flex shrink-0 items-center gap-1 self-center rounded-md bg-background/70 px-3 py-1.5 text-[13px] font-medium text-foreground ring-1 ring-border/70 transition-colors hover:bg-background focus-visible:ring-4 focus-visible:ring-ring-glow focus-visible:outline-none">
+                    {notice.link.label ?? t('Open')}
+                    <ArrowRight aria-hidden="true" className="size-3.5" />
+                </SmartLink>
+            )}
+        </div>
     );
 }
 

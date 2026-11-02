@@ -279,3 +279,72 @@ it('serves an invokable controller as the dashboard', function () {
     actingAs(adminUser(Panel::ACCESS));
     get('/admin')->assertOk()->assertInertia(fn (Assert $page) => $page->component('App/Home', shouldExist: false)->where('user', 'Rina'));
 });
+
+it('checks a notice\'s data: text, tone, its link or the data\'s, safe URLs only, and null for nothing', function () {
+    $user = adminUser();
+    $notice = fn (?array $data, ?Closure $build = null): ?array => ($build ?? fn (Widget $w) => $w)(Widget::notice('n')->everyone()->data(fn (): ?array => $data))->resolve($user);
+
+    expect($notice(['text' => 'Payments are in test mode.'], fn (Widget $w) => $w->title('Test mode')->link('shop/settings', 'Open shop settings')))->toBe([
+        'key' => 'n', 'title' => 'Test mode', 'text' => 'Payments are in test mode.', 'tone' => 'warning',
+        'link' => ['url' => 'shop/settings', 'label' => 'Open shop settings'],
+    ])
+        // No title set: none (not the key).
+        ->and($notice(['text' => 'A'])['title'])->toBeNull()
+        ->and($notice(['text' => 'A', 'tone' => 'danger'])['tone'])->toBe('danger')
+        ->and($notice(['text' => 'A', 'tone' => 'success'])['tone'])->toBe('warning')
+        ->and($notice(['text' => 'A'])['link'])->toBeNull()
+        // The data's own link instead of the widget's, or none.
+        ->and($notice(['text' => 'A', 'url' => 'https://example.com/help', 'label' => 'Help'], fn (Widget $w) => $w->link('shop'))['link'])->toBe(['url' => 'https://example.com/help', 'label' => 'Help'])
+        ->and($notice(['text' => 'A', 'url' => null], fn (Widget $w) => $w->link('shop'))['link'])->toBeNull()
+        // Null: nothing to say.
+        ->and($notice(null))->toBeNull();
+
+    // Unsafe URLs are dropped, from the data or the widget's link.
+    foreach (['javascript:alert(1)', '//evil.example', '/\\evil.example', '\\evil.example', 'data:text/html,x'] as $url) {
+        expect($notice(['text' => 'A', 'url' => $url])['link'])->toBeNull()
+            ->and($notice(['text' => 'A'], fn (Widget $w) => $w->link($url))['link'])->toBeNull();
+    }
+
+    expect(fn () => $notice([]))->toThrow(InvalidArgumentException::class, 'a notice\'s data needs a "text"')
+        ->and(fn () => $notice(['text' => '']))->toThrow(InvalidArgumentException::class, 'needs a "text"')
+        // Only a notice may have nothing to show.
+        ->and(fn () => Widget::stat('s')->data(fn (): ?array => null)->resolve($user))->toThrow(InvalidArgumentException::class, 'only a notice\'s data may be null');
+    // Registered like any widget: it says who sees it.
+    expect(fn () => Panel::make()->widgets(Widget::notice('open')->data(fn (): array => ['text' => 'A'])))
+        ->toThrow(PanelMisconfigured::class, 'doesn\'t say who may see it');
+});
+
+it('sends notices with something to say with the page, above the tiles and not among them', function () {
+    Exceptions::fake();
+    $ran = (object) ['times' => 0];
+    usePanel(fn (Panel $panel) => $panel->mediaLibrary(false)->widgets(
+        statWidget('tile'),
+        Widget::notice('later')->title('Later')->sort(20)->everyone()->data(fn (): array => ['text' => 'Second.', 'tone' => 'danger']),
+        Widget::notice('first')->sort(10)->everyone()->link('settings', 'Open settings')->data(fn (): array => ['text' => 'First.']),
+        Widget::notice('quiet')->everyone()->data(fn (): ?array => null),
+        Widget::notice('broken')->everyone()->data(fn (): array => throw new RuntimeException('Settings table missing')),
+        Widget::notice('guarded')->permission('shop.settings')->data(function () use ($ran): array {
+            $ran->times++;
+
+            return ['text' => 'Secret.'];
+        }),
+    ));
+    actingAs(adminUser(Panel::ACCESS));
+
+    get('/admin')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('notices', [
+            ['key' => 'first', 'title' => null, 'text' => 'First.', 'tone' => 'warning', 'link' => ['url' => 'settings', 'label' => 'Open settings']],
+            ['key' => 'later', 'title' => 'Later', 'text' => 'Second.', 'tone' => 'danger', 'link' => null],
+        ])
+        ->where('widgets', fn ($widgets) => collect($widgets)->pluck('key')->all() === ['tile'])
+        ->missing('widget_first')
+        ->missing('widget_quiet'));
+
+    // A failing notice is reported and left out; one the user may not see never runs.
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'Settings table missing');
+    expect($ran->times)->toBe(0);
+
+    actingAs(adminUser(Panel::ACCESS, 'shop.settings'));
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('notices.2.text', 'Secret.'));
+    expect($ran->times)->toBe(1);
+});
