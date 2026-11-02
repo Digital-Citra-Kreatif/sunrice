@@ -5,7 +5,7 @@
 ## How to upgrade
 
 1. Read this page from the version you have to the one you're going to, and `CHANGELOG.md` for everything else that changed.
-2. Update the packages. Within the version your `composer.json` allows (`^0.3` takes 0.3.1, 0.3.2…), update them:
+2. Update the packages. Within the version your `composer.json` allows (`^0.4` takes 0.4.1, 0.4.2…), update them:
 
    ```bash
    composer update "sunrice/*" -W
@@ -14,9 +14,9 @@
    **Before 1.0, each minor version is a new major one for Composer**: `^0.1` allows 0.1.x but never 0.2.0, so `composer update` finds nothing new. To move to the next minor version, raise the constraints with `composer require`, every Sunrice package you have at once (and `-W` so their dependencies may move too):
 
    ```bash
-   composer require sunrice/admin:^0.3 sunrice/cms:^0.3 -W
+   composer require sunrice/admin:^0.4 sunrice/cms:^0.4 -W
    # with the starter kit installed, add it to the same command:
-   composer require sunrice/admin:^0.3 sunrice/cms:^0.3 sunrice/starter-kit:^0.3 -W
+   composer require sunrice/admin:^0.4 sunrice/cms:^0.4 sunrice/starter-kit:^0.4 -W
    ```
 
    Plugins of your own or from others (`composer.json`'s `sunrice/admin` or `sunrice/cms` constraint) need a release allowing the new version too; Composer names any that hold the update back.
@@ -51,8 +51,12 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
-## Unreleased
+## 0.4.0
 
+From 0.3.x to 0.4.0: raise the constraints to `^0.4` (above) and run `php artisan sunrice:assets`; no migrations.
+
+- **Link fields print `rel` now.** A Link field's value has a ready `rel` (the editor's nofollow, sponsored or ugc, then `noopener noreferrer` on new-tab links, or null) beside `url`, `label`, `title` and `new_tab`, and can point at a term's page or a listing page as well as an address or an entry. Links saved before still read. Templates that print a link themselves should add it: `<a href="{{ $link['url'] }}" @if($link['new_tab']) target="_blank" @endif @if($link['rel']) rel="{{ $link['rel'] }}" @endif>`. The generated templates (`sunrice:make-templates`), the CMS's stubs and the Blog starter already do.
+- **Plugins: `Widget::resolve()` returns `?array`**, null for a `Widget::notice()` that has nothing to say (the other types still throw on null). Only code that calls `resolve()` itself is affected.
 - **Captioned rich text images: add the figure rules to your site's CSS.** Editors can now give an image a caption; it's saved as `<figure class="sunrice-img sunrice-img-w-50 sunrice-img-left"><img class="rounded" …><figcaption>…</figcaption></figure>`, the width and alignment classes on the `<figure>` and the image styles on the `<img>`. The preset rules (`.sunrice-img-w-50 { width: 50% }`…) already apply to the figure; add these so the picture fills it and the caption shows under it (from the starter templates' `site.css`; `.prose` is their wrapper of rich text). Images without a caption are stored as before, so nothing changes until someone adds one:
 
   ```css
