@@ -10,6 +10,7 @@ use Sunrice\Admin\Media\Media;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
+use Sunrice\Cms\Actions\Settings\MakeSiteImages;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -19,6 +20,7 @@ use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Models\TermTranslation;
+use Sunrice\Cms\Settings\SiteImages;
 use Sunrice\Cms\Settings\SiteSettings;
 use Sunrice\Cms\Structure\ImportReport;
 use Sunrice\Cms\Structure\StructureExporter;
@@ -175,20 +177,25 @@ it('carries Settings → Site with --settings, the homepage and images portably,
     $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'blueprint' => 'page', 'route' => '/{slug}']);
     $home = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'Home']));
     $logo = app(UploadMedia::class)->handle(UploadedFile::fake()->image('logo.png', 10, 10));
-    app(SaveSettings::class)->handle(new SiteSettings, ['name' => 'Acme', 'description' => 'Homes in Bali.', 'logo' => $logo->id, 'homepage' => $home->entry_id, 'twitter' => '@acme', 'noindex' => true,
+    $icon = app(UploadMedia::class)->handle(UploadedFile::fake()->image('icon.png', 64, 64));
+    app(SaveSettings::class)->handle(new SiteSettings, ['name' => 'Acme', 'description' => 'Homes in Bali.', 'logo' => $logo->id, 'icon' => $icon->id, 'homepage' => $home->entry_id, 'twitter' => '@acme', 'noindex' => true,
         // Settings → SEO's structured data, stored with the site's.
         'publisherType' => 'Brewery', 'telephone' => '+62 21 555 0100', 'sameAs' => 'https://instagram.com/acme']);
 
     expect(app(StructureExporter::class)->export(content: true))->not->toHaveKey('settings');
     $file = json_decode(json_encode(app(StructureExporter::class)->export(content: true, settings: true), JSON_THROW_ON_ERROR), true);
-    expect($file['settings']['site'])->toMatchArray(['name' => 'Acme', 'homepage' => ['entry' => 'pages/home'], 'logo' => ['media' => $logo->path], 'image' => null, 'twitter' => '@acme',
+    expect($file['settings']['site'])->toMatchArray(['name' => 'Acme', 'homepage' => ['entry' => 'pages/home'], 'logo' => ['media' => $logo->path], 'icon' => ['media' => $icon->path], 'image' => null, 'twitter' => '@acme',
         'structuredData' => true, 'publisherType' => 'Brewery', 'telephone' => '+62 21 555 0100', 'sameAs' => 'https://instagram.com/acme'])
-        ->and($file['settings']['site'])->not->toHaveKey('noindex');
+        ->and($file['settings']['site'])->not->toHaveKey('noindex')
+        // The files made from the icon and logo aren't carried: an import makes them.
+        ->and(json_encode($file))->not->toContain(MakeSiteImages::DIRECTORY);
+    $made = (new SiteImages)->icon['files'];
+    expect($made)->toHaveCount(5);
 
     // Another site, which named itself already.
     Entry::withTrashed()->get()->each->forceDelete();
     EntryTranslation::query()->delete();
-    (new SiteSettings)->fill(['name' => 'Ours', 'description' => '', 'logo' => null, 'homepage' => null, 'twitter' => '', 'noindex' => false,
+    (new SiteSettings)->fill(['name' => 'Ours', 'description' => '', 'logo' => null, 'icon' => null, 'homepage' => null, 'twitter' => '', 'noindex' => false,
         'publisherType' => '', 'telephone' => '', 'sameAs' => ''])->save();
 
     $dry = app(StructureImporter::class)->import($file, dryRun: true);
@@ -199,10 +206,15 @@ it('carries Settings → Site with --settings, the homepage and images portably,
     expect($site->name)->toBe('Ours')
         ->and($site->description)->toBe('Homes in Bali.')
         ->and($site->logo)->toBe($logo->id)
+        ->and($site->icon)->toBe($icon->id)
         ->and($site->homepage)->toBe(entryBySlug('home')?->id)
         ->and($site->noindex)->toBeFalse()
         ->and([$site->publisherType, $site->telephone, $site->profiles()])->toBe(['Brewery', '+62 21 555 0100', ['https://instagram.com/acme']])
         ->and(collect($report->items())->firstWhere('type', 'settings')['notes'])->toBe(['Keeps this site\'s own: name.']);
+    // Made again on import, at new addresses; the logo's PNG for emails too.
+    expect((new SiteImages)->icon['files'])->toHaveCount(5)->not->toBe($made)
+        ->and($site->iconUrl(32))->not->toBeNull()
+        ->and($site->emailLogo())->not->toBeNull();
     expect(app(StructureImporter::class)->import($file)->status('settings', 'site'))->toBe(ImportReport::UNCHANGED);
     // Checked as Settings → SEO checks them.
     (new SiteSettings)->fill(['publisherType' => ''])->save();

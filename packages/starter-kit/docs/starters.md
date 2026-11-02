@@ -104,7 +104,7 @@ php artisan sunrice:make-starter my-starter --title="My starter" --description="
 It writes `starters/my-starter` (or `--to=<folder>`):
 
 - `site.json`: the structure and content, with entries (what the site shows, changes not published yet as drafts, and dates) and Settings → Site (not `noindex`; see [Structure → Export and import](../../cms/docs/structure.md));
-- `media/` and `media.json`: every media file the content, listing pages, SEO cards or site settings (logo, share image) use (not the whole library), each named as it was uploaded (`hero.jpg`), with its details;
+- `media/` and `media.json`: every media file the content, listing pages, SEO cards or site settings (logo, site icon, share image) use (not the whole library), each named as it was uploaded (`hero.jpg`), with its details;
 - `views/cms` and `views/errors`: your templates;
 - `public/<folder>` for each `--public` (your CSS, fonts and images; `public/vendor` and `public/storage` are never what you want here);
 - `lang/`: the app's translation files, its own words (`lang/en/site.php`, `lang/id.json`…) and the CMS's site words you override (`lang/vendor/sunrice-cms`); other packages' published copies (`lang/vendor/<package>`) are left out (`MakeStarter::LANG_VENDOR`).

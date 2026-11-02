@@ -16,6 +16,9 @@ use Sunrice\Admin\Auth\TwoFactorLogin;
  */
 final class LoginCode extends Notification
 {
+    /** With the brand of Panel::mailBrand() at the top. */
+    private const VIEW = 'sunrice-admin::mail.notification';
+
     public function __construct(#[\SensitiveParameter] public readonly string $code, public readonly string $brand) {}
 
     /** @return list<string> */
@@ -27,6 +30,7 @@ final class LoginCode extends Notification
     public function toMail(mixed $notifiable): MailMessage
     {
         return (new MailMessage)
+            ->markdown(self::VIEW)
             // In the subject only when asked: notifications show subjects on locked screens.
             ->subject(config('sunrice-admin.auth.two_factor_code_in_subject') === true
                 ? __('Your :brand login code: :code', ['brand' => $this->brand, 'code' => $this->code])

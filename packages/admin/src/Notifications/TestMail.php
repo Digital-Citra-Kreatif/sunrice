@@ -15,6 +15,9 @@ use Illuminate\Notifications\Notification;
  */
 final class TestMail extends Notification
 {
+    /** With the brand of Panel::mailBrand() at the top. */
+    private const VIEW = 'sunrice-admin::mail.notification';
+
     public function __construct(public readonly string $brand) {}
 
     /** @return list<string> */
@@ -26,6 +29,7 @@ final class TestMail extends Notification
     public function toMail(mixed $notifiable): MailMessage
     {
         return (new MailMessage)
+            ->markdown(self::VIEW)
             ->subject(__('Test email from :brand', ['brand' => $this->brand]))
             ->line(__('This is a test email from the :brand admin panel.', ['brand' => $this->brand]))
             ->line(__('If you can read it, outgoing mail works: login codes, password resets and security alerts can be delivered.'))

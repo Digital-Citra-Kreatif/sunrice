@@ -17,6 +17,9 @@ use Sunrice\Admin\Support\AppUrl;
  */
 final class PanelInvitation extends ResetPassword
 {
+    /** With the brand of Panel::mailBrand() at the top. */
+    private const VIEW = 'sunrice-admin::mail.notification';
+
     public function __construct(
         #[\SensitiveParameter] string $token,
         public readonly string $email,
@@ -31,6 +34,7 @@ final class PanelInvitation extends ResetPassword
     protected function buildMailMessage($url): MailMessage
     {
         return (new MailMessage)
+            ->markdown(self::VIEW)
             ->subject(__('You\'re invited to :brand', ['brand' => $this->brand]))
             ->line($this->inviter === null
                 ? __('You have an account on :brand, for :email.', ['brand' => $this->brand, 'email' => $this->email])

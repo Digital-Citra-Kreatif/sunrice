@@ -240,8 +240,9 @@ it('makes a starter from a site, which installs on another as it was', function 
 it('takes the app\'s translation files, the site\'s settings and the files they use, which install on a fresh app', function () {
     app(InstallStarter::class)->handle(blogStarter());
     $logo = app(UploadMedia::class)->handle(UploadedFile::fake()->image('logo.png', 20, 20));
+    $icon = app(UploadMedia::class)->handle(UploadedFile::fake()->image('icon.png', 64, 64));
     $about = EntryTranslation::query()->where('draft_slug', 'about')->sole();
-    app(SaveSettings::class)->handle(new SiteSettings, ['name' => 'Morning Notes', 'description' => 'Notes at sunrise.', 'logo' => $logo->id, 'homepage' => $about->entry_id,
+    app(SaveSettings::class)->handle(new SiteSettings, ['name' => 'Morning Notes', 'description' => 'Notes at sunrise.', 'logo' => $logo->id, 'icon' => $icon->id, 'homepage' => $about->entry_id,
         'publisherType' => 'NewsMediaOrganization', 'sameAs' => 'https://example.com/notes', 'noindex' => true]);
     (new Filesystem)->ensureDirectoryExists(lang_path('en'));
     file_put_contents(lang_path('en/site.php'), "<?php\n\nreturn ['tagline' => 'Slow mornings'];\n");
@@ -250,9 +251,10 @@ it('takes the app\'s translation files, the site\'s settings and the files they 
 
     app(MakeStarter::class)->handle('morning', $this->made);
     $settings = Starter::load($this->made)->site()['settings']['site'];
-    expect($settings)->toMatchArray(['name' => 'Morning Notes', 'logo' => ['media' => 'logo.png'], 'homepage' => ['entry' => 'pages/about']])
+    expect($settings)->toMatchArray(['name' => 'Morning Notes', 'logo' => ['media' => 'logo.png'], 'icon' => ['media' => 'icon.png'], 'homepage' => ['entry' => 'pages/about']])
         ->and($settings)->not->toHaveKey('noindex')
         ->and(is_file("{$this->made}/media/logo.png"))->toBeTrue()
+        ->and(is_file("{$this->made}/media/icon.png"))->toBeTrue()
         ->and(is_file("{$this->made}/lang/en/site.php"))->toBeTrue()
         ->and(is_dir("{$this->made}/lang/vendor/sunrice-admin"))->toBeFalse();
 
@@ -276,10 +278,15 @@ it('takes the app\'s translation files, the site\'s settings and the files they 
         ->and($site->description)->toBe('Notes at sunrise.')
         ->and($site->publisherType)->toBe('NewsMediaOrganization')
         ->and($site->logo)->toBe(Media::query()->where('filename', 'logo.png')->sole()->id)
+        ->and($site->icon)->toBe(Media::query()->where('filename', 'icon.png')->sole()->id)
         ->and($site->homepage)->toBe(EntryTranslation::query()->where('draft_slug', 'about')->sole()->entry_id)
         ->and($site->noindex)->toBeFalse()
         ->and(require lang_path('en/site.php'))->toBe(['tagline' => 'Slow mornings']);
-    get('/')->assertOk()->assertSee('Morning Notes');
+    // The Blog starter's header shows the logo, named by the site; the head has the icon, made on install.
+    $logoUrl = Media::query()->where('filename', 'logo.png')->sole()->url();
+    get('/')->assertOk()->assertSee('Morning Notes')
+        ->assertSee('<img class="site-logo" src="'.$logoUrl.'" alt="Morning Notes" width="20" height="20">', false)
+        ->assertSee('<link rel="apple-touch-icon" sizes="180x180" href="'.$site->iconUrl(180).'">', false);
 });
 
 it('says what\'s wrong with a starter it can\'t install', function () {

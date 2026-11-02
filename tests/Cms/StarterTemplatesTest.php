@@ -2,18 +2,23 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Sunrice\Admin\Actions\Media\UploadMedia;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Actions\Entries\SaveDraft;
 use Sunrice\Cms\Actions\Menus\SaveMenu;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
+use Sunrice\Cms\Content;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\Fieldset;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
+use Sunrice\Cms\Settings\SiteSettings;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\artisan;
@@ -116,4 +121,20 @@ it('publishes the starter templates, and the site renders with them', function (
     get('/nowhere')->assertNotFound()->assertSee('Page not found')->assertSee('role="search"', false);
 
     expect(view('errors.500')->render())->toContain('Something went wrong')->toContain(asset('cms/site.css'));
+});
+
+it('shows the site\'s logo in the layout\'s header, named by the site, and the name without one', function () {
+    Storage::fake('public');
+    config(['app.name' => 'Acme']);
+    $pages = Collection::query()->create(['handle' => 'pages', 'title' => 'Pages', 'route' => '/{slug}']);
+    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($pages, ['title' => 'About']));
+    artisan('vendor:publish', ['--tag' => 'sunrice-cms-templates'])->assertSuccessful();
+
+    $header = fn (): string => (string) str(get('/about')->assertOk()->getContent())->between('<header class="site-header">', '</header>');
+    expect($header())->toContain('Acme')->not->toContain('<img');
+
+    $logo = app(UploadMedia::class)->handle(UploadedFile::fake()->image('logo.png', 300, 100), []);
+    app(SiteSettings::class)->fill(['logo' => $logo->id])->save();
+    expect($header())->toMatch('/<img class="site-logo" src="'.preg_quote(e($logo->url()), '/').'" alt="Acme" width="300" height="100">/')
+        ->and(Content::site()->logoImage()?->id)->toBe($logo->id);
 });

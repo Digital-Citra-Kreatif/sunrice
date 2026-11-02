@@ -201,9 +201,9 @@ it('edits the profiles elsewhere as a list of https addresses, kept one per line
 it('keeps structured data off Settings → Site, and its fields out of what Site saves', function () {
     \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
     \Pest\Laravel\get('/admin/settings/site')->assertInertia(fn ($page) => $page
-        ->where('section.description', 'The homepage, and the site\'s name and description.')
+        ->where('section.description', 'The homepage, and the site\'s name, description, icon and logo.')
         ->where('form', fn ($sections): bool => collect($sections)->pluck('title')->doesntContain('Structured data')
-            && collect($sections)->flatMap(fn ($section) => $section['fields'])->pluck('name')->intersect(['structuredData', 'publisher', 'logo', 'sameAs'])->isEmpty()));
+            && collect($sections)->flatMap(fn ($section) => $section['fields'])->pluck('name')->intersect(['structuredData', 'publisher', 'sameAs'])->isEmpty()));
     \Pest\Laravel\put('/admin/settings/site', ['name' => 'Acme', 'publisherName' => 'Ignored'])->assertSessionHasNoErrors();
     expect(app(SiteSettings::class)->publisherName)->toBe('')
         ->and(app(SiteSettings::class)->structuredData)->toBeTrue();
@@ -242,17 +242,17 @@ it('names listings, collections and the way home in the page\'s language', funct
     expect($this->blog->titleIn('en'))->toBe('Blog')->and($this->blog->fresh()?->titleIn('id'))->toBe('Jurnal');
 });
 
-it('lists the logo and share image as used by Settings → SEO in the media library', function () {
+it('lists the share image as used by Settings → SEO and the logo by Settings → Site in the media library', function () {
     $logo = Media::query()->create(['disk' => 'public', 'path' => 'logo.png', 'filename' => 'logo.png', 'mime_type' => 'image/png', 'size' => 10]);
     $image = Media::query()->create(['disk' => 'public', 'path' => 'share.png', 'filename' => 'share.png', 'mime_type' => 'image/png', 'size' => 10]);
     \Pest\Laravel\actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
-    saveStructured(['logo' => $logo->id])->assertSessionHasNoErrors();
+    \Pest\Laravel\put('/admin/settings/site', ['name' => 'Acme', 'logo' => $logo->id])->assertSessionHasNoErrors();
     \Pest\Laravel\put('/admin/settings/seo', ['site' => ['noindex' => false, 'appendName' => true, 'separator' => '|', 'twitter' => '', 'image' => $image->id]])->assertSessionHasNoErrors();
 
     $usedBy = fn (Media $media) => app(MediaUsages::class)->of($media);
-    expect($usedBy($logo))->toBe([['type' => 'cms.settings', 'label' => 'Settings: SEO', 'url' => route('sunrice.admin.settings.seo.edit')]])
+    expect($usedBy($logo))->toBe([['type' => 'sunrice.settings', 'label' => 'Settings: Site', 'url' => route('sunrice.admin.settings.edit', 'site')]])
         ->and($usedBy($image))->toBe([['type' => 'cms.settings', 'label' => 'Settings: SEO', 'url' => route('sunrice.admin.settings.seo.edit')]]);
-    // Settings → Site has no media pickers left: it uses none.
-    \Pest\Laravel\put('/admin/settings/site', ['name' => 'Acme'])->assertSessionHasNoErrors();
+    // Settings → SEO no longer holds the logo: saving it doesn't claim it.
+    saveStructured(['publisher' => 'Organization'])->assertSessionHasNoErrors();
     expect($usedBy($logo))->toHaveCount(1);
 });

@@ -51,6 +51,15 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## Unreleased
+
+No migrations; run `php artisan sunrice:assets` as usual.
+
+- **The logo moved to Settings → Site**, beside the new **Site icon**. It's the same setting (`SiteSettings::$logo`), so nothing is lost: structured data keeps using it, and it's now also the site's logo for templates (`Cms::site()->logoImage()`) and emails. Its PNG for emails is made when the logo is saved, or when the first email needs it. An SVG logo shows in emails only where the server has Imagick; else upload a PNG. See [Site icon and logo](../packages/cms/docs/site.md#site-icon-and-logo).
+- **Templates you published before** (`resources/views/cms/layout.blade.php`, or a starter's) keep showing the site name: to show the logo, use `Cms::site()->logoImage()` as the [docs](../packages/cms/docs/site.md#site-icon-and-logo) show, and add `.site-logo` to your CSS (`display: block; width: auto; height: 2.5rem;`). The icon needs nothing: `<x-sunrice-cms::seo>` prints its tags once one is chosen.
+- **The panel's emails have their own markdown template.** Password resets, invitations, login codes and test emails use `sunrice-admin::mail.notification` (Laravel's, with the brand at the top) instead of `notifications::email`, so an app's own `resources/views/vendor/notifications/email.blade.php` no longer changes them; the app's mail components and theme (`vendor/mail`) still do. With the CMS they show the site's name and logo, without it Settings → Branding's.
+- **Plugins** that send HTML emails of their own can put `<x-sunrice-admin::mail-brand />` at the top, and may give every email's brand with `$panel->mailBrandUsing()` (one plugin; the CMS does). See [Mail](../packages/admin/docs/mail.md#the-logo-at-the-top-of-emails).
+
 ## 0.4.0
 
 From 0.3.x to 0.4.0: raise the constraints to `^0.4` (above) and run `php artisan sunrice:assets`; no migrations.
