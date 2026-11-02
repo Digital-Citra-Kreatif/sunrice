@@ -176,7 +176,7 @@ final class TermsField extends FieldType
     }
 
     /**
-     * Terms' titles in the main language, by id, in one query.
+     * Terms' titles in the main language, by id in the order asked for, in one query.
      *
      * @param  array<int>  $ids
      * @return array<int, string>
@@ -187,9 +187,17 @@ final class TermsField extends FieldType
         if ($ids === []) {
             return [];
         }
+        $ids = array_slice($ids, 0, 500);
+        $titles = [];
+        foreach (Term::query()->with('translations')->whereKey($ids)->get() as $term) {
+            $titles[$term->id] = $term->title(Locales::default());
+        }
+        // In the order asked for: the database returns rows in any order (PostgreSQL does).
         $labels = [];
-        foreach (Term::query()->with('translations')->whereKey(array_slice($ids, 0, 500))->get() as $term) {
-            $labels[$term->id] = $term->title(Locales::default());
+        foreach ($ids as $id) {
+            if (isset($titles[$id])) {
+                $labels[$id] = $titles[$id];
+            }
         }
 
         return $labels;
