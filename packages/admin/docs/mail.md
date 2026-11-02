@@ -15,7 +15,7 @@ Plugins send their own (the CMS, for example, its form and comment notifications
 
 ## The logo at the top of emails
 
-Every email the panel sends shows a brand at the top: a logo, with the name as its alternative text, or the name alone. Without a plugin that gives its own, it's Settings → Branding's name, with its logo when that's an image email clients show (a PNG, JPEG or GIF; never an SVG, which most don't show), at most 48 pixels tall and 240 wide. Without one the top shows the name, as Laravel's emails do. The plain-text part starts with the name and the app's URL, as before.
+Every email the panel sends shows a brand at the top: a logo, with the name as its alternative text, or the name alone. Without a plugin that gives its own, it's Settings → Branding's name, with its logo when that's an image email clients show (a PNG, JPEG or GIF; never an SVG, which most don't show), at most 48 pixels tall and 240 wide. Without one the top shows the name, as Laravel's emails do. The same name signs the panel's notifications ("Regards, Acme") and is in their footer ("© 2026 Acme."), in place of the app's name (`app.name`); the plain-text part starts with it and the app's URL. Their wording ("a test email from the Acme admin panel", subjects) keeps naming the panel.
 
 `Panel::mailBrand()` (`@api`) gives what's shown, a `Sunrice\Admin\Mail\MailBrand` (`@api`): `name`, `logo` (an absolute URL, or null), and the `width` and `height` it's shown at. A plugin gives its own from its `register()`, once (a second one is an error):
 

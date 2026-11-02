@@ -175,6 +175,8 @@ it('puts the site\'s logo at the top of the panel\'s and the CMS\'s emails, else
         return (string) app(Markdown::class)->render($message->markdown, $message->data());
     };
     expect($panelMail())->toMatch('/<td class="header"[^>]*>\s*<a [^>]*>\s*Kebun Studio\s*<\/a>/')->not->toContain('<img')
+        // Signed and footed by the site, as the header: not the app's name nor the panel's.
+        ->toContain('Kebun Studio</p>')->toContain('© '.date('Y').' Kebun Studio.')->not->toContain('© '.date('Y').' Acme')
         ->and((new ReviewSentBack($translation, 'Rina', null))->render())->toContain('Kebun Studio</div>')->not->toContain('<img');
 
     // A logo chosen before this version: its PNG is made when the first email needs it.

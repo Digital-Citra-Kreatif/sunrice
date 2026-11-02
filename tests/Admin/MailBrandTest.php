@@ -80,7 +80,9 @@ it('shows Settings → Branding\'s logo at the top of the panel\'s notifications
         expect($html)->toContain('<img src="https://acme.test'.e($logo->url()).'" alt="Acme" width="192" height="48"')
             ->not->toContain('.svg')->not->toContain('<svg')
             // Plain text keeps the name, no markup.
-            ->and($text)->toStartWith('Acme: https://acme.test')->not->toContain('<img');
+            ->and($text)->toStartWith('Acme: https://acme.test')->not->toContain('<img')
+            // Signed and footed by the same brand, never the app's name.
+            ->and($text)->toContain("Regards,  \nAcme")->toContain('© '.date('Y').' Acme.')->not->toContain('Acme App');
     }
 });
 
@@ -96,8 +98,13 @@ it('keeps the name alone for an SVG logo, which email clients don\'t show', func
 it('takes a plugin\'s brand, once', function () {
     usePanel(fn (Panel $panel) => $panel->brand('Acme')->mailBrandUsing(fn (): MailBrand => MailBrand::image('Kebun', 'https://kebun.test/mail.png', 192, 96)));
 
-    [$html] = renderedNotification(new LoginCode('123456', 'Acme'));
-    expect($html)->toContain('<img src="https://kebun.test/mail.png" alt="Kebun" width="96" height="48"');
+    [$html, $text] = renderedNotification(new LoginCode('123456', 'Acme'));
+    expect($html)->toContain('<img src="https://kebun.test/mail.png" alt="Kebun" width="96" height="48"')
+        // The header, the sign-off and the footer name the same brand.
+        ->toContain('© '.date('Y').' Kebun.')
+        // Laravel's mail layout keeps the app's name in the HTML <title> only, which clients don't show.
+        ->and(str($html)->after('<body')->toString())->not->toContain('Acme App')
+        ->and($text)->toStartWith('Kebun: https://acme.test')->toContain("Regards,  \nKebun")->toContain('© '.date('Y').' Kebun.');
 
     // The security alert (an HTML mail of its own) shows it too.
     $alert = (new SecurityAlert('Headline', 'What', 'Advice', [], 'Acme', 'https://acme.test/admin/activity'))->render();

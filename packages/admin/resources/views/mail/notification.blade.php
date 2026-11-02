@@ -1,8 +1,9 @@
 {{--
     The panel's notification emails (TestMail, LoginCode, PanelInvitation, ResetPanelPassword): Laravel's
     notifications::email, with the brand of Panel::mailBrand() at the top (mail::sunrice-brand, from
-    resources/views/mail-components) in place of the app's name. The plain-text part reads as before.
+    resources/views/mail-components) and its name in the footer, in place of the app's name.
 --}}
+@php($sunriceBrand = app(\Sunrice\Admin\Panel::class)->mailBrand()->name)
 <x-mail::layout>
 {{-- Header --}}
 <x-slot:header>
@@ -50,7 +51,7 @@
 {{ $salutation }}
 @else
 @lang('Regards,')<br>
-{{ config('app.name') }}
+{{ $sunriceBrand }}
 @endif
 
 {{-- Subcopy --}}
@@ -71,7 +72,7 @@
 {{-- Footer --}}
 <x-slot:footer>
 <x-mail::footer>
-© {{ date('Y') }} {{ config('app.name') }}. {{ __('All rights reserved.') }}
+© {{ date('Y') }} {{ $sunriceBrand }}. {{ __('All rights reserved.') }}
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>
