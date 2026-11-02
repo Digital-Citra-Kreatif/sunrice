@@ -51,6 +51,12 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.4.2
+
+From 0.4.1 to 0.4.2: `composer update "sunrice/*" -W`; no migrations, and no admin assets changed.
+
+- **Rich text images take their URL from the media library when pages show them.** A library image (one with `data-media-id`) is printed with its file's current URL instead of the `src` stored when it was inserted, so images inserted on another domain (staging), before the disk moved to a CDN, or before the file was replaced show again. Nothing stored changes. The URL comes from `APP_URL` and the media disk's `url` (as `srcset` already did): check `php artisan tinker --execute="echo Storage::disk('public')->url('x')"` prints the site's real address. Clear the page cache after updating (`php artisan cache:clear`, or **Clear all site caches** on Settings → Cache) so pages kept before show the new URLs. The admin's editor still shows the stored `src`.
+
 ## 0.4.1
 
 From 0.4.0 to 0.4.1: `composer update "sunrice/*" -W` and `php artisan sunrice:assets`; no migrations.

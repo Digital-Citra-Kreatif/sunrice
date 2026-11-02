@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.2 (2026-11-02)
+
+**Upgrading from 0.4.1**: `composer update "sunrice/*" -W`, then clear the page cache (`php artisan cache:clear`, or **Clear all site caches** on Settings → Cache) so kept pages get the new image URLs. No migrations, no new assets. Rich text images' `src` is now built from `APP_URL` and the media disk's URL when pages show them: check those are right on each site (see [Upgrading](docs/upgrading.md#042)).
+
+### All changes
 
 - **Rich text images show at their file's current URL**: the editor stores an image's URL as it was when inserted (`APP_URL`'s domain, the disk's URL and the file's `?v=`), and pages printed that `src` as stored, so a site moved from staging to its own domain, a disk moved to a CDN, or a file replaced in the media library left `src` pointing at the old address (photos usually still showed through `srcset`; SVGs, feeds and copied HTML didn't). Now a library image's `src` (one with `data-media-id`) is its file's URL when the page shows it, also for SVGs and other files without sizes, images with their own `srcset` or `loading`, and with `rich_text.responsive_images` off. Nothing stored changes, a `src` that is current already is printed byte for byte, and the file is the one already read for `srcset`, so it costs no query (about 5 µs an image). Missing and trashed files and images from other sites are printed as stored.
 
