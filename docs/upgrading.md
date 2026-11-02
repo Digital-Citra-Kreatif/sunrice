@@ -51,9 +51,9 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
-## Unreleased
+## 0.4.1
 
-No migrations; run `php artisan sunrice:assets` as usual.
+From 0.4.0 to 0.4.1: `composer update "sunrice/*" -W` and `php artisan sunrice:assets`; no migrations.
 
 - **The logo moved to Settings → Site**, beside the new **Site icon**. It's the same setting (`SiteSettings::$logo`), so nothing is lost: structured data keeps using it, and it's now also the site's logo for templates (`Cms::site()->logoImage()`) and emails. Its PNG for emails is made when the logo is saved, or when the first email needs it. An SVG logo shows in emails only where the server has Imagick; else upload a PNG. See [Site icon and logo](../packages/cms/docs/site.md#site-icon-and-logo).
 - **Templates you published before** (`resources/views/cms/layout.blade.php`, or a starter's) keep showing the site name: to show the logo, use `Cms::site()->logoImage()` as the [docs](../packages/cms/docs/site.md#site-icon-and-logo) show, and add `.site-logo` to your CSS (`display: block; width: auto; height: 2.5rem;`). The icon needs nothing: `<x-sunrice-cms::seo>` prints its tags once one is chosen.
