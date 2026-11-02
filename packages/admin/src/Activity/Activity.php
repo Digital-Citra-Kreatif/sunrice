@@ -40,6 +40,7 @@ class Activity extends Model
         'page refused' => 'was refused a page',
         'login refused' => 'was refused login',
         'login blocked' => 'was blocked from logging in',
+        'login code not sent' => 'wasn\'t sent a login code',
         'upload blocked' => 'had an upload blocked',
     ];
 

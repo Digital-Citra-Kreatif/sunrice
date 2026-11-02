@@ -10,6 +10,7 @@ They're lines in the [activity log](activity.md) with the source **Security**, a
 | --- | --- |
 | `logged in`, `logged out` | Someone signed in to or out of the panel. |
 | `login failed` | A wrong password, or an email with no account (then the email typed is shown), or a wrong [login code](auth.md#two-factor-login). |
+| `login code not sent` | A [login code](auth.md#two-factor-login) email that failed (the note has the mailer's error); the person can ask for another with **Resend code**. |
 | `login refused` | The right password for an account that may not open the panel (`sunrice.access`). |
 | `login blocked` | Too many wrong passwords from one IP, or for one email from one IP: once when the limit is reached, then at most once a minute per email and IP while attempts keep coming (`tried while blocked`), so a sustained attack shows without flooding the log. Also a locked account trying to log in or open a page. |
 | `account locked` | Too many wrong passwords for one account from any IPs: it's locked for `account_lock_seconds`. |
@@ -160,7 +161,7 @@ When something may be a break-in, the panel emails super admins, users with the 
 
 **Privileged permissions** are the panel's `sunrice.users.*`, `sunrice.roles.*`, `sunrice.settings.*`, `sunrice.ai.*` (connecting agents, letting them read the error log and run commands) and `sunrice.activity.*`, plus what plugins register with `$panel->privilegedPermissions()` (the CMS: `cms.settings.code` and creating, editing and deleting blueprints and fieldsets); `Panel::isPrivilegedPermission()` tells.
 
-The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. Each recipient's mail is queued (`Mail::queue()`), so set up a queue worker or the `sync` driver; they need your app's mail settings.
+The same alert for the same account is sent at most once per `cooldown_minutes` (60), and each one sent is an `alert sent` security event. Turn them off with `SUNRICE_SECURITY_ALERTS=false`. Each recipient's mail is queued (`Mail::queue()`) after the response has gone (`defer()`), so an alert never slows the request it comes from, even with the `sync` driver, which sends it then; with a queue, set up a worker. They need your app's mail settings.
 
 ### Your own rules
 

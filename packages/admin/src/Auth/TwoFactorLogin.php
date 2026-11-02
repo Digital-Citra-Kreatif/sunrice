@@ -6,13 +6,16 @@ namespace Sunrice\Admin\Auth;
 
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Sunrice\Admin\Notifications\LoginCode;
 use Sunrice\Admin\Panel;
+use Sunrice\Admin\Security\SecurityLog;
 use Sunrice\Admin\Security\SecuritySettings;
+use Throwable;
 
 /**
  * Two-factor login by email: after the right password the user isn't
@@ -58,7 +61,12 @@ final class TwoFactorLogin
         return RateLimiter::tooManyAttempts($key, self::LOCKOUT_ATTEMPTS) ? RateLimiter::availableIn($key) : 0;
     }
 
-    /** Starts a pending login and emails its code. Nothing is kept when sending fails (it throws). */
+    /**
+     * Starts a pending login and emails its code, once the response has gone
+     * (a slow mail server doesn't hold the code page up). It throws only
+     * when the account has no email address; a mail that fails afterwards is
+     * reported and logged (`login code not sent`), and Resend tries again.
+     */
     public function start(Request $request, Authenticatable $user, bool $remember): void
     {
         $this->send($request, $user, ['user_id' => $user->getAuthIdentifier(), 'remember' => $remember]);
@@ -168,9 +176,18 @@ final class TwoFactorLogin
             throw new \RuntimeException('The account has no email address to send a login code to.');
         }
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $notification = new LoginCode($code, $this->panel->brandName());
 
-        // Not queued: this throws when the mail can't be sent.
-        Notification::route('mail', $email)->notifyNow(new LoginCode($code, $this->panel->brandName()));
+        // After the response, not on the queue: it goes out even without a queue worker,
+        // and a slow mail server doesn't keep the person waiting for the code page.
+        defer(function () use ($email, $notification, $user): void {
+            try {
+                Notification::route('mail', $email)->notifyNow($notification);
+            } catch (Throwable $e) {
+                report($e);
+                app(SecurityLog::class)->record('login code not sent', $user instanceof Model ? $user : null, null, ['note' => 'the mail failed: '.mb_substr($e->getMessage(), 0, 200)]);
+            }
+        }, 'sunrice-login-code', always: true);
 
         $request->session()->put(self::SESSION_KEY, [
             'user_id' => $pending['user_id'],
