@@ -39,6 +39,15 @@ export interface CardsData {
     cards: { title: string; text: string | null; url: string | null; icon: string | null }[];
 }
 
+/** A notice, shown above the tiles (Sunrice\Admin\Dashboard\Widget::notice(), resolved with the page). */
+export interface Notice {
+    key: string;
+    title: string | null;
+    text: string;
+    tone: 'warning' | 'danger';
+    link: { url: string; label: string | null } | null;
+}
+
 /** What a deferred widget prop holds: its data, or `ok: false` when it failed on the server. */
 export type WidgetResult<T = StatData | ListData | CardsData> = { ok: true; data: T } | { ok: false };
 

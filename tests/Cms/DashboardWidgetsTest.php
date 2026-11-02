@@ -44,7 +44,7 @@ function dashPost(Collection $collection, string $title, ?DateTimeInterface $pub
 }
 
 /** The data of a dashboard widget for this user. */
-function widgetData(string $key, Authorizable $user): array
+function widgetData(string $key, Authorizable $user): ?array
 {
     return app(Panel::class)->getWidgets()[$key]->resolve($user);
 }
@@ -201,4 +201,82 @@ it('says what happened to entries with Indonesian verbs, on the dashboard and in
         'Rina menerbitkan Five quick tips',
         'Rina membuat Five quick tips',
     ]);
+});
+
+it('warns those who may change the SEO settings when the site is hidden from search engines', function () {
+    $manager = adminUser(Panel::ACCESS, 'cms.settings.site');
+    $editor = adminUser(Panel::ACCESS, 'cms.entries.view');
+    $notices = function (Authorizable $user): array {
+        actingAs($user);
+        $notices = [];
+        get('/admin')->assertOk()->assertInertia(function (Assert $page) use (&$notices) {
+            $notices = $page->toArray()['props']['notices'];
+        });
+
+        return $notices;
+    };
+
+    // Both off: nothing.
+    expect($notices($manager))->toBe([])
+        ->and(widgetData('cms.seo.noindex', $manager))->toBeNull();
+
+    app(SiteSettings::class)->fill(['noindex' => true])->save();
+    expect($notices($manager))->toBe([[
+        'key' => 'cms.seo.noindex',
+        'title' => 'The site is hidden from search engines',
+        'text' => 'Search engines are asked not to index this site, so it won\'t appear in Google and other search results. If the site is live, turn off "Hide the whole site from search engines" in SEO settings.',
+        'tone' => 'warning',
+        'link' => ['url' => 'settings/seo', 'label' => 'Open SEO settings'],
+    ]])
+        // Only for those the SEO settings page lets in; the notice isn't a tile.
+        ->and($notices($editor))->toBe([])
+        ->and(widgetKeys($editor))->not->toContain('cms.seo.noindex');
+    actingAs($manager);
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('widgets', fn ($widgets) => ! collect($widgets)->contains('key', 'cms.seo.noindex')));
+
+    // In Indonesian.
+    app()->setLocale('id');
+    expect(widgetData('cms.seo.noindex', $manager))->toMatchArray([
+        'title' => 'Situs disembunyikan dari mesin pencari',
+        'text' => 'Mesin pencari diminta tidak mengindeks situs ini, jadi situs tidak akan muncul di Google dan hasil pencarian lainnya. Jika situs sudah tayang, matikan "Sembunyikan seluruh situs dari mesin pencari" di pengaturan SEO.',
+        'link' => ['url' => 'settings/seo', 'label' => 'Buka pengaturan SEO'],
+    ]);
+    app()->setLocale('en');
+
+    // The setting always shows, in production too.
+    config(['app.env' => 'production']);
+    expect(widgetData('cms.seo.noindex', $manager)['link'])->toBe(['url' => 'settings/seo', 'label' => 'Open SEO settings']);
+});
+
+it('warns about SUNRICE_NOINDEX only in production, where it is no staging copy', function () {
+    $manager = adminUser(Panel::ACCESS, 'cms.settings.site');
+    config(['sunrice-cms.seo.noindex' => 'true']);
+
+    // On staging (or locally) it's what SUNRICE_NOINDEX is for.
+    config(['app.env' => 'staging']);
+    expect(widgetData('cms.seo.noindex', $manager))->toBeNull();
+
+    config(['app.env' => 'production']);
+    expect(widgetData('cms.seo.noindex', $manager))->toBe([
+        'key' => 'cms.seo.noindex',
+        'title' => 'The site is hidden from search engines',
+        'text' => 'SUNRICE_NOINDEX is on in the .env file, so search engines are asked not to index this site and it won\'t appear in Google and other search results. If the site is live, set SUNRICE_NOINDEX=false in .env, then run php artisan config:cache.',
+        'tone' => 'warning',
+        // Not the settings page's doing: no link there.
+        'link' => null,
+    ]);
+    actingAs($manager);
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('notices.0.key', 'cms.seo.noindex')->where('notices.0.link', null));
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('notices', []));
+
+    config(['sunrice-cms.seo.noindex' => false]);
+    expect(widgetData('cms.seo.noindex', $manager))->toBeNull();
+});
+
+it('says beside the SEO toggle when SUNRICE_NOINDEX hides the site anyway', function () {
+    actingAs(adminUser(Panel::ACCESS, 'cms.settings.site'));
+    get('/admin/settings/seo')->assertOk()->assertInertia(fn (Assert $page) => $page->where('envNoindex', false));
+    config(['sunrice-cms.seo.noindex' => 'true']);
+    get('/admin/settings/seo')->assertOk()->assertInertia(fn (Assert $page) => $page->where('envNoindex', true));
 });

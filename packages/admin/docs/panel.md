@@ -167,7 +167,7 @@ $panel->navigationUsing(fn () => Shop::query()->get()->map(
 
 ## Dashboard widgets
 
-The dashboard shows the widgets the panel and its plugins register, the ones the user may see, in a grid of three columns (one on phones). The panel draws them from data alone, so a plugin adds one without JavaScript (plugin bundles load only on their own pages). There are three kinds, made with `Sunrice\Admin\Dashboard\Widget`:
+The dashboard shows the widgets the panel and its plugins register, the ones the user may see, in a grid of three columns (one on phones). The panel draws them from data alone, so a plugin adds one without JavaScript (plugin bundles load only on their own pages). There are three kinds of tile, made with `Sunrice\Admin\Dashboard\Widget`, and [notices](#notices), alerts above them:
 
 ```php
 use Illuminate\Contracts\Auth\Access\Authorizable;
@@ -201,6 +201,7 @@ Each takes a `title`, a `description` (a line under it), an `icon` (a lucide nam
 | `stat` | `value` (a number or short text), optional `delta` ("+3 this week"), `trend` (`up` or `down`), `description`. |
 | `list` | `rows`, each a `title` with optional `meta`, `url`, `badge`, `tone` (`neutral`, `success`, `warning`, `danger`) and `at` (an ISO 8601 time, shown as "5 minutes ago"); optional `count`, shown beside the title. |
 | `cards` | `cards`, each a `title` with optional `text`, `url` and `icon`. |
+| `notice` | `text`, optional `tone` (`warning`, the default, or `danger`), `url` and `label`; or `null` (see [Notices](#notices)). |
 
 URLs are relative to the panel's path (`shop/orders`), or start with `/` or `http(s)://`; anything else is dropped. Lists and cards show at most 20 items.
 
@@ -210,6 +211,22 @@ The page arrives with the widgets' definitions and paints at once; `data` runs a
 
 Each card has a fold button in its header (*Collapse* / *Expand*): a folded card shows just its header (title, icon and a list's count) and its body folds away with a short animation (none for people who asked their system for reduced motion). What each user folded is a [preference](preferences.md), `dashboard.collapsed` (the widgets' keys), so it follows them to every browser; a widget they can no longer see drops out of it. A folded widget's `data` still loads with the others (its count shows in the header), so opening it is instant.
 
+### Notices
+
+`Widget::notice($key)` is no tile: it's a full-width alert at the top of the dashboard, above the greeting and the tiles, for something the user should know about now, such as a setting that may be a mistake. It shows its `title` (optional) in bold, the `text` its data gives, and a link button (`link($url, $label)`, or the data's own `url` and `label`, "Open" without one):
+
+```php
+Widget::notice('shop.test-mode')->title('Payments are in test mode')->link('settings/shop', 'Open shop settings')
+    ->permission('shop.settings')
+    ->data(fn (Authorizable $user): ?array => app(ShopSettings::class)->testMode
+        ? ['text' => 'Orders placed now aren\'t charged. Turn test mode off before the shop opens.', 'tone' => 'warning']
+        : null);
+```
+
+Its `data` decides whether there's anything to say: return `null` and nothing shows (no empty box, no placeholder). So it runs with the page instead of deferred, and only for users who may see the notice (its `permission()` or `visible()`, as any widget's; one without either is refused): keep it to a cheap check, such as a setting or a config value, not a query that takes time. The `tone` is `warning` (amber, the default) or `danger` (red); anything else is `warning`. `text` is required (a notice with something to show must say it), and the data's `'url' => null` leaves out the widget's link, for a case where it doesn't help. Links follow the same rules as other widgets' (unsafe ones are dropped). Notices come in their `sort` order, can't be folded, and are hidden with `withoutWidgets()` like the rest; one whose `data` throws is reported and left out. The page gets them as `notices` (key, title, text, tone, link), and `$widget->resolve($user)` gives the same, or null, for tests.
+
+The CMS adds one, `cms.seo.noindex`, when the site asks search engines not to index it (see [Collections](../../cms/docs/collections.md#the-dashboard)).
+
 ### Hiding widgets
 
 `$panel->withoutWidgets(...$keys)`, in your panel provider, takes widgets off the dashboard for everyone, the panel's own or a plugin's, however late the plugin registers them:
@@ -218,7 +235,7 @@ Each card has a fold button in its header (*Collapse* / *Expand*): a folded card
 $panel->withoutWidgets('sunrice.activity', 'cms.setup', 'cms.submissions');
 ```
 
-Their `data` never runs. A key nothing registers is ignored (a plugin you don't install), and only the app may hide widgets (a plugin that calls it is refused). The keys are the panel's `sunrice.media` and `sunrice.activity`, and the CMS's `cms.setup`, `cms.collections`, `cms.review`, `cms.recent-edits`, `cms.comments`, `cms.scheduled` and `cms.submissions`; `$panel->getWidgets()` lists every registered one, and `$panel->getHiddenWidgets()` the hidden keys. To hide a widget from some people only, it's their permissions that decide (each widget names the one it needs).
+Their `data` never runs. A key nothing registers is ignored (a plugin you don't install), and only the app may hide widgets (a plugin that calls it is refused). The keys are the panel's `sunrice.media` and `sunrice.activity`, and the CMS's `cms.seo.noindex`, `cms.setup`, `cms.collections`, `cms.review`, `cms.recent-edits`, `cms.comments`, `cms.scheduled` and `cms.submissions`; `$panel->getWidgets()` lists every registered one, and `$panel->getHiddenWidgets()` the hidden keys. To hide a widget from some people only, it's their permissions that decide (each widget names the one it needs).
 
 ### Your own dashboard
 
