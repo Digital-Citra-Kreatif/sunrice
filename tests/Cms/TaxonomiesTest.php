@@ -124,8 +124,8 @@ it('gives entries terms through a terms field', function () {
     expect($schema->toAdmin()[0])->toMatchArray(['taxonomy' => 'tags'])->not->toHaveKey('terms')
         ->and(TermsField::options($this->tags)['items'])->toBe([['id' => $php->id, 'label' => 'PHP', 'depth' => 0], ['id' => $laravel->id, 'label' => 'Laravel', 'depth' => 0]])
         ->and(TermsField::labels([$laravel->id, $news->id]))->toBe([$laravel->id => 'Laravel', $news->id => 'News'])
-        // In the order asked for, whatever order the database returns them in.
-        ->and(TermsField::labels([$news->id, $laravel->id]))->toBe([$news->id => 'News', $laravel->id => 'Laravel']);
+        // In id order, whatever order they're asked for or the database returns them in.
+        ->and(TermsField::labels([$news->id, $laravel->id]))->toBe([$laravel->id => 'Laravel', $news->id => 'News']);
 });
 
 it('keeps published entries\' own terms in a table, for queries, not their terms fields\'', function () {
