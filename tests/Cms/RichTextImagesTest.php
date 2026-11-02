@@ -136,24 +136,64 @@ it('keeps the stored width and height, adding the missing one in proportion', fu
         ->and(richHydrate(richHtml($media, extra: ' height="300"')))->toContain('height="300"')->toContain(' width="450"')->not->toContain('height="1600"');
 });
 
-it('leaves missing, trashed, non-image and SVG files, external images and images with their own srcset or loading alone', function () {
+it('leaves missing and trashed files and external images alone, and gives the others their file\'s src only', function () {
     $trashed = richImage();
     $trashedHtml = richHtml($trashed);
     $trashed->delete();
-    $html = [
+    $alone = [
         'missing' => str_replace('data-media-id="', 'data-media-id="99', richHtml(richImage())),
         'trashed' => $trashedHtml,
-        'document' => richHtml(richImage('application/pdf')),
-        'svg' => richHtml(richImage('image/svg+xml', sizes: [])),
         'external' => Schema::make([Field::make('body', 'rich_text')])->normalize(['body' => '<p><img src="https://example.com/a.jpg" alt="A" class="sunrice-img sunrice-img-w-50"></p>'])['body'],
-        'own srcset' => '<p><img src="/a.jpg" srcset="/a.jpg 1x" data-media-id="'.richImage()->id.'" /></p>',
-        'own loading' => '<p><img src="/a.jpg" loading="eager" data-media-id="'.richImage()->id.'" /></p>',
         'not an id' => '<p><img src="/a.jpg" data-media-id="x7" /></p>',
     ];
-
-    foreach ($html as $case => $stored) {
+    foreach ($alone as $case => $stored) {
         expect(richHydrate($stored))->toBe($stored, $case);
     }
+
+    // Files that can't have sizes, and images with a srcset or loading of their own: nothing added but their file's src.
+    $document = richImage('application/pdf');
+    $svg = richImage('image/svg+xml', sizes: []);
+    $ownSrcset = richImage();
+    $ownLoading = richImage();
+    $srcOnly = [
+        'document' => [richHtml($document), $document],
+        'svg' => [richHtml($svg), $svg],
+        'own srcset' => ['<p><img src="/a.jpg" srcset="/a.jpg 1x" data-media-id="'.$ownSrcset->id.'" /></p>', $ownSrcset],
+        'own loading' => ['<p><img src="/a.jpg" loading="eager" data-media-id="'.$ownLoading->id.'" /></p>', $ownLoading],
+    ];
+    foreach ($srcOnly as $case => [$stored, $media]) {
+        // A src that is the file's already is printed as stored, byte for byte.
+        $expected = str_contains($stored, 'src="/a.jpg"') ? str_replace('src="/a.jpg"', 'src="'.e($media->url()).'"', $stored) : $stored;
+        expect(richHydrate($stored))->toBe($expected, $case);
+    }
+});
+
+it('shows a library image at its file\'s URL now: another domain, another disk URL or a new version of the file', function () {
+    $media = richImage();
+    $stored = richHtml($media);
+    $before = richHydrate($stored);
+
+    // Inserted on staging, shown on the live site.
+    $stale = str_replace(e($media->url()), 'https://staging.example.test/storage/'.$media->path.'?v=1', $stored);
+    expect(richHydrate($stale))->toBe($before);
+
+    // The disk moved to a CDN.
+    config(['filesystems.disks.public.url' => 'https://cdn.example.test/storage']);
+    app('filesystem')->forgetDisk('public');
+    expect(richHydrate($stored))->toContain('src="https://cdn.example.test/storage/'.$media->path.'?v=')
+        ->not->toContain(config('app.url').'/storage/');
+
+    // The file replaced in the library: its new version.
+    $media->forceFill(['version' => $media->version + 1])->save();
+    expect(richHydrate($stored, new HydrationContext('en')))->toContain('?v='.$media->version.'"');
+});
+
+it('rebuilds src with the config off too, adding nothing else', function () {
+    config(['sunrice-cms.rich_text.responsive_images' => false]);
+    $media = richImage();
+    $stale = str_replace(e($media->url()), 'https://old.example.test/a.jpg', richHtml($media));
+
+    expect(richHydrate($stale))->toBe(richHtml($media));
 });
 
 it('never prints a srcset without sizes to choose from', function () {
@@ -190,7 +230,7 @@ it('escapes what it adds', function () {
     expect(preg_match_all('/<img\b[^>]*>/', $hydrated))->toBe(1);
 });
 
-it('prints rich text as stored with the config off', function () {
+it('adds nothing to a current image with the config off', function () {
     config(['sunrice-cms.rich_text.responsive_images' => false]);
     $stored = richHtml(richImage());
 

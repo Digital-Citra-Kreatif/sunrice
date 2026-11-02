@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Rich text images show at their file's current URL**: the editor stores an image's URL as it was when inserted (`APP_URL`'s domain, the disk's URL and the file's `?v=`), and pages printed that `src` as stored, so a site moved from staging to its own domain, a disk moved to a CDN, or a file replaced in the media library left `src` pointing at the old address (photos usually still showed through `srcset`; SVGs, feeds and copied HTML didn't). Now a library image's `src` (one with `data-media-id`) is its file's URL when the page shows it, also for SVGs and other files without sizes, images with their own `srcset` or `loading`, and with `rich_text.responsive_images` off. Nothing stored changes, a `src` that is current already is printed byte for byte, and the file is the one already read for `srcset`, so it costs no query (about 5 µs an image). Missing and trashed files and images from other sites are printed as stored.
+
 ## 0.4.1 (2026-11-02)
 
 **Upgrading from 0.4.0**: `composer update "sunrice/*" -W`, then `php artisan sunrice:assets`. No migrations. Then choose a site icon and check the logo in Settings → Site. If your app overrides Laravel's notification email template, the panel's emails no longer use it; see [Upgrading](docs/upgrading.md#041).
