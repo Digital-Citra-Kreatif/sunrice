@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.3 (2026-11-02)
+
+**Upgrading from 0.4.2**: `composer update "sunrice/*" -W`. No migrations, no new assets. With two-factor login, a login code that can't be emailed no longer shows an error on the login form: the code page shows, and the failure is logged as `login code not sent` (see [Upgrading](docs/upgrading.md#043)).
+
+### All changes
 
 - **Logins don't wait for the mail server**: with two-factor login, the login code was emailed before the code page was answered (`notifyNow()`), and security alerts (a sign-in from a new address, after a long time…) were queued during the request, which the `sync` queue sends right away; so a slow SMTP server could hold a login up for seconds. Both are now sent just after the response (`defer()`, run after the request, a console command or a queued job, also on error responses). A login code that fails is reported and logged as the new `login code not sent` security event (the code page shows meanwhile; **Resend code** tries again), where the login form used to say "We couldn't email your login code"; an account without an email address still gets that message.
 

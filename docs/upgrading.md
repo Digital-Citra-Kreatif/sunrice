@@ -51,6 +51,12 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.4.3
+
+From 0.4.2 to 0.4.3: `composer update "sunrice/*" -W`; no migrations, and no admin assets changed.
+
+- **Login codes and security alerts are sent after the response** (`defer()`), so a slow mail server no longer holds a login up. With two-factor login, a code that can't be emailed now shows the code page anyway (nobody is signed in) and is logged as a `login code not sent` security event with the mailer's error, where the login form used to say "We couldn't email your login code"; **Resend code** tries again. If you watch for that message in monitoring, watch the security log instead.
+
 ## 0.4.2
 
 From 0.4.1 to 0.4.2: `composer update "sunrice/*" -W`; no migrations, and no admin assets changed.
