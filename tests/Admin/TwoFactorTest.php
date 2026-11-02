@@ -107,7 +107,7 @@ it('resends a code, but not too often', function () {
     Notification::assertSentTimes(LoginCode::class, 2);
 });
 
-it('doesn\'t sign in when the code can\'t be emailed', function () {
+it('sends the code after the response, and logs a code that couldn\'t be emailed', function () {
     Notification::swap(new class extends ChannelManager
     {
         public function __construct() {}
@@ -118,9 +118,21 @@ it('doesn\'t sign in when the code can\'t be emailed', function () {
         }
     });
 
-    passwordStep()->assertSessionHasErrors(['email' => 'We couldn\'t email your login code. Ask an administrator to check that the app can send email.']);
+    // The code page comes at once; the mail goes out after the response, where its failure is logged.
+    passwordStep()->assertRedirect('/admin/login/code');
     assertGuest();
-    get('/admin/login/code')->assertRedirect('/admin/login');
+    expect(Activity::query()->where('action', 'login code not sent')->sole()->properties['note'] ?? null)->toBe('the mail failed: SMTP down');
+});
+
+it('doesn\'t wait for the mail server before showing the code page', function () {
+    passwordStep()->assertRedirect('/admin/login/code');
+    Notification::assertSentTimes(LoginCode::class, 1);
+
+    // Called outside a request, the code is only sent once the deferred callbacks run.
+    app(TwoFactorLogin::class)->start(request(), $this->admin, false);
+    Notification::assertSentTimes(LoginCode::class, 1);
+    defer()->invoke();
+    Notification::assertSentTimes(LoginCode::class, 2);
 });
 
 it('signs in with the password alone when it\'s off, or forced off by config', function () {

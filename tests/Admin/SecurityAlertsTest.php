@@ -25,6 +25,8 @@ use function Pest\Laravel\post;
 use function Pest\Laravel\put;
 
 beforeEach(function () {
+    // Alerts are handed to the queue after the response: run that at once here.
+    $this->withoutDefer();
     Mail::fake();
     Storage::fake('public');
     usePanel(fn (Panel $panel) => $panel->brand('Acme')->plugin(new TestPlugin('shop', register: fn (Panel $p) => $p

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Logins don't wait for the mail server**: with two-factor login, the login code was emailed before the code page was answered (`notifyNow()`), and security alerts (a sign-in from a new address, after a long time…) were queued during the request, which the `sync` queue sends right away; so a slow SMTP server could hold a login up for seconds. Both are now sent just after the response (`defer()`, run after the request, a console command or a queued job, also on error responses). A login code that fails is reported and logged as the new `login code not sent` security event (the code page shows meanwhile; **Resend code** tries again), where the login form used to say "We couldn't email your login code"; an account without an email address still gets that message.
+
 ## 0.4.2 (2026-11-02)
 
 **Upgrading from 0.4.1**: `composer update "sunrice/*" -W`, then clear the page cache (`php artisan cache:clear`, or **Clear all site caches** on Settings → Cache) so kept pages get the new image URLs. No migrations, no new assets. Rich text images' `src` is now built from `APP_URL` and the media disk's URL when pages show them: check those are right on each site (see [Upgrading](docs/upgrading.md#042)).

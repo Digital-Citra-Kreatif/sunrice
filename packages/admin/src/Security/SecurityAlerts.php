@@ -313,14 +313,17 @@ final class SecurityAlerts
         }
         $mail = new SecurityAlert($headline, strtr($what, $placeholders), $advice, [...$details, 'When' => now()->toDayDateTimeString()],
             $this->panel->brandName(), AppUrl::route('sunrice.admin.activity.index', ['source' => 'security']), $what, $replace);
-        // One mail per person, on the queue: sending mustn't slow the request down.
-        foreach ($recipients as $email) {
-            try {
-                Mail::to($email)->queue(clone $mail);
-            } catch (Throwable $e) {
-                report($e);
+        // One mail per person, on the queue, handed over after the response: sending mustn't
+        // slow the request down, also with the sync queue (no worker), which sends right away.
+        defer(function () use ($recipients, $mail): void {
+            foreach ($recipients as $email) {
+                try {
+                    Mail::to($email)->queue(clone $mail);
+                } catch (Throwable $e) {
+                    report($e);
+                }
             }
-        }
+        }, always: true);
         $this->log->record('alert sent', null, $headline, ['note' => "{$rule} to ".count($recipients).' '.(count($recipients) === 1 ? 'person' : 'people')]);
     }
 
