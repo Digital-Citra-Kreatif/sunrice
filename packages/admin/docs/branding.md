@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Panel name | The sidebar, the sign-in page, browser tabs, emails (login codes, password resets, test emails, security alerts) and the AI server's name | `$panel->brand()` |
 | Tagline | Under the name in the sidebar and above the sign-in form | Nothing |
-| Logo (an image from the media library) | The sidebar and the sign-in page, as **Sidebar shows** says | The name's first letter on the brand colour |
+| Logo (an image from the media library) | The sidebar and the sign-in page, as **Sidebar shows** says; and the top of emails when it's a PNG, JPEG or GIF and no plugin gives emails its own brand (the CMS gives the site's: see [Mail](mail.md#the-logo-at-the-top-of-emails)) | The name's first letter on the brand colour (in emails, the name) |
 | Browser icon (an image: ICO, PNG or SVG) | Browser tabs and bookmarks, on every panel page including sign-in, and the collapsed sidebar | The logo when it is square-ish, else the name's first letter on the brand colour |
 | Sidebar shows | What the top of the sidebar and the sign-in page show: see [below](#what-the-sidebar-shows) | Automatic |
 | Font | Everywhere in the admin | The `sunrice-admin.font` config (Instrument Sans) |

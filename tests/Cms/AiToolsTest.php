@@ -672,7 +672,7 @@ it('reads and changes Settings → SEO\'s structured data as the settings sectio
 
     $seo = cmsTool($token, 'get_settings', ['section' => 'seo']);
     expect($seo['section'])->toBe('seo')
-        ->and(array_keys($seo['values']))->toBe(['structuredData', 'publisher', 'logo', 'publisherName', 'publisherType', 'telephone', 'address', 'sameAs'])
+        ->and(array_keys($seo['values']))->toBe(['structuredData', 'publisher', 'publisherName', 'publisherType', 'telephone', 'address', 'sameAs'])
         ->and(collect($seo['fields'])->pluck('name')->all())->toContain('publisherType', 'sameAs');
 
     expect(cmsTool($token, 'update_settings', ['section' => 'seo', 'values' => ['publisherType' => 'brewery!']]))->toContain('Not saved:')

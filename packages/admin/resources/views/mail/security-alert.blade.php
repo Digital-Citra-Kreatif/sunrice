@@ -4,6 +4,7 @@
 <body style="margin:0;padding:24px;background:#f6f6f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;">
     <tr><td style="padding:28px;">
+        <x-sunrice-admin::mail-brand :fallback="false" />
         <p style="margin:0 0 4px;font-size:13px;color:#b42318;font-weight:600;">{{ __('Security alert') }} · {{ $brand }}</p>
         <h1 style="margin:0 0 16px;font-size:20px;">{{ $saidHeadline }}</h1>
         <p style="margin:0 0 16px;line-height:1.5;">{{ $saidWhat }}</p>

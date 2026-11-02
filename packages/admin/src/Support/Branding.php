@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Support;
 
 use Illuminate\Support\Collection;
 use Sunrice\Admin\Assets\AdminAssets;
+use Sunrice\Admin\Mail\MailBrand;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
 use Sunrice\Admin\Settings\BrandingSettings;
@@ -277,6 +278,20 @@ final class Branding
                 'image' => $url($this->settings->loginImage),
             ],
         ];
+    }
+
+    /**
+     * The top of emails without a plugin's (Panel::mailBrand()): the name,
+     * with the logo when it's an image email clients show (not an SVG).
+     */
+    public function mailBrand(): MailBrand
+    {
+        $logo = $this->image($this->settings->logo);
+        if ($logo !== null && $logo->isResizable() && $logo->width !== null && $logo->height !== null) {
+            return MailBrand::image($this->name(), $logo->url(), $logo->width, $logo->height);
+        }
+
+        return MailBrand::name($this->name());
     }
 
     /** The chosen image with this id, if it is (still) an image in the library. */

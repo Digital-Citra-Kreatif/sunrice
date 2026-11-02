@@ -17,6 +17,7 @@ use Sunrice\Admin\Dashboard\PanelWidgets;
 use Sunrice\Admin\Dashboard\Widget;
 use Sunrice\Admin\Exceptions\PanelMisconfigured;
 use Sunrice\Admin\Http\Controllers\DashboardController;
+use Sunrice\Admin\Mail\MailBrand;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Navigation\NavigationItem;
 use Sunrice\Admin\Permissions\Permission;
@@ -155,6 +156,9 @@ final class Panel
 
     /** @var (Closure(): array<string, string>)|null the content's languages (contentLocales()) */
     private ?Closure $contentLocales = null;
+
+    /** @var (Closure(): MailBrand)|null what the top of emails shows (mailBrandUsing()) */
+    private ?Closure $mailBrand = null;
 
     /** @var class-string<UserResource>|null */
     private ?string $userResource = UserResource::class;
@@ -486,6 +490,41 @@ final class Panel
         }
 
         return array_filter(($this->contentLocales)(), fn (string $code): bool => $code !== '', ARRAY_FILTER_USE_KEY);
+    }
+
+    /**
+     * What the top of every email the panel and its plugins send shows
+     * (mailBrand()), in place of the panel's own: Settings → Branding's
+     * name and logo. One plugin may give it (the CMS: the site's name and
+     * logo); resolved each time an email is drawn.
+     *
+     *     $panel->mailBrandUsing(fn (): MailBrand => MailBrand::image('Acme', $pngUrl, 192, 96));
+     *
+     * @param  Closure(): MailBrand  $resolve
+     */
+    public function mailBrandUsing(Closure $resolve): self
+    {
+        $this->assertRegistering();
+        if ($this->mailBrand !== null) {
+            throw new PanelMisconfigured("The emails' brand is given twice{$this->owner()}.");
+        }
+        $this->mailBrand = $resolve;
+
+        return $this;
+    }
+
+    /**
+     * The name and logo at the top of emails: mailBrandUsing()'s, else
+     * Settings → Branding's name and its logo when it's a PNG, JPEG or
+     * other image an email can show (never an SVG), else the name alone.
+     */
+    public function mailBrand(): MailBrand
+    {
+        if ($this->mailBrand !== null) {
+            return ($this->mailBrand)();
+        }
+
+        return (new Branding($this, app(BrandingSettings::class)))->mailBrand();
     }
 
     /** Forget the permissions permissionsUsing() resolved, after their data changed. */

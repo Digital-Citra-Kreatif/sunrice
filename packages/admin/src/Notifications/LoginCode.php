@@ -7,6 +7,7 @@ namespace Sunrice\Admin\Notifications;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Sunrice\Admin\Auth\TwoFactorLogin;
+use Sunrice\Admin\Panel;
 
 /**
  * The emailed code for two-factor login. Sent right away, never queued:
@@ -16,6 +17,9 @@ use Sunrice\Admin\Auth\TwoFactorLogin;
  */
 final class LoginCode extends Notification
 {
+    /** With the brand of Panel::mailBrand() at the top and bottom (its name signs the email too). */
+    private const VIEW = 'sunrice-admin::mail.notification';
+
     public function __construct(#[\SensitiveParameter] public readonly string $code, public readonly string $brand) {}
 
     /** @return list<string> */
@@ -27,6 +31,7 @@ final class LoginCode extends Notification
     public function toMail(mixed $notifiable): MailMessage
     {
         return (new MailMessage)
+            ->markdown(self::VIEW)
             // In the subject only when asked: notifications show subjects on locked screens.
             ->subject(config('sunrice-admin.auth.two_factor_code_in_subject') === true
                 ? __('Your :brand login code: :code', ['brand' => $this->brand, 'code' => $this->code])
@@ -35,6 +40,6 @@ final class LoginCode extends Notification
             ->line("**{$this->code}**")
             ->line(__('It works for :minutes minutes.', ['minutes' => TwoFactorLogin::LIFETIME_MINUTES]))
             ->line(__('If you didn\'t just log in, change your password: someone else knows it.'))
-            ->salutation(__('Regards,')."  \n{$this->brand}");
+            ->salutation(__('Regards,')."  \n".app(Panel::class)->mailBrand()->name);
     }
 }

@@ -6,6 +6,7 @@ namespace Sunrice\Admin\Notifications;
 
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
+use Sunrice\Admin\Panel;
 use Sunrice\Admin\Support\AppUrl;
 
 /**
@@ -17,6 +18,9 @@ use Sunrice\Admin\Support\AppUrl;
  */
 final class PanelInvitation extends ResetPassword
 {
+    /** With the brand of Panel::mailBrand() at the top and bottom (its name signs the email too). */
+    private const VIEW = 'sunrice-admin::mail.notification';
+
     public function __construct(
         #[\SensitiveParameter] string $token,
         public readonly string $email,
@@ -31,6 +35,7 @@ final class PanelInvitation extends ResetPassword
     protected function buildMailMessage($url): MailMessage
     {
         return (new MailMessage)
+            ->markdown(self::VIEW)
             ->subject(__('You\'re invited to :brand', ['brand' => $this->brand]))
             ->line($this->inviter === null
                 ? __('You have an account on :brand, for :email.', ['brand' => $this->brand, 'email' => $this->email])
@@ -38,7 +43,7 @@ final class PanelInvitation extends ResetPassword
             ->line(__('Choose your password to sign in:'))
             ->action(__('Choose your password'), $url)
             ->line(__('The link works for :minutes minutes. After that, use "Forgot password?" on the login page for a new one.', ['minutes' => $this->minutes]))
-            ->salutation("Regards,  \n{$this->brand}");
+            ->salutation(__('Regards,')."  \n".app(Panel::class)->mailBrand()->name);
     }
 
     protected function resetUrl(mixed $notifiable): string

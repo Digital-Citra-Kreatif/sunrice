@@ -15,6 +15,7 @@ use Illuminate\Foundation\Events\VendorTagPublished;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Markdown;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -190,6 +191,13 @@ final class AdminServiceProvider extends ServiceProvider
         });
 
         $this->loadViewsFrom(dirname(__DIR__).'/resources/views', 'sunrice-admin');
+        // The panel's markdown emails' top (x-mail::sunrice-brand, Panel::mailBrand()): a component of its own
+        // beside the app's and Laravel's, which it overrides nothing of.
+        $this->callAfterResolving(Markdown::class, function (Markdown $markdown): void {
+            // The app's own paths, as Laravel gives them (mail.markdown.paths), then the panel's.
+            $paths = config('mail.markdown.paths', []);
+            $markdown->loadComponentsFrom([...(is_array($paths) ? array_values($paths) : []), dirname(__DIR__).'/resources/views/mail-components']);
+        });
         // The panel's words in other languages (lang/{code}.json, English text as keys; PanelLocale).
         $this->loadJsonTranslationsFrom(dirname(__DIR__).'/lang');
         View::composer('sunrice-admin::app', function (ViewInstance $view): void {
