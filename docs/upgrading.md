@@ -5,7 +5,7 @@
 ## How to upgrade
 
 1. Read this page from the version you have to the one you're going to, and `CHANGELOG.md` for everything else that changed.
-2. Update the packages. Within the version your `composer.json` allows (`^0.4` takes 0.4.1, 0.4.2…), update them:
+2. Update the packages. Within the version your `composer.json` allows (`^0.5` takes 0.5.1, 0.5.2…), update them:
 
    ```bash
    composer update "sunrice/*" -W
@@ -14,9 +14,9 @@
    **Before 1.0, each minor version is a new major one for Composer**: `^0.1` allows 0.1.x but never 0.2.0, so `composer update` finds nothing new. To move to the next minor version, raise the constraints with `composer require`, every Sunrice package you have at once (and `-W` so their dependencies may move too):
 
    ```bash
-   composer require sunrice/admin:^0.4 sunrice/cms:^0.4 -W
+   composer require sunrice/admin:^0.5 sunrice/cms:^0.5 -W
    # with the starter kit installed, add it to the same command:
-   composer require sunrice/admin:^0.4 sunrice/cms:^0.4 sunrice/starter-kit:^0.4 -W
+   composer require sunrice/admin:^0.5 sunrice/cms:^0.5 sunrice/starter-kit:^0.5 -W
    ```
 
    Plugins of your own or from others (`composer.json`'s `sunrice/admin` or `sunrice/cms` constraint) need a release allowing the new version too; Composer names any that hold the update back.
@@ -51,9 +51,9 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
-## Unreleased
+## 0.5.0
 
-From 0.4.3: `composer update "sunrice/*" -W` and `php artisan sunrice:assets` (the panel's editor fields changed); no migrations.
+From 0.4.x to 0.5.0: raise the constraints to `^0.5` (above) and run `php artisan sunrice:assets` (the panel's editor fields changed); no migrations.
 
 - **Right-to-left languages.** The CMS's own pages now say which way their language is written (`<html lang="ar" dir="rtl">`), from the new config key `sunrice-cms.rtl_locales` (Arabic, Hebrew, Persian, Urdu… by primary subtag). Templates you copied earlier (`vendor:publish --tag=sunrice-cms-templates`, a starter's `resources/views/cms/`) don't: on a site with such a language, add `dir` to the `<html>` of your layout and error pages, and `dirAttribute()` beside `langAttribute()` around entries' and terms' content (`cms/collections/show.blade.php`, `cms/taxonomies/show.blade.php`):
 
