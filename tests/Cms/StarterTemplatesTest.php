@@ -138,3 +138,25 @@ it('shows the site\'s logo in the layout\'s header, named by the site, and the n
     expect($header())->toMatch('/<img class="site-logo" src="'.preg_quote(e($logo->url()), '/').'" alt="Acme" width="300" height="100">/')
         ->and(Content::site()->logoImage()?->id)->toBe($logo->id);
 });
+
+it('gives the starter templates\' pages the direction of their language', function () {
+    config(['sunrice-cms.locales' => ['en', 'ar']]);
+    actingAs(adminUser());
+    $blog = Collection::query()->create(['handle' => 'blog', 'title' => 'Blog', 'route' => '/blog/{slug}', 'listing_route' => '/blog']);
+    $topics = Taxonomy::query()->create(['handle' => 'topics', 'title' => 'Topics', 'route' => '/topics/{slug}']);
+    app(SaveTerm::class)->handle($topics, ['title' => 'News']);
+    app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($blog, ['title' => 'Hello', 'slug' => 'hello']));
+    auth()->logout();
+    artisan('vendor:publish', ['--tag' => 'sunrice-cms-templates'])->assertSuccessful();
+
+    get('/blog/hello')->assertOk()->assertSee('<html lang="en" dir="ltr">', false)
+        ->assertSee('hreflang="ar" lang="ar" dir="rtl"', false);
+    // Untranslated: the English post on an Arabic page, its content marked as English, written left to right.
+    $page = get('/ar/blog/hello')->assertOk()->assertSee('<html lang="ar" dir="rtl">', false);
+    expect($page->getContent())->toContain('<article class="entry" lang="en" dir="ltr">');
+    expect(get('/ar/topics/news')->assertOk()->getContent())->toMatch('~<div lang="en" dir="ltr">\s*<h1>News</h1>~');
+    get('/ar/blog')->assertOk()->assertSee('<html lang="ar" dir="rtl">', false);
+
+    app()->setLocale('ar');
+    expect(view('errors.500')->render())->toContain('<html lang="ar" dir="rtl">');
+});

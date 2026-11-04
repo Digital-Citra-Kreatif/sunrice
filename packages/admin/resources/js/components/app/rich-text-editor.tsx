@@ -169,6 +169,8 @@ export function RichTextEditor({ id, value, onChange, invalid = false, labelledB
             attributes: {
                 id,
                 class: 'sunrice-prose',
+                // Its direction from what's typed: Arabic or Hebrew text starts on the right (each paragraph its own, admin.css).
+                dir: 'auto',
                 role: 'textbox',
                 'aria-multiline': 'true',
                 ...(labelledBy ? { 'aria-labelledby': labelledBy } : {}),

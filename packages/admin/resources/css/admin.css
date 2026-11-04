@@ -592,9 +592,11 @@
     .sunrice-prose :is(img, figure).sunrice-img-w-75 { width: 75%; }
     .sunrice-prose :is(img, figure):is(.sunrice-img-w-100, .sunrice-img-full) { width: 100%; }
     .sunrice-prose :is(img, figure).sunrice-img-center { margin-inline: auto; }
-    .sunrice-prose :is(img, figure).sunrice-img-left { float: left; margin: 0.25em 1.25em 0.75em 0; }
-    .sunrice-prose :is(img, figure).sunrice-img-right { float: right; margin: 0.25em 0 0.75em 1.25em; }
+    .sunrice-prose :is(img, figure).sunrice-img-left { float: inline-start; margin-block: 0.25em 0.75em; margin-inline: 0 1.25em; }
+    .sunrice-prose :is(img, figure).sunrice-img-right { float: inline-end; margin-block: 0.25em 0.75em; margin-inline: 1.25em 0; }
     .sunrice-prose :is(img, figure):is(.sunrice-img-left, .sunrice-img-right):not([class*="sunrice-img-w-"]) { max-width: 50%; }
     .sunrice-prose :is(h2, h3, h4, hr, pre, blockquote) { clear: both; }
+    /* The editor has dir="auto": each paragraph, heading and list item takes the direction of its own text, so an Arabic one starts on the right. */
+    .sunrice-prose :is(p, h2, h3, h4, li, blockquote, figcaption) { unicode-bidi: plaintext; text-align: start; }
     .sunrice-prose p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--muted-foreground); float: left; height: 0; pointer-events: none; }
 }

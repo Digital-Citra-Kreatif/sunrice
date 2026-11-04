@@ -125,6 +125,24 @@ it('shows the CMS\'s language switcher in the blog\'s layout, once the site has 
     expect((string) file_get_contents(public_path('cms/site.css')))->toContain('.language-switcher [aria-current="true"]');
 });
 
+it('lays the blog out right to left in a language written so, its untranslated posts left to right', function () {
+    artisan('sunrice:starter', ['name' => 'blog'])->assertSuccessful();
+    config(['sunrice-cms.locales' => ['en', 'ar']]);
+
+    get('/blog/hello-world')->assertOk()->assertSee('<html lang="en" dir="ltr">', false)
+        ->assertSee('<a href="'.url('/ar/blog/hello-world').'" hreflang="ar" lang="ar" dir="rtl" data-fallback>العربية</a>', false);
+    $page = get('/ar/blog/hello-world')->assertOk()->assertSee('<html lang="ar" dir="rtl">', false)
+        ->assertSee('<span aria-current="true" lang="ar" data-fallback>العربية</span>', false)
+        ->assertSee('hreflang="en" lang="en" dir="ltr">English</a>', false);
+    expect($page->getContent())->toContain('<article class="entry" lang="en" dir="ltr">')
+        // Its date is in the page's language, Arabic.
+        ->toMatch('~<time datetime="[^"]+" lang="ar" dir="rtl">~');
+    expect(get('/blog/hello-world')->getContent())->toMatch('~<time datetime="[^"]+">~');
+    get('/ar/blog')->assertOk()->assertSee('<html lang="ar" dir="rtl">', false);
+    expect((string) file_get_contents(public_path('cms/site.css')))->toContain('.sunrice-img-left { float: inline-start;')
+        ->toContain('[dir="rtl"] .site-logo');
+});
+
 it('shows taxonomy index pages in the blog\'s layout, with its look', function () {
     artisan('sunrice:starter', ['name' => 'blog'])->assertSuccessful();
 
@@ -328,7 +346,7 @@ it('styles rich text images\' width and alignment presets in the blog\'s site.cs
         expect($css)->toMatch('/@media \(max-width: 40em\) \{\s*(\/\*[^*]*\*\/\s*)?\.sunrice-img-left, \.sunrice-img-right, \.sunrice-img-left:not\(\[class\*="sunrice-img-w-"\]\), \.sunrice-img-right:not\(\[class\*="sunrice-img-w-"\]\) \{ float: none; width: 100%; max-width: 100%;/')
             // A heading after a float clears it, with the float's bottom margin (clearance takes the heading's own) as the space.
             ->toContain('.prose :is(h2, h3, h4, hr, pre, blockquote, figure) { clear: both; }')
-            ->toContain('.sunrice-img-left { float: left; margin: 0.35rem 1.5rem 1.5rem 0; }');
+            ->toContain('.sunrice-img-left { float: inline-start; margin-block: 0.35rem 1.5rem; margin-inline: 0 1.5rem; }');
     }
     foreach (['entry', 'term', 'listing', 'taxonomy-index'] as $view) {
         expect((string) file_get_contents(dirname(__DIR__, 2)."/packages/cms/resources/views/{$view}.blade.php"))

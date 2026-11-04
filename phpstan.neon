@@ -15,3 +15,9 @@ parameters:
             identifier: identical.alwaysFalse
             path: packages/admin/src/Support/PublicAddress.php
             reportUnmatched: false
+        # Laravel 13's Paginator contract documents render() as returning a string up to 13.37 and an Htmlable in
+        # later releases, so LazyEntries::render() can't match both; it keeps returning the string it always has.
+        -
+            identifier: method.childReturnType
+            path: packages/cms/src/Site/LazyEntries.php
+            reportUnmatched: false
