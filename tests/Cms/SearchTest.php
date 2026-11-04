@@ -116,7 +116,7 @@ it('searches in the page\'s language', function () {
     expect(titles(app(Search::class)->entries('kopi')))->toBe([])
         ->and(titles(app(Search::class)->entries('kopi', locale: 'id')))->toBe(['Kopi']);
     get('/id/search?q=segar')->assertOk()->assertSee('<a href="'.url('/id/blog/kopi').'">Kopi</a>', false)
-        ->assertSee('<html lang="id">', false);
+        ->assertSee('<html lang="id" dir="ltr">', false);
 });
 
 it('shows the search page, never indexed, and limits searches', function () {

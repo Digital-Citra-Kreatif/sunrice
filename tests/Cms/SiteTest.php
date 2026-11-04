@@ -88,7 +88,7 @@ it('serves other languages under their prefix', function () {
     app(PublishEntry::class)->handle($id);
 
     expect($id->fresh()?->url())->toBe(url('/id/blog/halo'));
-    get('/id/blog/halo')->assertOk()->assertSee('<html lang="id">', false)->assertSee('Halo');
+    get('/id/blog/halo')->assertOk()->assertSee('<html lang="id" dir="ltr">', false)->assertSee('Halo');
     get('/blog/halo')->assertNotFound();
     // The main language's slug goes to the translation's own address.
     get('/id/blog/hello?ref=x')->assertRedirect(url('/id/blog/halo').'?ref=x')->assertStatus(301);
@@ -201,7 +201,7 @@ it('serves the main language where an entry isn\'t translated, at that language\
     app(SaveDraft::class)->handle($draft, ['title' => 'Halo', 'slug' => 'halo']);
 
     // A translation that isn't live doesn't count, nor does its slug.
-    get('/id/blog/hello')->assertOk()->assertSee('<html lang="id">', false)->assertSee('<h1>Hello</h1>', false)->assertSee('In English')
+    get('/id/blog/hello')->assertOk()->assertSee('<html lang="id" dir="ltr">', false)->assertSee('<h1>Hello</h1>', false)->assertSee('In English')
         ->assertSee('lang-id', false);
     expect(app()->getLocale())->toBe('id')
         ->and(Content::page()?->fallback)->toBeTrue()
@@ -229,7 +229,7 @@ it('marks the main language\'s content on an untranslated page with its language
     sitePost($this->blog, 'Hello', ['body' => '<p>In English</p>']);
 
     $page = get('/id/blog/hello')->assertOk()->assertViewHas('contentLocale', 'en')->assertViewHas('locale', 'id')
-        ->assertSee('<html lang="id">', false);
+        ->assertSee('<html lang="id" dir="ltr">', false);
     expect($page->getContent())->toContain('<article lang="en"><h1>Hello</h1>')
         ->and(Content::page()?->contentLocale())->toBe('en')
         ->and((string) Content::page()?->langAttribute())->toBe(' lang="en"');

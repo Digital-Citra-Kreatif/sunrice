@@ -27,6 +27,7 @@ import { PermissionMatrix } from './permission-matrix';
 import type { FieldInfo } from './types';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { textDir } from '@/lib/text-dir';
 
 export type FieldValue = string | number | boolean | string[] | number[] | (string | number)[] | null;
 
@@ -76,7 +77,8 @@ export function FieldInput({ field, value, onChange, invalid, data }: FieldProps
             return <CheckboxList id={id} options={(field.options as CheckboxOption[] | undefined) ?? []} disabled={disabled}
                 value={Array.isArray(value) ? value.map(String) : []} onChange={onChange} />;
         case 'textarea':
-            return <Textarea {...common} rows={Number(field.rows ?? 4)} maxLength={Number(field.maxLength) || undefined}
+            // dir="auto": text typed in Arabic or Hebrew starts on the right.
+            return <Textarea {...common} dir="auto" rows={Number(field.rows ?? 4)} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
         case 'code':
             // CodeMirror loads in its own chunk when the first one shows (a textarea meanwhile).
@@ -134,7 +136,7 @@ export function FieldInput({ field, value, onChange, invalid, data }: FieldProps
                 return <Input {...common} type="text" className="font-mono" maxLength={Number(field.maxLength) || undefined} spellCheck={false} autoCapitalize="off"
                     value={value === null ? '' : String(value)} onChange={(e) => onChange(slugInput(e.target.value, String(field.slugSeparator ?? '-')))} />;
             }
-            return <Input {...common} type={String(field.inputType ?? 'text')} maxLength={Number(field.maxLength) || undefined}
+            return <Input {...common} type={String(field.inputType ?? 'text')} dir={textDir(field.inputType)} maxLength={Number(field.maxLength) || undefined}
                 value={value === null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
     }
 }

@@ -51,6 +51,27 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## Unreleased
+
+From 0.4.3: `composer update "sunrice/*" -W` and `php artisan sunrice:assets` (the panel's editor fields changed); no migrations.
+
+- **Right-to-left languages.** The CMS's own pages now say which way their language is written (`<html lang="ar" dir="rtl">`), from the new config key `sunrice-cms.rtl_locales` (Arabic, Hebrew, Persian, Urdu… by primary subtag). Templates you copied earlier (`vendor:publish --tag=sunrice-cms-templates`, a starter's `resources/views/cms/`) don't: on a site with such a language, add `dir` to the `<html>` of your layout and error pages, and `dirAttribute()` beside `langAttribute()` around entries' and terms' content (`cms/collections/show.blade.php`, `cms/taxonomies/show.blade.php`):
+
+  ```blade
+  <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ cms_dir() }}">
+  <article class="entry"{{ cms_page()?->langAttribute() }}{{ cms_page()?->dirAttribute() }}>
+  ```
+
+  A site in left-to-right languages only gets `dir="ltr"`, which changes nothing. Then turn your CSS's `left` and `right` into logical properties (`margin-inline-start`, `padding-inline-end`, `inset-inline-start`, `border-inline-start`, `text-align: start`) so the layout mirrors; the new `public/cms/site.css` (`packages/cms/stubs/public/site.css`, or the Blog starter's) is a converted copy to compare with. See [Right-to-left languages](../packages/cms/docs/site.md#right-to-left-languages).
+- **The image presets `sunrice-img-left` and `sunrice-img-right` mean start and end.** The starter CSS and the CMS's plain pages now float them `inline-start` and `inline-end`, which is left and right as before on left-to-right pages, swapped on right-to-left ones; the class names and saved content don't change. Your own CSS can do the same:
+
+  ```css
+  .sunrice-img-left { float: inline-start; margin-block: 0.35rem 1.5rem; margin-inline: 0 1.5rem; }
+  .sunrice-img-right { float: inline-end; margin-block: 0.35rem 1.5rem; margin-inline: 1.5rem 0; }
+  ```
+
+  `float: inline-start` needs Chrome or Edge 118, Safari 15 or Firefox 55 or later; keep `float: left` and `right` if you must support older browsers.
+
 ## 0.4.3
 
 From 0.4.2 to 0.4.3: `composer update "sunrice/*" -W`; no migrations, and no admin assets changed.
@@ -165,7 +186,7 @@ After that, the steps every update needs, and:
 - **The panel sends a strict Content-Security-Policy** (`sunrice-admin.security.csp`, on by default): scripts and `<style>` elements need the panel's origin or the request's nonce, so inline code you added to the panel stops running. That's a published or overridden `sunrice-admin::app` view (`resources/views/vendor/sunrice-admin/app.blade.php`), Blade views of your own panel routes, and plugins of your own that print inline `<script>` or `<style>`: give each tag `nonce="{{ Vite::cspNonce() }}"`, and move inline event handlers (`onclick=""`) and `javascript:` links into a script. A published `app.blade.php` should be compared with the new one: its first inline script gives the `<style>` elements the panel's scripts create the nonce, without which toasts, dialogs and the editors lose their styles. Anything the panel loads from elsewhere (images from a host other than the media disk's, an API your plugin calls, a script from a CDN) needs its origin in `security.csp.sources`. To find what breaks without blocking it, deploy with `SUNRICE_CSP_REPORT_ONLY=true` and watch the browser console; `SUNRICE_CSP_ENABLED=false` turns it off. A policy you set with `SUNRICE_CSP` is still sent as is, instead of the panel's. A `config/sunrice-admin.php` published on 0.1 says above `security.headers.csp` that a Content-Security-Policy is sent "only when set here": that comment is now wrong. A policy is sent by default, and `security.headers.csp` (`SUNRICE_CSP`), when set, replaces it as a whole; correct or remove the comment (the new file's reads "A whole Content-Security-Policy of your own, sent as is instead of the panel's"). See [Content-Security-Policy](../packages/admin/docs/security.md#content-security-policy).
 - **The site can send a Content-Security-Policy** (`sunrice-cms.site.csp`, off by default; `SUNRICE_SITE_CSP_ENABLED=true`). A `config/sunrice-cms.php` published on 0.1 has no `csp` key: the env variables work without it, and you can add it to tune `nonce` or `sources`. See [Content-Security-Policy](../packages/cms/docs/site.md#content-security-policy).
 - **The media trash is off the public disk**: moving a file to the trash moves its files to `media.trash_disk` (the private `local` disk by default), so they can't be downloaded at their links. A published `config/sunrice-admin.php` needn't have `trash_disk` and `trash_directory` under `media` (the defaults apply without them): add them to change them or to see them there, and keep the trash disk one that isn't served by URL. Files trashed on 0.1 are under the old media folder you moved aside: they aren't carried over. See [Media](../packages/admin/docs/media.md#the-trash).
-- **Copy the image preset styles into your site's CSS**: rich text images can now be given a width and an alignment, stored as classes (`sunrice-img`, `sunrice-img-w-50`, `sunrice-img-left`…) that only your site's CSS turns into a layout. A site whose `public/cms/site.css` came from 0.1 (the starter templates, `vendor:publish --tag=sunrice-cms-templates`, or the Blog starter) doesn't have the rules, so the presets do nothing on it: images show full width, wherever they're placed. Add these, from the 0.2 starter templates' `site.css` (`packages/cms/stubs/public/site.css` in `sunrice/cms`), to your own CSS (`.prose` is the starter templates' wrapper of rich text: use your own):
+- **Copy the image preset styles into your site's CSS**: rich text images can now be given a width and an alignment, stored as classes (`sunrice-img`, `sunrice-img-w-50`, `sunrice-img-left`…) that only your site's CSS turns into a layout. A site whose `public/cms/site.css` came from 0.1 (the starter templates, `vendor:publish --tag=sunrice-cms-templates`, or the Blog starter) doesn't have the rules, so the presets do nothing on it: images show full width, wherever they're placed. Add these, from the starter templates' `site.css` (`packages/cms/stubs/public/site.css` in `sunrice/cms`; the floats as written since they mirror on [right-to-left](#unreleased) pages), to your own CSS (`.prose` is the starter templates' wrapper of rich text: use your own):
 
   ```css
   /* Rich text images: the editor's width and alignment presets (no inline styles) */
@@ -175,8 +196,8 @@ After that, the steps every update needs, and:
   .sunrice-img-w-75 { width: 75%; }
   .sunrice-img-w-100, .sunrice-img-full { width: 100%; }
   .sunrice-img-center { margin-inline: auto; }
-  .sunrice-img-left { float: left; margin: 0.35rem 1.5rem 1.5rem 0; }
-  .sunrice-img-right { float: right; margin: 0.35rem 0 1.5rem 1.5rem; }
+  .sunrice-img-left { float: inline-start; margin-block: 0.35rem 1.5rem; margin-inline: 0 1.5rem; }
+  .sunrice-img-right { float: inline-end; margin-block: 0.35rem 1.5rem; margin-inline: 1.5rem 0; }
   .sunrice-img-left:not([class*="sunrice-img-w-"]), .sunrice-img-right:not([class*="sunrice-img-w-"]) { max-width: 50%; }
   .prose::after { content: ""; display: block; clear: both; }
   .prose :is(h2, h3, h4, hr, pre, blockquote, figure) { clear: both; }
