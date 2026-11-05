@@ -25,8 +25,9 @@ const inputs = new Map<string, FieldInputComponent>();
  * The input of a plugin's field type, in every CMS editor (entries,
  * terms, globals, listing pages): `registerFieldInput('rating', RatingInput)`.
  * A plugin's bundle that adds to the CMS's pages (PluginBundle::extends('Cms/'))
- * calls it through `globalThis.SunriceCms`, which the CMS's bundle sets
- * before those bundles load. A type registered twice keeps the second.
+ * calls it through `globalThis.SunriceCms`, or queues the call on
+ * `globalThis.SunriceCmsQueue` when the CMS's bundle hasn't run yet (its
+ * own pages opened first). A type registered twice keeps the second.
  */
 export function registerFieldInput(type: string, component: FieldInputComponent): void {
     if (inputs.has(type)) {
@@ -46,6 +47,30 @@ export interface SunriceCmsApi {
     registerFieldInput: typeof registerFieldInput;
 }
 
+type Queued = (api: SunriceCmsApi) => void;
+
+/**
+ * Sets globalThis.SunriceCms and runs what other bundles queued before it
+ * existed (`(globalThis.SunriceCmsQueue ??= []).push((cms) => …)`); later
+ * pushes run at once.
+ */
 export function installCmsApi(): void {
-    (globalThis as { SunriceCms?: SunriceCmsApi }).SunriceCms = { version: 1, registerFieldInput };
+    const scope = globalThis as { SunriceCms?: SunriceCmsApi; SunriceCmsQueue?: Queued[] };
+    const api: SunriceCmsApi = { version: 1, registerFieldInput };
+    scope.SunriceCms = api;
+    const queue = scope.SunriceCmsQueue ?? [];
+    const run = (call: Queued) => {
+        try {
+            call(api);
+        } catch (error) {
+            console.error('[sunrice] A queued SunriceCms call failed.', error);
+        }
+    };
+    queue.splice(0).forEach(run);
+    queue.push = (...calls: Queued[]) => {
+        calls.forEach(run);
+
+        return 0;
+    };
+    scope.SunriceCmsQueue = queue;
 }

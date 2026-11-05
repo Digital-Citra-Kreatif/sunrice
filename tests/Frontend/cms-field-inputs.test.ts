@@ -23,9 +23,14 @@ test('draws a plugin field type with the input it registered, with the label and
     assert.deepEqual((seen.field as { config: unknown }).config, { max: 5 });
     assert.deepEqual(seen.errors, { '': 'Too many stars.', 'nested.0': 'Inner.' });
 
-    // Other plugins' bundles reach it through globalThis.SunriceCms.
+    // Other plugins' bundles queue their calls on globalThis.SunriceCmsQueue: run when the CMS's bundle runs, at once after.
+    const scope = globalThis as { SunriceCms?: { version: number }; SunriceCmsQueue?: Array<(cms: { registerFieldInput: typeof registerFieldInput }) => void> };
+    const ran: string[] = [];
+    (scope.SunriceCmsQueue ??= []).push(() => ran.push('before'));
     installCmsApi();
-    assert.equal((globalThis as { SunriceCms?: { version: number } }).SunriceCms?.version, 1);
+    scope.SunriceCmsQueue.push(() => ran.push('after'));
+    assert.equal(scope.SunriceCms?.version, 1);
+    assert.deepEqual(ran, ['before', 'after']);
 });
 
 test('without a registered input, an unknown type is a text input', async () => {

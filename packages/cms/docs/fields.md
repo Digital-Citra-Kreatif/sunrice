@@ -296,7 +296,7 @@ Extend `FieldType` and override what differs:
 
 ### An input of its own
 
-The editors draw a type they don't know as a text input. A plugin gives its type an input in React, in its admin bundle, which adds to the CMS's pages ([`PluginBundle::extends('Cms/')`](../../admin/docs/frontend.md#adding-to-another-plugins-pages)) and registers the input with the CMS through `globalThis.SunriceCms`, which the CMS's bundle sets before that bundle runs:
+The editors draw a type they don't know as a text input. A plugin gives its type an input in React, in its admin bundle, which adds to the CMS's pages ([`PluginBundle::extends('Cms/')`](../../admin/docs/frontend.md#adding-to-another-plugins-pages)) and registers the input with the CMS: through `globalThis.SunriceCmsQueue`, which the CMS's bundle drains when it runs (so a bundle that loaded first, on a page of its own, still gets its inputs in), and runs at once after that:
 
 ```tsx
 import type { ComponentType } from 'react';
@@ -310,7 +310,9 @@ function RatingInput({ field, value, onChange, id, describedBy }: {
         onChange={(event) => onChange(Number(event.target.value))} />;
 }
 
-(globalThis as { SunriceCms?: { registerFieldInput(type: string, input: ComponentType<any>): void } }).SunriceCms?.registerFieldInput('rating', RatingInput);
+type Cms = { registerFieldInput(type: string, input: ComponentType<any>): void };
+// Queued until the CMS's bundle has run (a page of your own may load your bundle first); at once after.
+((globalThis as { SunriceCmsQueue?: Array<(cms: Cms) => void> }).SunriceCmsQueue ??= []).push((cms) => cms.registerFieldInput('rating', RatingInput));
 ```
 
 The input gets the field's definition (`toAdmin()`'s, `config` included), the value, `onChange`, the `errors` by path relative to the value (`''` for the value itself, `"items.0.qty"` inside it), the `id` the editor's label points at and `describedBy` (the hint's and error's ids). The editor draws the label, the hint and the value's own error around it, as for any field; the input shows errors inside the value. The server still validates and normalizes the value (`rules()`, `normalize()`).

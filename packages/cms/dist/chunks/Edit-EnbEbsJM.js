@@ -1,5 +1,5 @@
-import { a as i, t as e, j as s } from "./admin-WLOzGGyK.js";
-import { P as u } from "./PageValuesForm-DgKO-1qO.js";
+import { a as i, t as e, j as s } from "./admin-YMEUt_TB.js";
+import { P as u } from "./PageValuesForm-CQ6MR1Xo.js";
 import { S as m } from "./settings-2-B2-hLaF4.js";
 import { L as p } from "./layout-template-Btp-VVsS.js";
 function b({ collection: t, settings: l = null, blueprint: a = null, ...n }) {
