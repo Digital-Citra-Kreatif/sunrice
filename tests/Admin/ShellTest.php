@@ -94,7 +94,7 @@ it('lists plugin bundles for the frontend to load on demand', function () {
     signIn();
 
     get('/admin')->assertInertia(fn (Assert $page) => $page->where('sunrice.bundles', [
-        ['id' => 'shop', 'module' => '/vendor/shop/admin.js', 'styles' => ['/vendor/shop/admin.css'], 'pages' => ['Shop/']],
+        ['id' => 'shop', 'module' => '/vendor/shop/admin.js', 'styles' => ['/vendor/shop/admin.css'], 'pages' => ['Shop/'], 'extends' => []],
     ]));
 });
 

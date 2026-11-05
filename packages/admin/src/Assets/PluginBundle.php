@@ -35,6 +35,9 @@ final class PluginBundle
     /** @var list<string> */
     private array $pages = [];
 
+    /** @var list<string> page prefixes other bundles provide, which this one adds to */
+    private array $extends = [];
+
     private ?string $source = null;
 
     private ?string $published = null;
@@ -88,6 +91,35 @@ final class PluginBundle
         }
 
         return $this;
+    }
+
+    /**
+     * Page prefixes another bundle provides that this one adds to: it loads
+     * on those pages too, right after the bundle that provides them, and
+     * before the page shows. For what a plugin gives another plugin's
+     * screens, such as the inputs of its CMS field types in the entry
+     * editor (`->extends('Cms/')`, then the CMS's registerFieldInput()).
+     * It claims none of those pages.
+     *
+     *     PluginBundle::make('shop')->publishedFrom($dist, public_path('vendor/shop'))
+     *         ->module('admin.js')->pages('Shop/')->extends('Cms/');
+     */
+    public function extends(string ...$prefixes): self
+    {
+        foreach ($prefixes as $prefix) {
+            if (preg_match('#^[A-Z][A-Za-z0-9]*(?:/[A-Z][A-Za-z0-9]*)*/$#', $prefix) !== 1) {
+                throw new InvalidArgumentException("Bundle \"{$this->id}\": page prefixes look like \"Cms/\" (a folder of pages, ending in a slash), not \"{$prefix}\".");
+            }
+            $this->extends[] = $prefix;
+        }
+
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getExtends(): array
+    {
+        return $this->extends;
     }
 
     /** The name admins know the plugin by ("Sunrice CMS"), in messages about its bundle. */
@@ -216,10 +248,10 @@ final class PluginBundle
         return $this->pages;
     }
 
-    /** @return array{id: string, module: string|null, styles: list<string>, pages: list<string>} */
+    /** @return array{id: string, module: string|null, styles: list<string>, pages: list<string>, extends: list<string>} */
     public function toArray(): array
     {
-        return ['id' => $this->id, 'module' => $this->getModule(), 'styles' => $this->getStyles(), 'pages' => $this->pages];
+        return ['id' => $this->id, 'module' => $this->getModule(), 'styles' => $this->getStyles(), 'pages' => $this->pages, 'extends' => $this->extends];
     }
 
     /** A file of the published folder ("admin.js", "chunks/x.css"), not a URL. */

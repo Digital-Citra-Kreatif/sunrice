@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bundleFor, joinPath } from '../../packages/admin/resources/js/lib/bundles.ts';
+import { bundleFor, extendersOf, joinPath } from '../../packages/admin/resources/js/lib/bundles.ts';
 import { loadAdminModule } from './support/render.ts';
 
 const bundle = (id: string, ...pages: string[]) => ({ id, module: `/${id}.js`, styles: [], pages });
@@ -60,4 +60,14 @@ test('a lazy page that fails to load is tried again on the next visit', async ()
     await assert.rejects(pluginPage('Flaky/Page', bundles), /offline/);
     assert.equal(await pluginPage('Flaky/Page', bundles), Page);
     await assert.rejects(pluginPage('Flaky/Empty', bundles), /no component as default export/);
+});
+
+test('lists the bundles that add to another bundle\'s pages', () => {
+    const cms = bundle('cms', 'Cms/');
+    const shop = { ...bundle('shop', 'Shop/'), extends: ['Cms/'] };
+    const crm = { ...bundle('crm', 'Crm/'), extends: ['Cms/Entries/'] };
+
+    assert.deepEqual(extendersOf('Cms/Entries/Edit', [cms, shop, crm], cms).map((b) => b.id), ['shop', 'crm']);
+    assert.deepEqual(extendersOf('Cms/Terms/Edit', [cms, shop, crm], cms).map((b) => b.id), ['shop']);
+    assert.deepEqual(extendersOf('Shop/Orders', [cms, shop, crm], shop).map((b) => b.id), []);
 });
