@@ -121,6 +121,15 @@ The prefix matters: your stylesheet loads after the panel's, so an unprefixed ut
 
 The CMS's own bundle (`packages/cms`) is a complete example.
 
+### Adding to another plugin's pages
+
+A bundle can add to pages another bundle provides: `->extends('Cms/')` loads it on those pages too, right after the bundle that provides them and before the page shows, without claiming any of them (several bundles may extend the same pages). The CMS uses it for plugins' field types: their inputs show in its entry editor once their bundle registers them (see the CMS's [field types](../../cms/docs/fields.md#an-input-of-its-own)).
+
+```php
+PluginBundle::make('shop')->publishedFrom(dirname(__DIR__).'/dist', public_path('vendor/shop'))
+    ->module('admin.js')->style('admin.css')->pages('Shop/')->extends('Cms/');
+```
+
 The panel loads the bundle the first time a page under `Shop/` opens, not on every admin page. Page prefixes are folders ending in `/`; two bundles can't claim the same pages, and the panel's own folders (`Auth/`, `Users/`, `Settings/`…) are reserved.
 
 ### Loading pages on demand

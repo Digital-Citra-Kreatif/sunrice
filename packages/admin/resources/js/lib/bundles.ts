@@ -8,6 +8,7 @@ export interface PageBundle {
     module: string | null;
     styles: string[];
     pages: string[];
+    extends?: string[];
 }
 
 /** The bundle whose page prefix matches the page name (the longest match wins). */
@@ -24,6 +25,11 @@ export function bundleFor<B extends PageBundle>(name: string, bundles: readonly 
     }
 
     return found;
+}
+
+/** The bundles that add to a page another bundle provides (PluginBundle::extends()), in the order given. */
+export function extendersOf<B extends PageBundle>(name: string, bundles: readonly B[], provider?: B): B[] {
+    return bundles.filter((bundle) => bundle !== provider && (bundle.extends ?? []).some((prefix) => name.startsWith(prefix)));
 }
 
 /** "orders" → "/admin/orders" for a panel at /admin; absolute URLs pass through. */

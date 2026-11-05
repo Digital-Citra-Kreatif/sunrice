@@ -173,6 +173,11 @@ it('checks plugin bundles', function () {
     expect(fn () => Panel::make()->bundle($bundle('shop', 'Shop/'))->bundle($bundle('shop', 'Store/')))
         ->toThrow(PanelMisconfigured::class, 'Two bundles');
     expect(fn () => PluginBundle::make('shop')->pages('shop'))->toThrow(InvalidArgumentException::class);
+    // Adding to another bundle's pages claims none of them: two bundles may extend the same.
+    $extending = $bundle('shop', 'Shop/')->extends('Cms/');
+    expect(Panel::make()->bundle($bundle('cms', 'Cms/'))->bundle($extending)->bundle($bundle('crm', 'Crm/')->extends('Cms/'))->getBundles())->toHaveCount(3)
+        ->and($extending->toArray())->toMatchArray(['pages' => ['Shop/'], 'extends' => ['Cms/']])
+        ->and(fn () => PluginBundle::make('shop')->extends('cms'))->toThrow(InvalidArgumentException::class);
     // A file of the published folder needs publishedFrom(), under public/ or with its URL; never a path out of it.
     expect(fn () => Panel::make()->bundle(PluginBundle::make('shop')->module('admin.js')->pages('Shop/')))
         ->toThrow(PanelMisconfigured::class, 'add ->publishedFrom(');

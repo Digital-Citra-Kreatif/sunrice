@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Plugins' field types get inputs of their own in the CMS's editors**: the entry editor (and the term, global, listing and index page editors) drew any field type it didn't know as a text input, so a plugin's type with a richer value (a product's prices and variants) couldn't be edited there. A plugin's bundle now registers a React input for its type, `globalThis.SunriceCms.registerFieldInput('rating', RatingInput)`, which the editors draw inside the field's label, hint and error; the input gets the field's definition, the value, `onChange`, the errors by path inside the value, `id` and `describedBy`. See [Field types](packages/cms/docs/fields.md#an-input-of-its-own).
+- **A plugin bundle can add to another plugin's pages**: `PluginBundle::extends('Cms/')` loads the bundle on the pages under those prefixes too, right after the bundle that provides them and before the page shows, without claiming them; several bundles may extend the same pages, and the bundle's `extends` is in the page props' `sunrice.bundles`. See [Adding to another plugin's pages](packages/admin/docs/frontend.md#adding-to-another-plugins-pages).
+
 ## 0.5.0 (2026-11-04)
 
 **Upgrading from 0.4**: raise the constraints (`composer require sunrice/admin:^0.5 sunrice/cms:^0.5 -W`, with `sunrice/starter-kit:^0.5` if you use it), then run `php artisan sunrice:assets`. No migrations. Templates you copied earlier keep working; to lay out right-to-left languages, add `dir="{{ cms_dir() }}"` to their `<html>`; see [Upgrading](docs/upgrading.md#050).

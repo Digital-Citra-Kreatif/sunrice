@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { bundleFor } from '@/lib/bundles';
+import { bundleFor, extendersOf } from '@/lib/bundles';
 import type { BundleInfo } from '@/types';
 
 /** A page component; `bare = true` renders it without the admin layout (a login page). */
@@ -108,15 +108,20 @@ function load(bundle: BundleInfo): Promise<void> {
     return promise;
 }
 
-/** A plugin's page: loads the bundle that provides it on first use. */
+/**
+ * A plugin's page: loads the bundle that provides it on first use, then
+ * the bundles that add to it (PluginBundle::extends(), such as a plugin's
+ * CMS field inputs), so they find what the provider set up.
+ */
 export async function pluginPage(name: string, bundles: BundleInfo[]): Promise<PageComponent> {
+    const bundle = bundleFor(name, bundles);
     if (!pages.has(name) && !loaders.has(name)) {
-        const bundle = bundleFor(name, bundles);
         if (!bundle) {
             throw new Error(`[sunrice] No page "${name}": it isn't one of the panel's pages and no plugin bundle claims it (PluginBundle::pages()).`);
         }
         await load(bundle);
     }
+    await Promise.all(extendersOf(name, bundles, bundle).map(load));
     const loader = loaders.get(name);
     const page = pages.get(name) ?? (loader ? await loadPage(name, loader) : undefined);
     if (!page) {

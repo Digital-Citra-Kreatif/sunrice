@@ -25,6 +25,8 @@ export interface BundleInfo {
     module: string | null;
     styles: string[];
     pages: string[];
+    /** Prefixes of other bundles' pages this one adds to (PluginBundle::extends()): loaded on them after their own. */
+    extends?: string[];
 }
 
 /** Settings → Branding with the panel's defaults filled in (Support\Branding::toArray()). */
