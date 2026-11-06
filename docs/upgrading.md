@@ -51,6 +51,13 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.6.0
+
+From 0.5.x to 0.6.0: raise the constraints to `^0.6` (above) and run `php artisan sunrice:assets` (the panel's and the CMS's bundles changed); no migrations.
+
+- **Plugin field inputs.** Nothing to change: a field type no plugin gives an input is still a text input. A plugin can now register one; see [Field types](../packages/cms/docs/fields.md#an-input-of-its-own).
+- **The plugin SDK is on npm.** If you build a plugin bundle and installed `@imajiner/admin-sdk` from a path or a Git checkout, install it from npm instead (`npm install --save-dev @imajiner/admin-sdk@^0.6`) and rebuild.
+
 ## 0.5.0
 
 From 0.4.x to 0.5.0: raise the constraints to `^0.5` (above) and run `php artisan sunrice:assets` (the panel's editor fields changed); no migrations.
