@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **A command palette search can say who it's for**: `$panel->commandSearch()` takes an optional `visible: fn (Authorizable $user): bool`, and a signed-in user it returns false for isn't given the search in `sunrice.commandSearches`. Before, every search went to everyone signed in, so the palette of someone a search's route refused asked it at each search and the browser logged a 403 (the CMS's entry search, and the visual editor's, for a user without their permissions). `getCommandSearches(?Authorizable $user = null)` gives a user's searches. The CMS's entry search is now given only to those who may view some collection's entries (`cms.entries.view`, or `cms.entries.<collection>.view`), as its route lets in. See [Command palette searches](packages/admin/docs/panel.md#command-palette-searches).
+
 ## 0.6.0 (2026-11-06)
 
 **Upgrading from 0.5**: raise the constraints (`composer require sunrice/admin:^0.6 sunrice/cms:^0.6 -W`, with `sunrice/starter-kit:^0.6` if you use it), then run `php artisan sunrice:assets`. No migrations. Plugin bundles built with `@imajiner/admin-sdk` keep working; update it to `^0.6` when you next build them. See [Upgrading](docs/upgrading.md#060).

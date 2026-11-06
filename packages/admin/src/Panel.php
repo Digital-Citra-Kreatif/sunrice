@@ -111,7 +111,7 @@ final class Panel
     /** @var array<string, PluginBundle> */
     private array $bundles = [];
 
-    /** @var array<string, array{url: Closure(): string, minLength: int}> command palette searches, keyed by id */
+    /** @var array<string, array{url: Closure(): string, minLength: int, visible: (Closure(Authorizable): bool)|null}> command palette searches, keyed by id */
     private array $commandSearches = [];
 
     /** @var array<string, RichTextLinkSource> what rich text links can point at, keyed by key */
@@ -936,32 +936,44 @@ final class Panel
      * optional description, group, icon, url). The route behind the URL
      * guards itself; an error answer (403) lists nothing.
      *
-     *     $panel->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.orders.search'));
+     * $visible says who the search is for: someone it returns false for is
+     * not given the search, so their palette never asks the route (and
+     * never logs its 403). Make it say what the route's guard says.
+     *
+     *     $panel->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.orders.search'),
+     *         visible: fn (Authorizable $user) => $user->can('shop.orders.view'));
      *
      * @param  Closure(): string  $url  resolved when a page is rendered, so it can use route()
+     * @param  (Closure(Authorizable): bool)|null  $visible  asked for each signed-in user, on each page; null: everyone signed in
      */
-    public function commandSearch(string $id, Closure $url, int $minLength = 2): self
+    public function commandSearch(string $id, Closure $url, int $minLength = 2, ?Closure $visible = null): self
     {
         $this->assertRegistering();
         if (isset($this->commandSearches[$id])) {
             throw new PanelMisconfigured("Two command searches have the id \"{$id}\"{$this->owner()}.");
         }
-        $this->commandSearches[$id] = ['url' => $url, 'minLength' => max(1, $minLength)];
+        $this->commandSearches[$id] = ['url' => $url, 'minLength' => max(1, $minLength), 'visible' => $visible];
 
         return $this;
     }
 
     /**
-     * The command palette's searches, with their URLs.
+     * The command palette's searches, with their URLs: those for $user,
+     * when given (see commandSearch()'s $visible), else every one.
      *
      * @return list<array{id: string, url: string, minLength: int}>
      */
-    public function getCommandSearches(): array
+    public function getCommandSearches(?Authorizable $user = null): array
     {
+        $searches = array_filter(
+            $this->commandSearches,
+            fn (array $search): bool => $user === null || $search['visible'] === null || ($search['visible'])($user) === true,
+        );
+
         return array_map(
             fn (string $id, array $search): array => ['id' => $id, 'url' => ($search['url'])(), 'minLength' => $search['minLength']],
-            array_keys($this->commandSearches),
-            $this->commandSearches,
+            array_keys($searches),
+            $searches,
         );
     }
 

@@ -266,12 +266,17 @@ Under the panel's path, a 403, 404, 419 (the page expired) or 500 is the panel's
 
 ### Command palette searches
 
-The command palette (Cmd/Ctrl+K) lists the navigation on every page. `$panel->commandSearch($id, fn () => url, $minLength = 2)` adds a search it asks on every page too, without loading the plugin's JavaScript: once `$minLength` letters are typed (debounced) it requests `<url>?q=…` and lists the answer's `items`, each with an `id`, a `label` and optional `description`, `group` (the heading), `icon` (a navigation icon name) and `url` (the page it opens). The route guards itself like any other (an error answer lists nothing), and should answer quickly with a handful of items. The CMS searches entries this way (`cms.entries`, `GET admin/cms/entries/search?q=`, titles in every language).
+The command palette (Cmd/Ctrl+K) lists the navigation on every page. `$panel->commandSearch($id, fn () => url, $minLength = 2, $visible = null)` adds a search it asks on every page too, without loading the plugin's JavaScript: once `$minLength` letters are typed (debounced) it requests `<url>?q=…` and lists the answer's `items`, each with an `id`, a `label` and optional `description`, `group` (the heading), `icon` (a navigation icon name) and `url` (the page it opens). The route guards itself like any other (an error answer lists nothing), and should answer quickly with a handful of items. The CMS searches entries this way (`cms.entries`, `GET admin/cms/entries/search?q=`, titles in every language).
+
+`$visible`, `fn (Authorizable $user): bool`, says who the search is for: a signed-in user it returns false for isn't given the search (it's left out of the page props' `sunrice.commandSearches`), so their palette never asks a route that would refuse them, and the browser logs no 403 at each search. Make it say what the route's guard says. Without it, every signed-in user is given the search. It's asked once per page for each search, so keep it cheap: a permission check, not a query. The CMS gives its entry search to those who may view some collection's entries.
 
 ```php
 $panel->routes(fn () => Route::get('shop/orders/search', OrderSearch::class)->name('shop.orders.search')->middleware('can:shop.orders.view'));
-$panel->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.orders.search'));
+$panel->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.orders.search'),
+    visible: fn (Authorizable $user) => $user->can('shop.orders.view'));
 ```
+
+`$panel->getCommandSearches($user)` gives the searches for that user, as the pages share them; without a user, every one.
 
 Search results that need the browser (an action rather than a page) use [`registerCommandSource()`](frontend.md) in the plugin's bundle.
 
