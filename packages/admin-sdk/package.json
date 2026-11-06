@@ -1,6 +1,6 @@
 {
     "name": "@imajiner/admin-sdk",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "Build admin pages for Sunrice panel plugins: shares the panel's React, Inertia and UI components.",
     "license": "MIT",
     "homepage": "https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/frontend.md",

@@ -37,7 +37,7 @@ definePlugin({ pages: { 'Shop/Reports': Reports } });
 | `@imajiner/admin-sdk/ui` | The panel's UI components and hooks (buttons, cards, forms, tables, dialogs, `useBreadcrumbs`…). |
 | `@imajiner/admin-sdk/vite` | `sunrice({ entry, outDir?, fileName? })`, the Vite plugin. |
 
-Use the SDK version that matches your `sunrice/admin` version (`0.5.x` with the panel's `0.5.x`): they're released together.
+Use the SDK version that matches your `sunrice/admin` version (`0.6.x` with the panel's `0.6.x`): they're released together.
 
 The panel's docs explain the PHP side (registering the bundle, routes and permissions) and the full UI: [Admin pages in React](https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/frontend.md).
 

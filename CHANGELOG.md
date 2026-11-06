@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.6.0 (2026-11-06)
+
+**Upgrading from 0.5**: raise the constraints (`composer require sunrice/admin:^0.6 sunrice/cms:^0.6 -W`, with `sunrice/starter-kit:^0.6` if you use it), then run `php artisan sunrice:assets`. No migrations. Plugin bundles built with `@imajiner/admin-sdk` keep working; update it to `^0.6` when you next build them. See [Upgrading](docs/upgrading.md#060).
+
+**Highlights.**
+
+- **Plugins' field types get their own inputs in the CMS's editors**: a plugin's bundle registers a React input for its field type, and the entry, term, global, listing and index page editors draw it.
+- **A plugin's bundle can add to another plugin's pages** with `PluginBundle::extends()`.
+- **The plugin SDK is on npm**: `npm install --save-dev @imajiner/admin-sdk`, released with the panel at the same version.
+
 - **The plugin SDK is published to npm**: `@imajiner/admin-sdk` now goes to npm with every release, at the release's version, through the new `.github/workflows/npm.yml` (started by a `v*` tag push, and by the `release` workflow), with provenance; prereleases go out under the `next` dist-tag. Its package has a README, repository and homepage links and public access, and builds `dist/` before any publish. See [Architecture](docs/architecture.md).
 - **Plugins' field types get inputs of their own in the CMS's editors**: the entry editor (and the term, global, listing and index page editors) drew any field type it didn't know as a text input, so a plugin's type with a richer value (a product's prices and variants) couldn't be edited there. A plugin's bundle now registers a React input for its type, `(globalThis.SunriceCmsQueue ??= []).push((cms) => cms.registerFieldInput('rating', RatingInput))` (queued until the CMS's bundle runs, at once after), which the editors draw inside the field's label, hint and error; the input gets the field's definition, the value, `onChange`, the errors by path inside the value, `id` and `describedBy`. See [Field types](packages/cms/docs/fields.md#an-input-of-its-own).
 - **A plugin bundle can add to another plugin's pages**: `PluginBundle::extends('Cms/')` loads the bundle on the pages under those prefixes too, right after the bundle that provides them and before the page shows, without claiming them; several bundles may extend the same pages, and the bundle's `extends` is in the page props' `sunrice.bundles`. See [Adding to another plugin's pages](packages/admin/docs/frontend.md#adding-to-another-plugins-pages).
