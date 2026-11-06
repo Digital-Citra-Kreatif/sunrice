@@ -2,10 +2,11 @@ name: release
 
 # Tags a release from the Actions tab (Run workflow): makes the annotated tag
 # v<version> on a commit of main whose CHANGELOG.md has a "## <version> (…)"
-# section, then publishes the packages at that tag through split.yml. It's
-# the same as `git tag -a v<version> <commit> && git push origin v<version>`,
-# for when that push can't be made (a tag pushed by this workflow's token
-# doesn't start split.yml, so this calls it). Running it again for a tag
+# section, then publishes the packages at that tag through split.yml and the
+# npm SDK through npm.yml. It's the same as
+# `git tag -a v<version> <commit> && git push origin v<version>`, for when that
+# push can't be made (a tag pushed by this workflow's token doesn't start
+# split.yml or npm.yml, so this calls the one and dispatches the other). Running it again for a tag
 # that's already on the same commit only publishes it again.
 
 on:
@@ -78,3 +79,16 @@ jobs:
     with:
       tag: ${{ needs.tag.outputs.tag }}
     secrets: inherit
+
+  npm:
+    needs: tag
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Start npm.yml for ${{ needs.tag.outputs.tag }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.tag.outputs.tag }}
+        # Dispatched rather than called, so npm's trusted publisher is always npm.yml.
+        run: gh workflow run npm.yml --repo "${{ github.repository }}" --ref main -f tag="${TAG}"

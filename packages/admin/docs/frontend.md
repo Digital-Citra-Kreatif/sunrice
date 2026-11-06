@@ -30,6 +30,8 @@ Build the page with `@imajiner/admin-sdk`. Its Vite plugin makes your bundle use
 npm install --save-dev @imajiner/admin-sdk vite @vitejs/plugin-react react @types/react
 ```
 
+The SDK is released with the panel, at the same version: use the one matching your `sunrice/admin` (`@imajiner/admin-sdk@0.5` with `sunrice/admin` 0.5).
+
 ```ts
 // vite.config.ts
 import react from '@vitejs/plugin-react';

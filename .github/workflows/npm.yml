@@ -1,0 +1,80 @@
+name: npm
+
+# Publishes packages/admin-sdk to npm as @imajiner/admin-sdk at the version of
+# a v* tag, so the SDK and the Composer packages share version numbers. A tag
+# push starts it; release.yml starts it with the tag it made (a tag pushed by
+# a workflow starts no workflows, but a dispatch does). Prereleases
+# (v0.6.0-beta.1) go out under the `next` dist-tag, the rest as `latest`; a
+# version already on npm is skipped, so running it again is harmless.
+#
+# It authenticates with npm's trusted publishing (configure this repository and
+# npm.yml as the package's trusted publisher on npmjs.com), or with the
+# NPM_TOKEN secret if that's set instead. It always publishes with provenance.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The v* tag to publish (v0.5.0)
+        required: true
+        type: string
+
+concurrency:
+  group: npm-${{ inputs.tag || github.ref_name }}
+
+jobs:
+  publish:
+    name: publish @imajiner/admin-sdk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: Version from the tag
+        id: version
+        run: |
+          set -euo pipefail
+          if ! [[ "${TAG}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)$ ]]; then
+            echo "::error::\"${TAG}\" isn't a tag like v0.5.0."; exit 1
+          fi
+          version="${BASH_REMATCH[1]}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          if npm view "@imajiner/admin-sdk@${version}" version > /dev/null 2>&1; then
+            echo "::notice::@imajiner/admin-sdk ${version} is already on npm."
+            echo "published=true" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.version.outputs.published != 'true'
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        if: steps.version.outputs.published != 'true'
+        with:
+          # npm 11.5+ for trusted publishing.
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+        if: steps.version.outputs.published != 'true'
+
+      - name: Publish ${{ steps.version.outputs.version }}
+        if: steps.version.outputs.published != 'true'
+        working-directory: packages/admin-sdk
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm pkg set version="${VERSION}"
+          dist_tag=latest
+          if [[ "${VERSION}" == *-* ]]; then dist_tag=next; fi
+          # prepublishOnly builds dist/.
+          npm publish --provenance --access public --tag "${dist_tag}"
+          echo "::notice::Published @imajiner/admin-sdk ${VERSION} (${dist_tag})."
