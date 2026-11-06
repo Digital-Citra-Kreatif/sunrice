@@ -1,8 +1,25 @@
 {
     "name": "@imajiner/admin-sdk",
-    "version": "0.1.0",
+    "version": "0.5.0",
     "description": "Build admin pages for Sunrice panel plugins: shares the panel's React, Inertia and UI components.",
     "license": "MIT",
+    "homepage": "https://github.com/Digital-Citra-Kreatif/sunrice/blob/main/packages/admin/docs/frontend.md",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Digital-Citra-Kreatif/sunrice.git",
+        "directory": "packages/admin-sdk"
+    },
+    "bugs": {
+        "url": "https://github.com/Digital-Citra-Kreatif/sunrice/issues"
+    },
+    "keywords": [
+        "sunrice",
+        "laravel",
+        "admin",
+        "inertia",
+        "react",
+        "vite-plugin"
+    ],
     "type": "module",
     "exports": {
         ".": {
@@ -27,7 +44,8 @@
     ],
     "scripts": {
         "build": "tsc -p tsconfig.json",
-        "typecheck": "tsc -p tsconfig.json --noEmit"
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "prepublishOnly": "npm run build"
     },
     "peerDependencies": {
         "react": "^19.0.0",
@@ -38,5 +56,8 @@
         "@types/react": "^19.0.0",
         "typescript": "^5.6.3",
         "vite": "^7.0.0"
+    },
+    "publishConfig": {
+        "access": "public"
     }
 }

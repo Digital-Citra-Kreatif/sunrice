@@ -78,3 +78,27 @@ it('ships the MIT license with every package', function () {
     expect($license)->toStartWith("MIT License\n\nCopyright (c) 2026 Digital Citra Kreatif")
         ->and($missing)->toBe([]);
 });
+
+it('publishes the npm SDK at the version of each release tag', function () {
+    $root = dirname(__DIR__, 2);
+    $npm = (string) file_get_contents("{$root}/.github/workflows/npm.yml");
+    $release = (string) file_get_contents("{$root}/.github/workflows/release.yml");
+    $sdk = json_decode((string) file_get_contents("{$root}/packages/admin-sdk/package.json"), true, flags: JSON_THROW_ON_ERROR);
+
+    // A tag push starts npm.yml; release.yml's own tag doesn't, so it dispatches it (npm's trusted publisher stays npm.yml).
+    expect($npm)->toContain("push:\n    tags: ['v*']")
+        ->toContain("workflow_dispatch:\n    inputs:\n      tag:")
+        ->toContain('id-token: write')
+        ->toContain('npm pkg set version="${VERSION}"')
+        ->toContain('npm publish --provenance --access public --tag "${dist_tag}"')
+        ->and($release)->toContain('gh workflow run npm.yml')
+        ->toContain('actions: write')
+        ->and($sdk)->toMatchArray([
+            'name' => '@imajiner/admin-sdk',
+            'license' => 'MIT',
+            'publishConfig' => ['access' => 'public'],
+            'repository' => ['type' => 'git', 'url' => 'git+https://github.com/Digital-Citra-Kreatif/sunrice.git', 'directory' => 'packages/admin-sdk'],
+        ])
+        ->and($sdk['scripts']['prepublishOnly'] ?? null)->toBe('npm run build')
+        ->and(file_exists("{$root}/packages/admin-sdk/README.md"))->toBeTrue();
+});

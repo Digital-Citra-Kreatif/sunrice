@@ -84,7 +84,13 @@ and pull requests go to this repository, never to the read-only copies,
 whose history is rewritten from here. The workflow needs the `SPLIT_TOKEN`
 secret, a token that can push to the three repositories; without it, it
 does nothing. A new Composer package in `packages/` needs a row in the
-workflow and here. `packages/admin-sdk` is an npm package and isn't split.
+workflow and here. `packages/admin-sdk` is an npm package and isn't split:
+`.github/workflows/npm.yml` publishes it to npm as `@imajiner/admin-sdk` at
+each tag's version (a tag push starts it, `release` dispatches it), with
+provenance, as `latest` or, for a prerelease, `next`; a version already on
+npm is skipped. It signs in with npm's trusted publishing (the package's
+trusted publisher on npmjs.com is this repository's `npm.yml`) or, if set,
+the `NPM_TOKEN` secret.
 
 The starter kit (`packages/starter-kit`, `sunrice/starter-kit`) is a
 third package beside the CMS, not a plugin the site needs: it installs
