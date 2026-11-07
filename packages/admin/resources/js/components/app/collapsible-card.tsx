@@ -26,8 +26,14 @@ const storage = (key: string) => `sunrice:card:${key}`;
 interface CardGroupState {
     /** The last "expand all" or "collapse all", numbered so the same one twice still runs. */
     command: { open: boolean; seq: number } | null;
-    report: (id: string, open: boolean | null) => void;
+    /** `pinned`: held open by an error, so it doesn't count when choosing between expand and collapse. */
+    report: (id: string, state: CardState | null) => void;
 }
+
+interface CardState { open: boolean; pinned: boolean }
+
+/** Whether the group's button collapses: some card is open that an error doesn't hold open (a pinned card can't fold, so it alone never keeps the button on "Collapse all"). */
+export const canCollapse = (cards: CardState[]): boolean => cards.some((card) => card.open && !card.pinned);
 
 const CardGroup = React.createContext<CardGroupState | null>(null);
 
@@ -37,18 +43,19 @@ const CardGroup = React.createContext<CardGroupState | null>(null);
  * above them, at the right. Each card still remembers its own choice.
  */
 export function CollapsibleCardGroup({ children, className }: { children: React.ReactNode; className?: string }) {
-    const [states, setStates] = React.useState<Record<string, boolean>>({});
+    const [states, setStates] = React.useState<Record<string, CardState>>({});
     const [command, setCommand] = React.useState<CardGroupState['command']>(null);
-    const report = React.useCallback((id: string, open: boolean | null) => setStates((current) => {
-        if (open === null) {
+    const report = React.useCallback((id: string, state: CardState | null) => setStates((current) => {
+        if (state === null) {
             const { [id]: _gone, ...rest } = current;
             return rest;
         }
-        return current[id] === open ? current : { ...current, [id]: open };
+        const known = current[id];
+        return known?.open === state.open && known.pinned === state.pinned ? current : { ...current, [id]: state };
     }), []);
     const value = React.useMemo(() => ({ command, report }), [command, report]);
     const cards = Object.values(states);
-    const anyOpen = cards.some(Boolean);
+    const anyOpen = canCollapse(cards);
 
     return (
         <CardGroup.Provider value={value}>
@@ -108,8 +115,8 @@ export function CollapsibleCard({
     // In a CollapsibleCardGroup: tell it whether this card is open, and follow "expand all" / "collapse all".
     const report = group?.report;
     React.useEffect(() => {
-        report?.(contentId, open);
-    }, [report, contentId, open]);
+        report?.(contentId, { open, pinned: hasErrors });
+    }, [report, contentId, open, hasErrors]);
     React.useEffect(() => () => report?.(contentId, null), [report, contentId]);
     const seq = group?.command?.seq;
     React.useEffect(() => {

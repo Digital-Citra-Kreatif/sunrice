@@ -5,7 +5,7 @@ import { createElement, type ComponentType } from 'react';
 import ts from 'typescript';
 import { loadAdminModule, render } from './support/render.ts';
 
-const { CollapsibleCard } = await loadAdminModule<{ CollapsibleCard: ComponentType<any> }>('components/app/collapsible-card.tsx');
+const { CollapsibleCard, canCollapse } = await loadAdminModule<{ CollapsibleCard: ComponentType<any>; canCollapse: (cards: { open: boolean; pinned: boolean }[]) => boolean }>('components/app/collapsible-card.tsx');
 afterEach(() => { delete (globalThis as { window?: unknown }).window; });
 
 const card = (props: Record<string, unknown> = {}, children: unknown = 'Card content') =>
@@ -91,4 +91,11 @@ test('sums up a card in one line from the values inside it', async () => {
     assert.equal(cardSummary(['a', 'b', 'c', 'd'], 2), 'a · b');
     assert.equal(cardSummary([false, '', [], {}]), '');
     assert.ok(cardSummary(['x'.repeat(80)]).endsWith('…'));
+});
+
+test('the group offers Expand all once only cards held open by errors are left', () => {
+    assert.equal(canCollapse([{ open: true, pinned: false }, { open: false, pinned: false }]), true);
+    // After "Collapse all", a card with errors stays open: the next click expands the rest.
+    assert.equal(canCollapse([{ open: true, pinned: true }, { open: false, pinned: false }]), false);
+    assert.equal(canCollapse([{ open: false, pinned: false }, { open: false, pinned: false }]), false);
 });
