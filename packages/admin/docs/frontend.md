@@ -30,7 +30,7 @@ Build the page with `@imajiner/admin-sdk`. Its Vite plugin makes your bundle use
 npm install --save-dev @imajiner/admin-sdk vite @vitejs/plugin-react react @types/react
 ```
 
-The SDK is released with the panel, at the same version: use the one matching your `sunrice/admin` (`@imajiner/admin-sdk@0.6` with `sunrice/admin` 0.6).
+The SDK is released with the panel, at the same version: use the one matching your `sunrice/admin` (`@imajiner/admin-sdk@0.7` with `sunrice/admin` 0.7).
 
 ```ts
 // vite.config.ts
@@ -202,11 +202,15 @@ It also has these interaction components, the ones the panel's own pages use:
 - **`DeveloperHelp`**: the **For developers** disclosure of a field's `developerHelp()`: `text` and `code` (shown as code, with a copy button), for help on a page of your own.
 - **`SettingsLayout`** / **`SettingsNav`**: the Settings menu beside a page put among the settings sections (`Panel::settingsPage()`, `NavigationItem::inSettings()`): `items` from `Panel::settingsNavigation($user)`, `current` the page's key (a settings page's) or navigation key. `SettingsLayout` wraps the page in the same two columns as the settings sections (the menu as a scrolling row on phones).
 - **`FormSections`**: settings fields drawn as the Settings page draws them, every field type, sections as cards: `sections` from `SettingsFields::props()` (PHP, [Settings](settings.md#a-settings-page-of-your-own)), `data` (start from its `values`), `errors` by field name, `onChange(name, value)`, `storageKey` to remember folded sections. Its code loads the first time it shows. The CMS's Settings → SEO draws its Structured data card with it.
-- **`CollapsibleCard`**: a card whose header folds its content away, animated. `storageKey` remembers the choice in the browser, `hasErrors` opens the card so a validation error is never hidden, `headerAction` sits in the header outside the toggle. Folded fields stay in the form (still submitted) but are inert and hidden from assistive technology.
+- **`CollapsibleCard`**: a card whose header folds its content away, animated. `storageKey` remembers the choice in the browser, `hasErrors` opens the card so a validation error is never hidden, `headerAction` sits in the header outside the toggle, and `summary` replaces the description while the card is folded, so a folded card still says what it holds (`cardSummary(values)` builds one: up to three filled values joined with " · ", HTML stripped, lists counted, long text cut short; leave secrets out of it). Folded fields stay in the form (still submitted) but are inert and hidden from assistive technology.
 
   ```tsx
-  <CollapsibleCard title="Shipping" storageKey="shop:order:shipping" hasErrors={'address' in errors}>…</CollapsibleCard>
+  <CollapsibleCard title="Shipping" storageKey="shop:order:shipping" hasErrors={'address' in errors} summary={cardSummary([data.city, data.country])}>…</CollapsibleCard>
   ```
+
+- **`CollapsibleCardGroup`**: wraps a form's cards and, once it holds two or more `CollapsibleCard`s, shows one **Collapse all** / **Expand all** button above them. A card with errors stays open whatever the button says. `FormSections` and the CMS entry editor use it.
+
+  Lay forms out the way the panel does: each top-level group of fields is its own `CollapsibleCard` (its label the title, its help the description, a summary when folded), groups inside it get a small heading and a divider rather than another box, short fields sit side by side, repeater rows are the only boxed items (folded with a summary), and content per language goes in `LanguageTabs`.
 
 - **`LanguageTabs`**: the panel's one way to choose which language's content is shown or edited, used by every editor with content per language (entries, terms, globals, listing pages, translations, a file's alternative text, a field's words in other languages): a row of tabs on the panel's `Tabs`, one per language by its code (`languages`: `{ code, name?, main?, missing?, status?, description? }`; the name, and "(main)" for the main one, in the tooltip and to screen readers), missing ones muted with a dashed outline and a **+**, and an optional status dot (`status: { tone: 'success' | 'warning', label }`, green or amber, its `label` said in the tooltip and to screen readers, as is `description`); `actions` sit at the end of the row. With fewer than two languages there are no tabs. Two uses:
   - switching pages (`?locale=id`): no children, `onValueChange` visits the other language, keeping what the page did before (Inertia visits, the unsaved-changes prompt of `useUnsavedChanges`); the tabs then activate on Enter or Space, not on arrow keys, so moving along the row loads nothing. `onAdd(code)`, when given, is called for a missing language instead (to create it, as the entry editor does); without it a missing one opens like the others.

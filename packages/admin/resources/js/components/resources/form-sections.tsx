@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { InputError } from '@/components/app/input-error';
 import { PasswordChecklist } from '@/components/app/password-checklist';
-import { CollapsibleCard } from '@/components/app/collapsible-card';
+import { CollapsibleCard, CollapsibleCardGroup } from '@/components/app/collapsible-card';
+import { cardSummary } from '@/lib/card-summary';
 import { Card, CardContent } from '@/components/ui/card';
 import { TriangleAlert } from 'lucide-react';
 import { changeWarning, savedWarning } from '@/lib/change-warning';
@@ -30,8 +31,26 @@ interface Props {
     onChange: (name: string, value: FieldValue) => void;
 }
 
-/** A form's sections as cards of fields (resources and settings). */
-export function FormSections({ sections, data, saved, errors, storageKey, onChange }: Props) {
+/** What a folded section shows of its fields: their values in one line, but secrets, passwords and option keys. */
+function summaryOf(fields: FieldInfo[], data: Record<string, FieldValue>): string {
+    return cardSummary(fields.filter((field) => !['password', 'secret', 'toggle'].includes(field.type)).map((field) => {
+        const value = data[field.name];
+        const options = (field as { options?: { value: string; label: string }[] }).options;
+        const label = Array.isArray(options) && typeof value === 'string' ? options.find((option) => option.value === value)?.label : undefined;
+        return label ?? value;
+    }));
+}
+
+/**
+ * A form's sections as cards of fields (resources and settings). Titled
+ * sections fold like an accordion, each saying what's inside while folded,
+ * with "Collapse all" / "Expand all" above them when there are two or more.
+ */
+export function FormSections(props: Props) {
+    return <CollapsibleCardGroup className="gap-6">{sectionCards(props)}</CollapsibleCardGroup>;
+}
+
+function sectionCards({ sections, data, saved, errors, storageKey, onChange }: Props) {
     return sections.map((section, index) => {
         // Fields whose condition isn't met are hidden (showWhen), a section of only those too.
         const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data, saved));
@@ -109,7 +128,7 @@ export function FormSections({ sections, data, saved, errors, storageKey, onChan
 
         // A titled section folds away (remembered), and opens on an error inside.
         return section.title ? (
-            <CollapsibleCard key={index} title={section.title} description={section.description ?? undefined} titleClassName="text-base"
+            <CollapsibleCard key={index} title={section.title} description={section.description ?? undefined} summary={summaryOf(fields, data) || undefined} titleClassName="text-base"
                 storageKey={storageKey ? `${storageKey}:${section.title}` : undefined} hasErrors={fields.some((field) => errors[field.name] !== undefined)}
                 headerAction={section.links ? <SectionLinks links={section.links} data={data} /> : undefined}>
                 {content}
