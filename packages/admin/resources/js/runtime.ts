@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { SDK_VERSION, type SharedModuleName } from '@imajiner/admin-sdk/shared';
 import type { SunriceRuntime } from '@imajiner/admin-sdk';
 import { useBreadcrumbs } from '@/components/app/breadcrumbs';
-import { CollapsibleCard } from '@/components/app/collapsible-card';
+import { CollapsibleCard, CollapsibleCardGroup } from '@/components/app/collapsible-card';
 import { registerCommandSource } from '@/components/app/command-palette';
 import { deferred } from '@/components/app/deferred';
 import { CodeEditor } from '@/components/app/code-editor';
@@ -43,6 +43,7 @@ import { LinkAttributes } from '@/components/app/link-attributes';
 import { LinkSourcePicker } from '@/components/app/link-source-picker';
 import { adminUrl } from '@/lib/admin-url';
 import { moveItem } from '@/lib/move-item';
+import { cardSummary } from '@/lib/card-summary';
 import { t } from '@/lib/i18n';
 import { registerPage, registerPageLoader } from '@/lib/page-registry';
 import { useTablePreferences } from '@/lib/use-table-preferences';
@@ -58,7 +59,7 @@ const FormSections = deferred(() => import('@/components/resources/form-sections
 
 /** What `@imajiner/admin-sdk/ui` gives plugins. Keep in step with SHARED_MODULES (a test checks). */
 const ui = {
-    Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, CodeEditor, CollapsibleCard,
+    Badge, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Checkbox, cardSummary, CodeEditor, CollapsibleCard, CollapsibleCardGroup,
     Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator, DatePicker, DeveloperHelp,
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
     DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,

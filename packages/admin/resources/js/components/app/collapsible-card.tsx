@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export interface CollapsibleCardProps {
     title: React.ReactNode;
     description?: React.ReactNode;
+    /** What's inside, in one line, shown in place of the description while folded ("Jl. Senopati 26 · Jakarta Selatan"). */
+    summary?: React.ReactNode;
     /** Remembers open or closed in this browser under this key. */
     storageKey?: string;
     defaultOpen?: boolean;
@@ -20,6 +22,51 @@ export interface CollapsibleCardProps {
 }
 
 const storage = (key: string) => `sunrice:card:${key}`;
+
+interface CardGroupState {
+    /** The last "expand all" or "collapse all", numbered so the same one twice still runs. */
+    command: { open: boolean; seq: number } | null;
+    report: (id: string, open: boolean | null) => void;
+}
+
+const CardGroup = React.createContext<CardGroupState | null>(null);
+
+/**
+ * Cards that fold together: with two or more CollapsibleCards inside, a
+ * "Collapse all" (or "Expand all", when every card is folded) button sits
+ * above them, at the right. Each card still remembers its own choice.
+ */
+export function CollapsibleCardGroup({ children, className }: { children: React.ReactNode; className?: string }) {
+    const [states, setStates] = React.useState<Record<string, boolean>>({});
+    const [command, setCommand] = React.useState<CardGroupState['command']>(null);
+    const report = React.useCallback((id: string, open: boolean | null) => setStates((current) => {
+        if (open === null) {
+            const { [id]: _gone, ...rest } = current;
+            return rest;
+        }
+        return current[id] === open ? current : { ...current, [id]: open };
+    }), []);
+    const value = React.useMemo(() => ({ command, report }), [command, report]);
+    const cards = Object.values(states);
+    const anyOpen = cards.some(Boolean);
+
+    return (
+        <CardGroup.Provider value={value}>
+            <div className={cn('flex min-w-0 flex-col gap-3', className)}>
+                {cards.length >= 2 && (
+                    <div className="-my-3 flex justify-end">
+                        <button type="button" onClick={() => setCommand((last) => ({ open: !anyOpen, seq: (last?.seq ?? 0) + 1 }))}
+                            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                            <ChevronsUpDown className="size-3.5" aria-hidden="true" />
+                            {anyOpen ? 'Collapse all' : 'Expand all'}
+                        </button>
+                    </div>
+                )}
+                {children}
+            </div>
+        </CardGroup.Provider>
+    );
+}
 
 const read = (key?: string): boolean | null => {
     if (!key) return null;
@@ -38,10 +85,11 @@ const read = (key?: string): boolean | null => {
  * inert and hidden from assistive technology.
  */
 export function CollapsibleCard({
-    title, description, storageKey, defaultOpen = true, hasErrors = false, headerAction, titleClassName, contentClassName, className, children,
+    title, description, summary, storageKey, defaultOpen = true, hasErrors = false, headerAction, titleClassName, contentClassName, className, children,
 }: CollapsibleCardProps) {
     const [open, setOpen] = React.useState(() => hasErrors || (read(storageKey) ?? defaultOpen));
     const contentId = React.useId();
+    const group = React.useContext(CardGroup);
 
     const change = React.useCallback((next: boolean) => {
         setOpen(next);
@@ -56,6 +104,18 @@ export function CollapsibleCard({
     React.useEffect(() => {
         if (hasErrors) change(true);
     }, [hasErrors, change]);
+
+    // In a CollapsibleCardGroup: tell it whether this card is open, and follow "expand all" / "collapse all".
+    const report = group?.report;
+    React.useEffect(() => {
+        report?.(contentId, open);
+    }, [report, contentId, open]);
+    React.useEffect(() => () => report?.(contentId, null), [report, contentId]);
+    const seq = group?.command?.seq;
+    React.useEffect(() => {
+        if (seq !== undefined && group?.command) change(group.command.open || hasErrors);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new command moves the card
+    }, [seq]);
 
     return (
         <Card
@@ -82,6 +142,7 @@ export function CollapsibleCard({
                     <div className="grid gap-1">
                         <CardTitle className={titleClassName}>{title}</CardTitle>
                         {description && open && <CardDescription>{description}</CardDescription>}
+                        {summary && !open && <CardDescription className="truncate">{summary}</CardDescription>}
                     </div>
                 </button>
                 {headerAction && <div className="min-w-0 shrink-0">{headerAction}</div>}

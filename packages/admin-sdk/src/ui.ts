@@ -55,6 +55,12 @@ export const CodeEditor = m.CodeEditor as ComponentType<{
 }>;
 
 /**
+ * Cards that fold together: with two or more CollapsibleCards inside, a
+ * "Collapse all" / "Expand all" button sits above them, at the right.
+ */
+export const CollapsibleCardGroup = m.CollapsibleCardGroup as ComponentType<{ children: ReactNode; className?: string }>;
+
+/**
  * A card whose header folds its content away (animated); the choice is
  * remembered per `storageKey`, and `hasErrors` opens it so a validation
  * error is never hidden. Folded fields stay in the form but are inert.
@@ -62,6 +68,8 @@ export const CodeEditor = m.CodeEditor as ComponentType<{
 export const CollapsibleCard = m.CollapsibleCard as ComponentType<{
     title: ReactNode;
     description?: ReactNode;
+    /** What's inside in one line, shown in place of the description while folded. */
+    summary?: ReactNode;
     storageKey?: string;
     defaultOpen?: boolean;
     hasErrors?: boolean;
@@ -235,6 +243,8 @@ export const MediaPickerInput = m.MediaPickerInput as ComponentType<{
     onChange: (value: number | number[] | null) => void;
 }>;
 /** A copy of `items` with the one at `from` moved to `to` (what SortableList's onReorder did). */
+/** A folded card's one-line summary: the first few filled-in values, joined with " · " (markup stripped, lists counted, yes/no left out). */
+export const cardSummary = m.cardSummary as (values: readonly unknown[], max?: number) => string;
 export const moveItem = m.moveItem as <T>(items: readonly T[], from: number, to: number) => T[];
 
 /** An item the command palette (Cmd/Ctrl+K) lists. */

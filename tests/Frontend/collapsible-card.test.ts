@@ -72,3 +72,23 @@ test('read-only fieldsets never disable card toggles', async () => {
         }
     }
 });
+
+test('says what is inside while folded, and the description while open', () => {
+    const folded = card({ defaultOpen: false, description: 'Printed on invoices.', summary: 'Jl. Senopati 26 · Jakarta' });
+    assert.match(folded, /Jl\. Senopati 26 · Jakarta/);
+    assert.doesNotMatch(folded, /Printed on invoices\./);
+
+    const open = card({ description: 'Printed on invoices.', summary: 'Jl. Senopati 26 · Jakarta' });
+    assert.match(open, /Printed on invoices\./);
+    assert.doesNotMatch(open, /Jl\. Senopati 26/);
+});
+
+test('sums up a card in one line from the values inside it', async () => {
+    const { cardSummary } = await loadAdminModule<{ cardSummary: (values: unknown[], max?: number) => string }>('lib/card-summary.ts');
+
+    assert.equal(cardSummary([{ street: 'Jl. Senopati 26', building: '', region: { city: 'Jakarta Selatan' }, postal: '12190' }]), 'Jl. Senopati 26 · Jakarta Selatan · 12190');
+    assert.equal(cardSummary(['<p>Hello <b>there</b></p>', true, null, ['a', 'b']]), 'Hello there · 2 items');
+    assert.equal(cardSummary(['a', 'b', 'c', 'd'], 2), 'a · b');
+    assert.equal(cardSummary([false, '', [], {}]), '');
+    assert.ok(cardSummary(['x'.repeat(80)]).endsWith('…'));
+});

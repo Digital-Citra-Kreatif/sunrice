@@ -32,7 +32,7 @@ export const SHARED_MODULES = {
         'usePoll', 'usePrefetch', 'useRemember',
     ],
     '@imajiner/admin-sdk/ui': [
-        'Badge', 'Button', 'Card', 'CardContent', 'CardDescription', 'CardFooter', 'CardHeader', 'CardTitle', 'Checkbox', 'CodeEditor', 'CollapsibleCard',
+        'Badge', 'Button', 'Card', 'CardContent', 'CardDescription', 'CardFooter', 'CardHeader', 'CardTitle', 'cardSummary', 'Checkbox', 'CodeEditor', 'CollapsibleCard', 'CollapsibleCardGroup',
         'Command', 'CommandEmpty', 'CommandGroup', 'CommandInput', 'CommandItem', 'CommandList', 'CommandSeparator', 'DatePicker', 'DeveloperHelp',
         'Dialog', 'DialogContent', 'DialogDescription', 'DialogFooter', 'DialogHeader', 'DialogTitle', 'DialogTrigger',
         'DropdownMenu', 'DropdownMenuCheckboxItem', 'DropdownMenuContent', 'DropdownMenuItem', 'DropdownMenuLabel', 'DropdownMenuSeparator', 'DropdownMenuTrigger',
