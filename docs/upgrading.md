@@ -51,6 +51,10 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.7.0
+
+From 0.6.x to 0.7.0: raise the constraints to `^0.7` (above) and run `php artisan sunrice:assets`; no migrations. Nothing in your app changes: a plugin that lists collections or taxonomies in its own sidebar group can now keep them out of Content and Taxonomies ([In the sidebar](../packages/cms/docs/collections.md#in-the-sidebar)). Plugin bundles built with `@imajiner/admin-sdk` keep working; update it to `^0.7` when you next build them.
+
 ## 0.6.0
 
 From 0.5.x to 0.6.0: raise the constraints to `^0.6` (above) and run `php artisan sunrice:assets` (the panel's and the CMS's bundles changed); no migrations.
