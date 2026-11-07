@@ -7,6 +7,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Admin\Preferences\Preferences;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Terms\SaveTerm;
+use Sunrice\Cms\Admin\ContentNavigation;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -104,4 +105,19 @@ it('shows collection and taxonomy titles as written, whatever the panel\'s langu
 
     get('/admin')->assertInertia(fn (AssertableInertia $page) => $page->where('navigation', fn ($groups) => collect($groups)->contains(fn ($group) => $group['group'] === 'Konten'
         && collect($group['items'])->contains('label', 'Pages'))));
+});
+
+it('leaves out of Content and Taxonomies what a plugin lists in its own group', function () {
+    Collection::query()->create(['handle' => 'products', 'title' => 'Products', 'blueprint' => 'post']);
+    Taxonomy::query()->create(['handle' => 'brands', 'title' => 'Brands']);
+    app(ContentNavigation::class)->listElsewhere(collections: fn () => ['products'], taxonomies: fn () => ['brands', 'unknown']);
+    $user = adminUser(Panel::ACCESS, 'cms.entries.view', 'cms.terms.view');
+
+    expect(array_column(sidebarOf($user)['Content'], 'key'))->not->toContain('cms-collection-products')->toContain('cms-collection-articles')
+        ->and(array_column(sidebarOf($user)['Taxonomies'], 'key'))->toBe(['cms-taxonomy-categories']);
+
+    // Only the sidebar: the pages stay where they are.
+    actingAs($user);
+    get('/admin/cms/collections/products/entries')->assertOk();
+    get('/admin/cms/taxonomies/brands/terms')->assertOk();
 });

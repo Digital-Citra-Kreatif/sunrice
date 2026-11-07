@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **A plugin can list collections and taxonomies in its own sidebar group**: the CMS put every collection under Content and every taxonomy under Taxonomies, so a plugin that also listed its own (a shop's products and product categories under Shop) showed them twice. `Sunrice\Cms\Admin\ContentNavigation::listElsewhere(collections: fn () => [...], taxonomies: fn () => [...])` (`@api`) keeps them out of those two groups; only the sidebar changes. See [In the sidebar](packages/cms/docs/collections.md#in-the-sidebar).
+
 ## 0.6.0 (2026-11-06)
 
 **Upgrading from 0.5**: raise the constraints (`composer require sunrice/admin:^0.6 sunrice/cms:^0.6 -W`, with `sunrice/starter-kit:^0.6` if you use it), then run `php artisan sunrice:assets`. No migrations. Plugin bundles built with `@imajiner/admin-sdk` keep working; update it to `^0.6` when you next build them. See [Upgrading](docs/upgrading.md#060).
