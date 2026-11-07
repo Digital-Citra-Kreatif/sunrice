@@ -1,1 +1,0 @@
-import{j as e}from"./app-DnFS-m5k.js";import{a as o}from"./i18n-D9JkRequ.js";function a({message:r,className:t}){return r?e.jsx("p",{role:"alert",className:o("text-sm text-destructive",t),children:r}):null}export{a as I};

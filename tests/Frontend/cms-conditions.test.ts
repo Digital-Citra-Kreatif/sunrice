@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isShown } from '../../packages/cms/resources/js/lib/conditions.ts';
+import { isShown, visibleValues } from '../../packages/cms/resources/js/lib/conditions.ts';
 
 const field = (operator: 'equals' | 'not_equals' | 'filled' | 'empty', value: unknown = null) =>
     ({ handle: 'video', type: 'text', condition: { field: 'layout', operator, value } }) as never;
@@ -65,4 +65,18 @@ test('chooses a rule\'s value with an input that fits the other field', async ()
     assert.equal(startValue({ kind: 'toggle' }), true);
     assert.equal(startValue({ kind: 'options', options: [{ value: 'video', label: 'Video' }] }), 'video');
     assert.equal(startValue({ kind: 'text' }), '');
+});
+
+test('reads only the fields a reader can see, for a folded group\'s summary', () => {
+    const fields = [
+        { handle: 'layout', type: 'select' },
+        { handle: 'video', type: 'text', condition: { field: 'layout', operator: 'equals', value: 'video' } },
+        { handle: 'caption', type: 'group', fields: [
+            { handle: 'text', type: 'text' },
+            { handle: 'credit', type: 'text', condition: { field: 'text', operator: 'filled', value: null } },
+        ] },
+    ] as never;
+    assert.deepEqual(visibleValues(fields, { layout: 'image', video: 'https://old.example', caption: { text: '', credit: 'Old credit' } }), ['image', '']);
+    assert.deepEqual(visibleValues(fields, { layout: 'video', video: 'https://v.example', caption: { text: 'Hi', credit: 'Ann' } }), ['video', 'https://v.example', 'Hi', 'Ann']);
+    assert.deepEqual(visibleValues(fields, null), []);
 });

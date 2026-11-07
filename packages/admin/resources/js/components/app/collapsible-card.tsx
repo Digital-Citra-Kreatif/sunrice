@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 export interface CollapsibleCardProps {
@@ -65,7 +66,7 @@ export function CollapsibleCardGroup({ children, className }: { children: React.
                         <button type="button" onClick={() => setCommand((last) => ({ open: !anyOpen, seq: (last?.seq ?? 0) + 1 }))}
                             className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                             <ChevronsUpDown className="size-3.5" aria-hidden="true" />
-                            {anyOpen ? 'Collapse all' : 'Expand all'}
+                            {anyOpen ? t('Collapse all') : t('Expand all')}
                         </button>
                     </div>
                 )}
