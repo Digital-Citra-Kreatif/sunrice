@@ -51,6 +51,10 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.7.1
+
+From 0.7.0 to 0.7.1: `composer update "sunrice/*" -W`; no migrations, and no admin assets changed. Nothing needs changing: templates copied before keep printing Link fields as they did. To use the new `<x-sunrice-cms::link>` in them, replace the hand-written `<a>` of a Link field with `<x-sunrice-cms::link :link="$values['cta']" />`; see [Printing a link](../packages/cms/docs/fields.md#printing-a-link).
+
 ## 0.7.0
 
 From 0.6.x to 0.7.0: raise the constraints to `^0.7` (above) and run `php artisan sunrice:assets`; no migrations. Nothing in your app changes: a plugin that lists collections or taxonomies in its own sidebar group can now keep them out of Content and Taxonomies ([In the sidebar](../packages/cms/docs/collections.md#in-the-sidebar)). Plugin bundles built with `@imajiner/admin-sdk` keep working; update it to `^0.7` when you next build them.
