@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`<x-sunrice-cms::link>`, a Link field as a link**: templates printed a Link field by writing the `<a>` themselves (its `url`, `target` for a new tab, `rel`, and the text from `label`, `title` or `url`), each time. `<x-sunrice-cms::link :link="$values['cta']" class="button" />` now prints it: the address in the page's language (an entry, term or listing link follows its page, `/about` on English pages and `/id/tentang` on Indonesian ones), `target="_blank"` and `rel` as the editor chose, the editor's text else the page's title else the address, a slot to replace the text, other attributes on the `<a>` (a `rel` of yours added to the link's own), and nothing at all without an address. The starter templates, the Blog starter and `sunrice:make-templates` use it. Site's docs list every component in one table, with menus' and globals' helpers. See [Printing a link](packages/cms/docs/fields.md#printing-a-link).
+
 ## 0.7.0 (2026-11-07)
 
 **Upgrading from 0.6**: raise the constraints (`composer require sunrice/admin:^0.7 sunrice/cms:^0.7 -W`, with `sunrice/starter-kit:^0.7` if you use it), then run `php artisan sunrice:assets`. No migrations, nothing to change in your app. See [Upgrading](docs/upgrading.md#070).
