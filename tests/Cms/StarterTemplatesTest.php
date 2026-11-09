@@ -97,7 +97,7 @@ it('publishes the starter templates, and the site renders with them', function (
         ->assertSee('<pre><code class="language-html">&lt;div&gt;Hi&lt;/div&gt;</code></pre>', false)
         ->assertSee('<pre><code>npm run build</code></pre>', false)
         ->assertDontSee('<p>&lt;div&gt;', false)
-        ->assertSee('<a class="button" href="https://example.com"', false)
+        ->assertSee('<a href="https://example.com" class="button"', false)
         ->assertSee('href="'.asset('cms/site.css').'"', false)
         ->assertSee('<a class="skip-link" href="#main">', false)
         ->assertSee('<body class="page-entry collection-blog', false)
