@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.7.1 (2026-11-09)
+
+**Upgrading from 0.7.0**: `composer update "sunrice/*" -W`. No migrations, no new admin assets, nothing to change. Templates can now print a Link field with `<x-sunrice-cms::link :link="$values['cta']" />`; the ones you wrote by hand keep working.
 
 - **`<x-sunrice-cms::link>`, a Link field as a link**: templates printed a Link field by writing the `<a>` themselves (its `url`, `target` for a new tab, `rel`, and the text from `label`, `title` or `url`), each time. `<x-sunrice-cms::link :link="$values['cta']" class="button" />` now prints it: the address in the page's language (an entry, term or listing link follows its page, `/about` on English pages and `/id/tentang` on Indonesian ones), `target="_blank"` and `rel` as the editor chose, the editor's text else the page's title else the address, a slot to replace the text, other attributes on the `<a>` (a `rel` of yours added to the link's own), and nothing at all without an address. The starter templates, the Blog starter and `sunrice:make-templates` use it. Site's docs list every component in one table, with menus' and globals' helpers. See [Printing a link](packages/cms/docs/fields.md#printing-a-link).
 
