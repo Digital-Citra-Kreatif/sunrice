@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Fixed: listing pages hidden from search engines stayed in the sitemap**: a listing page whose SEO card has **Hide from search engines** (`noindex`) in a language was still listed in `/sitemap.xml` in that language, and preloaded by the page cache, while its page asked search engines not to index it (Search Console reports such an address as "Submitted URL marked noindex"). Now it's left out in that language, as entries, terms and taxonomy index pages already were; its other languages stay listed.
+
 ## 0.7.1 (2026-11-09)
 
 **Upgrading from 0.7.0**: `composer update "sunrice/*" -W`. No migrations, no new admin assets, nothing to change. Templates can now print a Link field with `<x-sunrice-cms::link :link="$values['cta']" />`; the ones you wrote by hand keep working.
