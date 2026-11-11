@@ -312,18 +312,17 @@ function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] })
                             })}
                         </div>
                     )}
+                    <div className={MENU_SEPARATED}>
+                        <MenuButton label={t('Remove image')} onClick={() => editor.chain().focus().deleteSelection().run()}><Trash2 /></MenuButton>
+                    </div>
                     {/* The caption and the alt text each have a row of their own, as wide as the menu: both are often a sentence. */}
                     <div className={MENU_FULL_ROW}>
                         <MenuInput wide label={t('Caption')} value={image.caption} placeholder={t('Add a caption')}
                             onChange={(caption) => set({ caption: captionText(caption) === null ? null : caption })} onEnter={back} />
                     </div>
-                    {/* The alt text and removing the image stay on one row. */}
                     <div className={MENU_FULL_ROW}>
                         <MenuInput wide label={t('Alt text')} value={image.alt} placeholder={t('Describe the image')} warning={noAlt ? t('No alt text') : null}
                             onChange={(alt) => set({ alt })} onEnter={back} />
-                        <div className={MENU_SEPARATED}>
-                            <MenuButton label={t('Remove image')} onClick={() => editor.chain().focus().deleteSelection().run()}><Trash2 /></MenuButton>
-                        </div>
                     </div>
                     </MenuRows>
                 </div>
@@ -610,11 +609,14 @@ function MenuInput({ label, value, placeholder, warning = null, onChange, onEnte
 
     return (
         <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 px-1', wide && 'flex-1')}>
+            {/* The label and its input stay on one line; only the warning moves below them when there's no room. */}
+            <div className={cn('flex min-w-0 items-center gap-1.5', wide && 'flex-1')}>
             <label htmlFor={id} className={cn('text-xs font-medium text-muted-foreground', wide && 'w-14 shrink-0')}>{label}</label>
-            <Input id={id} value={value} className={cn('h-8 min-w-0 shrink text-sm', wide ? 'w-auto min-w-40 flex-1' : 'w-36', className, warning !== null && 'border-amber-500/70')} placeholder={placeholder}
+            <Input id={id} value={value} className={cn('h-8 min-w-0 shrink text-sm', wide ? 'w-auto flex-1' : 'w-36', className, warning !== null && 'border-amber-500/70')} placeholder={placeholder}
                 aria-describedby={warning !== null ? `${id}-warning` : undefined}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
                 onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } }} />
+            </div>
             {warning !== null && (
                 <span id={`${id}-warning`} className="flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300">
                     <TriangleAlert className="size-3.5" aria-hidden /> {warning}
