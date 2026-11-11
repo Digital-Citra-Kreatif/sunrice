@@ -90,6 +90,16 @@ test('the selected image has its own labelled toolbar with pressed states and an
     assert.doesNotMatch(editor, /alt: item\.alt \?\? item\.title/);
 });
 
+test('the image menu gives the caption and the alt text a full-width row each', async () => {
+    const editor = await readFile(new URL('../../packages/admin/resources/js/components/app/rich-text-editor.tsx', import.meta.url), 'utf8');
+    assert.match(editor, /<div className=\{MENU_FULL_ROW\}>\s*<MenuInput wide label=\{t\('Caption'\)\}/);
+    assert.match(editor, /<div className=\{MENU_FULL_ROW\}>\s*<MenuInput wide label=\{t\('Alt text'\)\}/);
+    assert.match(editor, /const MENU_FULL_ROW = '[^']*\bbasis-full\b[^']*'/);
+    // A wide input fills its row; the menu has room for one, within the editor's width.
+    assert.match(editor, /wide \? 'w-auto min-w-40 flex-1'/);
+    assert.match(editor, /className="w-\[36rem\] max-w-\[calc\(100vw-2rem\)\] rounded-lg border bg-popover p-1/);
+});
+
 test('a captioned image has its presets on the figure and its styles on the image', () => {
     assert.deepEqual(figureClasses({ width: '50', align: 'left', styles: ['rounded', 'shadow'] }), { figure: 'sunrice-img sunrice-img-w-50 sunrice-img-left', img: 'rounded shadow' });
     assert.deepEqual(figureClasses({ width: '25', align: null, styles: null }), { figure: 'sunrice-img sunrice-img-w-25', img: null });
