@@ -44,7 +44,8 @@ final class HandleInertiaRequests extends Middleware
                 'branding' => $branding,
                 'path' => '/'.$this->panel->getPath(),
                 'bundles' => array_values(array_map(fn (PluginBundle $bundle) => $bundle->toArray(), $this->panel->getBundles())),
-                'commandSearches' => $user === null ? [] : $this->panel->getCommandSearches(),
+                // Only those for this user (commandSearch()'s $visible): their palette doesn't ask a search it would be refused.
+                'commandSearches' => $user instanceof Authorizable ? $this->panel->getCommandSearches($user) : [],
                 // What rich text links can point at (Panel::richTextLinkSource()): the editor's link menu searches them.
                 'richTextLinks' => $user === null ? [] : array_values(array_map(fn ($source): array => ['key' => $source->key, 'label' => $source->label()], $this->panel->getRichTextLinkSources())),
                 // The panel's language and those to pick from (the words themselves are in the page, PanelLocale::dictionary()).

@@ -353,8 +353,10 @@ final class CmsPlugin extends BasePlugin
         $panel->widgets(...DashboardWidgets::all());
         // Getting these is worth an alert: site-wide scripts, and the shape of all content.
         $panel->privilegedPermissions('cms.settings.code', 'cms.blueprints.create', 'cms.blueprints.update', 'cms.blueprints.delete', 'cms.fieldsets.create', 'cms.fieldsets.update', 'cms.fieldsets.delete');
-        // Cmd/Ctrl+K finds entries on every panel page, not only where the CMS's bundle has loaded.
-        $panel->commandSearch('cms.entries', fn (): string => route('sunrice.admin.cms.entries.search'));
+        // Cmd/Ctrl+K finds entries on every panel page, not only where the CMS's bundle has loaded;
+        // for those its route lets in (cms.can:entries,view), so no one else's palette asks it and is refused.
+        $panel->commandSearch('cms.entries', fn (): string => route('sunrice.admin.cms.entries.search'),
+            visible: fn (Authorizable $user): bool => Access::entries($user, 'view'));
         // Rich text links to entries, terms and listing pages (the menu builder's kinds), given their current URL when pages show them.
         RichTextLinkSources::register($panel);
         // Served from public/vendor/sunrice-cms, versioned by the panel from the copy served (sunrice:assets publishes it).
