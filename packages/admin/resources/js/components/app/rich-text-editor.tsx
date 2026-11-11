@@ -272,7 +272,7 @@ function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] })
             ref={wrapper} className="z-20">
             {image && (
                 <div role="toolbar" aria-label={t('Image options')}
-                    className="max-w-[calc(100vw-2rem)] rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
+                    className="w-[36rem] max-w-[calc(100vw-2rem)] rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
                     style={area ? { maxWidth: Math.max(area.width - 2 * MENU_INSET, 160) } : undefined}
                     onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); back(); } }}
                     onBlur={(e: React.FocusEvent) => {
@@ -312,17 +312,17 @@ function ImageMenu({ editor, styles }: { editor: Editor; styles: ImageStyle[] })
                             })}
                         </div>
                     )}
-                    <div className={cn('flex min-w-0 items-center', MENU_SEPARATED)}>
-                        <MenuInput label={t('Caption')} value={image.caption} placeholder={t('Add a caption')} className="w-48"
+                    <div className={MENU_SEPARATED}>
+                        <MenuButton label={t('Remove image')} onClick={() => editor.chain().focus().deleteSelection().run()}><Trash2 /></MenuButton>
+                    </div>
+                    {/* The caption and the alt text each have a row of their own, as wide as the menu: both are often a sentence. */}
+                    <div className={MENU_FULL_ROW}>
+                        <MenuInput wide label={t('Caption')} value={image.caption} placeholder={t('Add a caption')}
                             onChange={(caption) => set({ caption: captionText(caption) === null ? null : caption })} onEnter={back} />
                     </div>
-                    {/* The alt text and removing the image stay on one row. */}
-                    <div className={cn('flex min-w-0 items-center', MENU_SEPARATED)}>
-                        <MenuInput label={t('Alt text')} value={image.alt} placeholder={t('Describe the image')} warning={noAlt ? t('No alt text') : null}
+                    <div className={MENU_FULL_ROW}>
+                        <MenuInput wide label={t('Alt text')} value={image.alt} placeholder={t('Describe the image')} warning={noAlt ? t('No alt text') : null}
                             onChange={(alt) => set({ alt })} onEnter={back} />
-                        <div className={MENU_SEPARATED}>
-                            <MenuButton label={t('Remove image')} onClick={() => editor.chain().focus().deleteSelection().run()}><Trash2 /></MenuButton>
-                        </div>
                     </div>
                     </MenuRows>
                 </div>
@@ -600,20 +600,25 @@ function LinkMenu({ editor, sources, ref }: { editor: Editor; sources: { key: st
 }
 
 /** A text input of the image menu (its caption, its alt text): Enter goes back to the text, as Esc does. */
-function MenuInput({ label, value, placeholder, warning = null, onChange, onEnter, className }: {
+function MenuInput({ label, value, placeholder, warning = null, onChange, onEnter, className, wide = false }: {
     label: string; value: string; placeholder: string; warning?: string | null; onChange: (value: string) => void; onEnter: () => void; className?: string;
+    /** Take the row's width (the label a fixed width, so wide inputs on rows below each other line up). */
+    wide?: boolean;
 }) {
     const id = React.useId();
 
     return (
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 px-1">
-            <label htmlFor={id} className="text-xs font-medium text-muted-foreground">{label}</label>
-            <Input id={id} value={value} className={cn('h-8 w-36 min-w-0 shrink text-sm', className, warning !== null && 'border-amber-500/70')} placeholder={placeholder}
+        <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 px-1', wide && 'flex-1')}>
+            {/* The label and its input stay on one line; a wide input's warning goes on the line below, under the input, so it never narrows it. */}
+            <div className={cn('flex min-w-0 items-center gap-1.5', wide && 'flex-1')}>
+            <label htmlFor={id} className={cn('text-xs font-medium text-muted-foreground', wide && 'w-14 shrink-0')}>{label}</label>
+            <Input id={id} value={value} className={cn('h-8 min-w-0 shrink text-sm', wide ? 'w-auto flex-1' : 'w-36', className, warning !== null && 'border-amber-500/70')} placeholder={placeholder}
                 aria-describedby={warning !== null ? `${id}-warning` : undefined}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
                 onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } }} />
+            </div>
             {warning !== null && (
-                <span id={`${id}-warning`} className="flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300">
+                <span id={`${id}-warning`} className={cn('flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300', wide && 'basis-full pl-[calc(3.5rem+0.375rem)]')}>
                     <TriangleAlert className="size-3.5" aria-hidden /> {warning}
                 </span>
             )}
@@ -639,6 +644,9 @@ const MENU_INSET = 4;
  * A group after the first: a thin line before it, in the 13px between groups. A group starting a row puts its line
  * in the 13px MenuRows pulls the row out by, which is clipped, so wrapped rows never start or end with a line.
  */
+/** A group of the image menu that takes a row of its own, as wide as the menu (no separator before it). */
+const MENU_FULL_ROW = 'flex w-full min-w-0 basis-full items-center pl-[13px]';
+
 const MENU_SEPARATED = "relative pl-[13px] before:absolute before:top-1/2 before:left-1.5 before:h-5 before:w-px before:-translate-y-1/2 before:bg-border before:content-['']";
 
 /** The image menu's groups, wrapping onto more rows when the editor is narrow. */
