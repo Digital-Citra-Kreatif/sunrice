@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Sunrice\Admin\Panel;
+use Sunrice\Cms\Actions\Collections\SaveListing;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\CreateTranslation;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
@@ -19,6 +20,7 @@ use Sunrice\Cms\Models\Collection;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Taxonomy;
 use Sunrice\Cms\Site\Page;
+use Sunrice\Cms\Site\Sitemap;
 use Sunrice\Cms\Support\StructuredData;
 
 use function Pest\Laravel\get;
@@ -118,6 +120,19 @@ it('sends trailing-slash and /index.php addresses to the page\'s own address', f
     $send('/blog/hello/?ref=x')->assertRedirect(url('/blog/hello?ref=x'));
     $send('http://localhost/index.php/blog/hello', ['SCRIPT_NAME' => '/index.php', 'SCRIPT_FILENAME' => public_path('index.php')])->assertHeader('Location', '/blog/hello');
     $send('http://localhost/index.php', ['SCRIPT_NAME' => '/index.php', 'SCRIPT_FILENAME' => public_path('index.php')])->assertHeader('Location', '/');
+});
+
+it('leaves a listing page that asks not to be indexed out of the sitemap, in that language only', function () {
+    edgePost('Hello');
+    app(SaveListing::class)->handle($this->blog, [], 'en', seo: ['noindex' => true]);
+    $preloaded = array_column(iterator_to_array(app(Sitemap::class)->pages(), false), 'url');
+
+    get('/blog')->assertOk()->assertSee('<meta name="robots" content="noindex', false);
+    get('/sitemap.xml')->assertOk()
+        ->assertDontSee('<loc>'.url('/blog').'</loc>', false)
+        ->assertSee('<loc>'.url('/id/blog').'</loc>', false)
+        ->assertSee('<loc>'.url('/blog/hello').'</loc>', false);
+    expect($preloaded)->not->toContain(url('/blog'))->toContain(url('/id/blog'));
 });
 
 it('lists the other languages of term and listing pages in the sitemap', function () {
