@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fixed: a library image without alt text got its file title as alt text in rich text**: inserting an image from the media library into rich text copied the library's alt text, or, when it had none, the file's title, often its name ("IMG_4021"), which screen readers then read out. Now the alt text is the library's or empty, and the image menu's "No alt text" warning shows until one is written. Images already in posts keep what they have.
+
 - **Fixed: listing pages hidden from search engines stayed in the sitemap**: a listing page whose SEO card has **Hide from search engines** (`noindex`) in a language was still listed in `/sitemap.xml` in that language, and preloaded by the page cache, while its page asked search engines not to index it (Search Console reports such an address as "Submitted URL marked noindex"). Now it's left out in that language, as entries, terms and taxonomy index pages already were; its other languages stay listed.
 
 ## 0.7.1 (2026-11-09)
