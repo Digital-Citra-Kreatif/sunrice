@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.7.3 (2026-11-11)
+
+**Upgrading from 0.7.2**: `composer update "sunrice/*" -W`, then `php artisan sunrice:assets` (the panel's script changed). No migrations, nothing to change.
 
 - **Wider caption and alt text in the rich text image menu**: the image menu's **Caption** (192 px) and **Alt text** (144 px) inputs were too narrow for a sentence, so even the placeholder was cut off and typed text scrolled out of sight. Each now has a row of its own as wide as the menu (up to 36rem, within the editor's width), the width, alignment and style buttons and the remove button on the row above. Each label stays beside its input on narrow screens; the "No alt text" warning shows on the line below, under the input, so it never narrows it.
 
