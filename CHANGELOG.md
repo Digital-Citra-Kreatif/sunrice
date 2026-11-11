@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Wider caption and alt text in the rich text image menu**: the image menu's **Caption** (192 px) and **Alt text** (144 px) inputs were too narrow for a sentence, so even the placeholder was cut off and typed text scrolled out of sight. Each now has a row of its own as wide as the menu (up to 36rem, within the editor's width), the width, alignment and style buttons and the remove button on the row above. Each label stays beside its input on narrow screens; the "No alt text" warning moves below when there's no room.
+- **Wider caption and alt text in the rich text image menu**: the image menu's **Caption** (192 px) and **Alt text** (144 px) inputs were too narrow for a sentence, so even the placeholder was cut off and typed text scrolled out of sight. Each now has a row of its own as wide as the menu (up to 36rem, within the editor's width), the width, alignment and style buttons and the remove button on the row above. Each label stays beside its input on narrow screens; the "No alt text" warning shows on the line below, under the input, so it never narrows it.
 
 ## 0.7.2 (2026-11-11)
 

@@ -1,0 +1,1 @@
+import{j as e}from"./app-BNDes4fp.js";import{a as o}from"./index-BglzTt4h.js";function a({message:r,className:t}){return r?e.jsx("p",{role:"alert",className:o("text-sm text-destructive",t),children:r}):null}export{a as I};

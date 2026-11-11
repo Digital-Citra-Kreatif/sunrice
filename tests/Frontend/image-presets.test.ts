@@ -97,6 +97,8 @@ test('the image menu gives the caption and the alt text a full-width row each', 
     assert.match(editor, /const MENU_FULL_ROW = '[^']*\bbasis-full\b[^']*'/);
     // A wide input fills its row; the menu has room for one, within the editor's width.
     assert.match(editor, /wide \? 'w-auto flex-1'/);
+    // Its warning goes on the line below, under the input, so the alt text's input stays as wide as the caption's.
+    assert.match(editor, /wide && 'basis-full pl-\[calc\(3\.5rem\+0\.375rem\)\]'/);
     // Removing the image sits with the buttons, so the alt text's row is all its own.
     assert.match(editor, /<MenuButton label=\{t\('Remove image'\)\}[^\n]*\n\s*<\/div>\n\s*\{\/\* The caption and the alt text/);
     assert.match(editor, /className="w-\[36rem\] max-w-\[calc\(100vw-2rem\)\] rounded-lg border bg-popover p-1/);

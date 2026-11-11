@@ -609,7 +609,7 @@ function MenuInput({ label, value, placeholder, warning = null, onChange, onEnte
 
     return (
         <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 px-1', wide && 'flex-1')}>
-            {/* The label and its input stay on one line; only the warning moves below them when there's no room. */}
+            {/* The label and its input stay on one line; a wide input's warning goes on the line below, under the input, so it never narrows it. */}
             <div className={cn('flex min-w-0 items-center gap-1.5', wide && 'flex-1')}>
             <label htmlFor={id} className={cn('text-xs font-medium text-muted-foreground', wide && 'w-14 shrink-0')}>{label}</label>
             <Input id={id} value={value} className={cn('h-8 min-w-0 shrink text-sm', wide ? 'w-auto flex-1' : 'w-36', className, warning !== null && 'border-amber-500/70')} placeholder={placeholder}
@@ -618,7 +618,7 @@ function MenuInput({ label, value, placeholder, warning = null, onChange, onEnte
                 onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } }} />
             </div>
             {warning !== null && (
-                <span id={`${id}-warning`} className="flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300">
+                <span id={`${id}-warning`} className={cn('flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300', wide && 'basis-full pl-[calc(3.5rem+0.375rem)]')}>
                     <TriangleAlert className="size-3.5" aria-hidden /> {warning}
                 </span>
             )}
