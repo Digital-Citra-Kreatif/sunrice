@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.7.2 (2026-11-11)
+
+**Upgrading from 0.7.1**: `composer update "sunrice/*" -W`, then `php artisan sunrice:assets` (the panel's script changed). No migrations, nothing to change.
 
 - **Fixed: a library image without alt text got its file title as alt text in rich text**: inserting an image from the media library into rich text copied the library's alt text, or, when it had none, the file's title, often its name ("IMG_4021"), which screen readers then read out. Now the alt text is the library's or empty, and the image menu's "No alt text" warning shows until one is written. Images already in posts keep what they have.
 

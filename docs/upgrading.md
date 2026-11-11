@@ -51,6 +51,10 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.7.2
+
+From 0.7.1 to 0.7.2: `composer update "sunrice/*" -W` and `php artisan sunrice:assets` (the panel's script changed); no migrations. Nothing needs changing: a listing page hidden from search engines in a language leaves the sitemap on its own, and rich text images already in posts keep their alt text.
+
 ## 0.7.1
 
 From 0.7.0 to 0.7.1: `composer update "sunrice/*" -W`; no migrations, and no admin assets changed. Nothing needs changing: templates copied before keep printing Link fields as they did. To use the new `<x-sunrice-cms::link>` in them, replace the hand-written `<a>` of a Link field with `<x-sunrice-cms::link :link="$values['cta']" />`; see [Printing a link](../packages/cms/docs/fields.md#printing-a-link).
