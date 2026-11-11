@@ -684,7 +684,8 @@ function ImageDialog({ editor, open, onClose }: { editor: Editor; open: boolean;
             const item = ((await response.json()) as { items?: PickedMedia[] }).items?.[0];
             if (!response.ok || !item) throw new Error('missing');
             // One node with every attribute: setImage() leaves the selection after the image, so a later updateAttributes() missed it.
-            editor.chain().focus().insertContent({ type: 'image', attrs: { src: item.url, alt: item.alt ?? item.title ?? '', title: item.title ?? null, 'data-media-id': String(item.id) } }).run();
+            // The library's alt text, or none (the menu then warns): never the file's title, which is often its name ("IMG_4021").
+            editor.chain().focus().insertContent({ type: 'image', attrs: { src: item.url, alt: item.alt ?? '', title: item.title ?? null, 'data-media-id': String(item.id) } }).run();
             onClose();
         } catch {
             setError(t('That file could not be loaded. Try again, or choose another.'));

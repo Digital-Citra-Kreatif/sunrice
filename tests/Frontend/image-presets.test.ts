@@ -85,7 +85,9 @@ test('the selected image has its own labelled toolbar with pressed states and an
     assert.match(editor, /role="group" aria-label=\{t\('Style'\)\}/);
     assert.match(editor, /e\.key === 'Escape'/);
     // A library image is inserted as one node with its alt and media id (setImage() then updateAttributes() lost the id).
-    assert.match(editor, /insertContent\(\{ type: 'image', attrs: \{ src: item\.url, alt: item\.alt \?\? item\.title \?\? '', title: item\.title \?\? null, 'data-media-id': String\(item\.id\) \} \}\)/);
+    // Its alt is the library's or empty, never the file's title (a file name read out by screen readers).
+    assert.match(editor, /insertContent\(\{ type: 'image', attrs: \{ src: item\.url, alt: item\.alt \?\? '', title: item\.title \?\? null, 'data-media-id': String\(item\.id\) \} \}\)/);
+    assert.doesNotMatch(editor, /alt: item\.alt \?\? item\.title/);
 });
 
 test('a captioned image has its presets on the figure and its styles on the image', () => {
