@@ -10,6 +10,7 @@ use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Blueprints\SaveBlueprint;
 use Sunrice\Cms\Actions\Collections\DeleteCollection;
 use Sunrice\Cms\Actions\Collections\SaveCollection;
+use Sunrice\Cms\Actions\Install\WriteAgentsFile;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
@@ -36,6 +37,7 @@ it('offers Pages and Posts on install and makes those chosen', function () {
     artisan('sunrice:install', ['--no-user' => true])
         ->expectsConfirmation(PAGES_QUESTION, 'yes')
         ->expectsConfirmation(POSTS_QUESTION, 'no')
+        ->expectsConfirmation(WriteAgentsFile::QUESTION_ADD, 'no')
         ->assertSuccessful();
 
     $pages = Collection::query()->sole();
@@ -51,6 +53,7 @@ it('offers Pages and Posts on install and makes those chosen', function () {
     // Asked again only about what's missing.
     artisan('sunrice:install', ['--no-user' => true])
         ->expectsConfirmation(POSTS_QUESTION, 'yes')
+        ->expectsConfirmation(WriteAgentsFile::QUESTION_ADD, 'no')
         ->assertSuccessful();
 
     $posts = Collection::query()->where('handle', 'posts')->sole();
@@ -62,6 +65,7 @@ it('offers Pages and Posts on install and makes those chosen', function () {
 
     artisan('sunrice:install', ['--no-user' => true])
         ->doesntExpectOutputToContain('Create a P')
+        ->expectsConfirmation(WriteAgentsFile::QUESTION_ADD, 'no')
         ->assertSuccessful();
 });
 

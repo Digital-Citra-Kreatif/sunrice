@@ -7,6 +7,7 @@ Developer documentation for `sunrice/admin` (the panel), `sunrice/cms` (the CMS,
 - [Installation](../packages/admin/docs/installation.md): requirements, installing, the panel provider, the scheduler, the queue worker, assets, upgrading.
 - [Upgrading](upgrading.md): how to upgrade, and the changes that need something from you.
 - [Architecture](architecture.md): how the panel, the CMS and other plugins fit together.
+- [Building a site](../packages/cms/docs/building-a-site.md): the task-ordered guide for AI agents (and people) building or converting a website with the panel and the CMS: the content model, settings, templates, a static site turned into Sunrice, the final checklist.
 
 ## The panel (`sunrice/admin`)
 
@@ -36,6 +37,7 @@ Developer documentation for `sunrice/admin` (the panel), `sunrice/cms` (the CMS,
 
 | Page | |
 | --- | --- |
+| [Building a site](../packages/cms/docs/building-a-site.md) | Start here: the content model, setting up, templates, converting a static site, rules and a final checklist, task by task. |
 | [Collections and entries](../packages/cms/docs/collections.md) | Collections, editing entries, the entries list, languages, drafts and publishing, revisions, the dashboard. |
 | [Fields, blueprints and fieldsets](../packages/cms/docs/fields.md) | Field types, the builder, your own field types. |
 | [Taxonomies and terms](../packages/cms/docs/taxonomies.md) | Taxonomies, terms, term pages. |
@@ -48,7 +50,7 @@ Developer documentation for `sunrice/admin` (the panel), `sunrice/cms` (the CMS,
 | [Caching, events and scheduled publishing](../packages/cms/docs/caching.md) | The site's cache, the whole-page cache, Settings → Cache and clearing the caches, content events. |
 | [Machine translation](../packages/cms/docs/translation.md) | Translators, `sunrice:translate`. |
 | [Structure tooling](../packages/cms/docs/structure.md) | References, renaming fields, export and import, leftovers, demo content. |
-| [AI tools for content](../packages/cms/docs/ai.md) | The CMS's tools for AI agents. |
+| [AI tools for content](../packages/cms/docs/ai.md) | The CMS's tools for AI agents; `AGENTS.md` and Laravel Boost for coding agents. |
 | [Configuration](../packages/cms/docs/configuration.md) | Every key of `config/sunrice-cms.php`. |
 | [Commands](../packages/cms/docs/commands.md) | Every CMS Artisan command. |
 

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Sunrice\Admin\Panel;
 use Sunrice\Cms\Actions\Install\RemoveWelcomeRoute;
 use Sunrice\Cms\Actions\Install\ScaffoldCollections;
+use Sunrice\Cms\Actions\Install\WriteAgentsFile;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Site\AppHomeRoute;
 
@@ -92,6 +93,7 @@ it('offers to remove the welcome route on install', function () {
         ->expectsOutputToContain('Welcome route removed')
         ->expectsConfirmation(ScaffoldCollections::QUESTIONS['pages'], 'no')
         ->expectsConfirmation(ScaffoldCollections::QUESTIONS['posts'], 'no')
+        ->expectsConfirmation(WriteAgentsFile::QUESTION_ADD, 'no')
         ->assertSuccessful();
 
     expect(file_get_contents($this->routes))->toBe("<?php\n\nuse Illuminate\\Support\\Facades\\Route;\n");
@@ -120,6 +122,7 @@ it('explains, and changes nothing, when the app\'s / route is its own', function
         ->expectsOutputToContain('the app\'s routes win over the CMS\'s')
         ->expectsConfirmation(ScaffoldCollections::QUESTIONS['pages'], 'no')
         ->expectsConfirmation(ScaffoldCollections::QUESTIONS['posts'], 'no')
+        ->expectsConfirmation(WriteAgentsFile::QUESTION_ADD, 'no')
         ->assertSuccessful();
 
     expect(file_get_contents($this->routes))->toBe($code);
@@ -133,6 +136,7 @@ it('says nothing when the CMS answers /', function () {
         ->doesntExpectOutputToContain('homepage')
         ->expectsConfirmation(ScaffoldCollections::QUESTIONS['pages'], 'no')
         ->expectsConfirmation(ScaffoldCollections::QUESTIONS['posts'], 'no')
+        ->expectsConfirmation(WriteAgentsFile::QUESTION_ADD, 'no')
         ->assertSuccessful();
 
     expect(file_get_contents($this->routes))->toBe(STOCK_WEB_ROUTES);
