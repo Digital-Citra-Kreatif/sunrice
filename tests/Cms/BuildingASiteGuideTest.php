@@ -15,6 +15,7 @@ use Sunrice\Cms\Actions\Install\ScaffoldCollections;
 use Sunrice\Cms\Actions\Install\WriteAgentsFile;
 use Sunrice\Cms\CmsPlugin;
 use Sunrice\Cms\Content;
+use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Structure\StructureImporter;
 use Workbench\App\Models\User;
 
@@ -263,5 +264,15 @@ it('offers the section on install, and writes it with sunrice:agents', function 
         expect(file_get_contents("{$dir}/AGENTS.md"))->toBe(WriteAgentsFile::section()."\n");
     } finally {
         (new Filesystem)->deleteDirectory($dir);
+    }
+});
+
+it('reads fields in the docs\' examples from $values, never with $entry->get() (an EntryTranslation has no get())', function () {
+    $pages = [...glob(__DIR__.'/../../packages/cms/docs/*.md') ?: [], ...glob(__DIR__.'/../../packages/admin/docs/*.md') ?: []];
+
+    expect($pages)->not->toBeEmpty()
+        ->and(method_exists(EntryTranslation::class, 'get'))->toBeFalse();
+    foreach ($pages as $page) {
+        expect((string) file_get_contents($page))->not->toMatch('/\$(entry|translation)->get\(/', basename($page).' calls get() on an entry');
     }
 });
