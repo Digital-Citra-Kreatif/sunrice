@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Docs: repeaters and flexible blocks are read from `$values`**: the fields guide showed `$entry->get('sections')`, which an entry doesn't have (it reached Eloquent's query builder). The example now reads `$values['sections']` and includes `cms.blocks.{type}`, as the starter templates do.
+
 - **A guide for AI agents building a site** (`packages/cms/docs/building-a-site.md`, `read_docs` "cms/building-a-site"): task by task, how to build or convert a website with the panel and the CMS: working over MCP or in code, planning the content model (what on the page lives where), languages, SEO, collections, taxonomies, globals, menus and forms, templates (which file a page uses, what each page and each field type gives, the helpers and components), turning a static HTML/CSS/JS site into Sunrice with a worked example (tested: it's imported and rendered), the rules and a final checklist. The CMS's instructions to agents and `cms_get_template_guide` point to it, and it's linked from the docs' index.
 - **Coding agents in the app's repository find it too**: `sunrice:install` offers to add a Sunrice section to the app's `AGENTS.md` (the guide's path and the rules that matter most), and the new `php artisan sunrice:agents` writes or updates it at any time. Only the section between `<!-- sunrice:start -->` and `<!-- sunrice:end -->` is ever replaced; an app without a `CLAUDE.md` gets one importing `AGENTS.md` (`@AGENTS.md`), an app's own `CLAUDE.md` is left alone. The CMS also ships a [Laravel Boost](https://github.com/laravel/boost) guideline (`resources/boost/guidelines/core.blade.php`), which `boost:install` picks up.
 
