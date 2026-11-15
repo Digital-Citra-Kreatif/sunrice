@@ -51,6 +51,10 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.7.4
+
+From 0.7.3 to 0.7.4: `composer update "sunrice/*" -W`; no migrations, and no admin assets changed. Optional, for AI agents: `php artisan sunrice:agents` adds a Sunrice section to the app's `AGENTS.md` (between `<!-- sunrice:start -->` and `<!-- sunrice:end -->`, the rest of the file left alone; an app without a `CLAUDE.md` gets one with `@AGENTS.md`), and with Laravel Boost, `php artisan boost:install` picks up the CMS's guideline. See [Building a site with Sunrice](../packages/cms/docs/building-a-site.md).
+
 ## 0.7.3
 
 From 0.7.2 to 0.7.3: `composer update "sunrice/*" -W` and `php artisan sunrice:assets` (the panel's script changed); no migrations, and nothing needs changing.
