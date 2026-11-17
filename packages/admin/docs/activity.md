@@ -27,6 +27,8 @@ $log->withoutLogging(fn () => $importer->run());                       // import
 $log->withSource('ai', 'Claude Desktop', fn () => $tool->handle());    // an AI agent's change
 ```
 
+`$log->currentSource()` says where what's being done now comes from (`"admin"`, `"ai"`, `"system"` for the console and the queue, `"security"`, or `"site"` for a visitor), and `$log->currentUser()` who's doing it; the panel's and the CMS's events carry both ([Events and hooks](events.md)).
+
 The subject type is a short name (`order`); use a resource's key (`products`) to get a link to its edit page in the log. `properties` may hold `changed` (a list of field names) and `note`; don't put values or secrets in them.
 
 The log and the dashboard say each line in the panel's language. The action is the verb of a sentence ("Rina refunded Order #12"): `Activity::verb('refunded')` reads the translation of `activity: refunded` when there is one, else of `refunded` itself, so give your actions a line under `activity: …` in your `lang/{code}.json` (`"activity: refunded": "mengembalikan dana"`), most of all when the bare word means something else in your language. A field in `changed` shows by its label when the subject is a settings section or a resource whose form still has the field, else by its name made readable. The `note` is said through `__()` when there is a line for it (`Activity::note()`).

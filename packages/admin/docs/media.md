@@ -48,6 +48,10 @@ php artisan sunrice:optimize-images --restore            # put the originals bac
 
 The first original of each image is kept on `optimize.backup_disk` (the private `local` disk, so it's not reachable by URL) under `backup_directory`; later runs never overwrite it, `--restore` puts it back, and replacing or deleting the file deletes it. `--no-backup` (or `backup => false`) keeps no originals. In code: `OptimizeImage` and `RestoreOriginalImage`.
 
+## Events
+
+Uploading, changing, replacing, trashing and deleting a file fire `MediaUploaded`, `MediaUpdated`, `MediaDeleting` (which can refuse) and `MediaDeleted`, from the actions, so the Media page, AI agents and your code fire them alike. See [Events and hooks](events.md).
+
 ## Picking media in forms
 
 `MediaPicker` lets people choose files from the library, or upload new ones, in [resource](resources.md) and [settings](settings.md) forms:
