@@ -6,6 +6,8 @@ namespace Sunrice\Admin\Actions\Media;
 
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Events\MediaDeleted;
+use Sunrice\Admin\Events\MediaDeleting;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaFilesNotMoved;
 
@@ -21,15 +23,17 @@ final class TrashMedia
 {
     public function __construct(private ActivityLog $activity) {}
 
-    /** @throws ValidationException when its files can't be moved (nothing changed) */
+    /** @throws ValidationException when its files can't be moved, or a MediaDeleting listener refuses (nothing changed) */
     public function handle(Media $media): void
     {
+        MediaDeleting::dispatch($media, false);
         try {
             $media->delete();
         } catch (MediaFilesNotMoved) {
             throw ValidationException::withMessages(['media' => __(':file couldn\'t be moved to the trash: its files couldn\'t be moved off the public disk. Nothing was changed.', ['file' => $media->filename])]);
         }
         $this->activity->record('trashed', 'media', $media, $media->title ?? $media->filename);
+        MediaDeleted::dispatch($media, false);
     }
 
     /** @throws ValidationException when its files can't be moved back (nothing changed) */

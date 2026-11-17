@@ -7,6 +7,8 @@ namespace Sunrice\Admin\Actions\Media;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Events\MediaDeleted;
+use Sunrice\Admin\Events\MediaDeleting;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Media\MediaTrash;
 use Sunrice\Admin\Media\MediaUsages;
@@ -26,7 +28,7 @@ final class DeleteMedia
     /**
      * @param  bool  $force  also when it's used somewhere (MediaUsages)
      *
-     * @throws ValidationException when it's in use and not forced
+     * @throws ValidationException when it's in use and not forced, or a MediaDeleting listener refuses
      */
     public function handle(Media $media, bool $force = false): void
     {
@@ -36,6 +38,7 @@ final class DeleteMedia
             $places = count($used) > 5 ? __(':places and :count more', ['places' => $places, 'count' => count($used) - 5]) : $places;
             throw ValidationException::withMessages(['media' => __(':file is used by :places. Delete it anyway?', ['file' => $media->filename, 'places' => $places])]);
         }
+        MediaDeleting::dispatch($media, true);
         OptimizeImage::forgetBackup($media);
         $files = $media->files();
         // Explicitly, not by the foreign key's cascade: not every connection enforces it.
@@ -45,5 +48,6 @@ final class DeleteMedia
         Storage::disk($disk)->delete($files);
         app(MediaTrash::class)->forget($media);
         $this->activity->record('deleted', 'media', $media, $media->title ?? $media->filename);
+        MediaDeleted::dispatch($media, true);
     }
 }

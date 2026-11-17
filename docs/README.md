@@ -30,6 +30,7 @@ Developer documentation for `sunrice/admin` (the panel), `sunrice/cms` (the CMS,
 | [Media](../packages/admin/docs/media.md) | The media library, usage, optimizing images, picking media. |
 | [Mail](../packages/admin/docs/mail.md) | What the panel sends, the mailer, the queue worker, Settings → Mail. |
 | [Activity log](../packages/admin/docs/activity.md) | Who changed what; recording your own; pruning. |
+| [Events and hooks](../packages/admin/docs/events.md) | The panel's events (media, settings, activity, security, signing in) and hooks. |
 | [Security](../packages/admin/docs/security.md) | Security events, accounts in the wrong hands, headers, email alerts and your own rules, captcha. |
 | [AI access](../packages/admin/docs/ai.md) | Tokens, the MCP endpoint, the panel's tools, tools from plugins, docs for agents. |
 
@@ -47,7 +48,8 @@ Developer documentation for `sunrice/admin` (the panel), `sunrice/cms` (the CMS,
 | [Comments](../packages/cms/docs/comments.md) | Comments, moderation, Settings → Comments. |
 | [The site](../packages/cms/docs/site.md) | URLs, templates, SEO, site code, layout helpers, redirects, listing pages, querying entries, components, search, previews. |
 | [Helpers and the `Cms` facade](../packages/cms/docs/helpers.md) | `Cms::…`, the `cms_*` functions, `@bodyClass`, the `EntryQuery` reference. |
-| [Caching, events and scheduled publishing](../packages/cms/docs/caching.md) | The site's cache, the whole-page cache, Settings → Cache and clearing the caches, content events. |
+| [Caching and scheduled publishing](../packages/cms/docs/caching.md) | The site's cache, the whole-page cache, Settings → Cache and clearing the caches, scheduled publishing. |
+| [Events and hooks](../packages/cms/docs/events.md) | Every content event (before a save: change or refuse it; after it: notify), who did it, imports and AI agents, listening and queued listeners, examples, and every other hook. |
 | [Machine translation](../packages/cms/docs/translation.md) | Translators, `sunrice:translate`. |
 | [Structure tooling](../packages/cms/docs/structure.md) | References, renaming fields, export and import, leftovers, demo content. |
 | [AI tools for content](../packages/cms/docs/ai.md) | The CMS's tools for AI agents; `AGENTS.md` and Laravel Boost for coding agents. |

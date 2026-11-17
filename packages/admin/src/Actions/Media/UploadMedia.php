@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Events\MediaUploaded;
 use Sunrice\Admin\Media\FileContent;
 use Sunrice\Admin\Media\Jobs\GenerateImageSizes;
 use Sunrice\Admin\Media\Media;
@@ -61,8 +62,10 @@ final class UploadMedia
         ]);
         GenerateImageSizes::for($media);
         $this->activity->record('uploaded', 'media', $media, $media->title ?? $media->filename);
+        $media->refresh();
+        MediaUploaded::dispatch($media);
 
-        return $media->refresh();
+        return $media;
     }
 
     /**

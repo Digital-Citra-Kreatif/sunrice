@@ -56,7 +56,7 @@ final class ActivityLog
         if (! $this->enabled()) {
             return null;
         }
-        $source = $this->source();
+        $source = $this->resolveSource();
         if ($source === null) {
             return null;
         }
@@ -174,8 +174,33 @@ final class ActivityLog
         return $id;
     }
 
+    /**
+     * Where what's being done now comes from: "admin" (someone signed in
+     * to the panel), "ai" (an AI agent), "system" (the console, the queue
+     * or the scheduler: imports and installs too), "security", or "site"
+     * (nobody signed in outside the console: a visitor). Events carry it
+     * (`$event->source`, see Events\RecordsActor).
+     */
+    public function currentSource(): string
+    {
+        return $this->resolveSource()[0] ?? 'site';
+    }
+
+    /**
+     * The signed-in user (on the panel's guard) doing what's being done
+     * now; an AI agent acts as its token's user. Null for a visitor, the
+     * console or the scheduler.
+     */
+    public function currentUser(): ?Authenticatable
+    {
+        $guard = app()->bound(Panel::class) ? app(Panel::class)->getGuard() : null;
+        $user = auth($guard)->user();
+
+        return $user instanceof Authenticatable ? $user : null;
+    }
+
     /** @return array{0: string, 1: string|null}|null */
-    private function source(): ?array
+    private function resolveSource(): ?array
     {
         if ($this->source !== null) {
             return $this->source;
@@ -190,9 +215,8 @@ final class ActivityLog
     /** @return array{0: string, 1: string}|null the signed-in user's id and name */
     private function user(): ?array
     {
-        $guard = app()->bound(Panel::class) ? app(Panel::class)->getGuard() : null;
-        $user = auth($guard)->user();
-        if (! $user instanceof Authenticatable) {
+        $user = $this->currentUser();
+        if ($user === null) {
             return null;
         }
         $id = $user->getAuthIdentifier();

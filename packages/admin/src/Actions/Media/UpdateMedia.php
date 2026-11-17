@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sunrice\Admin\Actions\Media;
 
 use Sunrice\Admin\Activity\ActivityLog;
+use Sunrice\Admin\Events\MediaUpdated;
 use Sunrice\Admin\Media\Media;
 use Sunrice\Admin\Panel;
 
@@ -52,6 +53,9 @@ final class UpdateMedia
         $changed = array_keys($media->getDirty());
         $media->save();
         $this->activity->updated('media', $media, $media->title ?? $media->filename, $changed);
+        if ($changed !== []) {
+            MediaUpdated::dispatch($media, $changed);
+        }
 
         return $media;
     }

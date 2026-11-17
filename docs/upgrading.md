@@ -51,6 +51,10 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## Unreleased
+
+Nothing needs changing. `EntryPublished`, `EntryUnpublished`, `EntryTrashed`, `EntryRestored` and `EntryDeleted` now fire once the database transaction they're part of commits: a listener of yours that ran inside your own `DB::transaction()` around a publish now runs after it commits, and not at all if it's rolled back. Listeners that should be able to refuse a save belong on the new before events ([Events and hooks](../packages/cms/docs/events.md)).
+
 ## 0.7.4
 
 From 0.7.3 to 0.7.4: `composer update "sunrice/*" -W`; no migrations, and no admin assets changed. Optional, for AI agents: `php artisan sunrice:agents` adds a Sunrice section to the app's `AGENTS.md` (between `<!-- sunrice:start -->` and `<!-- sunrice:end -->`, the rest of the file left alone; an app without a `CLAUDE.md` gets one with `@AGENTS.md`), and with Laravel Boost, `php artisan boost:install` picks up the CMS's guideline. See [Building a site with Sunrice](../packages/cms/docs/building-a-site.md).
