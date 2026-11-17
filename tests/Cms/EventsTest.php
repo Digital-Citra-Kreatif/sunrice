@@ -370,7 +370,7 @@ it('lets FormSubmitting listeners add to a submission or refuse it on the form',
 
     postJson('/forms/contact', ['email' => 'ana@example.com', 'message' => 'Hi'])->assertCreated();
     $submission = Submission::query()->sole();
-    expect($submission->data)->toBe(['email' => 'ana@example.com', 'message' => 'Hi', 'source' => 'website'])
+    expect($submission->data)->toEqual(['email' => 'ana@example.com', 'message' => 'Hi', 'source' => 'website'])
         ->and($fired->count())->toBe(1)
         ->and($fired[0]->submission->is($submission))->toBeTrue()
         ->and($fired[0]->source)->toBe('site')
