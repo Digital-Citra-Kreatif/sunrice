@@ -5,7 +5,7 @@
 ## How to upgrade
 
 1. Read this page from the version you have to the one you're going to, and `CHANGELOG.md` for everything else that changed.
-2. Update the packages. Within the version your `composer.json` allows (`^0.5` takes 0.5.1, 0.5.2…), update them:
+2. Update the packages. Within the version your `composer.json` allows (`^0.8` takes 0.8.1, 0.8.2…), update them:
 
    ```bash
    composer update "sunrice/*" -W
@@ -14,9 +14,9 @@
    **Before 1.0, each minor version is a new major one for Composer**: `^0.1` allows 0.1.x but never 0.2.0, so `composer update` finds nothing new. To move to the next minor version, raise the constraints with `composer require`, every Sunrice package you have at once (and `-W` so their dependencies may move too):
 
    ```bash
-   composer require sunrice/admin:^0.5 sunrice/cms:^0.5 -W
+   composer require sunrice/admin:^0.8 sunrice/cms:^0.8 -W
    # with the starter kit installed, add it to the same command:
-   composer require sunrice/admin:^0.5 sunrice/cms:^0.5 sunrice/starter-kit:^0.5 -W
+   composer require sunrice/admin:^0.8 sunrice/cms:^0.8 sunrice/starter-kit:^0.8 -W
    ```
 
    Plugins of your own or from others (`composer.json`'s `sunrice/admin` or `sunrice/cms` constraint) need a release allowing the new version too; Composer names any that hold the update back.
@@ -51,9 +51,9 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
-## Unreleased
+## 0.8.0
 
-Nothing needs changing. `EntryPublished`, `EntryUnpublished`, `EntryTrashed`, `EntryRestored` and `EntryDeleted` now fire once the database transaction they're part of commits: a listener of yours that ran inside your own `DB::transaction()` around a publish now runs after it commits, and not at all if it's rolled back. Listeners that should be able to refuse a save belong on the new before events ([Events and hooks](../packages/cms/docs/events.md)).
+From 0.7.x to 0.8.0: raise the constraints to `^0.8` (above); no migrations, and no admin assets changed. Nothing needs changing. `EntryPublished`, `EntryUnpublished`, `EntryTrashed`, `EntryRestored` and `EntryDeleted` now fire once the database transaction they're part of commits: a listener of yours that ran inside your own `DB::transaction()` around a publish now runs after it commits, and not at all if it's rolled back. Listeners that should be able to refuse a save belong on the new before events ([Events and hooks](../packages/cms/docs/events.md)).
 
 ## 0.7.4
 
