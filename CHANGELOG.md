@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Reuse cached collection IDs and taxonomies when rendering the storefront and other CMS pages.
+
 ## 0.8.0 (2026-11-17)
 
 **Upgrading from 0.7**: raise the constraints (`composer require sunrice/admin:^0.8 sunrice/cms:^0.8 -W`, with `sunrice/starter-kit:^0.8` if you use it). No migrations, no new admin assets, nothing to change: the new events are only there to listen to. The entry events now wait for the save to commit; see [Upgrading](docs/upgrading.md#080).

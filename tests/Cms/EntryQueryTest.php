@@ -314,3 +314,29 @@ it('adds a condition only when a value is given (when, unless)', function () {
         ->and(Content::entries('blog')->unless(true, fn (EntryQuery $q) => $q->where('price', '>', 10))->count())->toBe(2)
         ->and(Content::entries('blog')->unless(false, fn (EntryQuery $q) => $q->where('price', '>', 10))->count())->toBe(1);
 });
+
+it('reuses structural records across entry queries and fresh hydration contexts', function () {
+    $news = queryTerm('News');
+    queryPost('Cached post', topics: [$news->id]);
+    expect(Content::entries('blog')->count())->toBe(1);
+    expect((new HydrationContext('en'))->terms([$news->id])->sole()->taxonomy->handle)->toBe('topics');
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    try {
+        for ($i = 0; $i < 2; $i++) {
+            expect(Content::entries('blog')->count())->toBe(1);
+            expect((new HydrationContext('en'))->terms([$news->id])->sole()->taxonomy->handle)->toBe('topics');
+        }
+
+        $structureQueries = collect(DB::getQueryLog())->pluck('query')->filter(fn ($sql) => preg_match('/^select [^()]+? from [`"]?(sunrice_collections|sunrice_taxonomies)\b/i', $sql) === 1)->values();
+        expect($structureQueries)->toBeEmpty();
+    } finally {
+        DB::disableQueryLog();
+        DB::flushQueryLog();
+    }
+
+    $this->blog->update(['handle' => 'journal']);
+    expect(Content::entries('blog')->count())->toBe(0)
+        ->and(Content::entries('journal')->count())->toBe(1);
+});
