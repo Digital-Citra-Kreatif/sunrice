@@ -55,7 +55,9 @@ export function AppSidebar() {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="sunrice-collapsible">
                         <SidebarMenuSub>
-                            {[{ key: `${entry.key}:self`, label: entry.label, url: entry.url }, ...entry.children].map((child) => (
+                            {(entry.children.some((child) => child.url === entry.url)
+                                ? entry.children
+                                : [{ key: `${entry.key}:self`, label: entry.label, url: entry.url }, ...entry.children]).map((child) => (
                                 <SidebarMenuSubItem key={child.key}>
                                     <SidebarMenuSubButton asChild isActive={adminUrl(child.url) === path}>
                                         <Link href={adminUrl(child.url)} prefetch><span>{child.label}</span></Link>
