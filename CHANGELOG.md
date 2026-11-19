@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Let plugins supply entry editor labels and contextual panels on term editors through shared Inertia data.
+- Omit a submenu's overview shortcut when a child already points to the same URL.
+
 - Reuse cached collection IDs and taxonomies when rendering the storefront and other CMS pages.
 
 ## 0.8.0 (2026-11-17)
