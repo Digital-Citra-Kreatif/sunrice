@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: with the sidebar folded to icons, a menu entry with a submenu (a plugin's Orders, Products…) couldn't reach its subpages; its icon only toggled a list hidden in icon mode. Its icon now opens a menu beside it with the entry's page and its subpages.
 - Let plugins supply entry editor labels and contextual panels on term editors through shared Inertia data.
 - Omit a submenu's overview shortcut when a child already points to the same URL.
 

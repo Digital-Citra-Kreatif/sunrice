@@ -6,6 +6,7 @@ import {
     SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AppLogo } from '@/components/app/app-logo';
 import { NavUser } from '@/components/app/nav-user';
 import { navIcon } from '@/components/app/nav-icon';
@@ -19,7 +20,9 @@ import { t } from '@/lib/i18n';
 export function AppSidebar() {
     const { navigation, sunrice } = usePage<SharedProps>().props;
     const path = usePage().url.split('?')[0] ?? '';
-    const { isMobile, setOpenMobile } = useSidebar();
+    const { isMobile, setOpenMobile, state } = useSidebar();
+    // Folded to icons (desktop): a submenu can't unfold under its icon, so it opens beside it.
+    const iconsOnly = state === 'collapsed' && !isMobile;
     // Only the closest link is current: cms/collections/blog/… is Blog's, not Collections'.
     const match = matchNavigation(navigation, path, adminUrl);
     const isCurrent = (url: string) => match !== null && match.link.url === url;
@@ -43,6 +46,19 @@ export function AppSidebar() {
             );
         }
 
+        const links = entry.children.some((child) => child.url === entry.url)
+            ? entry.children
+            : [{ key: `${entry.key}:self`, label: entry.label, url: entry.url }, ...entry.children];
+
+        if (iconsOnly) {
+            return (
+                <SidebarMenuItem key={entry.key}>
+                    <NavFlyout label={entry.label} active={isCurrent(entry.url) || open} icon={<Icon />}
+                        links={links.map((child) => ({ ...child, current: adminUrl(child.url) === path }))} />
+                </SidebarMenuItem>
+            );
+        }
+
         return (
             <Collapsible key={entry.key} asChild defaultOpen={open} className="group/submenu">
                 <SidebarMenuItem>
@@ -55,9 +71,7 @@ export function AppSidebar() {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="sunrice-collapsible">
                         <SidebarMenuSub>
-                            {(entry.children.some((child) => child.url === entry.url)
-                                ? entry.children
-                                : [{ key: `${entry.key}:self`, label: entry.label, url: entry.url }, ...entry.children]).map((child) => (
+                            {links.map((child) => (
                                 <SidebarMenuSubItem key={child.key}>
                                     <SidebarMenuSubButton asChild isActive={adminUrl(child.url) === path}>
                                         <Link href={adminUrl(child.url)} prefetch><span>{child.label}</span></Link>
@@ -126,6 +140,40 @@ function foldedGroups(): string[] {
  * A titled group of the sidebar that folds away when its title is clicked,
  * remembered per browser. The group holding the current page stays open.
  */
+/**
+ * A menu entry with a submenu while the sidebar is folded to icons: its icon opens a
+ * menu beside it with the entry's own page and its subpages (keyboard and screen
+ * readers get a menu button; the tooltip still names it on hover).
+ */
+export function NavFlyout({ label, active, icon, links }: {
+    label: string;
+    active: boolean;
+    icon: React.ReactNode;
+    links: Array<{ key: string; label: string; url: string; current: boolean }>;
+}) {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <SidebarMenuButton tooltip={label} isActive={active} aria-label={label}>
+                    {icon}
+                    <span>{label}</span>
+                </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start" sideOffset={8} className="min-w-48">
+                <DropdownMenuLabel>{label}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                    {links.map((link) => (
+                        <DropdownMenuItem key={link.key} asChild className={link.current ? 'bg-accent font-medium' : undefined}>
+                            <Link href={adminUrl(link.url)} prefetch aria-current={link.current ? 'page' : undefined}>{link.label}</Link>
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
 function NavGroup({ label, current, children }: { label: string; current: boolean; children: React.ReactNode }) {
     const [open, setOpen] = React.useState(() => current || !foldedGroups().includes(label));
     // Shrunk to icons, the titles are hidden: every group shows its icons.
