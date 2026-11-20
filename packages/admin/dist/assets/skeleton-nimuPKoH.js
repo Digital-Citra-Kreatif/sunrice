@@ -1,0 +1,1 @@
+import{j as t}from"./app-CC9O0T2t.js";import{a as o}from"./index-BRm4wsyg.js";function a({className:e,...s}){return t.jsx("div",{"data-slot":"skeleton",className:o("sunrice-shimmer rounded-md bg-accent",e),...s})}export{a as S};
