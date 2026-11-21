@@ -122,7 +122,8 @@ final class EmailCodes
         if (! hash_equals($pending['code'], $this->hash(preg_replace('/\D/', '', $code) ?? ''))) {
             RateLimiter::hit($lockout, self::LOCKOUT_SECONDS);
             $pending['attempts']++;
-            if ($pending['attempts'] >= self::MAX_ATTEMPTS || RateLimiter::tooManyAttempts($lockout, self::LOCKOUT_ATTEMPTS)) {
+            // lockedFor() reads the limiter afresh, after this hit.
+            if ($pending['attempts'] >= self::MAX_ATTEMPTS || $this->lockedFor($purpose, $pending['user_id']) > 0) {
                 $this->forget($request, $purpose);
 
                 return 'locked';
