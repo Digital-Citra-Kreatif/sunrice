@@ -29,6 +29,8 @@ interface Props {
     saved?: Record<string, FieldValue>;
     errors: Partial<Record<string, string>>;
     onChange: (name: string, value: FieldValue) => void;
+    /** Untitled sections without a card around them, for a form inside a card of its own (a plugin's editor card). */
+    bare?: boolean;
 }
 
 /** What a folded section shows of its fields: their values in one line, but secrets, passwords and option keys. */
@@ -50,7 +52,7 @@ export function FormSections(props: Props) {
     return <CollapsibleCardGroup className="gap-6">{sectionCards(props)}</CollapsibleCardGroup>;
 }
 
-function sectionCards({ sections, data, saved, errors, storageKey, onChange }: Props) {
+function sectionCards({ sections, data, saved, errors, storageKey, onChange, bare = false }: Props) {
     return sections.map((section, index) => {
         // Fields whose condition isn't met are hidden (showWhen), a section of only those too.
         const fields = section.fields.filter((field) => isShownBy(field.showWhen as ShowWhen | null | undefined, data, saved));
@@ -133,7 +135,7 @@ function sectionCards({ sections, data, saved, errors, storageKey, onChange }: P
                 headerAction={section.links ? <SectionLinks links={section.links} data={data} /> : undefined}>
                 {content}
             </CollapsibleCard>
-        ) : (
+        ) : bare ? <React.Fragment key={index}>{content}</React.Fragment> : (
             <Card key={index}><CardContent>{content}</CardContent></Card>
         );
     });
