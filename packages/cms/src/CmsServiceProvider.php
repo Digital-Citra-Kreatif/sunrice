@@ -82,6 +82,7 @@ final class CmsServiceProvider extends ServiceProvider
         $this->app->singleton(Site\PageCache::class);
         $this->app->singleton(Site\SiteHooks::class);
         $this->app->singleton(Admin\EntryLinks::class);
+        $this->app->singleton(Editor\EditorCards::class);
         $this->app->singleton(Site\EntryVisibility::class);
         $this->app->singleton(Admin\ContentNavigation::class);
         // Indonesian for Laravel's own lines the app hasn't got, read as they're needed.
