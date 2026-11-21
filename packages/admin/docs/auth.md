@@ -15,6 +15,33 @@ Turn on **Two-factor login** in Settings → Security (permission `sunrice.setti
 - Locked out because email stopped working? `php artisan sunrice:two-factor off` (and `on`, or no argument to see it). `sunrice-admin.auth.two_factor` (`true` or `false`) forces it whatever the setting says; `null`, the default, follows the setting.
 - Codes are typed at `/admin/login/code` (`sunrice.admin.login.code`), limited to 10 tries and resends a minute per IP.
 
+### Email codes for plugins
+
+The two-factor login's code engine is public: `Sunrice\Admin\Auth\EmailCodes` (`@api`), for a plugin's own "prove you read this address" step, such as signing in on the site with an emailed code. It has no guard, no table and no trait on the user model: the pending code lives in the session, as a keyed hash, with who it's for and what you add.
+
+```php
+use Sunrice\Admin\Auth\EmailCodes;
+
+$codes = app(EmailCodes::class);
+
+// Asking: start a code for a purpose (yours, lowercase with dashes) and send it yourself.
+$code = $codes->issue($request, 'shop-login', $user->getKey(), ['remember' => true], minutes: 10);
+$user->notify(new ShopLoginCode($code));
+
+// Typing it, in the same session:
+$pending = $codes->pending($request, 'shop-login');   // user_id, data, expires_at, sent_at, attempts (never the code)
+match ($codes->check($request, 'shop-login', $input)) {
+    'ok' => Auth::guard('shop')->login($users->find($pending['user_id']), $pending['data']['remember']),
+    'wrong' => back()->withErrors(['code' => 'That code isn\'t right.']),
+    'expired', 'locked', 'missing' => redirect('/login')->withErrors(['code' => 'Ask for a new code.']),
+};
+```
+
+- A code is 6 digits; spaces and dashes in what's typed don't matter. It works for `EmailCodes::LIFETIME_MINUTES` (10) unless you give `minutes`, and allows `MAX_ATTEMPTS` (5) guesses; the right one ends it.
+- Wrong codes also count per user and purpose across codes: `LOCKOUT_ATTEMPTS` (10) in `LOCKOUT_SECONDS` (15 minutes) lock them (`check()` answers `locked`, `lockedFor()` says for how long), so asking for fresh codes doesn't give endless guesses.
+- `resendIn()` is the seconds until another code should go (`RESEND_SECONDS`, 60); sending is yours, so is waiting.
+- Each purpose has its own pending code and lockout; the panel's two-factor login is `two-factor`.
+
 ## Strong passwords
 
 **Require strong passwords** in Settings → Security (permission `sunrice.settings.security`) is on by default, for new and existing installs. Every password the panel sets then needs:
