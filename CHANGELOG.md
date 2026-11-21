@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Email codes for plugins**: the two-factor login's code engine is now `Sunrice\Admin\Auth\EmailCodes` (`@api`), with no guard of its own: `issue()` a 6-digit code for a purpose in this session (kept as a keyed hash, with who it's for and the caller's data), `check()` it (`ok`, `wrong`, `expired`, `locked`, `missing`), `pending()`, `resendIn()`, `lockedFor()`, `forget()`. Same rules as before: 10 minutes, 5 guesses, and a lockout per user and purpose across codes (10 wrong in 15 minutes). Plugins use it for their own emailed codes (the account package's sign-in by code) without a table or a trait on the user model. `TwoFactorLogin` runs on it, unchanged for people signing in; see [Signing in](packages/admin/docs/auth.md#email-codes-for-plugins).
 - Fix: with the sidebar folded to icons, a menu entry with a submenu (a plugin's Orders, Products…) couldn't reach its subpages; its icon only toggled a list hidden in icon mode. Its icon now opens a menu beside it with the entry's page and its subpages.
 - Let plugins supply entry editor labels and contextual panels on term editors through shared Inertia data.
 - Omit a submenu's overview shortcut when a child already points to the same URL.
