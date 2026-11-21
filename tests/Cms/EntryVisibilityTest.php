@@ -67,6 +67,7 @@ it('hides entries from Cms::entries() for who may not see them, cached per kind 
 });
 
 it('hides them from listing pages and search, not their own page', function () {
+    commitForFullText(); // the search's FULLTEXT index on MySQL sees committed rows only
     get('/blog')->assertOk()->assertSee('Coffee notes')->assertDontSee('Members coffee club');
     expect(visibleTitles(app(Search::class)->entries('coffee')))->toBe(['Coffee notes']);
     // Gating the page itself is the plugin's (Cms::resolveTemplateUsing()).
