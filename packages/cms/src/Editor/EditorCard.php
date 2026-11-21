@@ -7,6 +7,7 @@ namespace Sunrice\Cms\Editor;
 use Closure;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Sunrice\Admin\Resources\Forms\CheckboxList;
 use Sunrice\Admin\Resources\Forms\Form;
@@ -212,7 +213,7 @@ final class EditorCard
      *
      * @param  array<mixed>  $input
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function store(Entry|Term $record, array $input, Authorizable $user): void
     {
