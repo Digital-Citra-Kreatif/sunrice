@@ -168,10 +168,10 @@ final class EditorCard
     public function shownOn(Entry|Term $record): bool
     {
         if ($record instanceof Entry) {
-            return $this->entries !== false && $record->collection instanceof Collection && ($this->entries)($record->collection);
+            return $this->entries !== false && ($this->entries)($record->collection);
         }
 
-        return $this->terms !== false && $record->taxonomy instanceof Taxonomy && ($this->terms)($record->taxonomy);
+        return $this->terms !== false && ($this->terms)($record->taxonomy);
     }
 
     /** Whether `$user` may see and save it on this record (updating the record is checked by the route). */
