@@ -143,6 +143,8 @@ export const FormSections = m.FormSections as ComponentType<{
     onChange: (name: string, value: SettingsValue) => void;
     /** Remembers which titled sections are folded, under this key plus the title. */
     storageKey?: string;
+    /** Untitled sections without a card around them, for a form inside a card of its own. */
+    bare?: boolean;
 }>;
 export const Input = m.Input as AnyComponent;
 export interface KeptEdit { id: number; by: string | null; taken_by: string | null; at: string | null }
