@@ -51,6 +51,10 @@
 
 Until 1.0, APIs may change between versions; every change is recorded in `CHANGELOG.md`, and from the first release on, the ones that need something from you are collected here, by version.
 
+## 0.8.1
+
+From 0.8.0 to 0.8.1: `composer update "sunrice/*" -W` and `php artisan sunrice:assets` (the panel's and the CMS's bundles changed); no migrations, and nothing needs changing. Plugin bundles built with `@imajiner/admin-sdk` keep working; update it to `^0.8.1` for the new `FormSections` `bare` prop.
+
 ## 0.8.0
 
 From 0.7.x to 0.8.0: raise the constraints to `^0.8` (above); no migrations, and no admin assets changed. Nothing needs changing. `EntryPublished`, `EntryUnpublished`, `EntryTrashed`, `EntryRestored` and `EntryDeleted` now fire once the database transaction they're part of commits: a listener of yours that ran inside your own `DB::transaction()` around a publish now runs after it commits, and not at all if it's rolled back. Listeners that should be able to refuse a save belong on the new before events ([Events and hooks](../packages/cms/docs/events.md)).

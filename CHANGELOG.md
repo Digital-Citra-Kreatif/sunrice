@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.8.1 (2026-11-21)
+
+**Upgrading from 0.8.0**: `composer update "sunrice/*" -W` and `php artisan sunrice:assets` (the panel's and the CMS's bundles changed). No migrations, nothing to change. See [Upgrading](docs/upgrading.md#081).
+
+**Highlights**: new public APIs for plugins that add accounts and members-only content: cards of their own in the entry and term editors, entries hidden from visitors who may not see them, emailed login codes, and a multi-select field.
 
 - **Entries some visitors may not see**: `Cms::hideEntriesUsing(Closure(Builder $query, bool $everyone): void $hide, Closure(): string $viewer)` (`@api`) lets a plugin hide entries from visitors who may not see them wherever the site lists entries: listing and term pages, `Cms::entries()` and `<x-sunrice-cms::entries>`, search, menus (a link to a hidden entry is left out with its children), entries fields and links resolved for templates (as if unpublished), term counts, and the sitemap (asked with `$everyone`: no one is signed in for search engines). Remembered queries, search results and menus are cached per `$viewer` key. An entry's own page still resolves (gate it with `Cms::resolveTemplateUsing()`); previews show everything. See [Entries some visitors may not see](packages/cms/docs/site.md#entries-some-visitors-may-not-see).
 - **Several choices in a select**: `Select::multiple()` chooses several of the options, shown as chips in a box with a searchable list (like the CMS's term pickers): the value is a list of the chosen values in the order chosen, each checked against the options (`roles.*`), unlisted and repeated ones dropped. It works in resource, Settings and action forms; `->other()` isn't offered with it. See [Resources](packages/admin/docs/resources.md#forms).
@@ -9,7 +13,6 @@
 - Fix: with the sidebar folded to icons, a menu entry with a submenu (a plugin's Orders, Products…) couldn't reach its subpages; its icon only toggled a list hidden in icon mode. Its icon now opens a menu beside it with the entry's page and its subpages.
 - Let plugins supply entry editor labels and contextual panels on term editors through shared Inertia data.
 - Omit a submenu's overview shortcut when a child already points to the same URL.
-
 - Reuse cached collection IDs and taxonomies when rendering the storefront and other CMS pages.
 
 ## 0.8.0 (2026-11-17)
