@@ -55,7 +55,7 @@ final class Menus
                 $all = Menu::query()->with('items.entry.translations', 'items.entry.collection', 'items.term.translations', 'items.term.taxonomy', 'items.collection', 'items.taxonomy')->get();
                 // Links to entries hidden from this visitor are left out, with what's under them.
                 $linked = $all->flatMap(fn (Menu $menu) => $menu->items->pluck('entry_id'))->filter(fn (mixed $id): bool => is_int($id))->unique()->values()->all();
-                $this->visibleEntries = array_flip(app(EntryVisibility::class)->visibleEntryIds($linked));
+                $this->visibleEntries = array_flip(app(EntryVisibility::class)->visibleEntryIds(array_values($linked)));
                 foreach ($all as $menu) {
                     $menus[$menu->handle] = $this->tree($menu->items->all(), null, $locale);
                 }
