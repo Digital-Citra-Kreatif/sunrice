@@ -24,6 +24,10 @@ use Sunrice\Admin\Support\Say;
  * value that isn't listed, checked by the rules given; a saved value
  * that isn't an option shows there.
  *
+ * With ->multiple() several options can be chosen (shown as chips, with a
+ * search box over the options): the value is a list of the chosen values,
+ * in the order chosen. "Other…" isn't offered then.
+ *
  * @api
  */
 final class Select extends Field
@@ -35,6 +39,8 @@ final class Select extends Field
     private ?array $other = null;
 
     private bool $searchable = false;
+
+    private bool $multiple = false;
 
     /** Its option labels are data, shown as written. */
     private bool $verbatim = false;
@@ -64,6 +70,14 @@ final class Select extends Field
     public function other(string $label = 'Other…', array $rules = [], ?string $placeholder = null): self
     {
         $this->other = ['label' => $label, 'placeholder' => $placeholder, 'rules' => $rules];
+
+        return $this;
+    }
+
+    /** Several options at once: the value is a list of them (see the class docblock). */
+    public function multiple(bool $multiple = true): self
+    {
+        $this->multiple = $multiple;
 
         return $this;
     }
@@ -118,9 +132,33 @@ final class Select extends Field
         return parent::validationRules($record);
     }
 
+    public function formValue(?Model $record): mixed
+    {
+        $value = parent::formValue($record);
+        if (! $this->multiple) {
+            return $value;
+        }
+
+        return self::chosen($value, $this->values());
+    }
+
+    /** Several: the chosen values, listed ones only, once each, in the order chosen. */
+    public function dehydrate(mixed $value): mixed
+    {
+        return $this->multiple ? self::chosen($value, $this->values()) : $value;
+    }
+
+    public function nestedRules(): array
+    {
+        return $this->multiple ? ["{$this->name}.*" => ['string', 'distinct', Rule::in($this->values())]] : [];
+    }
+
     protected function typeRules(): array
     {
-        $values = array_map('strval', array_keys($this->flat()));
+        if ($this->multiple) {
+            return ['array'];
+        }
+        $values = $this->values();
         if ($this->other === null) {
             return [Rule::in($values)];
         }
@@ -154,8 +192,32 @@ final class Select extends Field
 
         return ['options' => $options]
             + ($this->searchable ? ['searchable' => true] : [])
+            + ($this->multiple ? ['multiple' => true] : [])
             + ($this->withoutTargets ? ['withoutTargets' => true] : [])
-            + ($this->other !== null ? ['other' => ['label' => Say::it($this->other['label']), 'placeholder' => Say::it($this->other['placeholder'])]] : []);
+            + ($this->other !== null && ! $this->multiple ? ['other' => ['label' => Say::it($this->other['label']), 'placeholder' => Say::it($this->other['placeholder'])]] : []);
+    }
+
+    /** @return list<string> the options' values */
+    private function values(): array
+    {
+        return array_map('strval', array_keys($this->flat()));
+    }
+
+    /**
+     * @param  list<string>  $values
+     * @return list<string>
+     */
+    private static function chosen(mixed $value, array $values): array
+    {
+        $chosen = [];
+        foreach (is_iterable($value) ? $value : [] as $each) {
+            $each = is_scalar($each) ? (string) $each : '';
+            if (in_array($each, $values, true) && ! in_array($each, $chosen, true)) {
+                $chosen[] = $each;
+            }
+        }
+
+        return $chosen;
     }
 
     /** @return array<string|int, string|array<string|int, string>> */

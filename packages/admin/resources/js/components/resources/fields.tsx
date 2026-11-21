@@ -22,7 +22,7 @@ import { fixedValues, formatPairs, keysTaken, parsePairs, type Pair, sameKey, su
 import { formatList, looksValid, networkOf, parseList } from '@/lib/networks';
 import { isPasswordRules } from '@/lib/password-rules';
 import { slugInput } from '@/lib/slug';
-import { type ChoiceOption, groupOptions, RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
+import { type ChoiceOption, groupOptions, MultiSelect, RelationSelect, SearchableSelect, type RelationOption } from './relation-select';
 import { PermissionMatrix } from './permission-matrix';
 import type { FieldInfo } from './types';
 import { t } from '@/lib/i18n';
@@ -94,6 +94,10 @@ export function FieldInput({ field, value, onChange, invalid, data }: FieldProps
         case 'select': {
             const options = (field.options as ChoiceOption[] | undefined) ?? [];
             const other = field.other as { label: string; placeholder: string | null } | undefined;
+            if (field.multiple === true) {
+                return <MultiSelect id={id} options={options} disabled={disabled} invalid={invalid} placeholder={field.placeholder ?? undefined}
+                    value={Array.isArray(value) ? value.map(String) : []} onChange={onChange} />;
+            }
             if (other) {
                 return <SelectWithOther id={id} field={field} options={options} other={other} disabled={disabled} invalid={invalid}
                     value={value === null || value === '' ? null : String(value)} onChange={onChange} />;

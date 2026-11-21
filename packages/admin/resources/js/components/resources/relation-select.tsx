@@ -214,3 +214,65 @@ export function SearchableSelect({ id, options, value, required, disabled, inval
         </div>
     );
 }
+
+/**
+ * Several choices from fixed options (Select::multiple()): the chosen ones
+ * as chips in a box (× removes one), "Add…" opens a searchable list where
+ * choosing toggles an option. The value is the chosen values, in order.
+ */
+export function MultiSelect({ id, options, value, disabled, invalid, placeholder, onChange }: {
+    id: string;
+    options: ChoiceOption[];
+    value: string[];
+    disabled: boolean;
+    invalid: boolean;
+    placeholder?: string;
+    onChange: (value: string[]) => void;
+}) {
+    const [open, setOpen] = React.useState(false);
+    const labelOf = (key: string) => options.find((option) => option.value === key)?.label ?? key;
+    const toggle = (key: string) => onChange(value.includes(key) ? value.filter((other) => other !== key) : [...value, key]);
+    const item = (option: ChoiceOption) => (
+        <CommandItem key={option.value} value={`${option.label} ${option.value}`} onSelect={() => toggle(option.value)}>
+            <Check className={cn(value.includes(option.value) ? 'opacity-100' : 'opacity-0')} />
+            <span className="truncate">{option.label}</span>
+        </CommandItem>
+    );
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <div data-invalid={invalid || undefined}
+                className="flex w-full min-w-0 flex-wrap items-center gap-1 rounded-md border border-input bg-card p-1 shadow-xs data-invalid:border-destructive dark:bg-input/30">
+                {value.map((key) => (
+                    <span key={key} className="inline-flex h-7 max-w-full min-w-0 items-center gap-0.5 rounded-sm bg-secondary pl-2 text-xs font-medium text-secondary-foreground">
+                        <span className={cn('min-w-0 truncate', disabled && 'pr-2')}>{labelOf(key)}</span>
+                        {!disabled && (
+                            <button type="button" aria-label={t('Remove :name', { name: labelOf(key) })} onClick={() => toggle(key)}
+                                className="inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                                <X className="size-3" aria-hidden />
+                            </button>
+                        )}
+                    </span>
+                ))}
+                <PopoverTrigger asChild>
+                    <button id={id} type="button" role="combobox" aria-expanded={open} aria-invalid={invalid || undefined} disabled={disabled}
+                        className="flex h-7 min-w-24 flex-1 items-center justify-between gap-1 rounded-sm px-2 text-left text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50">
+                        <span className="truncate">{value.length === 0 ? (placeholder ?? t('Choose…')) : t('Add…')}</span>
+                        <ChevronsUpDown className="size-4 shrink-0 opacity-60" aria-hidden />
+                    </button>
+                </PopoverTrigger>
+            </div>
+            <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
+                <Command>
+                    <CommandInput placeholder={t('Search…')} />
+                    <CommandList>
+                        <CommandEmpty>{t('Nothing found.')}</CommandEmpty>
+                        {groupOptions(options).map(([group, items]) => group === ''
+                            ? <React.Fragment key="">{items.map(item)}</React.Fragment>
+                            : <CommandGroup key={group} heading={group}>{items.map(item)}</CommandGroup>)}
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}

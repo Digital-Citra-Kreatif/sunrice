@@ -133,6 +133,27 @@ it('takes a value besides the options with ->other(), checked by its rules', fun
         ->and(validator(['type' => 'no'], ['type' => $field->validationRules(null)])->errors()->first('type'))->toContain('Type');
 });
 
+it('chooses several options with ->multiple(), kept as a list in the order chosen', function () {
+    $field = Select::make('roles')->label('Roles')->options(['Members' => ['gold' => 'Gold', 'silver' => 'Silver'], 'staff' => 'Staff'])->multiple()->default(['gold']);
+    $rules = ['roles' => $field->validationRules(null), ...$field->nestedRules()];
+    $passes = fn (mixed $value): bool => validator(['roles' => $value], $rules)->passes();
+
+    expect($field->toArray())->toMatchArray(['type' => 'select', 'multiple' => true])
+        ->and($field->toArray())->not->toHaveKey('other')
+        ->and($passes(['silver', 'gold']))->toBeTrue()
+        ->and($passes([]))->toBeTrue()
+        ->and($passes(['gold', 'gold']))->toBeFalse()
+        ->and($passes(['platinum']))->toBeFalse()
+        ->and($passes('gold'))->toBeFalse()
+        ->and($field->dehydrate(['silver', 'gold', 'silver', 'platinum', 3]))->toBe(['silver', 'gold'])
+        ->and($field->dehydrate(null))->toBe([])
+        ->and($field->formValue(null))->toBe(['gold']);
+
+    // One choice is still a single value.
+    $one = Select::make('role')->options(['gold' => 'Gold']);
+    expect($one->toArray())->not->toHaveKey('multiple')->and($one->dehydrate('gold'))->toBe('gold')->and($one->nestedRules())->toBe([]);
+});
+
 it('edits a list of addresses as rows, kept as one per line', function () {
     $profiles = ListInput::make('sameAs')->label('Profiles')->urls(httpsOnly: true)->networks()->addLabel('Add profile')->max(3);
     $rules = ['sameAs' => $profiles->validationRules(null)];
