@@ -31,6 +31,18 @@ it('offers the entry search to the command palette on every panel page, not only
     }
 });
 
+it('gives the entry search only to those who may view entries, so no one else\'s palette asks it and is refused', function () {
+    actingAs(adminUser(Panel::ACCESS, 'sunrice.media.view'));
+    get('/admin')->assertOk()->assertInertia(fn (Assert $inertia) => $inertia->where('sunrice.commandSearches', []));
+    // The route would refuse them: the palette is not given what the route refuses.
+    getJson('/admin/cms/entries/search?q=menteng')->assertForbidden();
+
+    // Viewing one collection's entries is enough, as it is for the route.
+    actingAs(adminUser(Panel::ACCESS, 'cms.entries.properties.view'));
+    getJson('/admin/cms/entries/search?q=menteng')->assertOk();
+    get('/admin')->assertInertia(fn (Assert $inertia) => $inertia->where('sunrice.commandSearches.0.id', 'cms.entries'));
+});
+
 it('finds entries by their title in any language, once per entry, within what the person may view', function () {
     $menteng = app(PublishEntry::class)->handle(app(CreateEntry::class)->handle($this->properties, ['title' => 'Menteng Heritage Residence']));
     $garden = app(CreateEntry::class)->handle($this->properties, ['title' => 'Garden House']);

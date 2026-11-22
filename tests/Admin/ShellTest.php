@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Contracts\Auth\Access\Authorizable;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Events\VendorTagPublished;
 use Illuminate\Support\Facades\Route;
@@ -108,6 +109,28 @@ it('shares command palette searches on every page, with their URLs', function ()
         ['id' => 'shop.orders', 'url' => url('/admin/shop/search'), 'minLength' => 3],
     ]));
     get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('sunrice.commandSearches.0.id', 'shop.orders'));
+});
+
+it('shares a command palette search only with those it is for', function () {
+    usePanel(fn (Panel $panel) => $panel
+        ->routes(fn () => Route::get('shop/search', fn () => ['items' => []])->name('shop.search'))
+        ->commandSearch('shop.orders', fn () => route('sunrice.admin.shop.search'), visible: fn (Authorizable $user): bool => $user->can('shop.orders.view'))
+        ->commandSearch('shop.help', fn () => route('sunrice.admin.shop.search')));
+
+    // Without the permission: the other search only, so their palette never asks the one it would be refused.
+    actingAs(adminUser(Panel::ACCESS));
+    get('/admin')->assertInertia(fn (Assert $page) => $page->where('sunrice.commandSearches', [
+        ['id' => 'shop.help', 'url' => url('/admin/shop/search'), 'minLength' => 2],
+    ]));
+
+    actingAs(adminUser(Panel::ACCESS, 'shop.orders.view'));
+    get('/admin/media')->assertInertia(fn (Assert $page) => $page->where('sunrice.commandSearches', [
+        ['id' => 'shop.orders', 'url' => url('/admin/shop/search'), 'minLength' => 2],
+        ['id' => 'shop.help', 'url' => url('/admin/shop/search'), 'minLength' => 2],
+    ]));
+
+    // Asked of no one, the panel gives every search: what a page for a user starts from.
+    expect(array_column(app(Panel::class)->getCommandSearches(), 'id'))->toBe(['shop.orders', 'shop.help']);
 });
 
 it('refuses two command searches with the same id', function () {
