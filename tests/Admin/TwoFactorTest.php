@@ -32,7 +32,7 @@ beforeEach(function () {
     $this->admin = adminUser(Panel::ACCESS);
     $this->admin->forceFill(['email' => 'rina@example.com', 'password' => 'secret-password'])->save();
     app(SaveSettings::class)->handle(app(SecuritySettings::class), ['twoFactor' => true]);
-    RateLimiter::clear('sunrice-two-factor|'.$this->admin->id);
+    RateLimiter::clear('sunrice-code-two-factor|'.$this->admin->id);
 });
 
 function passwordStep(): TestResponse

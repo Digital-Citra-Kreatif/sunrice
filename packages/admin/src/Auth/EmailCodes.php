@@ -144,10 +144,14 @@ final class EmailCodes
         $request->session()->forget(self::sessionKey($purpose));
     }
 
-    /** Where a purpose's pending code is kept in the session: `sunrice_{purpose}` (dashes as underscores). */
+    /**
+     * Where a purpose's pending code is kept in the session: `sunrice_code_{purpose}`
+     * (dashes as underscores). Under `code` so no purpose can name one of the
+     * panel's own keys (`sunrice_weak_password`…); likewise the lockout's limiter key.
+     */
     public static function sessionKey(string $purpose): string
     {
-        return 'sunrice_'.str_replace('-', '_', self::purpose($purpose));
+        return 'sunrice_code_'.str_replace('-', '_', self::purpose($purpose));
     }
 
     /** @return array{user_id: int|string, data: array<string, mixed>, code: string, expires_at: int, sent_at: int, attempts: int}|null */
@@ -183,7 +187,7 @@ final class EmailCodes
 
     private static function lockoutKey(string $purpose, int|string $userId): string
     {
-        return 'sunrice-'.self::purpose($purpose).'|'.$userId;
+        return 'sunrice-code-'.self::purpose($purpose).'|'.$userId;
     }
 
     private static function purpose(string $purpose): string
