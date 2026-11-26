@@ -113,7 +113,7 @@ it('shows a record\'s saved choices for its own options, even before the form is
 
     // AI tools read the values (currentValues) without describing the field first.
     expect($field->formValue($saved))->toBe(['red', 'blue']);
-})->todo('BUG: Select::formValue() resolves an options closure with the record of the last toArray()/validationRules() call, not the one passed in: with record-dependent options a saved choice is dropped (packages/admin/src/Resources/Forms/Select.php:135-143)');
+});
 
 it('reads the saved value as a list of listed options, as strings', function () {
     $record = fn (mixed $value) => tap(new class extends Model {}, fn (Model $m) => $m->setAttribute('colours', $value));
@@ -307,7 +307,7 @@ it('keeps choices from record-dependent options when an AI agent changes another
     expect($response->json('result.isError'))->not->toBeTrue()
         ->and($palette->fresh()?->name)->toBe('Renamed')
         ->and($palette->fresh()?->shades)->toBe(['base', "own-{$palette->id}"]);
-})->todo('BUG: an AI agent\'s save_record reads current values (ResourceTool::currentValues) before the field is described for the record, so Select::multiple()::formValue() filters with the options for no record and the record-dependent choice is dropped and saved away (packages/admin/src/Resources/Forms/Select.php:135-143)');
+});
 
 it('shows a multiple select\'s column and CSV as its saved JSON', function () {
     Palette::query()->create(['name' => 'Dawn', 'colours' => ['red', 'blue']]);
