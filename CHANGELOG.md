@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: a `Select::multiple()` whose options depend on the record (an options closure) dropped the record's own choices when an AI agent saved the record (`save_record` with other fields): its current values were read against the options of no record. `formValue()` now uses the options of the record it's given.
 - Fix: with `Cms::hideEntriesUsing()`, an entry hidden in a page's language still showed in that page's entries fields and menus when another of its translations passed the hook, even one not published. Fields and menus now judge the translation they show (this language's when live, else the main language's), as `Cms::entries()` and listings do.
 - Fix: a plugin's editor card could be saved by a translator, by sending `locale` for another language, although the card isn't shown to them; it is about the whole entry, like its settings. Card saves also refused nothing on an entry or term whose collection or taxonomy is in the trash (404 now, like their editors).
 

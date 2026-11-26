@@ -134,6 +134,8 @@ final class Select extends Field
 
     public function formValue(?Model $record): mixed
     {
+        // Options may depend on the record (an options closure): this one's, whatever was asked before.
+        $this->record = $record;
         $value = parent::formValue($record);
         if (! $this->multiple) {
             return $value;
