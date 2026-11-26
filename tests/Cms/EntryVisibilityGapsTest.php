@@ -295,7 +295,7 @@ it('keeps a hook that uses orWhere from showing drafts', function () {
     Content::hideEntriesUsing(fn (Builder $query, bool $everyone) => $query->where('title', 'not like', 'Members%')->orWhereIn('entry_id', [$this->secret->entry_id, $draft->entry_id]), fn (): string => 'x');
 
     expect(gapTitles(Content::entries('blog')->get()))->toBe(['Coffee notes', 'Members coffee club']);
-})->todo('EntryVisibility::apply() (packages/cms/src/Site/EntryVisibility.php:55) hands each hook the site\'s own query unwrapped: an orWhere in a hook escapes live() and the language and collection constraints, listing an unpublished draft; wrapping it as $query->where(fn ($q) => $hide($q, $everyone)) would contain it');
+});
 
 it('still answers a hidden entry\'s own page, which the plugin gates with resolveTemplateUsing()', function () {
     // As documented: the page resolves; what it shows is the plugin's.

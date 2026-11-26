@@ -52,8 +52,11 @@ final class EntryVisibility
      */
     public function apply(Builder $query, bool $everyone = false): Builder
     {
+        // Each hook in a group of its own: an orWhere in one can't undo the site's conditions (live, language, collection).
         foreach ($this->hide as $hide) {
-            $hide($query, $everyone);
+            $query->where(function (Builder $narrowed) use ($hide, $everyone): void {
+                $hide($narrowed, $everyone);
+            });
         }
 
         return $query;
