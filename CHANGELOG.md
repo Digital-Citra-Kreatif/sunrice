@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix: a plugin's editor card could be saved by a translator, by sending `locale` for another language, although the card isn't shown to them; it is about the whole entry, like its settings. Card saves also refused nothing on an entry or term whose collection or taxonomy is in the trash (404 now, like their editors).
+
 ## 0.8.1 (2026-11-21)
 
 **Upgrading from 0.8.0**: `composer update "sunrice/*" -W` and `php artisan sunrice:assets` (the panel's and the CMS's bundles changed). No migrations, nothing to change. See [Upgrading](docs/upgrading.md#081).
