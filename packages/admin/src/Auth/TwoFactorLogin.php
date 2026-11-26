@@ -30,9 +30,9 @@ use Throwable;
  */
 final class TwoFactorLogin
 {
-    public const SESSION_KEY = 'sunrice_two_factor';
+    public const SESSION_KEY = 'sunrice_code_two_factor';
 
-    /** Its EmailCodes purpose (session key SESSION_KEY, lockout "sunrice-two-factor|{user}"). */
+    /** Its EmailCodes purpose (session key SESSION_KEY, lockout "sunrice-code-two-factor|{user}"). */
     public const PURPOSE = 'two-factor';
 
     public const LIFETIME_MINUTES = EmailCodes::LIFETIME_MINUTES;

@@ -17,7 +17,7 @@ function codeRequest(): Request
 }
 
 beforeEach(function () {
-    RateLimiter::clear('sunrice-shop-login|7');
+    RateLimiter::clear('sunrice-code-shop-login|7');
 });
 
 it('issues a 6-digit code kept only as a hash in the session, with its data', function () {
@@ -30,7 +30,7 @@ it('issues a 6-digit code kept only as a hash in the session, with its data', fu
         ->and(json_encode(session(EmailCodes::sessionKey('shop-login'))))->not->toContain($code)
         ->and($codes->pending($request, 'shop-login'))->toMatchArray(['user_id' => 7, 'data' => ['remember' => true], 'attempts' => 0])
         ->and($codes->pending($request, 'shop-login'))->not->toHaveKey('code')
-        ->and(EmailCodes::sessionKey('shop-login'))->toBe('sunrice_shop_login');
+        ->and(EmailCodes::sessionKey('shop-login'))->toBe('sunrice_code_shop_login');
 });
 
 it('accepts the right code once, spaces and dashes aside', function () {
@@ -55,7 +55,7 @@ it('refuses wrong and expired codes, and ends a code after too many guesses', fu
     expect($codes->check($request, 'shop-login', $wrong))->toBe('locked')
         ->and($codes->check($request, 'shop-login', $code))->toBe('missing');
 
-    RateLimiter::clear('sunrice-shop-login|7');
+    RateLimiter::clear('sunrice-code-shop-login|7');
     $code = $codes->issue($request, 'shop-login', 7, minutes: 2);
     travel(3)->minutes();
     expect($codes->check($request, 'shop-login', $code))->toBe('expired');

@@ -212,7 +212,7 @@ describe('the engine', function () {
             $codes->check($request, 'shop-login', gapsOther($code));
         }
         expect($codes->check($request, 'shop-login', $code))->toBe('ok')
-            ->and(RateLimiter::attempts('sunrice-shop-login|7'))->toBe(0);
+            ->and(RateLimiter::attempts('sunrice-code-shop-login|7'))->toBe(0);
     });
 
     it('holds one pending code per purpose: a code for user A then B leaves only B\'s', function () {
@@ -226,8 +226,8 @@ describe('the engine', function () {
         expect($codes->pending($request, 'shop-login')['user_id'])->toBe(8)
             ->and($codes->check($request, 'shop-login', $forA))->toBe('wrong')
             // The wrong guess counted against B, the user the pending code is for.
-            ->and(RateLimiter::attempts('sunrice-shop-login|8'))->toBe(1)
-            ->and(RateLimiter::attempts('sunrice-shop-login|7'))->toBe(0);
+            ->and(RateLimiter::attempts('sunrice-code-shop-login|8'))->toBe(1)
+            ->and(RateLimiter::attempts('sunrice-code-shop-login|7'))->toBe(0);
     });
 
     it('belongs to the session it was issued in', function () {
@@ -319,10 +319,20 @@ describe('the engine', function () {
     })->with(['shop_login', 'Shop-login', '-shop', 'shop-', 'shop--login', '', 'shop|login', "shop\nlogin"]);
 
     it('keeps a plugin\'s purposes clear of the panel\'s own session and limiter keys', function () {
-        // A purpose maps onto `sunrice_{purpose}` and `sunrice-{purpose}|{user}`, the same
-        // namespace as the panel's own keys: "weak-password" is WeakPasswordAtLogin's session key.
-        expect(EmailCodes::sessionKey('weak-password'))->not->toBe(WeakPasswordAtLogin::SESSION_KEY);
-    })->skip('BUG: EmailCodes purposes share the panel\'s key namespace with no reserved list: sessionKey("weak-password") === WeakPasswordAtLogin::SESSION_KEY, sessionKey("locale") === "sunrice_locale", and lockout keys for purposes "login", "login-ip", "login-account" are LoginThrottle\'s keys.');
+        // Purposes live under `sunrice_code_` / `sunrice-code-`: none can name the panel's own keys.
+        expect(EmailCodes::sessionKey('weak-password'))->toBe('sunrice_code_weak_password')->not->toBe(WeakPasswordAtLogin::SESSION_KEY);
+
+        $codes = app(EmailCodes::class);
+        foreach (['login', 'login-ip', 'login-account', 'test-mail'] as $purpose) {
+            RateLimiter::clear("sunrice-{$purpose}|7");
+            expect($codes->lockedFor($purpose, 7))->toBe(0);
+            foreach (range(1, 10) as $i) {
+                RateLimiter::hit("sunrice-{$purpose}|7", 900);
+            }
+            // The panel's own limiter at that name doesn't lock the purpose's codes.
+            expect($codes->lockedFor($purpose, 7))->toBe(0);
+        }
+    });
 });
 
 describe('two-factor login on the engine', function () {
@@ -332,15 +342,15 @@ describe('two-factor login on the engine', function () {
         $this->admin = adminUser(Panel::ACCESS);
         $this->admin->forceFill(['email' => 'rina@example.com', 'password' => 'secret-password'])->save();
         app(SaveSettings::class)->handle(app(SecuritySettings::class), ['twoFactor' => true]);
-        RateLimiter::clear('sunrice-two-factor|'.$this->admin->id);
+        RateLimiter::clear('sunrice-code-two-factor|'.$this->admin->id);
     });
 
-    it('keeps its old session key and lockout key', function () {
+    it('keeps its codes under the engine\'s session key and lockout key', function () {
         expect(EmailCodes::sessionKey(TwoFactorLogin::PURPOSE))->toBe(TwoFactorLogin::SESSION_KEY)
-            ->and(TwoFactorLogin::SESSION_KEY)->toBe('sunrice_two_factor');
+            ->and(TwoFactorLogin::SESSION_KEY)->toBe('sunrice_code_two_factor');
 
         foreach (range(1, TwoFactorLogin::LOCKOUT_ATTEMPTS) as $i) {
-            RateLimiter::hit('sunrice-two-factor|'.$this->admin->id, TwoFactorLogin::LOCKOUT_SECONDS);
+            RateLimiter::hit('sunrice-code-two-factor|'.$this->admin->id, TwoFactorLogin::LOCKOUT_SECONDS);
         }
         expect(app(TwoFactorLogin::class)->lockedFor($this->admin))->toBeGreaterThan(0);
         gapsPasswordStep()->assertSessionHasErrors('email');
@@ -417,11 +427,11 @@ describe('two-factor login on the engine', function () {
 
         // The plugin's purpose locked doesn't lock the login.
         foreach (range(1, EmailCodes::LOCKOUT_ATTEMPTS) as $i) {
-            RateLimiter::hit('sunrice-shop-login|'.$this->admin->id, EmailCodes::LOCKOUT_SECONDS);
+            RateLimiter::hit('sunrice-code-shop-login|'.$this->admin->id, EmailCodes::LOCKOUT_SECONDS);
         }
         post('/admin/login/code', ['code' => $login])->assertRedirect('/admin');
         assertAuthenticatedAs($this->admin);
-        RateLimiter::clear('sunrice-shop-login|'.$this->admin->id);
+        RateLimiter::clear('sunrice-code-shop-login|'.$this->admin->id);
     });
 
     it('answers "missing" when the pending account is gone', function () {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `EmailCodes` keeps pending codes under `sunrice_code_{purpose}` in the session and their lockouts under `sunrice-code-{purpose}|{user}` (were `sunrice_{purpose}` and `sunrice-{purpose}|{user}`), so a plugin's purpose can't name one of the panel's own keys: `weak-password` was the weak-password check's session key, `login` and `login-ip` the login throttle's limiter names. `TwoFactorLogin::SESSION_KEY` is `sunrice_code_two_factor`. On upgrading, someone waiting for a login code signs in again, and lockouts start over.
 - Fix: the panel's CSV exports (entries, revisions) left out the address of a link to an entry that `Cms::hideEntriesUsing()` hides from the editor as a visitor; whether the column was filled depended on who exported. They now resolve links as for anyone. `HydrationContext` takes `forVisitor: false` for that.
 - `Cms::hideEntriesUsing()` hooks now each narrow the query in a group of their own (`where(fn ...)`): a hook using `orWhere` could undo the site's own conditions and list unpublished drafts, other languages or other collections.
 - Fix: a `Select::multiple()` whose options depend on the record (an options closure) dropped the record's own choices when an AI agent saved the record (`save_record` with other fields): its current values were read against the options of no record. `formValue()` now uses the options of the record it's given.

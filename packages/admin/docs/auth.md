@@ -40,7 +40,8 @@ match ($codes->check($request, 'shop-login', $input)) {
 - A code is 6 digits; spaces and dashes in what's typed don't matter. It works for `EmailCodes::LIFETIME_MINUTES` (10) unless you give `minutes`, and allows `MAX_ATTEMPTS` (5) guesses; the right one ends it.
 - Wrong codes also count per user and purpose across codes: `LOCKOUT_ATTEMPTS` (10) in `LOCKOUT_SECONDS` (15 minutes) lock them (`check()` answers `locked`, `lockedFor()` says for how long), so asking for fresh codes doesn't give endless guesses.
 - `resendIn()` is the seconds until another code should go (`RESEND_SECONDS`, 60); sending is yours, so is waiting.
-- Each purpose has its own pending code and lockout; the panel's two-factor login is `two-factor`.
+- Each purpose has its own pending code and lockout; the panel's two-factor login is `two-factor`. Start yours with your plugin's name (`shop-login`, not `login`) so two plugins don't share one.
+- They're kept under the engine's own names, `EmailCodes::sessionKey($purpose)` (`sunrice_code_shop_login`) in the session and `sunrice-code-shop-login|{user}` for the lockout, so no purpose can reach the panel's other keys. Read the session through `pending()`, not by that name.
 
 ## Strong passwords
 
