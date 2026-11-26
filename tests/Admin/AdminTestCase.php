@@ -6,6 +6,7 @@ namespace Sunrice\Tests\Admin;
 
 use Orchestra\Testbench\TestCase;
 use Sunrice\Admin\AdminServiceProvider;
+use Sunrice\Tests\WorkerSkeleton;
 use Workbench\App\Models\User;
 
 use function Orchestra\Testbench\default_migration_path;
@@ -14,6 +15,8 @@ use function Orchestra\Testbench\load_migration_paths;
 /** A Laravel app with the admin panel and nothing else. */
 abstract class AdminTestCase extends TestCase
 {
+    use WorkerSkeleton;
+
     protected function getPackageProviders($app): array
     {
         return [AdminServiceProvider::class];
