@@ -305,7 +305,7 @@ final class EntryList
         $write([...$columns, ...$labels]);
         $authors = $this->authorNames();
         // Entry links' addresses, as the site has them in the list's language.
-        $context = new HydrationContext($this->locale);
+        $context = new HydrationContext($this->locale, forVisitor: false);
         $this->query()->chunk(500, function ($translations) use ($fields, $authors, $write, $context): void {
             $list = array_values($translations->all());
             // What the chunk's values point at, read once: linked entries' addresses and titles, terms' titles.

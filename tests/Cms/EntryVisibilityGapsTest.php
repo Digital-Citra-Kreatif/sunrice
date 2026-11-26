@@ -317,7 +317,7 @@ it('exports links to hidden entries with their address from the panel', function
 
     $csv = get('/admin/cms/collections/blog/entries/export')->assertOk()->streamedContent();
     expect(substr_count($csv, url('/blog/members-coffee-club')))->toBe(2); // its own row's URL and Brewing's link
-})->todo('the panel\'s CSV export (packages/cms/src/Admin/EntryList.php:308, likewise Admin/RevisionList.php:252) hydrates link fields with a site HydrationContext, not a preview one, so the visitor hook hides the linked entry from the editor and its link exports blank (it exports when the hook lets the request see it)');
+});
 
 it('keeps a member\'s pages out of the page cache when the plugin skips them', function () {
     config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
