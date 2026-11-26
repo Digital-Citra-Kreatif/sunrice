@@ -216,7 +216,8 @@ it('takes a multiple select\'s choices as JSON, as the panel sends them', functi
     paletteUser('view', 'create');
 
     postJson('/admin/shop/palettes', ['name' => 'Json', 'colours' => ['blue', 'red']])->assertSessionHasNoErrors();
-    expect(Palette::query()->where('name', 'Json')->firstOrFail()->getRawOriginal('colours'))->toBe('["blue","red"]');
+    // Decoded: MySQL's JSON column stores its own spacing ("[\"blue\", \"red\"]").
+    expect(json_decode((string) Palette::query()->where('name', 'Json')->firstOrFail()->getRawOriginal('colours'), true))->toBe(['blue', 'red']);
 });
 
 it('refuses integer choices sent as JSON numbers, though a single select takes them', function () {
