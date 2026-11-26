@@ -71,9 +71,13 @@ final class HydrationContext
     /** @var WeakMap<Term|EntryTranslation, array<string, array<string, mixed>>> data made of its terms and linked entries (ContentData), by the page's collection */
     private WeakMap $data;
 
+    /**
+     * @param  bool  $forVisitor  false for the panel (exports): entries plugins hide from the visitor (Cms::hideEntriesUsing()) are resolved as for anyone else, not as the editor's own visit to the site would see them
+     */
     public function __construct(
         public readonly string $locale,
         public readonly bool $preview = false,
+        public readonly bool $forVisitor = true,
     ) {
         $this->shared = new WeakMap;
         $this->data = new WeakMap;
@@ -394,7 +398,7 @@ final class HydrationContext
         }
         $loaded = [];
         // What plugins hide from this visitor (Cms::hideEntriesUsing()) is as if it weren't there; previews show everything.
-        $visible = $this->preview ? null : array_flip(app(EntryVisibility::class)->visibleEntryIds($found->values(), $this->locale));
+        $visible = $this->preview || ! $this->forVisitor ? null : array_flip(app(EntryVisibility::class)->visibleEntryIds($found->values(), $this->locale));
         foreach ($missing as $id) {
             $entry = $visible === null || isset($visible[$id]) ? $found->get($id) : null;
             // Each translation knows its entry (and so its collection and fields) without asking again.

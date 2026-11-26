@@ -249,7 +249,7 @@ final class RevisionList
             $media[$file->id] = $file->filename;
         }
 
-        return new ExportText($entries, $terms, new HydrationContext($locale), $media);
+        return new ExportText($entries, $terms, new HydrationContext($locale, forVisitor: false), $media);
     }
 
     /**
