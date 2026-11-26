@@ -131,7 +131,7 @@ it('does not let a translator save a card they are not shown, by naming another 
     // The card is about the whole entry (every language), like its settings: not for translators.
     put("/admin/cms/entries/{$this->page}/cards/access", ['values' => ['mode' => 'roles'], 'locale' => 'id'])->assertForbidden();
     expect($this->saved)->toBe([]);
-})->todo('EditorCardController lets translators save entry cards: the route guard reads "locale" from the input and passes translators for a non-main language, and the controller never re-checks Access::entries(..., update, collection, entry) without a locale as EntryManageController::settings() does.');
+});
 
 it('404s an unknown card key and a missing record', function () {
     Content::editorCard(gapCard($this));
@@ -167,7 +167,17 @@ it('does not save a card on an entry whose collection is in the trash', function
     get(entryEditUrl($this->page))->assertNotFound();
     put("/admin/cms/entries/{$this->page}/cards/access", ['values' => ['mode' => 'any']])->assertNotFound();
     expect($this->saved)->toBe([]);
-})->todo('EditorCardController saves cards on entries of a trashed collection: the editor and EntryManageController::settings() abort 404 when $entry->collection->trashed(), the card save has no such check.');
+});
+
+it('does not save a card on a term whose taxonomy is in the trash', function () {
+    Content::editorCard(gapCard($this));
+    actingAs(adminUser(Panel::ACCESS, 'cms.terms.view', 'cms.terms.update'));
+    $news = app(SaveTerm::class)->handle($this->topics, ['title' => 'News']);
+    $this->topics->delete();
+
+    put("/admin/cms/terms/{$news->id}/cards/access", ['values' => ['mode' => 'any']])->assertNotFound();
+    expect($this->saved)->toBe([]);
+});
 
 it('treats values that are not a list as none, and checks them', function () {
     Content::editorCard(gapCard($this));
