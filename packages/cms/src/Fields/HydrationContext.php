@@ -394,7 +394,7 @@ final class HydrationContext
         }
         $loaded = [];
         // What plugins hide from this visitor (Cms::hideEntriesUsing()) is as if it weren't there; previews show everything.
-        $visible = $this->preview ? null : array_flip(app(EntryVisibility::class)->visibleEntryIds(array_values(array_map(intval(...), $found->keys()->all()))));
+        $visible = $this->preview ? null : array_flip(app(EntryVisibility::class)->visibleEntryIds($found->values(), $this->locale));
         foreach ($missing as $id) {
             $entry = $visible === null || isset($visible[$id]) ? $found->get($id) : null;
             // Each translation knows its entry (and so its collection and fields) without asking again.
