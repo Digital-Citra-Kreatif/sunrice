@@ -64,7 +64,7 @@ function guideExample(string $file): string
 function packageToolNames(): array
 {
     $names = [];
-    foreach (glob(dirname(__DIR__, 2).'/packages/*/src/Ai/{,Tools/}*.php', GLOB_BRACE) ?: [] as $file) {
+    foreach (array_merge(glob(dirname(__DIR__, 2).'/packages/*/src/Ai/*.php') ?: [], glob(dirname(__DIR__, 2).'/packages/*/src/Ai/Tools/*.php') ?: []) as $file) { // Not GLOB_BRACE: some PHP builds (musl, Alpine) don't have it.
         if (preg_match("/protected string \\\$name = '([a-z_]+)'/", (string) file_get_contents($file), $match) === 1) {
             $names[] = $match[1];
         }
@@ -113,7 +113,7 @@ it('names only config keys there are', function () {
 
 it('names only commands and MCP tools there are', function () {
     $signatures = [];
-    foreach (glob(dirname(__DIR__, 2).'/packages/*/src/{Console,Console/Commands}/*.php', GLOB_BRACE) ?: [] as $file) {
+    foreach (array_merge(glob(dirname(__DIR__, 2).'/packages/*/src/Console/*.php') ?: [], glob(dirname(__DIR__, 2).'/packages/*/src/Console/Commands/*.php') ?: []) as $file) {
         if (preg_match("/\\\$signature = '(sunrice:[a-z-]+)/", (string) file_get_contents($file), $match) === 1) {
             $signatures[] = $match[1];
         }

@@ -161,6 +161,9 @@ async function checkPage(page, entry, label) {
         current.expected = new Set(entry.status ? [base + path] : []);
         const response = await visit(page, path);
         if (entry.status && response?.status() !== entry.status) problems.push(`[${label}] expected HTTP ${entry.status}, got ${response?.status()}`);
+        // A signed-in page that sent us to sign in, or to "Choose a stronger password", wasn't checked at all.
+        const landed = new URL(page.url()).pathname;
+        if (entry.signedIn && /\/admin\/(login|login\/code|stronger-password)$/.test(landed)) problems.push(`[${label}] redirected to ${landed} instead of the page`);
         if (entry.then) await entry.then(page);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         if (overflow > 1) problems.push(`[${label}] the page is ${overflow}px wider than the screen`);
@@ -201,11 +204,24 @@ for (const viewportName of wantedViewports) {
         } else if (page.url().endsWith('/admin/login')) {
             await visit(page, '/_workbench/login/' + encodeURIComponent(process.env.SMOKE_EMAIL ?? 'admin@example.com'));
         }
+        // The workbench's "password" is weak, so the panel asks for a stronger one before anything else
+        // (WeakPasswordAtLogin): check that page, then choose one. Later runs sign in through /_workbench/login.
+        if (new URL(page.url()).pathname.endsWith('/admin/stronger-password')) {
+            current = { label: `stronger-password-${suffix}`, expected: new Set() };
+            if (shots) await page.screenshot({ path: join(shots, `stronger-password-${suffix}.png`), fullPage: true });
+            const strong = process.env.SMOKE_STRONG_PASSWORD ?? 'Smoke-test-Passw0rd!';
+            const fields = page.locator('input[type="password"]');
+            await fields.nth(0).fill(strong);
+            await fields.nth(1).fill(strong);
+            await Promise.all([page.waitForURL((url) => !url.pathname.endsWith('/stronger-password'), { timeout: 10000 }).catch(() => {}), page.locator('button[type="submit"]').first().click()]);
+            await page.waitForLoadState('networkidle');
+            if (new URL(page.url()).pathname.endsWith('/stronger-password')) problems.push(`[${current.label}] the stronger password wasn't accepted`);
+        }
 
         for (const entry of pages) {
             if (only && !entry.name.includes(only)) continue;
             if (entry.mobileOnly && viewportName !== 'mobile') continue;
-            await checkPage(page, entry, `${entry.name}-${suffix}`);
+            await checkPage(page, { ...entry, signedIn: true }, `${entry.name}-${suffix}`);
             count++;
         }
         await context.close();
