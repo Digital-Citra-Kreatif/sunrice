@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The whole-page cache keeps pages per `Cms::hideEntriesUsing()` viewer key: a plugin that hides entries from some visitors no longer has to skip the page cache for them to keep a member's listing from being served to guests (the docs said to; one that forgot leaked it). Visitors with the same key share kept pages; pages about the visitor themselves still need `PageCache::skipWhen()`. Sites without such a plugin keep their cache as it is.
 - `EmailCodes` keeps pending codes under `sunrice_code_{purpose}` in the session and their lockouts under `sunrice-code-{purpose}|{user}` (were `sunrice_{purpose}` and `sunrice-{purpose}|{user}`), so a plugin's purpose can't name one of the panel's own keys: `weak-password` was the weak-password check's session key, `login` and `login-ip` the login throttle's limiter names. `TwoFactorLogin::SESSION_KEY` is `sunrice_code_two_factor`. On upgrading, someone waiting for a login code signs in again, and lockouts start over.
 - Fix: the panel's CSV exports (entries, revisions) left out the address of a link to an entry that `Cms::hideEntriesUsing()` hides from the editor as a visitor; whether the column was filled depended on who exported. They now resolve links as for anyone. `HydrationContext` takes `forVisitor: false` for that.
 - `Cms::hideEntriesUsing()` hooks now each narrow the query in a group of their own (`where(fn ...)`): a hook using `orWhere` could undo the site's own conditions and list unpublished drafts, other languages or other collections.

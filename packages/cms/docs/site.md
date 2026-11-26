@@ -533,7 +533,7 @@ Cms::hideEntriesUsing(
 - **Where it applies:** listing pages and term pages (`$entries`), `Cms::entries()` and `<x-sunrice-cms::entries>`, search, menus (a link to a hidden entry is left out, with the links under it), entries fields and links resolved for a template (a hidden entry is as if it weren't published), and term counts.
 - **Per language:** the query is of translations, so a hook may decide per translation. A page in a language judges the translation it shows there: that language's when it's published, else the main language's. Another language's passing doesn't show the entry.
 - **The sitemap** asks with `$everyone` true: no one is signed in for search engines, whoever builds it.
-- **Caches:** what's cached (remembered queries, search results, menus) is kept per viewer key. The page cache keeps pages for visitors who aren't signed in; skip it for your signed-in visitors with `PageCache::skipWhen()` ([Caching](caching.md)).
+- **Caches:** what's cached (remembered queries, search results, menus, and whole pages in the page cache) is kept per viewer key, so visitors with the same key share it and no one gets another kind of visitor's listing. Pages that show something about the visitor themselves ("Hi, Ana") must still skip the page cache with `PageCache::skipWhen()` ([Caching](caching.md)). The viewer callback runs on every site page: keep it cheap.
 - **An entry's own page** still resolves at its address. Decide what it shows with `Cms::resolveTemplateUsing()` (above): a sign-in prompt, a message, a redirect.
 - **Previews** show everything.
 

@@ -27,6 +27,7 @@ use Sunrice\Cms\Models\Term;
 use Sunrice\Cms\Site\EntryVisibility;
 use Sunrice\Cms\Site\Page;
 use Sunrice\Cms\Site\PageCache;
+use Sunrice\Cms\Site\PageCacheProfile;
 use Sunrice\Cms\Site\Search;
 use Sunrice\Cms\Site\Sitemap;
 
@@ -337,4 +338,25 @@ it('never serves a member\'s kept page to a guest, even when the plugin forgets 
     get('/blog')->assertOk()->assertSee('Members coffee club');
     asMember(false);
     get('/blog')->assertOk()->assertDontSee('Members coffee club');
-})->todo('the page cache (PageCacheHasher, PageCache::forVisitor()) ignores EntryVisibility::key(): a member the default and panel guards don\'t know (a plugin\'s own guard, a token) gets a listing kept and served to guests. The docs leave it to the plugin (PageCache::skipWhen()), but the CMS has the viewer key to keep pages apart or skip them');
+});
+
+it('shares kept pages among visitors with the same viewer key', function () {
+    config(['sunrice-cms.cache.pages' => true, 'responsecache.debug.enabled' => true]);
+
+    asMember();
+    get('/blog')->assertHeader('X-Cache-Status', 'MISS')->assertSee('Members coffee club');
+    get('/blog')->assertHeader('X-Cache-Status', 'HIT')->assertSee('Members coffee club');
+    asMember(false);
+    get('/blog')->assertHeader('X-Cache-Status', 'MISS')->assertDontSee('Members coffee club');
+    get('/blog')->assertHeader('X-Cache-Status', 'HIT')->assertDontSee('Members coffee club');
+});
+
+it('keeps the page cache\'s name as it was without hooks', function () {
+    $profile = app(PageCacheProfile::class);
+    $key = app(EntryVisibility::class)->key();
+    $withHooks = $profile->useCacheNameSuffix(request());
+    app()->instance(EntryVisibility::class, new EntryVisibility);
+
+    expect($withHooks)->toEndWith('-'.$key)
+        ->and($profile->useCacheNameSuffix(request()))->toBe(substr($withHooks, 0, -strlen('-'.$key)));
+});

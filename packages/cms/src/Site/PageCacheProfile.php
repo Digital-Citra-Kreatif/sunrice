@@ -48,11 +48,16 @@ class PageCacheProfile extends CacheAllSuccessfulGetRequests
      * pages kept before a change, before `npm run build` renamed the CSS
      * and JS they link, or with the site code before SUNRICE_SITE_CODE=false
      * (and without it before it's back on), are never served again.
+     * With plugins hiding entries from some visitors (Cms::hideEntriesUsing()),
+     * per viewer key too: a member's listing is never served to a guest,
+     * whether or not the plugin skips the page cache for members.
      */
     public function useCacheNameSuffix(Request $request): string
     {
         $build = Vite::manifestHash();
+        $viewer = app(EntryVisibility::class)->key();
 
-        return 'v'.app(SiteCache::class)->version(SiteCache::PAGES).($build === null ? '' : '-'.substr($build, 0, 12)).(CodeSettings::available() ? '' : '-nocode');
+        return 'v'.app(SiteCache::class)->version(SiteCache::PAGES).($build === null ? '' : '-'.substr($build, 0, 12)).(CodeSettings::available() ? '' : '-nocode')
+            .($viewer === '' ? '' : '-'.$viewer);
     }
 }

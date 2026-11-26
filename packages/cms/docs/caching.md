@@ -70,6 +70,8 @@ app(\Sunrice\Cms\Site\PageCache::class)->skipWhen(fn (Request $request, ?Page $p
     $request->cookies->has('cart') || $page?->collection?->handle === 'products');
 ```
 
+With a plugin hiding entries from some visitors ([`Cms::hideEntriesUsing()`](site.md#entries-some-visitors-may-not-see)), pages are also kept per viewer key: visitors with the same key share them, and a member's listing is never served to a guest. That's about which entries show, not about the visitor: a page greeting the member by name still needs `skipWhen()`. The viewer callback then runs for every site page asked for, so keep it cheap (a cookie or the session, no queries).
+
 The callback is asked twice: before a kept page is served (`$page` is null then: only the request is known), and after a page renders, before it's kept.
 
 Pages are kept for `cache.ttl` at most (or Settings → Cache's minutes). Keep some for less with `lifetimeUsing()`: return seconds, or null for no opinion; the shortest answer wins, and 0 doesn't keep the page at all. Drafts and previews are never kept.
@@ -164,6 +166,7 @@ So leave HTML to the origin: don't use a "cache everything" rule with an edge TT
 - Never cache the panel (`/admin` and everything under it, or the path set with `$panel->path()`), previews (`/cms-preview/*`), any address with `?draft`, the site search with `?q=`, signed links (`/comments/{id}/unsubscribe`), or anything but `GET` and `HEAD` (form posts to `/forms/{handle}` and `/comments/{id}`).
 - Leave out pages with a form or comments: a page kept at the edge gives every visitor the first one's CSRF token and honeypot fields, and their submissions fail (419, page expired). The whole-page cache swaps in each visitor's own; an edge cache can't.
 - With the site's [Content-Security-Policy](site.md#content-security-policy) on, a page kept at the edge repeats one nonce for every visitor, which lets an attacker who can inject HTML reuse it. Leave pages to the whole-page cache (which swaps in a new nonce), or set `site.csp.nonce` to `false` and allow inline code with `'unsafe-inline'` instead.
+- With a plugin hiding entries from some visitors (`Cms::hideEntriesUsing()`), an edge keyed by address can't tell them apart: bypass it on the plugin's cookie or header for members, or leave listing pages to the whole-page cache, which keeps them per viewer.
 - Purge the edge when the content changes: listen to `ContentChanged` (see [Events and hooks](events.md)) and call your CDN's purge API from a queued listener, or keep edge lifetimes short.
 
 Files are another matter. Those with a hash in their name that changes with their content can be kept for a year (`Cache-Control: public, max-age=31536000, immutable`): the panel's under `/vendor/sunrice-admin/assets/` and your front end's Vite build under `/build/assets/`. Plugin bundles (`/vendor/sunrice-cms/` and other plugins') keep their names between versions, so give them a short lifetime. See [Compression and caching](../../admin/docs/installation.md#compression-and-caching) for the web server's side.
