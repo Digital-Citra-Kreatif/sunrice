@@ -6,6 +6,7 @@ namespace Sunrice\Cms\Site;
 
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 
 /**
@@ -69,18 +70,35 @@ final class EntryVisibility
     }
 
     /**
-     * The entries among these the visitor may see (all of them without hooks).
+     * The entries among these the visitor may see in a language (all of
+     * them without hooks). What counts is the translation the site shows
+     * there, as entry links and fields pick it: this language's when it's
+     * live, else the main language's; not whether some other translation
+     * would pass, since a plugin may decide per translation.
      *
-     * @param  list<int>  $entryIds
+     * @param  iterable<Entry>  $entries  with their translations loaded
      * @return list<int>
      */
-    public function visibleEntryIds(array $entryIds, bool $everyone = false): array
+    public function visibleEntryIds(iterable $entries, string $locale, bool $everyone = false): array
     {
-        if (! $this->active() || $entryIds === []) {
-            return $entryIds;
+        $shown = [];
+        $ids = [];
+        foreach ($entries as $entry) {
+            $ids[] = $entry->id;
+            $translation = $entry->translation($locale);
+            $translation = $translation !== null && $translation->isLive() ? $translation : $entry->mainTranslation();
+            if ($translation !== null) {
+                $shown[$translation->id] = $entry->id;
+            }
         }
-        $visible = $this->apply(EntryTranslation::query()->whereIn('entry_id', $entryIds), $everyone)->distinct()->pluck('entry_id')->all();
+        if (! $this->active() || $ids === []) {
+            return $ids;
+        }
+        if ($shown === []) {
+            return [];
+        }
+        $visible = $this->apply(EntryTranslation::query()->whereKey(array_keys($shown)), $everyone)->pluck('id')->all();
 
-        return array_values(array_intersect($entryIds, array_map(intval(...), array_filter($visible, is_numeric(...)))));
+        return array_values(array_unique(array_map(fn (mixed $id): int => $shown[(int) $id], array_filter($visible, is_numeric(...)))));
     }
 }

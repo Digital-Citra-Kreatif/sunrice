@@ -19,6 +19,7 @@ use Sunrice\Cms\Fields\Schema;
 use Sunrice\Cms\Menus;
 use Sunrice\Cms\Models\Blueprint;
 use Sunrice\Cms\Models\Collection;
+use Sunrice\Cms\Models\Entry;
 use Sunrice\Cms\Models\EntryTranslation;
 use Sunrice\Cms\Models\Menu;
 use Sunrice\Cms\Models\Taxonomy;
@@ -239,7 +240,7 @@ it('hides an entry from related fields when another of its languages passes the 
 
     expect(Content::entries('blog')->count())->toBe(2) // Brewing, Coffee notes
         ->and(gapTitles(EntryTranslation::query()->findOrFail($post->id)->values()['related']))->toBe([]);
-})->todo('EntryVisibility::visibleEntryIds() (packages/cms/src/Site/EntryVisibility.php:82) asks whether ANY translation of the entry, in any language, passes the hook; HydrationContext::preloadEntries() then shows the English translation the hook hid');
+});
 
 it('hides a menu link when another of the entry\'s languages passes the hook', function () {
     $id = app(CreateTranslation::class)->handle($this->secret->entry, 'id');
@@ -249,7 +250,7 @@ it('hides a menu link when another of the entry\'s languages passes the hook', f
     app(SaveMenu::class)->handle($menu, [['entry_id' => $this->secret->entry_id]]);
 
     expect(array_column(app(Menus::class)->get('main'), 'label'))->toBe([]);
-})->todo('same cause (EntryVisibility::visibleEntryIds(), used by Menus.php:58): the Indonesian translation passing the hook keeps the English menu linking the entry the hook hid');
+});
 
 it('combines several plugins\' hooks: an entry any of them hides is hidden', function () {
     app()->instance('test.vip', false);
@@ -284,7 +285,7 @@ it('keys caches by every hook\'s viewer, and not at all without hooks', function
         ->and($visibility->key())->not->toBe($guestVip)
         ->and((new EntryVisibility)->key())->toBe('')
         ->and((new EntryVisibility)->active())->toBeFalse()
-        ->and((new EntryVisibility)->visibleEntryIds([3, 1]))->toBe([3, 1]);
+        ->and((new EntryVisibility)->visibleEntryIds([(new Entry)->forceFill(['id' => 3])->setRelation('translations', collect()), (new Entry)->forceFill(['id' => 1])->setRelation('translations', collect())], 'en'))->toBe([3, 1]);
 });
 
 it('keeps a hook that uses orWhere from showing drafts', function () {
