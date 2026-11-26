@@ -26,6 +26,8 @@
         </include>
     </source>
     <php>
+        <!-- Pinned: `composer serve` (workbench:build) writes APP_URL=http://localhost:8000 into Testbench's .env, which tests would otherwise read. -->
+        <env name="APP_URL" value="http://localhost"/>
         <env name="APP_KEY" value="base64:2fl+Ktvkfl+Fve4Qp/sF3rJf2fDR2lHo4SY9mZhJb+s="/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
