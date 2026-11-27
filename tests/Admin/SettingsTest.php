@@ -97,7 +97,13 @@ it('reads all sections with one cached query', function () {
 });
 
 it('reads settings while the database cache table is missing', function () {
-    config(['cache.default' => 'database', 'cache.stores.database.table' => 'unmigrated_cache']);
+    // A missing table must not abort the test's PostgreSQL transaction.
+    config([
+        'database.connections.settings_cache' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''],
+        'cache.default' => 'database',
+        'cache.stores.database.connection' => 'settings_cache',
+        'cache.stores.database.table' => 'unmigrated_cache',
+    ]);
 
     expect(app(ShopSettings::class)->name)->toBe('Shop');
 
