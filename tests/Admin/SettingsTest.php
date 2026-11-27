@@ -96,6 +96,22 @@ it('reads all sections with one cached query', function () {
         ->and(DB::getQueryLog())->toHaveCount(1);
 });
 
+it('reads settings while the database cache table is missing', function () {
+    config(['cache.default' => 'database', 'cache.stores.database.table' => 'unmigrated_cache']);
+
+    expect(app(ShopSettings::class)->name)->toBe('Shop');
+
+    DB::table(SettingsStore::TABLE)->insert([
+        'key' => 'shop',
+        'values' => json_encode(['name' => 'Toko']),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    app()->forgetScopedInstances();
+    expect(app(ShopSettings::class)->name)->toBe('Toko');
+});
+
 it('refuses settings without a supported type or a default', function () {
     expect(fn () => SettingsStore::properties(LooseSettings::class))->toThrow(PanelMisconfigured::class, 'needs a type')
         ->and(fn () => app(LooseSettings::class))->toThrow(PanelMisconfigured::class);

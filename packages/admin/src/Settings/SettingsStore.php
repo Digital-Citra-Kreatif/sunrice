@@ -170,7 +170,14 @@ final class SettingsStore
             return $this->rows;
         }
 
-        $cached = Cache::get(self::CACHE_KEY);
+        $cacheAvailable = true;
+        try {
+            $cached = Cache::get(self::CACHE_KEY);
+        } catch (QueryException) {
+            // On a fresh install the database cache table may not exist yet.
+            $cached = null;
+            $cacheAvailable = false;
+        }
         if (is_array($cached)) {
             /** @var array<string, array<string, mixed>> $cached */
             return $this->rows = $cached;
@@ -188,7 +195,9 @@ final class SettingsStore
             $section = is_array($values) ? $values : [];
             $decoded[(string) $key] = $section;
         }
-        Cache::forever(self::CACHE_KEY, $decoded);
+        if ($cacheAvailable) {
+            Cache::forever(self::CACHE_KEY, $decoded);
+        }
 
         return $this->rows = $decoded;
     }
