@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Read Sunrice settings before the database cache table exists so plugin routes can register
+  during Composer package discovery and initial migrations.
+
 ## 0.8.1 (2026-11-21)
 
 **Upgrading from 0.8.0**: `composer update "sunrice/*" -W` and `php artisan sunrice:assets` (the panel's and the CMS's bundles changed). No migrations, nothing to change. See [Upgrading](docs/upgrading.md#081).
